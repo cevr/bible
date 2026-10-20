@@ -52,7 +52,7 @@ Every other colour (every garment of the cast, the world's chipboard, the skies)
 - **Ellen White.** "The white raiment is the righteousness of Christ, the wedding garment which Christ alone can give" (RH April 1, 1890, par. 10). "This robe, woven in the loom of heaven, has in it not one thread of human devising" (COL 311.4). Eden's pair wore "a robe of light", "a symbol of their spiritual garments of heavenly innocence" (COL 310.4).
 - **House.** The robe: righteousness given, never grown.
 - **Under K1.** The only pure white in a frame. Nothing else reaches `#fcfefc`: no garment, no hair, no paper, no sky. Undyed cloth is oat (`#d1c6b4`); old hair is a pale cool paper (Rosa, [ensemble.md](../../../../apps/animations/docs/ensemble.md)). The robe shades toward the open robe shade above, never toward grey.
-- **Never.** White as a costume colour, as "the good one", or as a church garment (a choir robe, a baptismal gown). In theology 09 the two who go down into the water wear their own plain clothes.
+- **Never.** White as a costume colour, as "the good one", or as a church garment (a choir robe, a baptismal gown). In theology 13 the two who go down into the water wear their own plain clothes.
 
 #### Scarlet: sin, and the blood that answers it
 
@@ -213,8 +213,8 @@ Owner, 2026-10-15: "i actually liked more the non descriptive character in the r
 
 The lead of a film is one of two:
 
-- **A Bible figure** whose story the STORY scenes carry (Isaiah in theology 05, the Bereans and Paul in 02, the paralytic, Joshua in Zech 3). Section 3 draws them, with the text's own details.
-- **The plain lead:** the parable's "a certain man" (Luke 10:30) or "a woman" (Luke 15:8), whose need is the film's question. "Picture a young man in a courtroom" (theology 08), "picture a grown man at a wedding feast" (theology 01). The recurring cast is never the lead, the accused or the one whose need is the question: its eight stand in the background ([ensemble.md](../../../../apps/animations/docs/ensemble.md)).
+- **A Bible figure** whose story the STORY scenes carry (Isaiah in theology 08, the Bereans and Paul in 02, the paralytic, Joshua in Zech 3). Section 3 draws them, with the text's own details.
+- **The plain lead:** the parable's "a certain man" (Luke 10:30) or "a woman" (Luke 15:8), whose need is the film's question. "Picture a young man in a courtroom" (theology 25), "picture a grown man at a wedding feast" (theology 01). The recurring cast is never the lead, the accused or the one whose need is the question: its eight stand in the background ([ensemble.md](../../../../apps/animations/docs/ensemble.md)).
 
 **Why plain.** A parable gives its man no name and no face, so every hearer can stand where he stands. A figure with marks of its own is someone else; a plain figure can be the viewer. Comics found the same: the simpler a face, the more people it stands for (Scott McCloud, _Understanding Comics_, 1993, ch. 2).
 
@@ -386,7 +386,7 @@ The people, beings and places of the Bible's own stories. They live in STORY sce
 
 - **Hair** is cut chipboard (walnut), darker or lighter by person; old hair is the pale cool paper, never robe white. Beards are allowed in Bible scenes; Hugo's is the only beard among the cast.
 - **Skin** follows [ensemble.md](../../../../apps/animations/docs/ensemble.md) open choice 2, the same decision for the cast and for Bible figures. The Bible's people are of the ancient Near East (Acts 17:26 makes every people one blood); no figure is drawn as a European or as any modern type.
-- **The parable's dress, for contrast.** The plain lead (2.3) and the cast wear contemporary, timeless, plain clothes: no logos, no lettering, no uniforms, nothing religious. The two in theology 09's baptism go down in their own plain clothes.
+- **The parable's dress, for contrast.** The plain lead (2.3) and the cast wear contemporary, timeless, plain clothes: no logos, no lettering, no uniforms, nothing religious. The two in theology 13's baptism go down in their own plain clothes.
 
 ### 3.2 Christ
 
@@ -398,7 +398,7 @@ The frame shows the Son freely; the Father is shown only as a veiled, hazy human
   - **One look in a film where the owner keeps it.** _Righteousness by Faith_ keeps Christ in the white robe and gold sash throughout, as its approved Board shows (owner, 2026-10-17, ask a14290aca0a: "One look throughout: the white robe and gold sash, as the approved Board shows; update rule 3.2 for this film"). Another film follows this rule unless the owner keeps one look for it too.
 - **One body, frame and face.** Christ is one cast member, with the same body, height in heads, frame and face in every beat and every film (owner, 2026-10-17: "ensure Christ has a consistent body, frame, face"). His dress and pose are variants of that one figure, never a redrawn Christ.
 - **The full human range.** "Jesus wept" (John 11:35). He looked on them "with anger, being grieved" (Mark 3:5). "My soul is exceeding sorrowful, even unto death" (Matt 26:38). He was "moved with compassion" (Matt 9:36). He received children (Mark 10:14) and ate with sinners. He is never a still, blank, beatific mask.
-- **Never a devotional portrait.** He is always acting in the story: walking, reaching, speaking, breaking bread. Never a framed, held, front-on portrait offered to be looked at for its own sake: the second commandment forbids "the worship of the true God by images or similitudes" (PP 306.1; Ex 20:4). Theology 05's `face` beat, which puts His face in a portrait frame, should be restaged as His face in the story. **OWNER QUESTION 5.**
+- **Never a devotional portrait.** He is always acting in the story: walking, reaching, speaking, breaking bread. Never a framed, held, front-on portrait offered to be looked at for its own sake: the second commandment forbids "the worship of the true God by images or similitudes" (PP 306.1; Ex 20:4). Theology 08's `face` beat, which puts His face in a portrait frame, should be restaged as His face in the story. **OWNER QUESTION 5.**
 - **Never stained.** "In all points tempted like as we are, yet without sin" (Heb 4:15). No scarlet on Him, except the sins laid on Him at the cross (1 Pet 2:24; [nature-of-christ.md](../frame/nature-of-christ.md)).
 - **The cross.** Drawn at the film's one black moment, in silhouette against the dark, with the sins laid on Him as scarlet. No gore and no wounds in close-up. The mocking robe takes the cloth the text names: purple (John 19:2; Mark 15:17) or Matthew's "scarlet robe" (Matt 27:28) in the cloth crimson of OWNER QUESTION 2, since the soldiers' robe is cloth, not sin. Risen, He shows "his hands and his side" (John 20:20, 27): small ink cuts on the circle hands, not scarlet. The one place blood marks His garment is Rev 19:13, "a vesture dipped in blood", where the text puts it. **OWNER QUESTION 6.**
 - **He does not speak on screen.** The films have one narrator ([CRAFT.md](../CRAFT.md)); His words are quoted by the narrator from the KJV, and His mouth moves only as an action (blessing, calling), never lip-synced.
@@ -437,8 +437,8 @@ The frame shows the Son freely; the Father is shown only as a veiled, hazy human
 - **White, and never glowing on their own.** Angels' white is the robe white of holy beings. The glow is the light of the One they come from: At Bethlehem "the glory of the Lord shone round about them" (Luke 2:9): draw the glory round them, not from them.
 - **They say "Fear not".** "Fear not" (Matt 28:5; Luke 1:30; 2:10); "the angel of the LORD encampeth round about them that fear him" (Ps 34:7). Never frightening, never armoured warriors, never cute cherubs.
 - **Never above Christ.** Never brighter, larger or more central than Christ in a shared frame. Never worshipped: "See thou do it not … worship God" (Rev 22:9; Col 2:18).
-- **Seraphim** are gold and cream paper, not flame-red: theology 05's draft "flame-red and gold paper" would put the accent on them. Their six wings: "with twain he covered his face, and with twain he covered his feet, and with twain he did fly" (Isa 6:2).
-- **The Rev 14 angels** are flying messengers with the gospel; never drawn as 1840s preachers or any historical people (theology 29).
+- **Seraphim** are gold and cream paper, not flame-red: theology 08's draft "flame-red and gold paper" would put the accent on them. Their six wings: "with twain he covered his face, and with twain he covered his feet, and with twain he did fly" (Isa 6:2).
+- **The Rev 14 angels** are flying messengers with the gospel; never drawn as 1840s preachers or any historical people (theology 36).
 
 ### 3.6 Satan
 
@@ -463,7 +463,7 @@ Section 2.5's principles apply in full. He is drawn by the text's forms, each in
 
 **Answered (owner, 2026-10-13: "lets go with your recs"):** every question below is settled as recommended.
 
-- **OWNER QUESTION 5. Christ's look.** An ordinary Jewish man, beard (Isa 50:6), no halo, full expressive range, never a devotional portrait (restage theology 05's `face` beat). His earthly coat plain undyed linen (John 19:23); the robe white and gold girdle as Priest, Advocate and in glory (Rev 1:13). Answered in part (owner, 2026-10-13): as Priest He also wears the breastplate (Ex 28:29). Why: Isa 53:2 and FH 183.2 hide His glory under humility, and the white robe in the earthly scenes would say what the text says only of the transfiguration. The alternative is the drafts' white robe and gold sash throughout, which makes Him easy to find in a crowd.
+- **OWNER QUESTION 5. Christ's look.** An ordinary Jewish man, beard (Isa 50:6), no halo, full expressive range, never a devotional portrait (restage theology 08's `face` beat). His earthly coat plain undyed linen (John 19:23); the robe white and gold girdle as Priest, Advocate and in glory (Rev 1:13). Answered in part (owner, 2026-10-13): as Priest He also wears the breastplate (Ex 28:29). Why: Isa 53:2 and FH 183.2 hide His glory under humility, and the white robe in the earthly scenes would say what the text says only of the transfiguration. The alternative is the drafts' white robe and gold sash throughout, which makes Him easy to find in a crowd.
 - **OWNER QUESTION 6. The cross.** Silhouette at the black moment; scarlet as the sins laid on Him; no wounds in close-up; the marks in the risen hands as ink cuts; Rev 19:13 the one text-blood exception on His garment.
 - **OWNER QUESTION 7. Angels' wings.** Wings only for cherubim, seraphim and angels the text says fly; the messengers on earth appear as men in white. Seraphim gold and cream, not flame-red.
 - **OWNER QUESTION 8. The dove.** The Spirit drawn as a dove only at the Jordan (Luke 3:22), never elsewhere.

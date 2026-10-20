@@ -31,7 +31,7 @@ Settings:
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
 | The speaker's set (filmed, not drawn) | series | `1`, `4`, `5`, `8`, `9` | as filmed |
-| The Galilee lakeshore and the water (Illustration) | shared (T05's lake) | `1`, `3`, `9` | dusk in `1`; still water in `9` |
+| The Galilee lakeshore and the water (Illustration) | shared (T08's lake) | `1`, `3`, `9` | dusk in `1`; still water in `9` |
 | A dark bedroom with a clock, then a sunrise (B-roll, not drawn) | series (01's bed and sunrise) | `6` | dark, then sunrise |
 | Fields, woods, a bird on a branch (B-roll, not drawn) | series | `7` | as filmed |
 | The card page: the hook card, the Scripture cards | series | `1`, `3`, `8` | the series' card style |
@@ -40,7 +40,7 @@ Props:
 
 | Prop | Scope | Beats |
 | --- | --- | --- |
-| The boat | shared (T05's boat in the storm) | `3`, `9` |
+| The boat | shared (T08's boat in the storm) | `3`, `9` |
 | The clock by the bed | film | `6` |
 | The phone, face-down | series (06's phone) | `7` |
 

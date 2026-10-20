@@ -1,6 +1,6 @@
-# 18b · Righteousness by Faith
+# 25 · Righteousness by Faith
 
-Series: The Path of the Just · Tier Two (Meat) · after 18 · The Better Covenant (moved from stone 2 on 2026-10-19, owner)
+Series: The Path of the Just · Tier Two (Meat) · 25 of 44 · after 24 · The Better Covenant (moved from stone 2 on 2026-10-19, owner)
 Promise: the viewer knows how God can call a guilty man righteous without a cover-up: His word is a seed, and it brings faith, forgiveness and power.
 Length: about 9:47 (1,181 spoken words: 7:37 at 155 wpm, 8:31 with the marked breaths and holds; plus the title, beat leads and tails, about 27 s of music alone after the thesis and 28 s of credits). The keep ask counted 157 wpm with no pauses: 7:31 of speech, 8:47 as a film. The landing (`court` and `thesis`, from its start to the last word) runs 36.25 s at 155 wpm, 34.35 s at 165: the owner kept its core marks and dropped nine breaths (2026-10-15, option B); it is measured again from his take.
 Status: the v3 rewrite of the made film, kept (2026-10-15) and now the film's script: concepts kept, the Board under way, nothing narrated. Its source is `apps/animations/src/films/righteousness-by-faith/script.ts`, which keeps every picture brief in full (this draft gives each picture's first sentence), with sources.md and quotes.jsonl beside it: every KJV line printed by `bible verse`, every paraphrase source by the corpus search, all EXACT. Thesis: “The just shall live by faith.” Refrain: faith, forgiveness, power. 13.2 % of the words are Scripture read aloud. Marked for delivery 2026-10-15: `{*}` stress, `{/}` breath, `{//}` hold. v3 moved into the film on 2026-10-16 with every line as this draft has it (compared beat by beat); version 2's script stays in the film's `v2/` folder.
@@ -31,16 +31,16 @@ Settings:
 
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
-| The courtroom: a diorama on the parchment in `cold`, cardboard in the paper world at the landing (the bench screen-right, the dock screen-left, the high window) | series (T13, Judge and Advocate, can stand in it) | `cold`, `title`, `court`, `thesis`, `end` | warm sunlight from the high window; the landing's teal, the film's most saturated |
+| The courtroom: a diorama on the parchment in `cold`, cardboard in the paper world at the landing (the bench screen-right, the dock screen-left, the high window) | series (T18, Judge and Advocate, can stand in it) | `cold`, `title`, `court`, `thesis`, `end` | warm sunlight from the high window; the landing's teal, the film's most saturated |
 | The parchment page | series | `word`, `seed`, `spoke`, `look`, `within`, `garden` | peach |
 | Genesis 1: the dark paper world, the sun, land and water | shared | `spoke` | black to dawn to teal |
 | A house in Capernaum | shared | `roof` | peach afternoon |
-| The temple court (05's court) | shared | `woman` | early morning peach |
+| The temple court (08's court) | shared | `woman` | early morning peach |
 | The desert camp with the pole | shared | `look` | peach |
-| The hill at sunset with the cross, the ploughed field below (03's cross hill) | shared | `grain`, `priest` | sunset to black to dawn |
+| The hill at sunset with the cross, the ploughed field below (04's cross hill) | shared | `grain`, `priest` | sunset to black to dawn |
 | The empty tomb | shared | `priest` | dawn |
-| The sanctuary in heaven, two rooms in gold light | series (T14, Priest) | `priest` | teal and gold |
-| Heaven's court in Zech 3, laid out as the cold open's court | series (T24) | `accuser`, `robe` | gold dawn |
+| The sanctuary in heaven, two rooms in gold light | series (T20, Priest) | `priest` | teal and gold |
+| Heaven's court in Zech 3, laid out as the cold open's court | series (T32) | `accuser`, `robe` | gold dawn |
 | Rosa's garden in the hills: a gate, the beds, a bench under a fig tree | shared (ensemble.md, Rosa's gate) | `garden` | morning |
 | Wide paper fields | shared (01's hillside field) | `rain` | the landing's teal; gold and silver rain |
 
@@ -49,7 +49,7 @@ Props:
 | Prop | Scope | Beats |
 | --- | --- | --- |
 | The gold wax seal that turns over into a seed | film | `cold`, `seed`, `spoke`, `look`, `within`, `court` |
-| The two stone tablets (03's and 03b's) | series | `word`, `within` |
+| The two stone tablets (04's and 05's) | series | `word`, `within` |
 | The three icons: the open hand, the white cloth, the green blade | film | `spoke`, `look`, `grain`, `robe`, `within` |
 | The bronze serpent on its pole | shared | `look` |
 | The grain of wheat and the furrow | film | `grain`, `priest` |

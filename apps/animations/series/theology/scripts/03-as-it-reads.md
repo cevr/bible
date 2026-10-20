@@ -1,10 +1,10 @@
-# 02b · As It Reads
+# 03 · As It Reads
 
-Series: The Path of the Just · Tier One (Milk) · after 02 (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · 3 of 44
 Promise: the viewer sees that there are only two ways to read the Bible, as it reads or as you read it; that the second has no end of meanings; and that the Bible crosses every age and tongue because it explains its own words, so anyone can learn to use its dictionary, trying each meaning in its passage.
 Prerequisites: 01 (the milk is "the first principles of the oracles of God"), 02 (the Bereans, the one measuring rule; 02 hands off to this film in one line).
 Length: about 6:20 (726 spoken words: 4:41 at 155 wpm, 5:05 with the marked breaths and holds, 4:48–5:14 at 165–150 wpm with them; plus the title, beat leads and tails, about 30 s of music alone and 28 s of credits). Measured with `bun cli.ts drafts` and a word count of the `say` lines, 2026-10-19, after the review.
-Status: kept by the owner, 2026-10-19 (ask a6ec3ed29a1: keep the script, "Much error", the dictionary as a series motif, the 02 handoff), from his idea of that day (`../as-it-reads.md`); reviewed once (okra counsel, deep) and every finding folded or answered (Notes). Nothing narrated. Every KJV line printed by `bible verse` on 2026-10-19; every paraphrase source read with `bible egw lookup` the same day, verbatim in `../sources.md` ("02b · As It Reads") and `../quotes-02b.jsonl`, and passed by the frame's verifier. Frame: scripture.md (Principle III). Written to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
+Status: kept by the owner, 2026-10-19 (ask a6ec3ed29a1: keep the script, "Much error", the dictionary as a series motif, the 02 handoff), from his idea of that day (`../as-it-reads.md`); reviewed once (okra counsel, deep) and every finding folded or answered (Notes). Nothing narrated. Every KJV line printed by `bible verse` on 2026-10-19; every paraphrase source read with `bible egw lookup` the same day, verbatim in `../sources.md` ("03 · As It Reads") and `../quotes-03.jsonl`, and passed by the frame's verifier. Frame: scripture.md (Principle III). Written to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header
 
@@ -51,7 +51,7 @@ Read against `docs/casting.md` (Part A numbers and sections) and `docs/ensemble.
 | Moses (#2, casting.md 1.3) | Bible figure, minor | shared | a sheet in casting.md, not drawn | `rain` | as flat IDEA paper: an old man singing with an open hand (profile); camel mantle |
 | The good Samaritan (casting.md 1.5, P5, for H54, H63), the beaten man, the priest, the Levite (Luke 10:30–35) | parable figures | shared | the Samaritan listed, not drawn; the other three new | `name` | flat cut-paper, standing in the STORY frame: the man lying (profile), two in temple dress passing (back, three-quarter), the Samaritan kneeling to bind with a small jar (three-quarter), walking beside his beast (profile) |
 | The plain readers (two in `two`, three in `endless`, one in `spirit`), and the reader of our own day in a city coat (`across`) | plain figures (character-design 2.3; casting.md 2.2, "IDEA everyday figures") | series | the plain lead's sheet exists | `two`, `across`, `endless`, `spirit` | seated at a table with a hand mirror (front, three-quarter), bending over a page (profile), peeling a page's corner (three-quarter), eyes opening wide (front, close); contemporary dress, sleeves to the wrist |
-| The mother and the small boy (the boy is the arc's plain boy; his father is the plain lead in 03b, 04b and 06b) | a plain figure and a second plain figure (character-design 2.3; the boy differs by height) | series | the plain lead's sheet exists; the mother is new to it | `child` | the mother kneeling to the boy's height (three-quarter), holding his hand near the stove (profile), wrapping a blanket round him (front), reading to him and walking with him (back, three-quarter); the boy about 0.62; contemporary dress |
+| The mother and the small boy (the boy is the arc's plain boy; his father is the plain lead in 05, 07 and 10) | a plain figure and a second plain figure (character-design 2.3; the boy differs by height) | series | the plain lead's sheet exists; the mother is new to it | `child` | the mother kneeling to the boy's height (three-quarter), holding his hand near the stove (profile), wrapping a blanket round him (front), reading to him and walking with him (back, three-quarter); the boy about 0.62; contemporary dress |
 | Max (ensemble) | recurring cast, background only | shared | yes: ensemble.md | `endless` (standing behind the readers), `child` (across the landing with his takeaway cup) | his sheet as it stands |
 | The hillside crowd (#3, gospel crowds) | crowd | shared | the story crowd kit (casting.md 2.6) | `cold`, `name`, `thesis`, `end` | seated on the slope, listening; headcloths, varied heights |
 
@@ -61,7 +61,7 @@ Settings:
 | --- | --- | --- | --- |
 | The teaching hillside in Galilee (a slope, a few olive trees, a road below) | shared (the gospel hillside of #3) | `cold`, `title`, `name`, `thesis`, `end` | teal day; the landing teal to yellow; evening in the credits |
 | Jairus's house, the girl's room by lamplight | shared (new) | `talitha` | peach |
-| The plain kitchen with a stove and a window on the landing (new here; 03b, 04b and 06b reuse it). It sits in the city building's layout (ensemble.md, Homes), so Max can pass on the landing | series | `child` | dawn |
+| The plain kitchen with a stove and a window on the landing (new here; 05, 07 and 10 reuse it). It sits in the city building's layout (ensemble.md, Homes), so Max can pass on the landing | series | `child` | dawn |
 | The parchment page | series | `one`, `two`, `endless`, `across`, `waters`, `rain`, `figure`, `spirit` | peach |
 
 Props:
@@ -73,7 +73,7 @@ Props:
 | The gold measuring rod (from 02) | series | `one`, `name` |
 | The teacher's scroll | film | `cold`, `name`, `thesis` |
 | The Passover lamb and the scarlet doorpost | shared (the sanctuary films use it) | `two`, `figure` |
-| The four beasts of Daniel 7, folding into crowns | shared (21b uses them) | `figure` |
+| The four beasts of Daniel 7, folding into crowns | shared (29 uses them) | `figure` |
 | The Samaritan's beast and his small jar | shared (with the Samaritan) | `name` |
 
 New to the library: the teacher of the law, Jairus with his wife and daughter, Amos, the parable's beaten man, priest and Levite (all shared); the girl's room (shared); the plain kitchen (series); the plain mother (series); the dictionary (series); the mirror and the scroll (film).
@@ -154,7 +154,7 @@ New to the library: the teacher of the law, Jairus with his wife and daughter, A
 **say:** {poetry}And when a song says a thing {*}twice? {/} {moses}Moses sings, “My doctrine shall drop as the {rain}rain, my speech shall distil as the {dew}dew.” {/} {other}Two lines, one {*}thought: {/} {teaching}his teaching comes down like {*}rain.
 **cite:** Deuteronomy 32:1–2
 **picture:** IDEA: the parchment. Two lines of gold run side by side across the page like two furrows (drawn as lines, no lettering). On `moses` an old flat paper figure (Moses, camel mantle, open hand at the sleeve's end) sings at the left edge; on `rain` paper raindrops fall onto the first line and on `dew` beads of dew settle onto the second. On `other` the two lines glow together as one. On `teaching` each drop that lands opens into a tiny scroll, and young grass rises under them. The two pictures settle on the dictionary's page: rain beside an open scroll, its third entry.
-**paraphrase sources (not spoken):** none; `other` and `teaching` read this verse's own two lines and claim nothing about Hebrew poetry in general (no pioneer source of the frame's period was found for that; `../sources-02b.md`).
+**paraphrase sources (not spoken):** none; `other` and `teaching` read this verse's own two lines and claim nothing about Hebrew poetry in general (no pioneer source of the frame's period was found for that; `../sources.md`, "03 · As It Reads").
 
 ### `child` · STORY · ~40 s
 
@@ -212,7 +212,7 @@ New to the library: the teacher of the law, Jairus with his wife and daughter, A
 ## Notes for the owner
 
 - **02's handoff (done in 02).** 02's `plain` and `figure` beats are removed, and `guess` now ends: "{next}How it does that is the next {*}film. {/} {start}But one habit can start {*}today." 02 keeps the Bereans, the measuring rule, `gather`, Emmaus and its landing; its promise, order, credits and Length line follow. 02 is now about 5:25 (573 words, 4:02 with marks), and its title starts at about 10.5 %, just past the 4–10 % band: trimming 02's `cold` by 3 s brings it back. The owner can still pick other words for the handoff.
-- **The dictionary as a series motif.** The small book with the gold ribbon is the series' object for reading (the owner kept it, 2026-10-19): each later film opens it to one entry before it reads a word, two pictures side by side, no lettering. Entries the plan already needs: sleep beside death (12; Mark 5:39, "the damsel is not dead, but sleepeth", is in this film's own scene, unspoken), fire beside an end (36), beasts beside kingdoms (21b, already in this film), rain beside teaching (32, already in this film), the pattern beside the real place (16).
+- **The dictionary as a series motif.** The small book with the gold ribbon is the series' object for reading (the owner kept it, 2026-10-19): each later film opens it to one entry before it reads a word, two pictures side by side, no lettering. Entries the plan already needs: sleep beside death (17; Mark 5:39, "the damsel is not dead, but sleepeth", is in this film's own scene, unspoken), fire beside an end (43), beasts beside kingdoms (29, already in this film), rain beside teaching (39, already in this film), the pattern beside the real place (22).
 - **The cold open's question.** Luke 10:26's two questions ("What is written … how readest thou?") are Jesus' own, and the film does not set them against each other: the man reads well, and Jesus says so. The film's point comes after, when he asks to narrow one word (Luke 10:29, "willing to justify himself"). "He wanted the word to stay small" is left unsaid in speech; the landing shows it.
 - **"Much error starts there."** The owner's thesis is that the root of all error is the way of reading. The review found "Every error" larger than its sources: Matthew 22:29 names two causes (not knowing the scriptures, nor the power of God), and GC 598.3 speaks of "thousands upon thousands who are now wandering in error" for want of taking the Bible as it reads. So the line says "Much", and the owner kept it (2026-10-19).
 - **Spiritual is a good word here.** The film never sets the Spirit against the letter: the second way is named by what it does ("a meaning under the words that the words never give"), and `spirit` keeps 1 Corinthians 2:14's "spiritually discerned" for the good.

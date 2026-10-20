@@ -39,7 +39,7 @@ Settings:
 | Babylon's school and the king's table: cuneiform tablets, a banquet table (Illustration) | shared (H33's palace table) | 8 | not set by the script |
 | Babylon's throne room (Illustration; casting.md Prototype 3) | shared (H33's throne room) | 15, 19 | not set by the script |
 | Babylon's walls under a Persian banner (Illustration) | shared | 20 | not set by the script |
-| A kitchen table (cut-paper; theology 02b's plain kitchen if it holds a table) | shared | 21 | not set by the script |
+| A kitchen table (cut-paper; theology 03's plain kitchen if it holds a table) | shared | 21 | not set by the script |
 | A modern courtroom or council chamber (cut-paper) | shared | 21 | not set by the script |
 
 Props:

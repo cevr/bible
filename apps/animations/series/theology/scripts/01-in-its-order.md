@@ -1,6 +1,6 @@
 # 01 · In Its Order
 
-Series: The Path of the Just · Tier One (Milk) · opener
+Series: The Path of the Just · Tier One (Milk) · 1 of 44 · the opener
 Promise: by the end the viewer knows what the Bible means by milk and meat, why growing is normal and glad, why its truths come in order (skip the first steps and we twist the rest), and the path the series will walk.
 Length: about 7:45 (884 spoken words: 5:42 at 155 wpm, about 6:16 with the marked breaths and holds, 5:21–5:54 at 165–150 wpm before the holds; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
 Status: draft for the owner. Nothing narrated. Every KJV line below was printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15 (supplied-word brackets dropped for speech); every paraphrase source was printed by the corpus search (sources.md). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
@@ -64,7 +64,7 @@ Props:
 | The six stones (Tier One's map) | series | `stones`, `rush`, `priest`, `path`, `name` |
 | The small book of the Bible's own words (a possible series motif, as-it-reads.md) | series | `rush` |
 | The gold cross whose light widens | series | `priest`, `path`, `name` |
-| The slate (the arc's 04b and 06b reuse it) | series | `math` |
+| The slate (the arc's 07 and 10 reuse it) | series | `math` |
 | The scroll with a gold seal | film | `cold` |
 
 New to the library: the grown man's festive dress on the plain lead; the wedding courtyard; Christ's priestly robe and breastplate (back view); the sower; the series map hill.

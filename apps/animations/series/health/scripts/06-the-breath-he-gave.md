@@ -32,7 +32,7 @@ Settings:
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
 | The speaker's set (filmed, not drawn) | series | `1`, `3`, `5`, `6`, `9` | as filmed |
-| The ground where the clay figure lies (Illustration) | shared (Adam's; T03 and C01 draw Eden in cut paper) | `1`, `9` | as painted |
+| The ground where the clay figure lies (Illustration) | shared (Adam's; T04 and C01 draw Eden in cut paper) | `1`, `9` | as painted |
 | The desk (casting.md 2.4, the desk worker's workplace) | series (H27 and H30 plan it) | `5` | not set by the script |
 | A car seat at the wheel | film | `5` | not set by the script |
 | A room with a window | series (01's open window) | `7` | not set by the script |

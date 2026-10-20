@@ -1,5 +1,7 @@
 # How the Pioneers Ordered the Teaching (research, 2026-10-19)
 
+The episode numbers in this file are the list's before it was renumbered on 2026-10-20; [series.md](series.md), Episodes, maps each to its number now.
+
 The owner asked how the Advent pioneers ordered Bible teaching, "teaching one from nothing to the full stature of Christ" (owner, 2026-10-19), what they called milk, and what their handbooks show. This file answers from the pioneers' own books and sets their order against _From Milk to Meat_ ([series.md](series.md)). The episode numbers below are series.md's as they stood on 2026-10-19. On 2026-10-20 the owner took R1, R2a, R3 and R7 (ask a31833ec347): 26 (Daniel 2) is now 11b, 28 (Daniel 7) is now 21b, and 12's case on man's nature is the new 27b. No other episode moved.
 
 How it was read (2026-10-19; the PDFs on 2026-10-20):

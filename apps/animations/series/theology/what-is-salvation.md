@@ -21,20 +21,20 @@ The owner's ideas for scripts, set against _The Path of the Just_ ([series.md](s
 
 ## How it meets the series
 
-- **It fills a slot the plan names but has no episode for.** Tier One follows _Steps to Christ_: God's love (SC 9) → the sinner's need (SC 17) → repentance → faith. Episode 03 is God's love. Episode 04 tells how sin entered. No episode tells what was lost, which is the sinner's need. These ideas are that episode.
-- **03 · God Is Love** already uses the name in Ex 34:6–7. The image episode can call back to it in one line rather than tell it again.
-- **04 · The Serpent's Question** tells how sin entered (with 1 John 3:4). The image episode comes before it (what was made); "What Was Lost" comes after it (what the fall cost).
-- **05 · The Word Made Flesh** pays off "the express image" (Heb 1:3): the image lost in Adam is shown again in Christ.
-- **18b · Righteousness by Faith** (moved to Tier Two) answers loss 4 in full: the word that declares also creates, and the seed grows power to stop.
-- **19 · What Was in the Ark** pays off the law as God's character, kept under the mercy seat.
-- **37 · All Things New** closes the arc: the image restored (2 Cor 3:18; Col 3:10).
+- **It fills a slot the plan names but has no episode for.** Tier One follows _Steps to Christ_: God's love (SC 9) → the sinner's need (SC 17) → repentance → faith. Episode 04 is God's love. Episode 06 tells how sin entered. No episode tells what was lost, which is the sinner's need. These ideas are that episode.
+- **04 · God Is Love** already uses the name in Ex 34:6–7. The image episode can call back to it in one line rather than tell it again.
+- **06 · The Serpent's Question** tells how sin entered (with 1 John 3:4). The image episode comes before it (what was made); "What Was Lost" comes after it (what the fall cost).
+- **08 · The Word Made Flesh** pays off "the express image" (Heb 1:3): the image lost in Adam is shown again in Christ.
+- **25 · Righteousness by Faith** (moved to Tier Two) answers loss 4 in full: the word that declares also creates, and the seed grows power to stop.
+- **26 · What Was in the Ark** pays off the law as God's character, kept under the mercy seat.
+- **44 · All Things New** closes the arc: the image restored (2 Cor 3:18; Col 3:10).
 
 ## A proposed shape (the owner decides)
 
 - **Option A, two new episodes in Tier One:**
-  - "In Our Image", after 03: creation, God a person with a form, the image as form and character, and the law as the image of His character.
-  - "What Was Lost", after 04: the four losses, ending on the question that leads to 05 and 06.
-- **Option B, one episode:** "What Was Lost" after 04, carrying the image in its first act.
+  - "In Our Image", after 04: creation, God a person with a form, the image as form and character, and the law as the image of His character.
+  - "What Was Lost", after 06: the four losses, ending on the question that leads to 08 and 09.
+- **Option B, one episode:** "What Was Lost" after 06, carrying the image in its first act.
 - **Option C, a short arc of three:** Image → Lost → Saved, "What is salvation?" as the arc's title.
 
 ## Leads from the corpus (not yet verified into sources.md)
@@ -65,4 +65,4 @@ The owner's study: Jesus gives a few ways to obtain eternal life, and the Old Te
 
 - **Faith joins them:** "faith cometh by hearing, and hearing by the word of God" (Rom 10:17). To know Him, to keep His law and to have Him are one life, received by faith from His word.
 - **Corpus leads (not yet verified into sources.md):** ST August 24, 1891, par. 1 ("The knowledge of God and of Christ is the only knowledge which can lead to true and eternal" life); RH February 22, 1898, par. 7; DA 391.1.
-- **Where it fits:** the new 08 · Faith Toward God (stone 2, Heb 6:1), and the spine of 06b's answer. Righteousness by Faith moved to 18b in Tier Two (owner, 2026-10-19: "I think righteousness by faith is probably actually something that should come later in the series").
+- **Where it fits:** the new 12 · Faith Toward God (stone 2, Heb 6:1), and the spine of 10's answer. Righteousness by Faith moved to 25 in Tier Two (owner, 2026-10-19: "I think righteousness by faith is probably actually something that should come later in the series").

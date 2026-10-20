@@ -1,6 +1,6 @@
-# 03 · God Is Love
+# 04 · God Is Love
 
-Series: The Path of the Just · Tier One (Milk) · 3 of 13
+Series: The Path of the Just · Tier One (Milk) · 4 of 44
 Promise: the viewer sees why so many people are afraid of God, how God has shown his own character (in creation, in his own name, in Jesus, and above all at the cross), and that the cross did not buy God's love but came from it.
 Prerequisites: 01, 02 (the Bible explains itself; here it explains God).
 Length: about 5:30 (602 spoken words: 3:53 at 155 wpm, 4:15 with the 22 s of marked breaths and holds; plus the title, about 1 s between beats, the black moment, about 30 s of music alone and 28 s of credits).
@@ -40,7 +40,7 @@ Quoted Scripture: 8 passages, 94 of 602 spoken words (15.6 %; counted 2026-10-15
 | Moses (casting.md #2) | Bible figure, supporting | shared | listed, not drawn (P1) | `sinai` | on the ledge looking up (three-quarter), pressed into the cleft (profile), face lit as the name is spoken (front, close), stepping out (three-quarter); camel mantle, staff |
 | Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `philip`, `cross` | in his earthly dress (casting.md: the linen coat and walnut mantle, OQ5), `philip`: answering Philip across a lamp (three-quarter, close on the face); a hand on a leper's shoulder (profile); passing baskets along a hillside (three-quarter); lifting a child onto his knee (front); weeping over a city at dusk (three-quarter, close). `cross`: on the cross, head bowed, the crown of thorns (front, silhouette). Sleeves to the wrist |
 | Philip (casting.md #20) | Bible figure, supporting | shared | listed, not drawn (P3) | `philip` | leaning forward, earnest (three-quarter), asking with an open hand at the sleeve's end (profile) |
-| The gospel crowds: a leper, the hillside crowd, children, the watchers at the cross (casting.md #3) | crowd from the story crowd kit | shared | listed (T03, T05, RBF) | `philip`, `cross` | the leper kneeling (profile); the hillside seated, baskets passing; children reaching up; the watchers in silhouette against the sunset |
+| The gospel crowds: a leper, the hillside crowd, children, the watchers at the cross (casting.md #3) | crowd from the story crowd kit | shared | listed (T04, T08, RBF) | `philip`, `cross` | the leper kneeling (profile); the hillside seated, baskets passing; children reaching up; the watchers in silhouette against the sunset |
 | The prodigal son and his father (casting.md, parable figures) | parable figures | shared | listed, not drawn (P3) | `prodigal` | the son walking out with a purse (back), on the road thin, head down (profile), in rags in the embrace (three-quarter); the father on the roof seeing him far off (front), running with his mantle flying (profile, screen-left), the embrace, close on both faces |
 | The hiding montage: a child behind a door, a worker at a lit window, a person in a city looking away | plain figures (2.3; casting.md 2.2, no hood) | series | the plain lead's sheet exists | `cold` | each in the hiding pose of the man in the trees, head lowered, looking away (three-quarter) |
 | The small grey figure under the smudged portrait | plain figure (2.3) | series | the plain lead's sheet exists | `smudge`, `soft` | shrinking under the looming portrait (front), glancing back over the shoulder (back, three-quarter); held in the gold ribbon's curve, a small glow in the hands (front) |
@@ -50,21 +50,21 @@ Settings:
 
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
-| Eden at evening: far hills, fruit trees, near ferns, the path between the trees (the arc's Eden; C01's) | shared (T03, C01; 03b, 04b, 06b) | `cold`, `title`, `name`, `thesis`, `end` | cool teal evening; the landing teal to yellow |
+| Eden at evening: far hills, fruit trees, near ferns, the path between the trees (the arc's Eden; C01's) | shared (T04, C01; 05, 07, 10) | `cold`, `title`, `name`, `thesis`, `end` | cool teal evening; the landing teal to yellow |
 | A valley of two neighbouring fields | film | `nature` | morning peach |
-| Sinai: the ledge and the cleft | series (03b's `face` reuses it) | `sinai` | dawn into gold |
+| Sinai: the ledge and the cleft | series (05's `face` reuses it) | `sinai` | dawn into gold |
 | An upper room by lamplight | shared | `philip` | lamplight; the vignettes in peach day |
 | A farmhouse gate and a long dusty road | shared (the prodigal's) | `prodigal` | afternoon peach into evening |
-| A cardboard hill at sunset with the cross | shared (06's and RBF's `grain`) | `cross` | sunset; the black moment; dawn edging back |
+| A cardboard hill at sunset with the cross | shared (09's and RBF's `grain`) | `cross` | sunset; the black moment; dawn edging back |
 | The parchment page | series | `nature` (its close), `smudge`, `soft` | peach |
 
 Props:
 
 | Prop | Scope | Beats |
 | --- | --- | --- |
-| The portrait frame (the arc's prop through 03b, 04b and 06b; 05's `with`); light only, never a portrait of Christ (casting.md §4 item 4) | series | `smudge`, `sinai`, `soft`, `philip`, `cross`, `name` |
-| The creditor's ledger and quill | series (04b's `image` reuses a ledger) | `smudge`, `cross` |
-| The two tablets and the gold ribbon | series (03b's `law`) | `soft` |
+| The portrait frame (the arc's prop through 05, 07 and 10; 08's `with`); light only, never a portrait of Christ (casting.md §4 item 4) | series | `smudge`, `sinai`, `soft`, `philip`, `cross`, `name` |
+| The creditor's ledger and quill | series (07's `image` reuses a ledger) | `smudge`, `cross` |
+| The two tablets and the gold ribbon | series (05's `law`) | `soft` |
 | The thistle that flowers | film | `title`, `nature`, `name`, `thesis` |
 | The crown of thorns | shared | `cross` |
 
@@ -173,6 +173,6 @@ New to the library: Adam and Eve's fig-leaf state; the Father's walking light; t
 
 ## Notes for the owner
 
-- `smudge` names "the enemy of good" without telling his story; 04 (The Serpent's Question) tells it. The two episodes hand off: 03 ends on "Where art thou?", 04 opens on "Yea, hath God said?"
-- `soft` is the one dose of the problem in its doctrinal form (Exodus 34:7, "by no means clear the guilty") and answers it at once from Waggoner (love runs parallel with the law; the law is the transcript of his character). It keeps the series' law thread alive for 19 (What Was in the Ark).
+- `smudge` names "the enemy of good" without telling his story; 06 (The Serpent's Question) tells it. The two episodes hand off: 04 ends on "Where art thou?", 06 opens on "Yea, hath God said?"
+- `soft` is the one dose of the problem in its doctrinal form (Exodus 34:7, "by no means clear the guilty") and answers it at once from Waggoner (love runs parallel with the law; the law is the transcript of his character). It keeps the series' law thread alive for 26 (What Was in the Ark).
 - Frame check (god-christ.md): the Father is never given a face or body (veiled light in `cold`, `sinai`, `cross`, landing; never formless "energy": the light walks, waits, speaks); no Trinity emblem; Jesus reveals the Father (said, `philip`), and the Father and the Son act together at the cross (said, `cross`).

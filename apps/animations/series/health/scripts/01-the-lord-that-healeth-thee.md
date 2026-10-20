@@ -40,7 +40,7 @@ Settings:
 | The speaker's set (filmed, not drawn) | series | `1`, `2`, `5`, `9`, `12`, `14`, `15`, `17` | as filmed |
 | Marah: the desert pool, cracked mud (Illustration) | shared (Israel in the wilderness) | `1`, `3`, `17` | as painted; in `17` the water clears and shines |
 | Elim: the twelve wells and the seventy palms (Illustration) | shared (Israel in the wilderness) | `6` | as painted |
-| A Galilee hillside (Illustration) | shared (T03 draws its hillside crowd in cut paper) | `7` | as painted |
+| A Galilee hillside (Illustration) | shared (T04 draws its hillside crowd in cut paper) | `7` | as painted |
 | The pool of Siloam, a stone pool (Illustration) | film | `8` | as painted |
 | The pool of Bethesda with its porches (Illustration) | film | `10` | as painted |
 | The card page: the Scripture cards, the series card, the callouts, the checklist, the word card | series | `2`, `4`, `6`, `8`, `10`, `12`, `13`, `16` | the series' card style |

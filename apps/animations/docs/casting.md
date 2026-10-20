@@ -19,7 +19,7 @@ This file applies them figure by figure. Where the two disagree, the guide wins,
 **Sources read (2026-10-13).**
 
 - Scripts:
-  - theology scripts 01, 02, 03 and 05;
+  - theology scripts 01, 02, 04 and 08;
   - country script 01;
   - education topic scripts 01, 17, 19, 44 and 52;
   - health scripts 01, 06, 20, 33 and 50;
@@ -34,11 +34,11 @@ This file applies them figure by figure. Where the two disagree, the guide wins,
 
 | Short | Means                                                                                                                                                         |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T01   | theology script 01 (likewise T02, T03, T05; T04 and T06–T37 are plan entries)                                                                                 |
+| T01   | theology script 01 (likewise T02–T05, T07, T08, T10 and T12; T06, T09, T11, T13–T24 and T26–T44 are plan entries)                                             |
 | C01   | country script 01 (C02–C19 are plan entries)                                                                                                                  |
 | E19   | education script for catalogue topic 19. Its episode in the series list is given where it matters, e.g. "E19 (ep 26)"; "edu ep 7" means series-list episode 7 |
 | H33   | health script 33 (H-numbers without a script are plan entries)                                                                                                |
-| RBF   | _Righteousness by Faith_, the built film (theology 08)                                                                                                        |
+| RBF   | _Righteousness by Faith_, the built film (theology 25)                                                                                                        |
 
 **Appearance terms.**
 
@@ -114,38 +114,38 @@ These are the figures the scripts show, with their planned uses for weight. The 
 
 | #   | Figure                                                               | Films shown                            | Talks shown              | Named only in             | Planned                                               | Tier       |
 | --- | -------------------------------------------------------------------- | -------------------------------------- | ------------------------ | ------------------------- | ----------------------------------------------------- | ---------- |
-| 1   | Jesus Christ (adult; with the baby and the boy as stages)            | T01, T02, T03, T05, RBF                | H01, H20; the boy in E17 |                           | T06, T09, T13, T14, T34; C07, C10; edu ep 8; H26, H59 | P1         |
-| 2   | Moses                                                                | T02, T03, T05                          | H01 (his hand)           | RBF                       | T16; edu eps 6, 27                                    | P1         |
-| 3   | Gospel crowds (lepers, hillside, children, temple, cross, Capernaum) | T03, T05, RBF                          | H01, H20                 |                           | T10                                                   | P1 (crowd) |
-| 4   | The Father (a veiled glow, not a cut-paper rig)                      | T03, T05, C01                          |                          |                           | T24                                                   | P1 (asset) |
-| 5   | Adam                                                                 | T03, C01                               | H06 (the clay figure)    | RBF                       | T04; C01, C08; edu ep 4; H32                          | P2         |
-| 6   | Eve                                                                  | T03, C01                               |                          | RBF                       | T04; H59                                              | P2         |
-| 7   | Angels (seraphim, the host, the Rev 14 angel, those that stand by)   | T05, RBF                               |                          |                           | T22, T29, T31, T33                                    | P2         |
+| 1   | Jesus Christ (adult; with the baby and the boy as stages)            | T01, T02, T04, T08, RBF                | H01, H20; the boy in E17 |                           | T09, T13, T18, T20, T41; C07, C10; edu ep 8; H26, H59 | P1         |
+| 2   | Moses                                                                | T02, T04, T08                          | H01 (his hand)           | RBF                       | T22; edu eps 6, 27                                    | P1         |
+| 3   | Gospel crowds (lepers, hillside, children, temple, cross, Capernaum) | T04, T08, RBF                          | H01, H20                 |                           | T14                                                   | P1 (crowd) |
+| 4   | The Father (a veiled glow, not a cut-paper rig)                      | T04, T08, C01                          |                          |                           | T32                                                   | P1 (asset) |
+| 5   | Adam                                                                 | T04, C01                               | H06 (the clay figure)    | RBF                       | T06; C01, C08; edu ep 4; H32                          | P2         |
+| 6   | Eve                                                                  | T04, C01                               |                          | RBF                       | T06; H59                                              | P2         |
+| 7   | Angels (seraphim, the host, the Rev 14 angel, those that stand by)   | T08, RBF                               |                          |                           | T30, T36, T38, T40                                    | P2         |
 | 8   | Paul                                                                 | T01, T02                               |                          | H06, H50, RBF             | edu eps 27, 35                                        | P2         |
-| 9   | Satan (the accuser; a shadow hand)                                   | RBF, T03                               |                          |                           | T04, T27                                              | P2         |
-| 10  | The twelve                                                           | T05                                    | H20; E44 (the ten)       | Peter: T01, T02           | T10; C10; edu ep 27                                   | P3         |
-| 11  | Mary, the mother of Jesus                                            | T05                                    | E17                      |                           | C07                                                   | P3         |
-| 12  | Isaiah                                                               | T05                                    |                          | T01, T02, RBF, H50        | H41                                                   | P3         |
-| 13  | Joseph, Mary's husband                                               | T05                                    |                          |                           | C07                                                   | P3         |
-| 14  | Israel in the wilderness (the bitten camp, Marah)                    | RBF                                    | H01                      |                           | T20; H35                                              | P3 (crowd) |
-| 15  | John the Baptist                                                     | T02                                    |                          |                           | T09; edu ep 27                                        | P3         |
-| 16  | Joshua the high priest                                               | RBF                                    |                          |                           | T24                                                   | P3         |
+| 9   | Satan (the accuser; a shadow hand)                                   | RBF, T04                               |                          |                           | T06, T34                                              | P2         |
+| 10  | The twelve                                                           | T08                                    | H20; E44 (the ten)       | Peter: T01, T02           | T14; C10; edu ep 27                                   | P3         |
+| 11  | Mary, the mother of Jesus                                            | T08                                    | E17                      |                           | C07                                                   | P3         |
+| 12  | Isaiah                                                               | T08                                    |                          | T01, T02, RBF, H50        | H41                                                   | P3         |
+| 13  | Joseph, Mary's husband                                               | T08                                    |                          |                           | C07                                                   | P3         |
+| 14  | Israel in the wilderness (the bitten camp, Marah)                    | RBF                                    | H01                      |                           | T27; H35                                              | P3 (crowd) |
+| 15  | John the Baptist                                                     | T02                                    |                          |                           | T13; edu ep 27                                        | P3         |
+| 16  | Joshua the high priest                                               | RBF                                    |                          |                           | T32                                                   | P3         |
 | 17  | The paralytic of Capernaum and the four                              | RBF                                    |                          |                           | H45                                                   | P3         |
-| 18  | John the apostle                                                     | T05                                    |                          |                           |                                                       | P3         |
+| 18  | John the apostle                                                     | T08                                    |                          |                           |                                                       | P3         |
 | 19  | Jeremiah                                                             | T01                                    |                          | RBF                       |                                                       | P3         |
-| 20  | Philip                                                               | T03                                    |                          |                           |                                                       | P3         |
+| 20  | Philip                                                               | T04                                    |                          |                           |                                                       | P3         |
 | 21  | Silas                                                                | T02                                    |                          |                           |                                                       | P3         |
 | 22  | The Bereans                                                          | T02                                    |                          |                           |                                                       | P3 (crowd) |
 | 23  | Cleopas and his companion                                            | T02                                    |                          |                           |                                                       | P3         |
-| 24  | The shepherds of Bethlehem                                           | T05                                    |                          |                           |                                                       | P3         |
+| 24  | The shepherds of Bethlehem                                           | T08                                    |                          |                           |                                                       | P3         |
 | 25  | The scribes (Mark 2) and the accusers (John 8)                       | RBF                                    |                          |                           |                                                       | P3         |
 | 26  | The woman taken in adultery                                          | RBF                                    |                          |                           |                                                       | P3         |
 | 27  | The centurion and his servant                                        | RBF                                    |                          |                           |                                                       | P3         |
 | 28  | The Corinthian church                                                | T01                                    |                          |                           |                                                       | P3 (crowd) |
-| 29  | The Holy Spirit (signs only, not a figure)                           | T02 (the writer moved), RBF (the rain) |                          |                           | T09, T10                                              | asset      |
-| 30  | Daniel                                                               |                                        | E19, H33                 |                           | edu eps 7, 20, 26, 32; T11b, T22; C16                 | P4         |
+| 29  | The Holy Spirit (signs only, not a figure)                           | T02 (the writer moved), RBF (the rain) |                          |                           | T13, T14                                              | asset      |
+| 30  | Daniel                                                               |                                        | E19, H33                 |                           | edu eps 7, 20, 26, 32; T16, T30; C16                  | P4         |
 | 31  | Hananiah, Mishael and Azariah                                        |                                        | E19, H33                 |                           | C11 (Dan 3)                                           | P4         |
-| 32  | Nebuchadnezzar                                                       |                                        | E19, H33                 |                           | T11b, T30                                             | P4         |
+| 32  | Nebuchadnezzar                                                       |                                        | E19, H33                 |                           | T16, T37                                              | P4         |
 | 33  | Babylon's court and captives                                         |                                        | E19, H33                 | the steward (Melzar): H33 |                                                       | P4 (crowd) |
 | 34  | Hezekiah                                                             |                                        | H50                      |                           | H41                                                   | P4         |
 | 35  | The man born blind                                                   |                                        | H01                      |                           |                                                       | P4         |
@@ -155,7 +155,7 @@ These are the figures the scripts show, with their planned uses for weight. The 
 **Parable figures** are drawn as the parable's own figures, never as cast (ensemble, Never inside a Bible scene):
 
 - the sower (T01; Mark 4:3);
-- the prodigal son and his father (T03; Luke 15:20, 22).
+- the prodigal son and his father (T04; Luke 15:20, 22).
 
 They are in 1.4.
 
@@ -185,16 +185,16 @@ All of this follows the guide's section 3 exactly. Christ, the angels and Satan 
 - Shown, film:
   - T01: entering the veil as Priest, from behind; the host of the wedding feast at the landing.
   - T02: on the Emmaus road.
-  - T02b: walking by the river (John 1:29), in `figure`.
-  - T03: in the upper room with Philip; touching a leper; the hillside crowd; a child on His knee; weeping over the city; the cross.
-  - T05: on the Galilee road with the twelve; in the temple court as stones are taken up; asleep in the storm; kneeling to a child; as a baby with Mary and Joseph; on the throne beside the Father, with crown and sceptre, and at the landing with the marks in His hands.
+  - T03: walking by the river (John 1:29), in `figure`.
+  - T04: in the upper room with Philip; touching a leper; the hillside crowd; a child on His knee; weeping over the city; the cross.
+  - T08: on the Galilee road with the twelve; in the temple court as stones are taken up; asleep in the storm; kneeling to a child; as a baby with Mary and Joseph; on the throne beside the Father, with crown and sceptre, and at the landing with the marks in His hands.
   - RBF: carrying the scarlet up the hill; the cross in silhouette; the empty tomb; High Priest in the holy and most holy places; Capernaum (Mark 2); the temple court (John 8); the centurion; the Angel of Zech 3; Advocate at the landing; seated with the robed figure on the rooftop in the coda.
 - Shown, talk:
   - H01: healing on a Galilee hillside; the clay at Siloam.
   - H20: the twelve around Him; the boat pushing off.
   - E17: the boy over a scroll with His mother; the carpenter's hands.
 - Planned:
-  - theology: T06 (the Lamb), T09 (the Jordan), T13 (Judge and Advocate), T14 (Priest), T34 (the coming);
+  - theology: T09 (the Lamb), T13 (the Jordan), T18 (Judge and Advocate), T20 (Priest), T41 (the coming);
   - country: C07 (Nazareth and praying alone), C10 (the cornfields);
   - education: edu ep 8 (the thirty quiet years);
   - health: H26 (the carpenter), H59 (the wilderness).
@@ -217,7 +217,7 @@ All of this follows the guide's section 3 exactly. Christ, the angels and Satan 
 
 | Stage                           | Where       | Age                                     | Height (proposed)      |
 | ------------------------------- | ----------- | --------------------------------------- | ---------------------- |
-| Baby                            | T05         | newborn                                 | lying, about 0.25 long |
+| Baby                            | T08         | newborn                                 | lying, about 0.25 long |
 | Boy at His mother's knee        | E17         | about 6–8                               | about 0.60             |
 | At twelve                       | planned     | 12                                      | about 0.80             |
 | Ministry, cross and risen       | most scenes | "about thirty years of age" (Luke 3:23) | 0.97                   |
@@ -241,17 +241,17 @@ At 0.97 He is never the tallest in a crowd.
   - bread;
   - a pillow in the stern (Mark 4:38);
   - the finger writing on the ground (John 8:6);
-  - crown and sceptre on the throne only (T05).
+  - crown and sceptre on the throne only (T08).
 - **One identity feature:** none on His person. In a crowd the eye finds Him by staging: He moves toward people, and others turn to Him (§3.2, "known by what He does"). His rig's hook is the walnut mantle over a linen coat, which no one else in a frame wears together. Risen, His hands carry small ink cuts on the circle hands (John 20:20, 27). No halo.
 
-**Role:** main in T05; supporting or main by scene elsewhere. He never speaks on screen.
+**Role:** main in T08; supporting or main by scene elsewhere. He never speaks on screen.
 
 **Never**
 
 - a halo or nimbus;
 - a glow in His earthly ministry outside the transfiguration;
 - the white robe in earthly scenes (OQ5; owner, 2026-10-19: the seamless linen coat and a brown mantle on earth, the white robe and gold girdle only as Priest, Advocate and in glory);
-- a framed portrait (T05's `face` beat must be restaged);
+- a framed portrait (T08's `face` beat must be restaged);
 - scarlet on Him except the sins laid on Him at the cross;
 - wounds in close-up;
 - lip-sync;
@@ -264,9 +264,9 @@ At 0.97 He is never the tallest in a crowd.
 **Appears**
 
 - Shown, film:
-  - T05: on the throne with the Son, in `beginning` and the landing;
-  - T03 and C01: the presence in Eden "as a warm moving light ... no figure" (see section 4, item 14).
-- Planned: T24 (Dan 7's court, "the Ancient of days").
+  - T08: on the throne with the Son, in `beginning` and the landing;
+  - T04 and C01: the presence in Eden "as a warm moving light ... no figure" (see section 4, item 14).
+- Planned: T32 (Dan 7's court, "the Ancient of days").
 
 **Text fixes the look**
 
@@ -291,7 +291,7 @@ At 0.97 He is never the tallest in a crowd.
 - **No figure.** He has signs only:
   - "a sound from heaven as of a rushing mighty wind" (Acts 2:2) as motion in paper;
   - "cloven tongues like as of fire" (Acts 2:3) as small gold flames;
-  - "in a bodily shape like a dove" (Luke 3:22) at the Jordan only (T09, planned).
+  - "in a bodily shape like a dove" (Luke 3:22) at the Jordan only (T13, planned).
 - **In the scripts:** T02's writer moved by the Spirit (IDEA) and RBF's rain take the sign, never a body.
 
 #### Angels (§3.5): draft, awaiting owner (OQ7)
@@ -299,14 +299,14 @@ At 0.97 He is never the tallest in a crowd.
 **Appears**
 
 - Shown, film:
-  - T05: the seraphim above the throne; the heavenly host at Bethlehem.
+  - T08: the seraphim above the throne; the heavenly host at Bethlehem.
   - RBF: the angel of Rev 14 with the banner; "these that stand by" (Zech 3:7) in the Zech 3 court, who lift the filthy tunic.
 - Planned:
-  - T22: Gabriel (Dan 9:21);
-  - T29: Rev 14's three angels;
-  - T31: the sealing angel; Ezek 9's man "clothed with linen, with a writer's inkhorn by his side" (Ezek 9:2);
-  - T33: Michael;
-  - T04: the covering cherubim.
+  - T30: Gabriel (Dan 9:21);
+  - T36: Rev 14's three angels;
+  - T38: the sealing angel; Ezek 9's man "clothed with linen, with a writer's inkhorn by his side" (Ezek 9:2);
+  - T40: Michael;
+  - T06: the covering cherubim.
 
 **Text fixes the look**
 
@@ -348,10 +348,10 @@ At 0.97 He is never the tallest in a crowd.
 
 - Shown, film:
   - RBF `accuser`: "Satan standing at his right hand to resist him" (Zech 3:1), with the one pointing hand, shrinking at "The LORD rebuke thee, O Satan" (Zech 3:2).
-  - T03: the enemy as a shadow hand only.
+  - T04: the enemy as a shadow hand only.
 - Planned:
-  - T04: Lucifer and the serpent;
-  - T27: the dragon.
+  - T06: Lucifer and the serpent;
+  - T34: the dragon.
 
 **Text fixes the look**
 
@@ -411,12 +411,12 @@ The entries run in priority order. The §4.3 figures that no script uses come la
 
 - Shown, film:
   - T02: on Sinai with the "tables of stone" (Ex 24:12) and a lamp;
-  - T03: in the cleft of the rock, "I will put thee in a clift of the rock, and will cover thee with my hand" (Ex 33:22);
-  - T05: at the bush, "put off thy shoes from off thy feet" (Ex 3:5).
+  - T04: in the cleft of the rock, "I will put thee in a clift of the rock, and will cover thee with my hand" (Ex 33:22);
+  - T08: at the bush, "put off thy shoes from off thy feet" (Ex 3:5).
 - Shown, talk: H01, his hand casting the tree into Marah's water: "the LORD shewed him a tree, which when he had cast into the waters, the waters were made sweet" (Ex 15:25).
 - Named: RBF (the bronze serpent).
 - Planned:
-  - T16 (the tabernacle);
+  - T22 (the tabernacle);
   - edu ep 6 (Deuteronomy);
   - edu ep 7 (as the baby in Jochebed's ark of bulrushes, Ex 2:3);
   - edu ep 27 (Egypt's learning and the desert).
@@ -425,16 +425,16 @@ The entries run in priority order. The §4.3 figures that no script uses come la
 
 | Stage                 | Where              | Age and text                                            | Height                      |
 | --------------------- | ------------------ | ------------------------------------------------------- | --------------------------- |
-| At the bush and Sinai | T02, T03, T05      | "fourscore years old" (Ex 7:7), so the 80 of §4.3 holds | 1.0                         |
+| At the bush and Sinai | T02, T04, T08      | "fourscore years old" (Ex 7:7), so the 80 of §4.3 holds | 1.0                         |
 | A baby                | edu ep 7, planned  |                                                         | about 0.25 long, in the ark |
 | A young man of Egypt  | edu ep 27, planned |                                                         | 1.0                         |
 
 **Rig**
 
 - **Hex:** camel `#8c7762` over linen `#d1c6b4`, with a walnut headcloth.
-- **Props:** the rod; the two tables (T02); bare feet at the bush (T05).
+- **Props:** the rod; the two tables (T02); bare feet at the bush (T08).
 - **One identity feature:** the rod, held upright beside a camel mantle.
-- **Role:** supporting (T02, T05); main for the beat (T03).
+- **Role:** supporting (T02, T08); main for the beat (T04).
 
 **Priority:** P1. He is the second rig.
 
@@ -454,7 +454,7 @@ The entries run in priority order. The §4.3 figures that no script uses come la
 **Appears**
 
 - Shown, film:
-  - T03: hiding behind a trunk in fig leaves, "they sewed fig leaves together, and made themselves aprons" (Gen 3:7).
+  - T04: hiding behind a trunk in fig leaves, "they sewed fig leaves together, and made themselves aprons" (Gen 3:7).
   - C01:
     - Adam naming the animals, "brought them unto Adam to see what he would call them" (Gen 2:19);
     - both pruning, "to dress it and to keep it" (Gen 2:15);
@@ -462,7 +462,7 @@ The entries run in priority order. The §4.3 figures that no script uses come la
 - Shown, talk: H06, Adam as a clay figure given breath, "formed man of the dust of the ground" (Gen 2:7).
 - Named: RBF.
 - Planned:
-  - T04 (the fall);
+  - T06 (the fall);
   - C08 (breath);
   - edu ep 4 (Eden's school);
   - H32 (Eden's diet);
@@ -481,7 +481,7 @@ The entries run in priority order. The §4.3 figures that no script uses come la
 - **One identity feature:**
   - Adam: the tool in hand.
   - Eve: her hair, long and loose to the waist. This is a proposal; the text is silent. It must stay distinct from Clara's plait.
-- **Role:** main in C01's Eden and in T03's cold open.
+- **Role:** main in C01's Eden and in T04's cold open.
 
 **Priority:** P2. Draw them as one pair, garment states first.
 
@@ -543,22 +543,22 @@ The Never field predates the owner's §3.3 decision. Since 2026-10-13 the Father
 
 **Appears**
 
-- Shown, film: T05, the main figure: "In the year that king Uzziah died I saw also the Lord sitting upon a throne, high and lifted up" (Isa 6:1). John's link: "These things said Esaias, when he saw his glory, and spake of him" (John 12:41).
+- Shown, film: T08, the main figure: "In the year that king Uzziah died I saw also the Lord sitting upon a throne, high and lifted up" (Isa 6:1). John's link: "These things said Esaias, when he saw his glory, and spake of him" (John 12:41).
 - Named: T01, T02, RBF; H50 ("the prophet", Isa 38:21: "Let them take a lump of figs").
 - Planned: H41 (Hezekiah's figs).
 
 **Stages.**
 
-- Young at the call (T05).
+- Young at the call (T08).
 - Older in Hezekiah's day: H50 shows only hands; H41 is planned. If he is drawn then, he is middle-aged.
 
 **Rig**
 
 - **Hex:** camel `#8c7762` over linen.
 - **One identity feature:** the hand circle at his mouth, the coal's mark (Isa 6:7).
-- **Role:** main in T05.
+- **Role:** main in T08.
 
-**Priority:** P3. He leads T05, so draw him with the seraph.
+**Priority:** P3. He leads T08, so draw him with the seraph.
 
 #### John the Baptist
 
@@ -577,7 +577,7 @@ The Never field predates the owner's §3.3 decision. Since 2026-10-13 the Father
 
 - Shown, film: T02, standing in the Jordan in a "rough cloak" and pointing: "Behold the Lamb of God" (John 1:29).
 - Planned:
-  - T09 (the baptism, with the dove, Luke 3:22);
+  - T13 (the baptism, with the dove, Luke 3:22);
   - edu ep 27 ("John in the desert").
 
 **Rig**
@@ -603,7 +603,7 @@ The Never field predates the owner's §3.3 decision. Since 2026-10-13 the Father
 **Appears**
 
 - Shown, film: RBF `accuser` and `robe`. The narration: "Joshua the high priest, in filthy clothes, stands before the Angel".
-- Planned: T24 (Zech 3 with Dan 7).
+- Planned: T32 (Zech 3 with Dan 7).
 
 **Rig**
 
@@ -627,8 +627,8 @@ The Never field predates the owner's §3.3 decision. Since 2026-10-13 the Father
 
 **Appears**
 
-- Shown, film: T05, old, writing by lamplight. He is "a fisherman who had walked with Jesus" in the narration, writing John 12:41.
-- His young self stands among the twelve in T05's road and storm, and H20's twelve.
+- Shown, film: T08, old, writing by lamplight. He is "a fisherman who had walked with Jesus" in the narration, writing John 12:41.
+- His young self stands among the twelve in T08's road and storm, and H20's twelve.
 - Planned: edu ep 27 ("unlearned and ignorant men", Acts 4:13, with Peter).
 
 **Rig**
@@ -637,9 +637,9 @@ The Never field predates the owner's §3.3 decision. Since 2026-10-13 the Father
 - **One identity feature:**
   - old: the pale cool hair over a scroll;
   - young: the youngest beardless face among the twelve. This is a proposal; the text is silent on his age.
-- **Role:** supporting (T05).
+- **Role:** supporting (T08).
 
-**Priority:** P3. Build the old stage first, since that is what T05 shows.
+**Priority:** P3. Build the old stage first, since that is what T08 shows.
 
 #### Hezekiah
 
@@ -691,8 +691,8 @@ The Never field predates the owner's §3.3 decision. Since 2026-10-13 the Father
   - edu ep 20 (the ten-day test);
   - edu ep 26 (Daniel 1);
   - edu ep 32 (the exiles);
-  - T11b (Dan 2);
-  - T22 (Dan 9, Gabriel);
+  - T16 (Dan 2);
+  - T30 (Dan 9, Gabriel);
   - C16 ("his windows being open in his chamber toward Jerusalem", Dan 6:10).
 
 **Stages**
@@ -735,13 +735,13 @@ These keep their §4.3 rows unchanged. Their appearances are all planned (P5).
 
 | Figure                    | Planned in                                                                                                                   | Added (one identity feature)                                                                      |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Noah                      | C12 (the door shut, "the LORD shut him in", Gen 7:16); T33 (Noah's door); edu ep 37; edu ep 6 (his sons)                     | the long beard and a plank on the shoulder, beside the ark's door                                 |
-| Abraham                   | C04, C05, C15 (Hebron's gate, Gen 23:10), C19; T06 (Gen 22:8), T14 (Melchisedec); edu eps 29, 36; named in T05 and E52       | the staff and the pale long beard at the tent door; see 1.5 for Sarah and Isaac                   |
+| Noah                      | C12 (the door shut, "the LORD shut him in", Gen 7:16); T40 (Noah's door); edu ep 37; edu ep 6 (his sons)                     | the long beard and a plank on the shoulder, beside the ark's door                                 |
+| Abraham                   | C04, C05, C15 (Hebron's gate, Gen 23:10), C19; T09 (Gen 22:8), T20 (Melchisedec); edu eps 29, 36; named in T08 and E52       | the staff and the pale long beard at the tent door; see 1.5 for Sarah and Isaac                   |
 | Lot and his wife          | C05, C12 (his sons-in-law, Gen 19:14), C13 ("while he lingered", Gen 19:16); edu ep 30                                       | Lot: turned toward the plain; his wife: the one look back                                         |
 | Hannah and Jochebed       | edu ep 7                                                                                                                     | Hannah: "a little coat" (1 Sam 2:19) in her hands; Jochebed: the ark of bulrushes (Ex 2:3)        |
 | Elijah                    | edu ep 37 (the 7000, 1 Kgs 19:18); edu ep 19 (Elisha "poured water on the hands of Elijah", 2 Kgs 3:11)                      | the mantle (2 Kgs 2:13) and the leather girdle                                                    |
 | Job                       | named in C01 and RBF; edu topic 110 (the test)                                                                               | sitting among the ashes with a potsherd (Job 2:8)                                                 |
-| The high priest (Aaron's) | T17 (the holy place), T21 (the day of atonement; "Aaron shall lay both his hands upon the head of the live goat", Lev 16:21) | the gold plate "HOLINESS TO THE LORD" (Ex 28:36) on the mitre; on the day, plain linen (Lev 16:4) |
+| The high priest (Aaron's) | T23 (the holy place), T28 (the day of atonement; "Aaron shall lay both his hands upon the head of the live goat", Lev 16:21) | the gold plate "HOLINESS TO THE LORD" (Ex 28:36) on the mitre; on the day, plain linen (Lev 16:4) |
 
 The high priest is related to T01 and RBF, where Christ wears a priest's robe and breastplate as High Priest. That is Christ, not this figure (section 4, item 13).
 
@@ -764,7 +764,7 @@ Where the text is silent, the cloth is the §3.1 default: a linen tunic, a walnu
 
 | Field       | Detail                                                                                                                                                                                                    |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, film: T05, with the baby and Joseph. Shown, talk: E17 (ep 27), "His mother's knee, with the scrolls of the prophets": a mother and a boy over a scroll by lamplight. Planned: C07 (Nazareth).      |
+| Appears     | Shown, film: T08, with the baby and Joseph. Shown, talk: E17 (ep 27), "His mother's knee, with the scrolls of the prophets": a mother and a boy over a scroll by lamplight. Planned: C07 (Nazareth).      |
 | Text        | Text silent on her look. Her stages: "a virgin espoused" (Luke 1:27); "great with child" (Luke 2:5); "Mary kept all these things, and pondered them in her heart" (Luke 2:19); at the cross (John 19:25). |
 | Age, height | A young mother at the birth; older in Nazareth; 0.88.                                                                                                                                                     |
 | Cloth       | Default. Proposed: a linen tunic with an indigo `#4b566b` mantle drawn over the head. Not the devotional blue-and-white, which is the religious dress of a living tradition (§3.1).                       |
@@ -777,7 +777,7 @@ Where the text is silent, the cloth is the §3.1 default: a linen tunic, a walnu
 
 | Field       | Detail                                                                                                                         |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Appears     | Shown, film: T05. Planned: C07. E17's carpenter's hands are Jesus' ("the carpenter, the son of Mary", Mark 6:3), not Joseph's. |
+| Appears     | Shown, film: T08. Planned: C07. E17's carpenter's hands are Jesus' ("the carpenter, the son of Mary", Mark 6:3), not Joseph's. |
 | Text        | "A just man" (Matt 1:19); "the carpenter's son" (Matt 13:55) makes Joseph the carpenter. Text silent on his look.              |
 | Age, height | Grown man; 0.96.                                                                                                               |
 | Cloth       | A linen tunic, an olive `#768059` mantle and a walnut headcloth.                                                               |
@@ -790,7 +790,7 @@ Where the text is silent, the cloth is the §3.1 default: a linen tunic, a walnu
 
 | Field       | Detail                                                                                                                                                                                                                                                                                                                                                                    |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, film: T05, the Galilee road and the boat in the storm. Shown, talk: H20 ("Twelve men around Jesus, talking over each other"; "Come ye yourselves apart into a desert place, and rest a while", Mark 6:31); E44 (ep 21), "ten angry faces" (Mark 10:41 after 10:35). Named: Peter (T01, T02). Planned: T10 (Pentecost); C10 (the cornfields, Mark 2:23); edu ep 27. |
+| Appears     | Shown, film: T08, the Galilee road and the boat in the storm. Shown, talk: H20 ("Twelve men around Jesus, talking over each other"; "Come ye yourselves apart into a desert place, and rest a while", Mark 6:31); E44 (ep 21), "ten angry faces" (Mark 10:41 after 10:35). Named: Peter (T01, T02). Planned: T14 (Pentecost); C10 (the cornfields, Mark 2:23); edu ep 27. |
 | Text        | "He ordained twelve" (Mark 3:14). Fishers: "Simon and Andrew his brother casting a net into the sea" (Mark 1:16); Peter's "fisher's coat" (John 21:7). "Unlearned and ignorant men" (Acts 4:13). Otherwise text silent.                                                                                                                                                   |
 | Age, height | Grown men of mixed ages; 0.92–1.0, no two alike.                                                                                                                                                                                                                                                                                                                          |
 | Cloth       | Default, mixed across the four mantle cloths. Fishers in indigo, the working man's mantle (§3.1).                                                                                                                                                                                                                                                                         |
@@ -816,7 +816,7 @@ Where the text is silent, the cloth is the §3.1 default: a linen tunic, a walnu
 
 | Field       | Detail                                                                                                |
 | ----------- | ----------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, film: T03, the upper room: "Lord, shew us the Father, and it sufficeth us" (John 14:8).        |
+| Appears     | Shown, film: T04, the upper room: "Lord, shew us the Father, and it sufficeth us" (John 14:8).        |
 | Text        | Text silent. "Of Bethsaida of Galilee" (John 12:21).                                                  |
 | Age, height | Grown man; 0.95.                                                                                      |
 | Cloth       | Default: linen with an olive mantle.                                                                  |
@@ -842,7 +842,7 @@ Where the text is silent, the cloth is the §3.1 default: a linen tunic, a walnu
 
 | Field       | Detail                                                                                                                                                                                                      |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, film: T05, with a tent and the flock.                                                                                                                                                                |
+| Appears     | Shown, film: T08, with a tent and the flock.                                                                                                                                                                |
 | Text        | "Shepherds abiding in the field, keeping watch over their flock by night" (Luke 2:8). They "came with haste, and found Mary, and Joseph, and the babe lying in a manger" (Luke 2:16). Text silent on dress. |
 | Age, height | Mixed: an old man (0.92), two grown men (0.96, 0.98) and a boy (0.70).                                                                                                                                      |
 | Cloth       | Olive, the shepherd's mantle (§3.1).                                                                                                                                                                        |
@@ -907,7 +907,7 @@ Where the text is silent, the cloth is the §3.1 default: a linen tunic, a walnu
 
 | Field       | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, film: RBF `look`, the desert camp, "fiery serpents among the people" (Num 21:6) drawn as scarlet paper snakes, and a bitten figure who climbs the pole and then looks: "if a serpent had bitten any man, when he beheld the serpent of brass, he lived" (Num 21:9). Shown, talk: H01, the caravan at Marah and Elim's "twelve wells of water, and threescore and ten palm trees" (Ex 15:27). Planned: T20 (the spies, with grapes borne "between two upon a staff", Num 13:23); H35 ("the mixt multitude ... fell a lusting", Num 11:4). |
+| Appears     | Shown, film: RBF `look`, the desert camp, "fiery serpents among the people" (Num 21:6) drawn as scarlet paper snakes, and a bitten figure who climbs the pole and then looks: "if a serpent had bitten any man, when he beheld the serpent of brass, he lived" (Num 21:9). Shown, talk: H01, the caravan at Marah and Elim's "twelve wells of water, and threescore and ten palm trees" (Ex 15:27). Planned: T27 (the spies, with grapes borne "between two upon a staff", Num 13:23); H35 ("the mixt multitude ... fell a lusting", Num 11:4). |
 | Text        | Text silent on dress.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Age, height | Every age. The bitten figure is a grown person, 0.93.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Cloth       | The story crowd kit (2.6).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -946,16 +946,16 @@ The fourth figure in the fire (Dan 3:25) is a planned draft question: "the form 
 
 #### Nebuchadnezzar
 
-| Field       | Detail                                                                                                                                                                                                                                          |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, talk: E19, "a throne room, the king leaning forward"; H33, the throne room. Planned: T11b (Dan 2: he "dreamed dreams, wherewith his spirit was troubled", Dan 2:1); T30 (Dan 4: "his hairs were grown like eagles' feathers", Dan 4:33). |
-| Text        | "The king communed with them; and among them all was found none like Daniel" (Dan 1:19); "ten times better than all the magicians and astrologers" (Dan 1:20). Text silent on his look.                                                         |
-| Age, height | Grown king; 0.98, seated mostly.                                                                                                                                                                                                                |
-| Cloth       | Royal purple `#62486b` (kings and courts, §3.1). A crown in brass, the world's gold, not glowing.                                                                                                                                               |
-| Props       | The throne.                                                                                                                                                                                                                                     |
-| Identity    | The tall crown, leaning forward from the throne.                                                                                                                                                                                                |
-| Role        | Supporting. Not an antagonist in Dan 1; a human king (§2.5 rule 7).                                                                                                                                                                             |
-| Priority    | P4.                                                                                                                                                                                                                                             |
+| Field       | Detail                                                                                                                                                                                                                                         |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Appears     | Shown, talk: E19, "a throne room, the king leaning forward"; H33, the throne room. Planned: T16 (Dan 2: he "dreamed dreams, wherewith his spirit was troubled", Dan 2:1); T37 (Dan 4: "his hairs were grown like eagles' feathers", Dan 4:33). |
+| Text        | "The king communed with them; and among them all was found none like Daniel" (Dan 1:19); "ten times better than all the magicians and astrologers" (Dan 1:20). Text silent on his look.                                                        |
+| Age, height | Grown king; 0.98, seated mostly.                                                                                                                                                                                                               |
+| Cloth       | Royal purple `#62486b` (kings and courts, §3.1). A crown in brass, the world's gold, not glowing.                                                                                                                                              |
+| Props       | The throne.                                                                                                                                                                                                                                    |
+| Identity    | The tall crown, leaning forward from the throne.                                                                                                                                                                                               |
+| Role        | Supporting. Not an antagonist in Dan 1; a human king (§2.5 rule 7).                                                                                                                                                                            |
+| Priority    | P4.                                                                                                                                                                                                                                            |
 
 #### Daniel's mother
 
@@ -987,7 +987,7 @@ The fourth figure in the fire (Dan 3:25) is a planned draft question: "the form 
 
 | Field       | Detail                                                                                                                                                                                                                                                         |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears     | Shown, film: T01, "a sower went forth to sow" (Matt 13:3; Mark 4:3). T03, "when he was yet a great way off, his father saw him, and had compassion, and ran, and fell on his neck" (Luke 15:20), and "Bring forth the best robe" (Luke 15:22), in a farmhouse. |
+| Appears     | Shown, film: T01, "a sower went forth to sow" (Matt 13:3; Mark 4:3). T04, "when he was yet a great way off, his father saw him, and had compassion, and ran, and fell on his neck" (Luke 15:20), and "Bring forth the best robe" (Luke 15:22), in a farmhouse. |
 | Text        | The parables give no look beyond what each does. The son fed swine (Luke 15:15); the elder son "was in the field" (Luke 15:25).                                                                                                                                |
 | Age, height | The sower is a grown man, 0.96. The father is old, 0.94, with pale cool hair. The son is young, 0.95.                                                                                                                                                          |
 | Cloth       | Story cloth. The son arrives in torn camel and receives "the best robe" in robe white (righteousness given, §1.2); the parable's own text puts the robe on him.                                                                                                |
@@ -1011,7 +1011,7 @@ The fourth figure in the fire (Dan 3:25) is a planned draft question: "the form 
 
 | Field    | Detail                                                                                                                                                                                                                                                                                                                                              |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Appears  | Shown, film: T03 (lepers; baskets passed along a hillside crowd; children; the watchers at the cross); T05 (the temple court, "Then took they up stones to cast at him", John 8:59); RBF (the packed Capernaum room in headcloths). Shown, talk: H01 (the Galilee hillside), H20 (the crowded lakeshore, "great multitudes", Matt 13:2).            |
+| Appears  | Shown, film: T04 (lepers; baskets passed along a hillside crowd; children; the watchers at the cross); T08 (the temple court, "Then took they up stones to cast at him", John 8:59); RBF (the packed Capernaum room in headcloths). Shown, talk: H01 (the Galilee hillside), H20 (the crowded lakeshore, "great multitudes", Matt 13:2).            |
 | Text     | "He was moved with compassion on them, because they fainted, and were scattered abroad, as sheep having no shepherd" (Matt 9:36). At the cross, "all his acquaintance, and the women that followed him from Galilee, stood afar off" (Luke 23:49). Children: "he took them up in his arms, put his hands upon them, and blessed them" (Mark 10:16). |
 | Count    | 12–30 per wide.                                                                                                                                                                                                                                                                                                                                     |
 | Cloth    | The story crowd kit.                                                                                                                                                                                                                                                                                                                                |
@@ -1037,12 +1037,12 @@ These are planned in the series plans and are not in §4.3 or any script. Each r
 | Figure                                                               | Planned in                          | Text that fixes the look (KJV)                                                                                                                                                                                                                            | Age, height                                    | Props                | One identity feature                                          | Cloth                                                |
 | -------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | -------------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
 | Sarah                                                                | C04 (implied), C19; edu ep 29       | "Abraham and Sarah were old and well stricken in age" (Gen 18:11); "make cakes upon the hearth" (Gen 18:6)                                                                                                                                                | old; 0.88                                      | kneading trough      | at the tent's inner door                                      | linen with a walnut mantle, pale cool hair           |
-| Isaac                                                                | T06; edu ep 22 (catalogue topic 48) | "laid it upon Isaac his son" (Gen 22:6); "where is the lamb for a burnt offering?" (Gen 22:7)                                                                                                                                                             | a youth; 0.92                                  | the wood on his back | the bundle of wood                                            | default                                              |
+| Isaac                                                                | T09; edu ep 22 (catalogue topic 48) | "laid it upon Isaac his son" (Gen 22:6); "where is the lamb for a burnt offering?" (Gen 22:7)                                                                                                                                                             | a youth; 0.92                                  | the wood on his back | the bundle of wood                                            | default                                              |
 | Abraham's eldest servant                                             | edu ep 36                           | "his eldest servant of his house, that ruled over all that he had" (Gen 24:2)                                                                                                                                                                             | old; 0.94                                      | a camel's lead       | the camel's lead rope                                         | camel                                                |
 | Rebekah                                                              | edu ep 36                           | "she took a vail, and covered herself" (Gen 24:65)                                                                                                                                                                                                        | young; 0.89                                    | water jar            | the veil drawn                                                | linen with an indigo veil                            |
 | Lot's two daughters, sons-in-law                                     | C12, C13                            | "he seemed as one that mocked unto his sons in law" (Gen 19:14)                                                                                                                                                                                           | young; 0.88, 0.97                              | none                 | the sons-in-law turned away, laughing                         | the city's finer cloth, as Lot                       |
-| Melchisedec                                                          | T14; named in T01                   | "king of Salem ... brought forth bread and wine: and he was the priest of the most high God" (Gen 14:18)                                                                                                                                                  | old; 0.97                                      | bread and wine       | bread held out in both hands                                  | royal purple over linen                              |
-| Jacob                                                                | T33                                 | "a plain man, dwelling in tents" (Gen 25:27); "he halted upon his thigh" (Gen 32:31)                                                                                                                                                                      | grown, then lame; 0.97                         | a staff              | the limp and the staff                                        | olive                                                |
+| Melchisedec                                                          | T20; named in T01                   | "king of Salem ... brought forth bread and wine: and he was the priest of the most high God" (Gen 14:18)                                                                                                                                                  | old; 0.97                                      | bread and wine       | bread held out in both hands                                  | royal purple over linen                              |
+| Jacob                                                                | T40                                 | "a plain man, dwelling in tents" (Gen 25:27); "he halted upon his thigh" (Gen 32:31)                                                                                                                                                                      | grown, then lame; 0.97                         | a staff              | the limp and the staff                                        | olive                                                |
 | Joseph, son of Jacob                                                 | edu ep 27 (catalogue topic 22)      | "he made him a coat of many colours" (Gen 37:3)                                                                                                                                                                                                           | 17; 0.94                                       | the coat             | the coat: woven stripes of the story cloths                   | the coat, stripes of linen, indigo, olive and walnut |
 | Samuel as a child                                                    | edu ep 7                            | "the child was young" (1 Sam 1:24); "a child, girded with a linen ephod" (1 Sam 2:18)                                                                                                                                                                     | 3, then about 8; 0.40, 0.62                    | the little coat      | the linen ephod on a child                                    | linen                                                |
 | Eli and his sons                                                     | edu ep 12 (catalogue topic 108)     | "he was an old man, and heavy" (1 Sam 4:18)                                                                                                                                                                                                               | old; 0.94, broad                               | the seat by the gate | the heavy seated figure                                       | priest's linen                                       |
@@ -1058,13 +1058,13 @@ These are planned in the series plans and are not in §4.3 or any script. Each r
 | Ruth                                                                 | C17                                 | "she went, and came, and gleaned in the field after the reapers" (Ruth 2:3)                                                                                                                                                                               | young; 0.89                                    | gleaned ears         | stooping behind the reapers                                   | olive                                                |
 | Ezra                                                                 | edu ep 33 (catalogue topic 99); C16 | "a ready scribe in the law of Moses" (Ezra 7:6); "stood upon a pulpit of wood" (Neh 8:4)                                                                                                                                                                  | old; 0.95                                      | a scroll             | standing raised above the people, reading                     | linen with a camel mantle                            |
 | The Jer 29 exiles                                                    | C16; edu ep 32                      | "Build ye houses ... and plant gardens" (Jer 29:5)                                                                                                                                                                                                        | every age                                      | spades, seed         | crowd                                                         | story crowd kit                                      |
-| Belshazzar                                                           | T30                                 | "made a great feast to a thousand of his lords" (Dan 5:1)                                                                                                                                                                                                 | grown; 0.97                                    | a cup                | the raised cup at the feast                                   | royal purple, brass                                  |
-| Gabriel                                                              | T22                                 | "the man Gabriel ... being caused to fly swiftly" (Dan 9:21); "I am Gabriel, that stand in the presence of God" (Luke 1:19)                                                                                                                               | 1.04                                           | none                 | the angel rig, with wings allowed                             | robe white                                           |
-| The man with the inkhorn                                             | T31                                 | "one man among them was clothed with linen, with a writer's inkhorn by his side" (Ezek 9:2)                                                                                                                                                               | 1.04                                           | the inkhorn          | the inkhorn at the side                                       | linen                                                |
-| Michael                                                              | T27, T33                            | "Michael and his angels fought against the dragon" (Rev 12:7)                                                                                                                                                                                             | draft: §3.2 and §3.5 apply; owner question     |                      |                                                               |                                                      |
-| Rev 12's woman, the dragon, the beasts, the Lamb, the image of Dan 2 | T11b, T21b, T27                     | "a woman clothed with the sun, and the moon under her feet" (Rev 12:1); "a great red dragon" (Rev 12:3); "dreadful and terrible ... great iron teeth" (Dan 7:7); "a Lamb as it had been slain" (Rev 5:6); "This image's head was of fine gold" (Dan 2:32) | symbols, IDEA page                             |                      | flat, symbolic, never a living people or church (§2.5 rule 5) | the text's colours                                   |
-| Lazarus                                                              | T12                                 | "Our friend Lazarus sleepeth" (John 11:11); "bound hand and foot with graveclothes" (John 11:44)                                                                                                                                                          | grown; 0.95                                    | graveclothes         | the bound figure standing                                     | linen graveclothes                                   |
-| The Pentecost believers                                              | T10                                 | "cloven tongues like as of fire, and it sat upon each of them" (Acts 2:3)                                                                                                                                                                                 | every age                                      |                      | a crowd turning as one shape (§2.7)                           | story crowd kit                                      |
+| Belshazzar                                                           | T37                                 | "made a great feast to a thousand of his lords" (Dan 5:1)                                                                                                                                                                                                 | grown; 0.97                                    | a cup                | the raised cup at the feast                                   | royal purple, brass                                  |
+| Gabriel                                                              | T30                                 | "the man Gabriel ... being caused to fly swiftly" (Dan 9:21); "I am Gabriel, that stand in the presence of God" (Luke 1:19)                                                                                                                               | 1.04                                           | none                 | the angel rig, with wings allowed                             | robe white                                           |
+| The man with the inkhorn                                             | T38                                 | "one man among them was clothed with linen, with a writer's inkhorn by his side" (Ezek 9:2)                                                                                                                                                               | 1.04                                           | the inkhorn          | the inkhorn at the side                                       | linen                                                |
+| Michael                                                              | T34, T40                            | "Michael and his angels fought against the dragon" (Rev 12:7)                                                                                                                                                                                             | draft: §3.2 and §3.5 apply; owner question     |                      |                                                               |                                                      |
+| Rev 12's woman, the dragon, the beasts, the Lamb, the image of Dan 2 | T16, T29, T34                       | "a woman clothed with the sun, and the moon under her feet" (Rev 12:1); "a great red dragon" (Rev 12:3); "dreadful and terrible ... great iron teeth" (Dan 7:7); "a Lamb as it had been slain" (Rev 5:6); "This image's head was of fine gold" (Dan 2:32) | symbols, IDEA page                             |                      | flat, symbolic, never a living people or church (§2.5 rule 5) | the text's colours                                   |
+| Lazarus                                                              | T17                                 | "Our friend Lazarus sleepeth" (John 11:11); "bound hand and foot with graveclothes" (John 11:44)                                                                                                                                                          | grown; 0.95                                    | graveclothes         | the bound figure standing                                     | linen graveclothes                                   |
+| The Pentecost believers                                              | T14                                 | "cloven tongues like as of fire, and it sat upon each of them" (Acts 2:3)                                                                                                                                                                                 | every age                                      |                      | a crowd turning as one shape (§2.7)                           | story crowd kit                                      |
 | The scattered believers                                              | C17                                 | "they that were scattered abroad went every where preaching the word" (Acts 8:4)                                                                                                                                                                          | every age                                      | bundles              | crowd                                                         | story crowd kit                                      |
 | Eutychus                                                             | H9                                  | "there sat in a window a certain young man named Eutychus, being fallen into a deep sleep" (Acts 20:9)                                                                                                                                                    | a youth; 0.92                                  |                      | asleep in the window                                          | default                                              |
 | Asa                                                                  | H53                                 | "diseased in his feet ... he sought not to the LORD, but to the physicians" (2 Chr 16:12)                                                                                                                                                                 | old king; 0.96                                 |                      | bandaged feet on a footstool                                  | royal purple                                         |
@@ -1073,7 +1073,7 @@ These are planned in the series plans and are not in §4.3 or any script. Each r
 | Jesus in the wilderness                                              | H59                                 | "he did eat nothing" (Luke 4:2); "forty days and forty nights" (Matt 4:2)                                                                                                                                                                                 | stage of Jesus, thin                           |                      | the same rig, gaunt                                           | His earthly dress                                    |
 | Cain; Babel's builders                                               | C02                                 | "he builded a city" (Gen 4:17); "a city and a tower, whose top may reach unto heaven" (Gen 11:4)                                                                                                                                                          | grown; crowd                                   | bricks               | builders in a line                                            | story crowd kit                                      |
 | Israel at the jubilee                                                | C06                                 | "ye shall return every man unto his possession" (Lev 25:10)                                                                                                                                                                                               | every age                                      |                      | families walking back to fields                               | story crowd kit                                      |
-| Jonah                                                                | T29                                 | "Yet forty days, and Nineveh shall be overthrown" (Jonah 3:4); text silent on his look                                                                                                                                                                    | grown; 0.96                                    |                      | crying in a city street                                       | camel                                                |
+| Jonah                                                                | T36                                 | "Yet forty days, and Nineveh shall be overthrown" (Jonah 3:4); text silent on his look                                                                                                                                                                    | grown; 0.96                                    |                      | crying in a city street                                       | camel                                                |
 
 Planned figures that are concepts, not figures, are left out. Examples are "the generation that forgot" and "the Job test", where no figure is described.
 
@@ -1087,10 +1087,10 @@ Fourteen figures are named and never shown in any script:
 | Melchisedec                          | T01                                                                                      |
 | Stephen                              | T02                                                                                      |
 | Timothy                              | T02                                                                                      |
-| Abraham                              | T05 ("Before Abraham was, I am"); E52                                                    |
+| Abraham                              | T08 ("Before Abraham was, I am"); E52                                                    |
 | Job                                  | C01; RBF                                                                                 |
 | Zechariah the prophet                | RBF                                                                                      |
-| Uzziah                               | T05 ("the year a king died")                                                             |
+| Uzziah                               | T08 ("the year a king died")                                                             |
 | Luke                                 | C01; H50                                                                                 |
 | The psalmist (David)                 | RBF                                                                                      |
 | James and John, as the two who asked | E44 (the seats are shown, not them)                                                      |
@@ -1129,8 +1129,8 @@ The recurring eight are in [ensemble.md](ensemble.md). The rules for everything 
 | The wedding feast     | Guests at a long table. The grown man is a plain lead (§2.3), and the mother and the baby at the cup are plain figures; the cast may sit among the guests, in the background. Christ is the host at the landing.                 | T01 `cold` and the landing | 3 plain figures, 10–12 guests | crowd; the grown man main     | **Yes** for the guests, if the courtyard is the parable's own world. See section 4, item 5.                                                                                                                                                                                    |
 | IDEA "voices"         | `clever`: a figure in a scholar's cap. `councils`: a long table of figures, "no robes or emblems". The majority: a crowd.                                                                                                        | T02 `rule`                 | 1 + 5 + 8                     | minor and crowd               | The table and the majority: **yes**. The scholar is a new minor: §5's official body with a mortarboard as its one hook. That body can also play `expert`, the "tall teacher figure" who talks over the reader. §5's teacher is a woman, and the script calls the expert "his". |
 | IDEA everyday figures | Plain figures (§2.3), each film its own: the frowning reader (T02 `guess`); the farmer reading by the lamp and the child on a parent's knee (T02 `simple`); the child at the slate (T01 `math`). The cast may stand behind them. | T01, T02                   | 5                             | main and supporting           | No: the plain lead's sheet (§2.3)                                                                                                                                                                                                                                              |
-| The montage of hiding | "a child behind a door", "a worker turning away from a lit window", "a person in a city pulling their hood down": plain figures (§2.3), each its shot's subject                                                                  | T03 `hide`                 | 3                             | supporting                    | No: the plain lead's sheet (§2.3), with no hood. See section 4, item 6.                                                                                                                                                                                                        |
-| Planned scenes        | The baptism (T09) and the reunion at the resurrection (T34, T37), each with plain figures (§2.3); a new-earth crowd "of all nations, and kindreds, and people, and tongues ... clothed with white robes" (Rev 7:9)               | T09, T34, T37              | plain figures; crowd up to 40 | the plain figures main; crowd | The new-earth crowd: **yes**, in robe white, which Rev 7:9 allows                                                                                                                                                                                                              |
+| The montage of hiding | "a child behind a door", "a worker turning away from a lit window", "a person in a city pulling their hood down": plain figures (§2.3), each its shot's subject                                                                  | T04 `hide`                 | 3                             | supporting                    | No: the plain lead's sheet (§2.3), with no hood. See section 4, item 6.                                                                                                                                                                                                        |
+| Planned scenes        | The baptism (T13) and the reunion at the resurrection (T41, T44), each with plain figures (§2.3); a new-earth crowd "of all nations, and kindreds, and people, and tongues ... clothed with white robes" (Rev 7:9)               | T13, T41, T44              | plain figures; crowd up to 40 | the plain figures main; crowd | The new-earth crowd: **yes**, in robe white, which Rev 7:9 allows                                                                                                                                                                                                              |
 
 ### 2.3 Education (_Taught of the Lord_)
 
@@ -1256,7 +1256,7 @@ The Zech 3 court:
 - The "young man" who "hasted to dress" the calf (Gen 18:7).
 - The "three men" (Gen 18:2) as men in white.
 
-It is the most-planned single scene (C04, C15, C19; edu ep 29; T14). It waits only because no script has drawn it yet.
+It is the most-planned single scene (C04, C15, C19; edu ep 29; T20). It waits only because no script has drawn it yet.
 
 ---
 
@@ -1269,20 +1269,20 @@ Each item gives where the conflict is and what the guide says. A recommendation 
    - The guide: §3.2 (OQ5) gives the earthly ministry the seamless undyed-linen coat (John 19:23), and keeps the white robe and golden girdle for Priest, Advocate and glory.
    - The owner chose the guide (2026-10-19). The theology drafts are restaged to the linen coat; RBF's scenes wait until RBF resumes (owner, 2026-10-19: RBF is paused).
 2. **The seraphim's colour.**
-   - Where: T05 draws them "flame-red and gold paper".
+   - Where: T08 draws them "flame-red and gold paper".
    - The guide: §3.5 makes them gold and cream; flame-red would put the scarlet accent on them.
 3. **Wings on the angel host.**
-   - Where: T05's Bethlehem host has "the same wings as the seraphim".
+   - Where: T08's Bethlehem host has "the same wings as the seraphim".
    - The guide: Luke 2:13 gives "a multitude of the heavenly host" and says nothing of wings or flight. §3.5 (OQ7) gives wings only where the text does.
 4. **A portrait of Christ.**
-   - Where: T05's `face` beat hangs "the portrait frame from 03" with Jesus' face in it.
+   - Where: T08's `face` beat hangs "the portrait frame from 04" with Jesus' face in it.
    - The guide: §3.2 says never a framed portrait; restage it as His face in the story.
-   - Related: T03 also floats a portrait frame over Christ's last panel, but it holds only light, which is fine.
+   - Related: T04 also floats a portrait frame over Christ's last panel, but it holds only light, which is fine.
 5. **The parable's world in a STORY register.**
    - Where: T01 labels its cold open STORY, a village wedding with a grown man, and a mother and a baby at the cup: plain figures (§2.3), where the ensemble had cast Hugo, Clara and Mila until 2026-10-15.
    - The guide and ensemble: the cast is never STORY (§4.1), and no one from the parable's world stands in a Bible scene (ensemble, Never inside a Bible scene).
    - Recommendation: make the courtyard plainly the parable's own world, contemporary and not first-century; the cast may sit among the guests, in the background. Christ as host at the landing is allowed (ensemble open choice 5).
-6. **The hood in T03's montage.**
+6. **The hood in T04's montage.**
    - Where: "a person in a city pulling their hood down".
    - The guide: the hood is Max's hook; §5 gives no one else a hood, and a plain figure wears none (§2.3). Max cannot play the shot: each figure in the montage is its shot's subject, so it is a plain figure.
    - Recommendation: a plain figure with no hood, who turns their face away and lowers their head. (Until 2026-10-15 the recommendation was to cast it as Max.)
@@ -1295,7 +1295,7 @@ Each item gives where the conflict is and what the guide says. A recommendation 
    - The guide:
      - §5's official covers a parable judge.
      - §3.3 (owner, 2026-10-13) draws the Father only as a veiled, hazy human form with no features and no outline.
-     - T13's plan makes Jesus the Judge.
+     - T18's plan makes Jesus the Judge.
    - The risk: a cut-paper judge whose verdict is God's pictures God as a man with a face.
    - Answered (owner, 2026-10-13): "He should be pictured as a man, just an indistinct figure." The judge whose verdict is God's is the Father's veiled form on the judge's seat (§3.3, Dan 7:9–10): a man's shape in gold-white light, no face, no outline, no gavel. The Advocate stands before Him, drawn plainly. §5's official stays for a parable's human judge only.
 9. **RBF's grey figures.**
@@ -1318,15 +1318,15 @@ Each item gives where the conflict is and what the guide says. A recommendation 
     - The guide: §3.2 gives Christ as Priest "the robe white and the 'golden girdle' (Rev 1:13)". The breastplate is the earthly high priest's (Ex 28:4, 30), and Rev 1:13 does not name it.
     - Answered (owner, 2026-10-13): "Christ - breastplate". As Priest He wears the breastplate with the robe and girdle (§3.2, Ex 28:29). The scripts stand.
 14. **The Father as "no figure".**
-    - Where: T03 and C01 bring the presence in Eden as "a warm moving light ... no figure (frame: never a face or body for the Father)". T05's notes say "The Father is never shown with a face or body".
+    - Where: T04 and C01 bring the presence in Eden as "a warm moving light ... no figure (frame: never a face or body for the Father)". T08's notes say "The Father is never shown with a face or body".
     - The guide: §3.3 now (owner, 2026-10-13) draws the Father as "hazy, with a definite human form", veiled, with no face.
-    - Answered (owner, 2026-10-13): "He should be pictured as a man, just an indistinct figure." T05's throne scenes take the veiled form, and Eden's walking presence (Gen 3:8) is a man's shape walking in light, no face (§3.3). T03 and C01's "no figure" notes are restaged to it.
+    - Answered (owner, 2026-10-13): "He should be pictured as a man, just an indistinct figure." T08's throne scenes take the veiled form, and Eden's walking presence (Gen 3:8) is a man's shape walking in light, no face (§3.3). T04 and C01's "no figure" notes are restaged to it.
 15. **The accuser's height.**
     - Where: RBF draws Satan "tall".
     - The guide: §2.5 says "tall in its scene, but ... never larger than the Advocate". §3.2 keeps Christ an ordinary man, never the tallest.
     - Recommendation: the accuser's head is no higher than the Advocate's (both 0.97). He reads tall by a narrow, high-shouldered cut.
 16. **"Grey" Bible figures.**
-    - Where: T01–T05 and C01 describe Paul, Philip, Jeremiah, John, Adam and Eve and others as "grey".
+    - Where: T01–T08 and C01 describe Paul, Philip, Jeremiah, John, Adam and Eve and others as "grey".
     - The guide: K1 retires grey; Bible figures wear story cloth (§3.1). Read "grey" as story cloth.
 
 ## 5. Counts

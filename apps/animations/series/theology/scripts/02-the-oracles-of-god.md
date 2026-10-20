@@ -1,14 +1,14 @@
 # 02 · The Oracles of God
 
-Series: The Path of the Just · Tier One (Milk) · 2 of 13
-Promise: the viewer knows where the Bible came from, why it is the one rule every other voice is measured by, and one plain habit for letting it explain itself (the next film, 02b, gives the Bible's own dictionary), so they can check every later film against it.
+Series: The Path of the Just · Tier One (Milk) · 2 of 44
+Promise: the viewer knows where the Bible came from, why it is the one rule every other voice is measured by, and one plain habit for letting it explain itself (the next film, 03, gives the Bible's own dictionary), so they can check every later film against it.
 Prerequisites: 01 (the milk is "the first principles of the oracles of God").
-Length: about 5:25 (573 spoken words: 3:42 at 155 wpm, 4:02 with the marked breaths and holds, 3:48–4:09 at 165–150 wpm with them; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits). Recounted 2026-10-19 after `plain` and `figure` moved to 02b.
+Length: about 5:25 (573 spoken words: 3:42 at 155 wpm, 4:02 with the marked breaths and holds, 3:48–4:09 at 165–150 wpm with them; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits). Recounted 2026-10-19 after `plain` and `figure` moved to 03.
 Status: draft for the owner. Every KJV line printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15; every paraphrase source printed by the corpus search (sources.md). Frame: scripture.md (Principle III). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header
 
-The order: the cold open in Berea (`cold`: they checked the apostle against the Book, and the Bible calls them noble; why?), the title, what an oracle is (`oracles`: a word God has spoken; how it reached the page), the one measuring rule (`rule`: everything else is measured by the word, never set beside it), the problem in one dose (`guess`: "it's too hard, I need an expert", and what that does; it hands off to 02b in one line), the one habit (`gather`), the centre the habit finds (`emmaus`), who can understand (`simple`), and the landing back in Berea.
+The order: the cold open in Berea (`cold`: they checked the apostle against the Book, and the Bible calls them noble; why?), the title, what an oracle is (`oracles`: a word God has spoken; how it reached the page), the one measuring rule (`rule`: everything else is measured by the word, never set beside it), the problem in one dose (`guess`: "it's too hard, I need an expert", and what that does; it hands off to 03 in one line), the one habit (`gather`), the centre the habit finds (`emmaus`), who can understand (`simple`), and the landing back in Berea.
 
 Motifs:
 
@@ -27,7 +27,7 @@ Tent poles, act light, chapter question:
 
 Registers: STORY for `cold`, `oracles` (Sinai, Peter), `emmaus`, `name`; IDEA for `rule`, `guess`, `gather`, `simple`.
 
-Quoted Scripture: 7 passages, 97 of 573 spoken words (16.9 %; recounted 2026-10-19 after `figure`, with John 1:29, moved to 02b; sources.md's verifier table holds the earlier count). One quotation per beat.
+Quoted Scripture: 7 passages, 97 of 573 spoken words (16.9 %; recounted 2026-10-19 after `figure`, with John 1:29, moved to 03; sources.md's verifier table holds the earlier count). One quotation per beat.
 
 ## Cast
 
@@ -47,7 +47,7 @@ Settings:
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
 | The synagogue at Berea: a small room, a long table, a high window, the door to the road | film | `cold`, `title`, `name`, `thesis`, `end` | peach lamplight; the landing teal to yellow; sunrise |
-| The mountain in cloud, the people far below (Sinai; T03's and 03b's `sinai` from afar) | series | `oracles` | dawn |
+| The mountain in cloud, the people far below (Sinai; T04's and 05's `sinai` from afar) | series | `oracles` | dawn |
 | The road to Emmaus at sunset between low hills | shared | `emmaus` | sunset, the film's deepest light |
 | The parchment page | series | `oracles`, `rule`, `guess`, `plain`, `gather`, `emmaus` (its close), `simple` | peach |
 
@@ -56,8 +56,8 @@ Props:
 | Prop | Scope | Beats |
 | --- | --- | --- |
 | The clay lamp | film | `title`, `oracles`, `simple`, `name` |
-| The gold measuring rod (02b brings it back) | series | `rule`, `guess`, `name` |
-| The gold threads and their knot | series (02b's dictionary and 06b's `one` use gold threads) | `gather`, `emmaus` |
+| The gold measuring rod (03 brings it back) | series | `rule`, `guess`, `name` |
+| The gold threads and their knot | series (03's dictionary and 10's `one` use gold threads) | `gather`, `emmaus` |
 | The blank card, turned over | film | `gather` |
 | The cup of milk from 01, by a modern open book | series | `name` |
 

@@ -1,8 +1,8 @@
-# 05 · The Word Made Flesh
+# 08 · The Word Made Flesh
 
-Series: The Path of the Just · Tier One (Milk) · 5 of 13
+Series: The Path of the Just · Tier One (Milk) · 8 of 44
 Promise: the viewer meets the One Isaiah saw on the throne and learns that He is Jesus. He is the divine Son, with God before the world and bearing His Father's name. He laid His glory down to become one of us, so that God would be "with us" and we could see what God is like.
-Prerequisites: 02 (Scripture explains itself; here John explains Isaiah), 03 (to see Jesus is to see the Father), 04 (a world lost, which is why He came).
+Prerequisites: 02 (Scripture explains itself; here John explains Isaiah), 04 (to see Jesus is to see the Father), 06 (a world lost, which is why He came).
 Length: about 6:00 (671 spoken words: 4:20 at 155 wpm, 4:40 with the 20 s of marked breaths and holds; plus the title, about 1 s between beats, about 30 s of music alone and 28 s of credits).
 Status: draft for the owner. Nothing narrated. Revised 2026-10-15 to the voice counsel and marked for delivery (`{*}` stress, `{/}` breath, `{//}` hold). Every KJV line was printed by `bible verse` on 2026-10-12 and again on 2026-10-15 (supplied-word brackets dropped for speech). Every paraphrase source was printed by `bible egw lookup` on 2026-10-12 (`asitreads-jesus-lord-god-almighty.md`, sources.md). Frame: god-christ.md (Principles I–II).
 
@@ -63,7 +63,7 @@ Quoted Scripture: 11 passages, 132 of 671 spoken words (19.7 %). One quotation p
 | John the apostle (casting.md #18) | Bible figure, supporting | shared | listed, not drawn | `john` | old, at a rough table by lamplight, writing on a scroll (three-quarter), close on his face (front); his young self among the twelve |
 | The twelve (casting.md #10) | Bible figures, a group | shared | listed, not drawn | `john`, `storm` | walking a road behind Jesus (three-quarter, back); soaked in the boat, faces in panic (front), staring at him, then at one another (three-quarter) |
 | Moses (casting.md #2) | Bible figure, minor | shared | listed, not drawn (P1) | `name` | taking off his sandals by the bush, his face lit (profile); camel mantle, staff |
-| The temple crowd (casting.md #3, gospel crowds) | crowd from the story crowd kit | shared | listed (T03, T05, RBF) | `name` | a ring of grey faces round Jesus (three-quarter); hands stooping for stones; faces hardening |
+| The temple crowd (casting.md #3, gospel crowds) | crowd from the story crowd kit | shared | listed (T04, T08, RBF) | `name` | a ring of grey faces round Jesus (three-quarter); hands stooping for stones; faces hardening |
 | Mary and Joseph (casting.md #11, #13) | Bible figures, supporting | shared | listed, not drawn | `manger` | in the stable by the manger, faces at a third of the frame (three-quarter); Mary kneeling by the straw, Joseph standing with a lamp |
 | The shepherds of Bethlehem (casting.md #24) | Bible figures, a group of 3–4 | shared | listed, not drawn | `manger` | by a tent and a fire with the sheep (three-quarter), shading their eyes against the host (front) |
 | The child in the village street | plain figure (2.3) | series | the plain lead's sheet exists | `with` | a small child reaching up to the hand held out (profile) |
@@ -73,10 +73,10 @@ Settings:
 
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
-| The temple court at Jerusalem: pillars, steps, the far city; the roof that lifts like a lid; the throne and its train | shared (RBF's `woman` court and T03's) | `cold`, `title`, `return`, `thesis`, `end` | cool teal dusk to gold; the landing teal to yellow |
+| The temple court at Jerusalem: pillars, steps, the far city; the roof that lifts like a lid; the throne and its train | shared (RBF's `woman` court and T04's) | `cold`, `title`, `return`, `thesis`, `end` | cool teal dusk to gold; the landing teal to yellow |
 | John's room by lamplight | film | `john` | lamplight |
-| A Galilee road | shared (T03 and T05) | `john`, `with` | morning peach |
-| The throne before the world, then in dimension with the host in rows | series (the arc's 03b `cold` light and 06b's Bethel light are its kin) | `beginning`, `laid` | dawn gold; gold to peach and dusk |
+| A Galilee road | shared (T04 and T08) | `john`, `with` | morning peach |
+| The throne before the world, then in dimension with the host in rows | series (the arc's 05 `cold` light and 10's Bethel light are its kin) | `beginning`, `laid` | dawn gold; gold to peach and dusk |
 | Horeb in red rock, the bush that burns | shared | `name` | noon |
 | The temple court where they take up stones | shared (with `cold`'s court) | `name` | day |
 | The lake in a storm, the boat | shared (H20's boat) | `storm` | storm blues at night |
@@ -90,7 +90,7 @@ Props:
 | --- | --- | --- |
 | The gold robe, the crown and the sceptre | series | `laid`, `storm`, `return` |
 | The scroll with the family seal | film | `name` |
-| The portrait frame from 03 (the arc's frame); light only: the script's Jesus' face in it is conflict item 4 (casting.md §4), restaged as his face in the story | series | `with` |
+| The portrait frame from 04 (the arc's frame); light only: the script's Jesus' face in it is conflict item 4 (casting.md §4), restaged as his face in the story | series | `with` |
 | The tents, one gold-edged among them | film | `manger`, `with` |
 | The paper manger | shared | `title`, `manger` |
 | The stones in the temple court | shared (RBF's `woman`) | `name` |
@@ -248,8 +248,8 @@ New to the library: Isaiah; the seraph rig; the Father and the Son on one throne
 
 - STORY: a village street in peach day. Jesus, grown, kneels to a child's height and takes a small hand (`show`).
 - On `tent` the street flattens into IDEA, the parchment: a row of small grey tents, and one gold-edged tent pitched in the row among them, no taller than the rest.
-- On `face` the portrait frame from 03 hangs on the page, and inside it now is Jesus' face, warm.
-- On `love` a thread of gold runs from the frame toward a small hill at the edge of the page where a cross stands (06's ground, not yet entered).
+- On `face` the portrait frame from 04 hangs on the page, and inside it now is Jesus' face, warm.
+- On `love` a thread of gold runs from the frame toward a small hill at the edge of the page where a cross stands (09's ground, not yet entered).
 
 **paraphrase sources (not spoken):**
 
@@ -302,15 +302,15 @@ New to the library: Isaiah; the seraph rig; the Father and the Son on one throne
   - Ellen White also wrote "The man Christ Jesus was not the Lord God Almighty, yet Christ and the Father are one" (Ms 140, 1903).
   - The film settles none of this. Rev 1:8 and 4:8 are not used, and no line calls Jesus "the Almighty".
   - What the film does claim, every source here grants: He bears His Father's name, He is called God (John 1:1), He is worshipped by angels (Heb 1:6), and He laid His glory down.
-  - If you want the title used, 14 ("A Priest on a Throne") is the place, with the dated wordings in a note rather than the narration.
+  - If you want the title used, 20 ("A Priest on a Throne") is the place, with the dated wordings in a note rather than the narration.
 - **Isaiah 6.** John 12:41 says Isaiah saw Jesus' glory, and all the sources agree on that. They differ on verse 3's "LORD of hosts": J. H. Waggoner (AERS 170.1, 1884) keeps that name for the Father, while E. J. Waggoner (1887) and Ellen White (RH September 18, 1894) give the whole vision to Christ. So the film quotes verse 1 ("the Lord", which Waggoner also gives to the Son) and John's words. The seraphim's cry is shown, not spoken.
 - **"God" said of the Son.** The film says "one with the Father in nature, in character, in purpose" (PP 34.1) and "two, yet almost identical" (YI 1897). It does not say "subordinate" (AERS 153.1, 1884), and it does not say "co-equal".
 - **What else the film leaves alone.**
   - The Son's origin, as in the frame. `beginning` says nothing about when or how, and nothing is animated.
-  - Christ's human nature, which belongs to 15. `laid` says "the form of a servant" and stops.
+  - Christ's human nature, which belongs to 21. `laid` says "the form of a servant" and stops.
 - **`name`** says "I AM" as the name given at the bush (Exodus 3:14) and quotes only John 8:58. One quotation per beat.
-- **`return`** looks ahead to the cross in one clause. 06 tells it.
-- **Hand-offs.** 04 ends with a world lost and a promise. 05 shows who the promised One is. 06 opens on the Lamb.
+- **`return`** looks ahead to the cross in one clause. 09 tells it.
+- **Hand-offs.** 06 ends with a world lost and a promise. 08 shows who the promised One is. 09 opens on the Lamb.
 - **Frame check (god-christ.md).**
   - The Father and the Son are on one throne, with the Father as a cloud of glorious light, form hidden (`beginning`, `laid`, landing).
   - Creation is the Father working through the Son (`beginning`).

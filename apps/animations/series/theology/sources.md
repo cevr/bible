@@ -7,8 +7,8 @@ How the material was gathered (2026-10-10/11), what was found per topic, and the
 - **KJV:** the repo's `bible` CLI (`bun packages/cli/src/main.ts verse "<ref>" --json`, wrapped as `scratchpad/bible`). Every Scripture line in `scripts/` came from it.
 - **EGW and pioneers:** on this box `bible egw search|lookup|books` fail (`SQLiteError: no such column: book_id`): `~/.bible/egw-paragraphs.db` holds only a `(refcode_short, para_id)` table of 3,011,990 rows and an empty `books` table, no paragraph text. I did not repair it (outside the allowed write area). Instead every EGW and pioneer search went to the owner's deployed egw-search service, `https://egw.cvr.im/api/search?q=…&scope=egw|pioneer&context=N&noref=1`, which serves the same corpus the CLI indexes (refcodes in the corpus's own form). Helper: `scratchpad/es.py`. Worth fixing on the box before scripts move into `apps/animations` (the film skill's "Fetch, then write" step and the frame verifier, `verify-quotes.py`, both read `~/.bible/egw-paragraphs.db`).
 - **The frame:** `.claude/skills/film/frame/<topic>.md` (verified pioneer quotes per doctrine, with Film direction). Used first wherever a topic file exists; marked (frame) below.
-- **Verifier:** `scratchpad/verify.py` checks each “…” in a script's `say` against the KJV text of that beat's Scripture `cite`s, each paraphrase-source snippet against the corpus by refcode, and counts the quoted share. Results for 01–03 are at the end. It is a scratch tool for this draft only, not a proposed repo check (owner: content is never checked by code).
-- **Full search log:** `searches.log` beside this file (every query, its scope and hit count, including the research agents' queries for 04–37).
+- **Verifier:** `scratchpad/verify.py` checks each “…” in a script's `say` against the KJV text of that beat's Scripture `cite`s, each paraphrase-source snippet against the corpus by refcode, and counts the quoted share. Results for 01, 02 and 04 are at the end. It is a scratch tool for this draft only, not a proposed repo check (owner: content is never checked by code).
+- **Full search log:** `searches.log` beside this file (every query, its scope and hit count, including the research agents' queries for 06–44).
 
 ## Series frame (the order, the name)
 
@@ -46,9 +46,9 @@ Searches — pioneer: rules of interpretation scripture must be its own exposito
 Used (credits): Miller's rules — MWV1 20.2 (I), 20.6 (III), 20.8 (IV), 22.3 (XI), 22.8 (XIV, "though they may not understand Hebrew or Greek"); rule V in full at HST May 15, 1840, page 25.42 (MWV1 20.10 is cut off mid-sentence in the corpus; MWM 70.6 and SLWM 49.2 carry it whole) · RCASDA 75.4 (Uriah Smith, 1887; frame) · FP1889 148.1 (frame) · 4SP 413.2 = GC 595.1 (frame) · GC 598.3 · Ed 190.2 ("The Bible is its own expositor") · AA 231.2 (the Bereans "compared scripture with scripture").
 Found, not used: AWLF 13.4 (1847, visions "given to lead us to God, and his written word"; frame; belongs with the gift of prophecy, later series); 7LtMs, Lt 2c, 1892, par. 13 (Ps 119:130 and the unlearned); ST June 26, 1901, par. 8 (Bereans).
 
-## 02b · As It Reads
+## 03 · As It Reads
 
-Gathered 2026-10-19 for `scripts/02b-as-it-reads.md`. Every KJV line in the script was printed by `bible verse` that day; every pioneer line below was printed by `bible egw lookup` (or `bible egw search`) that day and is copied verbatim. The excerpts the script paraphrases are in `quotes-02b.jsonl`, and the frame's verifier passes all 15 (`python3 .claude/skills/film/frame/verify-quotes.py apps/animations/series/theology/quotes-02b.jsonl`: 15 EXACT, 0 failing; rerun after the review, 2026-10-19).
+Gathered 2026-10-19 for `scripts/03-as-it-reads.md`. Every KJV line in the script was printed by `bible verse` that day; every pioneer line below was printed by `bible egw lookup` (or `bible egw search`) that day and is copied verbatim. The excerpts the script paraphrases are in `quotes-03.jsonl`, and the frame's verifier passes all 15 (`python3 .claude/skills/film/frame/verify-quotes.py apps/animations/series/theology/quotes-03.jsonl`: 15 EXACT, 0 failing; rerun after the review, 2026-10-19).
 
 Searches (scope: query; lexical index, no vector index on the laptop):
 
@@ -76,8 +76,8 @@ Used (credits), each with the words the script stays inside:
 
 Found, not used:
 
-- GC 674.4 (the original of LDE 286.2) — "A fear of making the future inheritance seem too material has led many to spiritualize away the very truths which lead us to look upon it as our home." Belongs to 37 (All Things New).
-- BR-ASI9 229.3 (unsigned note) — "To spiritualize our Lord's return is to pervert the obvious meaning of His promise, “I will come again,”" Belongs to 34; the byline is not printed.
+- GC 674.4 (the original of LDE 286.2) — "A fear of making the future inheritance seem too material has led many to spiritualize away the very truths which lead us to look upon it as our home." Belongs to 44 (All Things New).
+- BR-ASI9 229.3 (unsigned note) — "To spiritualize our Lord's return is to pervert the obvious meaning of His promise, “I will come again,”" Belongs to 41; the byline is not printed.
 - RH July 10, 1883, par. 13 (the original of ChS 144.2, 5T 388.2) — "A great work can be done by presenting to the people the Bible just as it reads. … Admonish them to take the Bible as it is". The film's title phrase; about the press, so not paraphrased.
 - GC 599.1 — "the docility and submission of a child is the true spirit of the learner." A second witness for `child`; left out to keep one source a thought.
 - GC88 c.4 — "He has given dreams and visions, symbols and figures; and those to whom the truth was thus revealed, have themselves embodied the thought in human language." Fits `across`; GC88 d.1–d.2 carry it.
@@ -98,14 +98,14 @@ Correction to `as-it-reads.md`: its "MWV1 21.6" for "mountains, meaning governme
 
 Rule numbers: the corpus prints Miller's rules without their numerals. The local corpus also drops rule VII ("Visions are always mentioned as such"), so a count from MWV1 20.2 (I) runs one short. The numbers below follow the printed edition (egwwritings.org, Miller's Works vol. 1, read 1320.115: rule VIII is "Figures always have a figurative meaning"), checked 2026-10-19: VIII figures (21.4–21.5), IX parables (21.7), X two or more significations (21.8–22.1), XI literal or figurative (22.3), XII trace the figure (22.5), XIII the history (22.6). An earlier draft said IX for 21.4–21.5; corrected.
 
-## 03 · God Is Love
+## 04 · God Is Love
 
 Searches — egw: Nature and revelation alike testify of God's love · Satan led men to conceive of God as a being whose chief attribute is stern justice · Jesus came to live among men to reveal the infinite love of God · the things of nature thorn … · It is the darkness of misapprehension of God … · The Father loves us, not because of the great propitiation … · prodigal father ran fell on his neck · Love is of quick sight …. pioneer: God is love the law is love character of God · the Lord passed by before him and proclaimed … · Satan misrepresented the character of God (0 hits).
 
 Used (credits): SC 9.3, 10.1, 10.2, 10.3, 11.1, 12.1, 13.2 (Steps to Christ, 1892; the manuscript is 7LtMs, Ms 41, 1892, par. 4, 7, 15) · COL 203.1 (first printed GCB December 1, 1895, Art. A, par. 8) · PTUK September 27, 1888, page 292.5 (Waggoner; the same in SITI December 22, 1887, 775.1: "the love of God runs parallel with his law") · SITI December 7, 1888, page 742.6 (Waggoner: "This does not mean that God has love for his creatures, but that he is love itself … goodness is tenderness").
 Found, not used: COL 415.3 ("It is the darkness of misapprehension of God that is enshrouding the world"); 22LtMs, Ms 139, 1907, par. 4 ("He loved before He gave"); GCDB February 5, 1893, page 146.2 (Moses in the cleft, the Sabbath as love; the hit is tagged with the Bulletin's editor and the speaker is not named in the paragraph, so it is not credited to anyone; 146.4 beside it tells 1844 movement history, not used).
 
-# Sources and searches · the salvation arc (03b, 04b, 06b)
+# Sources and searches · the salvation arc (05, 07, 10)
 
 Written 2026-10-19 beside `sources.md`, to be folded into it (the coordinator's rule: another writer edits `sources.md` today). Same form as `sources.md`: the searches, what the credits name, what was found and not used, what was not found. Every snippet below was printed in this session by `bible egw lookup` or `bible egw search` and copied verbatim; every KJV line in the three scripts was printed by `bible verse` the same day.
 
@@ -113,9 +113,9 @@ Written 2026-10-19 beside `sources.md`, to be folded into it (the coordinator's 
 
 - **KJV:** `bible verse "<ref>"`. A check run over every “…” span in the three scripts' `say` lines found each one inside its verse as printed, with the supplied-word brackets dropped (21 spans, 21 found).
 - **EGW and pioneers:** `bible egw search "<query>" --scope egw|pioneer --limit N` and `bible egw lookup "<refcode>"`, over `~/.bible/egw-paragraphs.db`. The search is lexical only on this machine ("the embedding model is not available"), so a long query of exact words can return 0 hits where a shorter one finds the passage; the 0-hit queries below are listed with that in mind.
-- **Verifier:** `.claude/skills/film/frame/verify-quotes.py`, run on two record sets per film: the quotes files made for each episode (`quotes-03b.jsonl`, `quotes-04b.jsonl` and `quotes-06b.jsonl` beside this file, with topic, ref, author, work and year), and every paraphrase-source snippet pulled straight out of the scripts. Results are at the end of each section.
+- **Verifier:** `.claude/skills/film/frame/verify-quotes.py`, run on two record sets per film: the quotes files made for each episode (`quotes-05.jsonl`, `quotes-07.jsonl` and `quotes-10.jsonl` beside this file, with topic, ref, author, work and year), and every paraphrase-source snippet pulled straight out of the scripts. Results are at the end of each section.
 
-## 03b · In Our Image
+## 05 · In Our Image
 
 Searches — egw: God is a being and man was made in his image (6) · Let us make man in our image the Father and the Son (6) · the Father and the Son engaged in the mighty wondrous work of creating (5) · Though formed from the dust Adam was the son of God (5) · an all-pervading principle an actuating energy God is a spirit yet He is a personal being (5); and lookups of the series leads (8T 263.1, CTr 339.2, 13LtMs, Ms 167, 1898, par. 11, FP1889 147.2, Broadside1 April 6, 1846, par. 7) and of PP 44.3–45.3. pioneer: God is a person with a body and form image of God (8) · made in the image of God form likeness personal God (3) · God is a Spirit being like the angels (6) · the law is a transcript of the character of God (6).
 
@@ -135,10 +135,10 @@ Used (credits):
 
 Found, not used:
 
-- 13LtMs, Ms 167, 1898, par. 11 (a series lead) — "in order to keep the law, it is necessary to have a knowledge of God, for the law is a transcript of His character". Kept for 08 or 19; ST 1904 says the same in fewer words.
+- 13LtMs, Ms 167, 1898, par. 11 (a series lead) — "in order to keep the law, it is necessary to have a knowledge of God, for the law is a transcript of His character". Kept for 12 or 26; ST 1904 says the same in fewer words.
 - FP1889 147.2 (frame; "one God, a personal, spiritual being"). Not credited here: the work's title names a church. The frame still governs the picture.
 - CGD 5.1, AMS December 25, 1889, page 377.4, SITI September 18, 1893, page 420.52 (E. J. Waggoner, one sentence printed three times: the law "the transcript of his character"). The 1888 Signs line pictures it better.
-- MOI 11.1 (Uriah Smith): the image of Col 3:10 is "put on" at conversion; "the race has become divested of that image". Not used: 06b speaks of the image restored from Ellen White and Prescott.
+- MOI 11.1 (Uriah Smith): the image of Col 3:10 is "put on" at conversion; "the race has become divested of that image". Not used: 10 speaks of the image restored from Ellen White and Prescott.
 - Strong's G5481, χαρακτήρ: "a graver … engraving … the figure stamped, i.e. an exact copy … — express image", in the New Testament only at Heb 1:3. The basis of the `express` word card; not credited as a work.
 - SITI July 21, 1887, page 440.6 (corpus tag A. T. Jones, byline not confirmed): "God is a person and has a person", with Rev 22:4. Not used: the paragraph ends on a polemic against a church.
 - ARSH December 23, 1862, page 25.16 and ARSH January 5, 1860, page 52.1 (corpus tag James White, bylines not confirmed): the image as a body of another substance, a "spiritual body". Not used.
@@ -151,9 +151,9 @@ A tension, recorded and not voiced:
 - J. N. Loughborough, MPC 32.1 (_An Examination of the Scripture Testimony Concerning Man's Present Condition_; the corpus prints no year): "The foregoing testimony settles the point, that the image of God does not refer to character but to form."
 - ARSH July 8, 1858, page 60.10 (corpus tag Uriah Smith, byline not confirmed): God "referred to his personal and visible form".
 
-Verifier: `03b.jsonl` 13 records (11 used, 2 for the tension), 12 EXACT and 1 PAGENUM (Ed 131.5), 0 failing. The script's own 13 snippets: 12 EXACT, 1 PAGENUM, 0 failing.
+Verifier: `quotes-05.jsonl` 13 records (11 used, 2 for the tension), 12 EXACT and 1 PAGENUM (Ed 131.5), 0 failing. The script's own 13 snippets: 12 EXACT, 1 PAGENUM, 0 failing.
 
-## 04b · What Was Lost
+## 07 · What Was Lost
 
 Searches — egw: Seth in his own likeness after his image fallen nature (1) · children not punished for the parents guilt except as they participate in their sins (2) · As related to the first Adam men receive from him nothing but guilt and the sentence of death (4) · Separated from God existence may be ours for a little time but we do not possess life (2) · the glory of His presence would consume sinful man God in mercy hid (0) · man could not look upon the face of God and live sin separated (0) · To sin wherever found our God is a consuming fire (6) · presence of God sinner could not endure would be a consuming fire (0) · sinner could not live in the presence of a holy God would be consuming fire heaven would be torture (0) · God could not look upon sin hid his face mercy that we might not be consumed (0) · it is in mercy that God hides himself his glory would slay (0) · the sinner could not endure the glory of God presence would be to them a consuming fire (0) · in mercy God veiled his glory lest man be consumed (0) · veiled his glory lest (0) · presence a consuming fire (6) · God is the fountain of life sin separated (1); and lookups of the series leads (FLB 176.9, RC 377.4) and of PP 60.2–62.2, PP 80.1–81.1, SC 17.1, SC 18.1. pioneer: our God is a consuming fire sin cannot exist in his presence (0) · restore the image of God in man (6) · the carnal mind is enmity against God not subject to the law bondage (6).
 
@@ -174,12 +174,12 @@ Used (credits):
 
 Found, not used:
 
-- DA 764.1 — "God is the fountain of life; and when one chooses the service of sin, he separates from God, and thus cuts himself off from life. … His very presence is to them a consuming fire." The same thought as MB 61.2 and DA 107.4, set at the final judgment; left for 13.
+- DA 764.1 — "God is the fountain of life; and when one chooses the service of sin, he separates from God, and thus cuts himself off from life. … His very presence is to them a consuming fire." The same thought as MB 61.2 and DA 107.4, set at the final judgment; left for 18.
 - TA 295.1 (a compilation; the same thought as DA 764.1).
-- PP 60.2 (the sentence of death pronounced the day they ate) and PP 80.2–80.3 (Gen 4:26; the first parents kept the Sabbath after the fall). PP 80.3 belongs with 20.
-- SITI June 29, 1888, page 390.15 (E. J. Waggoner, used in 03b): the carnal mind's enmity is "all on the side of man". It fits `bondage`; 03b already credits the paragraph.
+- PP 60.2 (the sentence of death pronounced the day they ate) and PP 80.2–80.3 (Gen 4:26; the first parents kept the Sabbath after the fall). PP 80.3 belongs with 27.
+- SITI June 29, 1888, page 390.15 (E. J. Waggoner, used in 05): the carnal mind's enmity is "all on the side of man". It fits `bondage`; 05 already credits the paragraph.
 - ARSH October 7, 1851, page 37.6 (unsigned Review editorial): man "brought under the dominion of “the carnal mind”". Not used: unsigned.
-- PP 67.1 ("All that was lost by the first Adam will be restored by the second") and PP 68.1 (the first sacrifice). Both belong to 06b's answer or to 06; 06b uses Ed 15.2 instead.
+- PP 67.1 ("All that was lost by the first Adam will be restored by the second") and PP 68.1 (the first sacrifice). Both belong to 10's answer or to 09; 10 uses Ed 15.2 instead.
 
 Not found: an Ellen White line that says in so many words that God hides his glory in mercy, lest sinners be consumed (twelve query forms, listed above). The script's "So he keeps us back … To keep us alive" rests on DA 107.4, MB 62.1 and PP 60.3 (the tree of life guarded, "there is not an immortal sinner"), and on the parenting likeness.
 
@@ -188,9 +188,9 @@ A tension, recorded and not voiced:
 - 14LtMs, Lt 68, 1899, par. 15 (= 6BC 1074.7): "As related to the first Adam, men receive from him nothing but guilt and the sentence of death."
 - PP 306.3 (1890): children "are not punished for the parents’ guilt, except as they participate in their sins". The owner's line, "until we sin ourselves", follows PP 306.3 and Ezek 18:20. The letter's next sentences speak of what Christ undoes ("He redeems Adam’s disgraceful failure"); the film does not take up the question.
 
-Verifier: `04b.jsonl` 15 records (14 used, 1 for the tension), 15 EXACT, 0 failing. The script's own 14 snippets: 14 EXACT, 0 failing.
+Verifier: `quotes-07.jsonl` 15 records (14 used, 1 for the tension), 15 EXACT, 0 failing. The script's own 14 snippets: 14 EXACT, 0 failing.
 
-## 06b · What Is Salvation?
+## 10 · What Is Salvation?
 
 Searches — egw: The ladder represents Jesus the appointed medium of communication bridged the gulf that sin had made (4) · Jacob feared that he had been cast off by God weary wanderer stone pillow (0) · by beholding we become changed (6) · changed from glory to glory what is glory character (10) · Jacob name changed Israel supplanter prince record of his victory (0) · Bethel Jacob returned pillar vow twenty years (0) · the name of Jacob was changed to Israel (6) · Jacob returned to Bethel (0) · his name shall be in their foreheads (8) · they shall see his face and his name shall be in their foreheads character (0); and lookups of the series leads (FLB 142.2, CI 6.4, ST August 24, 1891, par. 1, RH February 22, 1898, par. 7, DA 391.1) and of PP 183.2–184.2, PP 197.1–198.2, PP 205.1–206.2, Ed 302.3–304.1, MB 114.1. pioneer: restore the image of God in man (6) · the ladder Jacob saw is Christ (6).
 
@@ -217,37 +217,37 @@ Found, not used:
 - PP 183.3 ("The Lord compassionately revealed just what Jacob needed—a Saviour") and PP 184.1 ("the repentant fugitive"). Both fit `cold`; PP 183.2 carries the beat alone.
 - PP 197.1, PP 198.1 (Peniel: "sweet was the peace of reconciliation with God"), PP 205.2–205.3 (Jacob's household puts away its idols on the way to Bethel), PP 206.1 (at Bethel "the Lord again appeared to Jacob"). The landing pictures PP 205–206 without crediting them; credit them if you keep the household.
 - SRE 65.4, SR 95.2, 3SG 130.1, CTr 89.6 (Jacob's name changed; compilations or earlier tellings of PP 197.2).
-- RH February 22, 1898, par. 7 (a series lead on John 17:3). Left to 08 with the rest of the eternal-life study.
+- RH February 22, 1898, par. 7 (a series lead on John 17:3). Left to 12 with the rest of the eternal-life study.
 - AA 307.2 ("to be changed from character to character"); 20LtMs, Lt 102, 1905, par. 11 and 15LtMs, Lt 124, 1900, par. 44 (by beholding we become changed). Ms 10, 1894 says it with "what is glory? Character".
 - GCDB February 15, 1897, page 27.1 (W. W. Prescott, "True Education. - No. 2", headed at page 26: "The true object of education is to restore the image of God in the soul"); TDOC 123.3 and GBJ January 1897, page 40.1 (Prescott, quoting "I am that ladder which Jacob saw"); PTUK August 8, 1895, page 502.3 and AMS August 25, 1898, page 517.9 (the ladder against Babel).
 - Ed 303.3 and its neighbours (Rev 22:4 quoted, with no comment that ties the name in the forehead to character).
 
-Not found: a line that reads "his name … in their foreheads" (Rev 22:4) as his character. So 06b's thesis is 1 John 3:2, not Rev 22:4.
+Not found: a line that reads "his name … in their foreheads" (Rev 22:4) as his character. So 10's thesis is 1 John 3:2, not Rev 22:4.
 
-Verifier: `06b.jsonl` 14 records, 12 EXACT and 2 PAGENUM (Ed 15.2, DA 37.3), 0 failing. The script's own 14 snippets: 12 EXACT, 2 PAGENUM, 0 failing. After the review (PP 196.3 added): `06b.jsonl` 15 records, 0 failing; the script's own 15 snippets, 0 failing.
+Verifier: `quotes-10.jsonl` 14 records, 12 EXACT and 2 PAGENUM (Ed 15.2, DA 37.3), 0 failing. The script's own 14 snippets: 12 EXACT, 2 PAGENUM, 0 failing. After the review (PP 196.3 added): `quotes-10.jsonl` 15 records, 0 failing; the script's own 15 snippets, 0 failing.
 
 ## The review (counsel, deep, 2026-10-19)
 
 One review, by okra counsel (deep; codex, read-only). Verdict: ship after fixes. It ran the verifier (every record passing) and checked the 21 spoken KJV spans (all matching) and the quoted shares (12.1 %, 10.7 %, 17.8 %). Each finding and what was done:
 
-1. **04b: wrong author.** GCDB February 12, 1897, page 9.21 is W. W. Prescott's talk, not A. T. Jones's (the corpus heading above it, quoted under 04b). Fixed in the script, the credits, this file and `04b.jsonl`. The same check moved GCDB February 15, 1897, page 27.1 (found, not used) to Prescott.
-2. **03b `express`, 06b `image` and `one`: Jesus' face in the portrait frame.** casting.md forbids a framed portrait of Christ. Fixed: the frame holds only light; Jesus is seen in the story, kneeling with the basin (03b's upper room, which 06b's `image` reuses as a vignette).
-3. **03b `robe`: a dry leaf before the fall.** PP 62.1 sets the first falling leaf after the fall. Fixed: the leaf is gone from 03b; the tree in the garden's middle stands unchanged at the frame's edge. 04b's `death` now drops the film's first dry leaf.
-4. **06b: the Peniel wrestler as a new figure of light.** PP 196.3 names him as Christ. Fixed: the locked Christ figure, his face turned from the camera at night; the narration still says only "he wrestled with God".
-5. **The three thesis pictures wrote the words in the sky.** CRAFT rule 1 allows narration only on a full-screen card. Fixed: each thesis is a hard cut to a card of 12 words or fewer (03b the whole verse, 8 words; 04b its last clause, 10 words; 06b its first clause, 5 words), then a hard cut back to the bookend for the music.
-6. **Landing length and the 3 s hold.** Fixed: the in-line `{//3}` holds are gone; the landing's hold is the seam into the thesis, as RBF's `script.ts` places it. 04b's `gate` and 06b's `bethel` were cut to bring the landing through the thesis's last word to 34.5 s and 35.0 s (with the hold); 03b's is 27.5 s. The stated seams are now CRAFT 9's 0.6 s, and 03b's cold open lost three words and two breaths so its title starts at 9.9 %. Not done as written: counsel asked for the 3 s hold before the thesis's last word; the house places it before the thesis line (RBF), and a 3 s gap inside a KJV verse breaks its reading.
-7. **Cast inventories missed pictured items.** Fixed: each table was rebuilt from its pictures, beat by beat (03b adds the disciple at the basin, the upper room, the dawn hillside, the basin and towel, Eden's creatures and the film props; 04b adds the baby, the serpent's shadow, the ledger, the basket, the flower and thorn, the cup, the coin; 06b adds the disciple, Adam and Eve, the prodigal and his father, the father and boy, the Spirit's sign, the ford, the bread, the coins, the heart, the cup). Christ's rows give his earthly dress as casting.md's (OQ5) and his glory robe where he is in glory.
-8. **06b `ladder`: Nathanael's two moments combined.** Fixed: he walks up to Jesus (John 1:47), and a breath's look back shows him under the fig tree (John 1:48); the line says "an honest man he had seen under a fig tree".
-9. **06b `cold`: "sure" against PP 183.2's "feared".** Fixed: "afraid that God has cast him off".
-10. **Turns that opened on statements.** Fixed: 03b `face` opens "Does God have a form?", 03b `express` "But can words on stone show him?", 04b `bondage` "If every debt we owed were paid today, would it be over?", 06b `forgiven` "Is being forgiven the whole of it?".
+1. **07: wrong author.** GCDB February 12, 1897, page 9.21 is W. W. Prescott's talk, not A. T. Jones's (the corpus heading above it, quoted under 07). Fixed in the script, the credits, this file and `quotes-07.jsonl`. The same check moved GCDB February 15, 1897, page 27.1 (found, not used) to Prescott.
+2. **05 `express`, 10 `image` and `one`: Jesus' face in the portrait frame.** casting.md forbids a framed portrait of Christ. Fixed: the frame holds only light; Jesus is seen in the story, kneeling with the basin (05's upper room, which 10's `image` reuses as a vignette).
+3. **05 `robe`: a dry leaf before the fall.** PP 62.1 sets the first falling leaf after the fall. Fixed: the leaf is gone from 05; the tree in the garden's middle stands unchanged at the frame's edge. 07's `death` now drops the film's first dry leaf.
+4. **10: the Peniel wrestler as a new figure of light.** PP 196.3 names him as Christ. Fixed: the locked Christ figure, his face turned from the camera at night; the narration still says only "he wrestled with God".
+5. **The three thesis pictures wrote the words in the sky.** CRAFT rule 1 allows narration only on a full-screen card. Fixed: each thesis is a hard cut to a card of 12 words or fewer (05 the whole verse, 8 words; 07 its last clause, 10 words; 10 its first clause, 5 words), then a hard cut back to the bookend for the music.
+6. **Landing length and the 3 s hold.** Fixed: the in-line `{//3}` holds are gone; the landing's hold is the seam into the thesis, as RBF's `script.ts` places it. 07's `gate` and 10's `bethel` were cut to bring the landing through the thesis's last word to 34.5 s and 35.0 s (with the hold); 05's is 27.5 s. The stated seams are now CRAFT 9's 0.6 s, and 05's cold open lost three words and two breaths so its title starts at 9.9 %. Not done as written: counsel asked for the 3 s hold before the thesis's last word; the house places it before the thesis line (RBF), and a 3 s gap inside a KJV verse breaks its reading.
+7. **Cast inventories missed pictured items.** Fixed: each table was rebuilt from its pictures, beat by beat (05 adds the disciple at the basin, the upper room, the dawn hillside, the basin and towel, Eden's creatures and the film props; 07 adds the baby, the serpent's shadow, the ledger, the basket, the flower and thorn, the cup, the coin; 10 adds the disciple, Adam and Eve, the prodigal and his father, the father and boy, the Spirit's sign, the ford, the bread, the coins, the heart, the cup). Christ's rows give his earthly dress as casting.md's (OQ5) and his glory robe where he is in glory.
+8. **10 `ladder`: Nathanael's two moments combined.** Fixed: he walks up to Jesus (John 1:47), and a breath's look back shows him under the fig tree (John 1:48); the line says "an honest man he had seen under a fig tree".
+9. **10 `cold`: "sure" against PP 183.2's "feared".** Fixed: "afraid that God has cast him off".
+10. **Turns that opened on statements.** Fixed: 05 `face` opens "Does God have a form?", 05 `express` "But can words on stone show him?", 07 `bondage` "If every debt we owed were paid today, would it be over?", 10 `forgiven` "Is being forgiven the whole of it?".
 
-Counsel's one item for the owner, 04b as the arc's problem episode, is in the writer's report.
+Counsel's one item for the owner, 07 as the arc's problem episode, is in the writer's report.
 
-After the fixes: `bun cli.ts drafts` passes all three; the verifier passes every record (03b 13 and 13, 04b 15 and 14, 06b 15 and 15); the 21 spoken KJV spans match `bible verse`.
+After the fixes: `bun cli.ts drafts` passes all three; the verifier passes every record (05 13 and 13, 07 15 and 14, 10 15 and 15); the 21 spoken KJV spans match `bible verse`.
 
-## 08 · Faith Toward God
+## 12 · Faith Toward God
 
-Gathered 2026-10-19 for `scripts/08-faith-toward-god.md`. Every KJV line in the script was printed by `bible verse` that day; every pioneer line below was printed by `bible egw lookup` (or `bible egw search`) that day and is copied verbatim. The excerpts the script paraphrases are in `quotes-08.jsonl`, and the frame's verifier passes all 12 (`python3 .claude/skills/film/frame/verify-quotes.py apps/animations/series/theology/quotes-08.jsonl`: 12 EXACT, 0 failing; rerun after the review, 2026-10-19).
+Gathered 2026-10-19 for `scripts/12-faith-toward-god.md`. Every KJV line in the script was printed by `bible verse` that day; every pioneer line below was printed by `bible egw lookup` (or `bible egw search`) that day and is copied verbatim. The excerpts the script paraphrases are in `quotes-12.jsonl`, and the frame's verifier passes all 12 (`python3 .claude/skills/film/frame/verify-quotes.py apps/animations/series/theology/quotes-12.jsonl`: 12 EXACT, 0 failing; rerun after the review, 2026-10-19).
 
 Searches (scope: query; lexical index, no vector index on the laptop):
 
@@ -273,32 +273,32 @@ Used (credits), each with the words the script stays inside:
 Found, not used:
 
 - RH February 22, 1898, par. 7 (a lead from `what-is-salvation.md`) — "A right knowledge of God and of Jesus Christ whom he has sent is eternal life to all who believe." A second witness for `know`; ST August 24, 1891 carries it.
-- DA 391.1 (a lead) — "As they feed upon His word, they find that it is spirit and life. The word destroys the natural, earthly nature, and imparts a new life in Christ Jesus." Left out: the word's power to make a new life is 18b's ground.
+- DA 391.1 (a lead) — "As they feed upon His word, they find that it is spirit and life. The word destroys the natural, earthly nature, and imparts a new life in Christ Jesus." Left out: the word's power to make a new life is 25's ground.
 - DA 390.3 — "The life of Christ that gives life to the world is in His word. It was by His word that Jesus healed disease and cast out demons". Left out for the same reason.
-- Ed 253.3 ("“The seed is the word of God.” … so surely is the gift of God in His promise") and Ed 254.1 (creation by the word, Ps 33:9, Rom 4:17). 18b's ground.
-- DA 497.3, 497.4 — the lawyer's answer and his sincerity. 02b tells this scene; `keep` keeps to verse 28, DA 498.1 and the first line of DA 498.2.
-- 13LtMs, Ms 167, 1898, par. 10 — "But he had not overcome his dislike sufficiently to give credit to the Samaritan by name." It agrees with 02b's landing (DA 503.4).
+- Ed 253.3 ("“The seed is the word of God.” … so surely is the gift of God in His promise") and Ed 254.1 (creation by the word, Ps 33:9, Rom 4:17). 25's ground.
+- DA 497.3, 497.4 — the lawyer's answer and his sincerity. 03 tells this scene; `keep` keeps to verse 28, DA 498.1 and the first line of DA 498.2.
+- 13LtMs, Ms 167, 1898, par. 10 — "But he had not overcome his dislike sufficiently to give credit to the Samaritan by name." It agrees with 03's landing (DA 503.4).
 - RH June 21, 1906, par. 8 — "“It is not a vain thing for you,” he declared; “because it is your life”" (Deut 32:47). A witness for the word as life; not needed.
 - DA 391.3–391.4, 392.3, 393.1–393.2, 394.1–394.2 — the test in the synagogue, the departure, and Jesus' sorrow ("With a yearning heart, Jesus saw those who had been His disciples departing from Him"). `cold`'s picture draws on 393.2 (sorrow, no anger), unspoken.
 - WOR 169.15–169.18 (E. J. Waggoner, Romans 10) — the question "How do faith and hearing come?" with the verse; no paraphrase needed.
 - 2LtMs, Ms 2, 1874, par. 31 and 4MR 340.4 — quote 1 John 2:3–5 only.
-- SC 63.1 — "Our only ground of hope is in the righteousness of Christ imputed to us". 18b's ground.
+- SC 63.1 — "Our only ground of hope is in the righteousness of Christ imputed to us". 25's ground.
 
 Not found:
 
 - A pioneer passage on Deuteronomy 1:31 ("as a man doth bear his son"). `carried` rests on the verse alone.
 - A pioneer passage that pairs Christ's three sayings on eternal life (John 17:3; Luke 10:28; John 14:6) with their Old Testament witnesses. The pairing is the owner's study (`what-is-salvation.md`, 2026-10-19); the script says only what each verse says.
 
-## 04–37 (research notes per episode)
+## 06–44 (research notes per episode)
 
-Three research agents gathered 04–37 with the same brief (`brief-for-research-agents.txt`) and the same two tools. Their rules:
+Three research agents gathered 06–44 with the same brief (`brief-for-research-agents.txt`) and the same two tools. Their rules:
 
 - Every refcode and snippet they report was printed by `es.py`, `bible verse` or a frame file during this session.
 - A gap stays a gap.
 
 Below, each episode gets its key refs with the thought each supplies, its shape, its pictures, its must-not list, and the searches (scope: query). The credit lines are collected in `series.md`.
 
-### 04 · The Serpent's Question
+### 06 · The Serpent's Question
 
 - **Key refs:**
   - GC 492.2: "Sin is an intruder, for whose presence no reason can be given"; there is no excuse.
@@ -317,7 +317,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - egw: sin is an intruder …; Lucifer covering cherub desire for self-exaltation; insinuated doubts of God's wisdom; the tempter intimated; By partaking of this tree; I will put enmity … sentence pronounced upon Satan.
   - pioneer: origin of evil (+ctx); how alone could sin ever enter; Ye shall not surely die; GOD SAID SATAN SAID; ye shall be as gods; unbelief was the first sin; covering cherub; Lucifer.
 
-### 05 · The Word Made Flesh
+### 08 · The Word Made Flesh
 
 - **Key refs:**
   - PP 34.1 (frame): "one in nature, in character, in purpose".
@@ -330,12 +330,12 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - CHR 21.2 and LUJ 10.1 (frame): to be used only for "not created".
 - **Shape:** the Word before the beginning → all things made through Him → He empties Himself (Phil 2) → Immanuel, the Father seen in the Son → life underived (Lazarus).
 - **Pictures:** the manger set against the throne room; a spoken word taking human form.
-- **Must not:** Trinity words or emblems, "God the Son", "eternally begotten"; animating the Son's beginning; showing the Father with a face; touching the question of His human nature (that is 15).
+- **Must not:** Trinity words or emblems, "God the Son", "eternally begotten"; animating the Son's beginning; showing the Father with a face; touching the question of His human nature (that is 21).
 - **Searches:**
   - egw: From the days of eternity …; God's thought made audible.
   - pioneer: Is Christ God; God with us Immanuel (+ctx); the Word was made flesh; God manifest in the flesh (+ctx CHR); divinity of Christ; thought it not robbery.
 
-### 06 · Behold the Lamb
+### 09 · Behold the Lamb
 
 - **Key refs:**
   - CIS 5.1: "a shadow of the cross, extending from Calvary back to the gate of Eden".
@@ -346,14 +346,14 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - AERS 146.1–146.2: substitution vindicates the law.
   - DA 57.2: "love and selfishness stood face to face".
   - FP1889 147.3 note (frame): "a divine sacrifice … sufficient to save all".
-- **Shape:** Eden's first sacrifice, Isaac, Passover → "Behold the Lamb" → the cross (sin laid on Him, separation) → love unmasks selfishness (answers 04) → provided for all, and on to the Priest.
+- **Shape:** Eden's first sacrifice, Isaac, Passover → "Behold the Lamb" → the cross (sin laid on Him, separation) → love unmasks selfishness (answers 06) → provided for all, and on to the Priest.
 - **Pictures:** Moriah, "God will provide himself a lamb"; the cross's shadow cast back over every altar to Eden.
 - **Must not:** "the atonement" at the cross, or "It is finished" as the completed atonement; ending Christ's work at the cross; the scapegoat as Christ; a merely human death.
 - **Searches:**
   - egw: Behold the Lamb of God; the great truth around which all other truths cluster; The Saviour could not see through the portals of the tomb; every lamb slain pointed to Christ; Christ was treated as we deserve; love and selfishness; Christ became sin for the fallen race.
   - pioneer: Lamb slain from the foundation of the world; the Son of God died (+ctx AERS ch. V); the cross of Christ; sins of men nailed Christ to the cross; The Cross and Its Shadow.
 
-### 07 · Repentance from Dead Works
+### 11 · Repentance from Dead Works
 
 - **Key refs:**
   - SC 23.2: definition.
@@ -371,7 +371,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - egw: Repentance includes sorrow for sin (+ctx); We can no more repent without the Spirit of Christ; Christ is the source of every right impulse (+ctx); David's repentance was genuine; Repentance is associated with faith; purge your conscience from dead works.
   - pioneer: repentance is the gift of God; dead works; purge your conscience; sinner laid his hand upon the head.
 
-### 09 · Buried and Raised
+### 13 · Buried and Raised
 
 - **Key refs:**
   - 1SG 112.2 (frame): "raised up out of the watery grave".
@@ -380,7 +380,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - BIC 94.3 (frame): the saints' resurrection confessed.
   - DA 111.2: the Jordan, "He identified Himself with sinners".
   - Lt 125, 1900, par. 5: "a solemn pledge".
-  - SITI February 11, 1889, 88.10–88.11: the plural "baptisms" (water and the Spirit), the bridge to 10.
+  - SITI February 11, 1889, 88.10–88.11: the plural "baptisms" (water and the Spirit), the bridge to 14.
 - **Shape:** repentance and faith first → the Jordan → water as the tomb, rising as the empty tomb → two memorials (bread and cup; water) → the saints' resurrection.
 - **Pictures:** the Jordan; the tomb and the water side by side, match-cut.
 - **Must not:** sprinkling as equal; Sunday as the resurrection's memorial; infants; joining a community as the main image; baptism by fire as a blessing.
@@ -389,7 +389,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - pioneer: baptized with the Holy Ghost and with fire (+full ctx).
   - egw: Christ has made baptism the sign of entrance; By baptism you have taken upon you a solemn pledge; Jesus did not receive baptism as a confession of guilt.
 
-### 10 · The Promise of the Father (the laying on of hands)
+### 14 · The Promise of the Father (the laying on of hands)
 
 - **Key refs:**
   - FP1889 147.2, 150.5, 150.7 (frame): "his representative"; the Spirit leads "to an understanding of that word which it had inspired".
@@ -407,7 +407,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - pioneer: laying on of hands (+ctx=8); LAYING ON OF HANDS (+ctx); the Comforter; the gift of the Holy Ghost; the promise of the Spirit.
   - egw: laying on of hands added no new grace; Christ ascended … Pentecost; The office of the Holy Spirit; promise of the Holy Spirit is not limited; Cumbered with humanity.
 
-### 11 · Growing Up Into Him
+### 15 · Growing Up Into Him
 
 - **Key refs:**
   - SC 67.3: plants grow "by receiving".
@@ -425,7 +425,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - pioneer: as newborn babes; grow in grace; As ye have therefore received Christ Jesus; the secret of growth; secret prayer; Christ liveth in me; the word of God has in itself the power.
   - Not found: any Haskell text on prayer or the Word.
 
-### 11b · The Sure Word of Prophecy (moved from 26 on 2026-10-20)
+### 16 · The Sure Word of Prophecy (moved from old 26 on 2026-10-20)
 
 - **Key refs:**
   - PK 535.1: the four empires, each tested.
@@ -442,9 +442,9 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - egw: rise and fall of empires; link after link in the prophetic chain; Every nation that has come upon the stage.
   - pioneer: five universal kingdoms; smiting of the image; stone strikes the image upon the feet; feet and toes divided kingdom; covers the same ground.
 
-### 12 · Asleep in Jesus
+### 17 · Asleep in Jesus
 
-Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's nature moved to 27b with its refs. The searches below served both.
+Split on 2026-10-20: 17 keeps the resurrection hope, and the case on man's nature moved to 35 with its refs. The searches below served both.
 
 - **Key refs:**
   - GC 549.3 (frame): "Time … is but a moment to them".
@@ -457,7 +457,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: when a man is dead he is asleep; a silent dreamless sleep; Death is wholly an unconscious sleep (--full).
   - egw: Christ represents death as a sleep; To the believer death is but a small matter; Time be it long or short.
 
-### 13 · Eternal Judgment
+### 18 · Eternal Judgment
 
 - **Key refs:**
   - RH November 22, 1898, par. 8: "In his super-added humanity consists the reason of Christ's appointment".
@@ -467,13 +467,13 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - MOI 86.2: "eternal" means a final verdict, not endless torment.
   - TAR 130.2 (frame): punishment "according to his deserts".
 - **Shape:** every work is judged → the Judge is the risen Man (Acts 17:31) → why Him: the Son of man → the Judge is also the Advocate → boldness, and a final verdict.
-- **Pictures:** a courtroom where the Judge's own scarred hands hold the defence brief. Zech 3 is saved for 24.
+- **Pictures:** a courtroom where the Judge's own scarred hands hold the defence brief. Zech 3 is saved for 32.
 - **Must not:** any timing (pre-advent, 1844, Dan 8:14); "one day at the end of the world"; eternal torment; erasure; the scapegoat.
 - **Searches:**
   - pioneer: eternal judgment; boldness in the day of judgment; hath given him authority to execute judgment; the Judgment its events and their order; God shall bring every work into judgment.
   - egw: committed all judgment unto the Son; In his super-added humanity; Jesus does not excuse their sins; lifts His wounded hands.
 
-### 14 · After the Order of Melchisedec
+### 20 · After the Order of Melchisedec
 
 - **Key refs:**
   - RDAC 117.4–117.5: Melchisedec "presented … to make up this deficiency" in Aaron; "without father" means no genealogy is recorded.
@@ -484,7 +484,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - CWCP 102.2: "when Christ was on earth he was not a priest" (ARSH April 9, 1857, 179.1 says the same).
   - RH February 18, 1890, par. 10: "Melchisedec was not Christ".
   - 2SP 13.1.
-- **Shape:** Heb 5:11's hinge → Abraham and the king of Salem → why not Aaron → a priest on a throne → "if he were on earth" leads into 16.
+- **Shape:** Heb 5:11's hinge → Abraham and the king of Salem → why not Aaron → a priest on a throne → "if he were on earth" leads into 22.
 - **Pictures:** Gen 14, bread and wine; two genealogy scrolls, Aaron's ending in deaths and Melchisedec's blank, sealed with an oath.
 - **Must not:** Melchisedec as Christ or as a mystic being; Christ's work ending at the cross; Christ on the throne of His glory now.
 - **Searches:**
@@ -492,7 +492,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: Melchisedec priest of the most high God; counsel of peace between them both; high priest was designed in an especial manner.
   - Not found: Haskell on Melchisedec; any pioneer tying Heb 5:11–14 to Melchisedec explicitly.
 
-### 15 · Made Like His Brethren
+### 21 · Made Like His Brethren
 
 - **Key refs:**
   - FP1889 147.3 (frame).
@@ -509,7 +509,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: made like unto his brethren; foundation of His high priesthood.
   - egw: inclination to corruption rested upon Christ; the great law of heredity; propensities of sin; taking upon Himself our fallen nature.
 
-### 16 · The Pattern in the Mount
+### 22 · The Pattern in the Mount
 
 - **Key refs:**
   - SOTB 8.4 (frame), 7.7: a shadow and a pattern.
@@ -525,7 +525,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: cross and its shadow; heavenly sanctuary two apartments; the sanctuary in heaven has two holy places; Moses pattern heavenly sanctuary; true tabernacle which the Lord pitched.
   - egw: Moses was shown the heavenly sanctuary; every part of the tabernacle was made after the pattern; a view of the heavenly sanctuary; As the sanctuary on earth had two apartments.
 
-### 17 · The Holy Place
+### 23 · The Holy Place
 
 - **Key refs:**
   - GC 420.3: Christ pleading His blood with "the prayers of penitent believers".
@@ -544,7 +544,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - all: incense righteousness of Christ; table of shewbread.
   - egw: The most important part of the daily ministration; shewbread was kept ever before the Lord; the ministration … in the first apartment.
 
-### 18 · The Better Covenant
+### 24 · The Better Covenant
 
 - **Key refs:**
   - PP 371.1: "the new covenant was valid in the days of Abraham".
@@ -561,7 +561,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: the two covenants; old covenant promise of the people; covenant with Abraham everlasting covenant; better promises; covenant from Sinai.
   - egw: Obey and live better promises; did not realize the sinfulness of their own hearts; view of the covenants … Brother Waggoner (found, not used: history).
 
-### 19 · What Was in the Ark
+### 26 · What Was in the Ark
 
 - **Key refs:**
   - WWNC 2.1: the tables inside the ark, the book of the law outside.
@@ -573,12 +573,12 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - STTHD 150.1: 1 Kings 8:9.
 - **Shape:** the finger of God → the tables inside, the book beside → named for the testimony; mercy over law → the heavenly ark (Rev 11:19) → the law written in the heart.
 - **Pictures:** an ark cutaway; Moses carving the second tables.
-- **Must not:** the law as one Torah that expired; Col 2:14 over the tables; Dan 7:25 (save it for 21b).
+- **Must not:** the law as one Torah that expired; Col 2:14 over the tables; Dan 7:25 (save it for 29).
 - **Searches:**
   - pioneer: ark of the testament tables of stone mercy seat; mercy seat covered the law; pot of manna Aaron's rod; ten commandments lay in unapproachable majesty.
   - egw: mercy-seat law ark cherubim justice; The ark was merely a receptacle; great original.
 
-### 20 · A Rest That Remains
+### 27 · A Rest That Remains
 
 - **Key refs:**
   - GCDB March 8, 1897, 303.7 (frame): "the Sabbath is righteousness by faith".
@@ -596,7 +596,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: sabbatismos keeping of a sabbath; there remaineth therefore a rest; the works were finished from the foundation of the world; For if Joshua had given them rest.
   - egw: sign of Him as the Sanctifier; Jesus rested from the work of redemption.
 
-### 21 · The Day of Atonement
+### 28 · The Day of Atonement
 
 - **Key refs:**
   - LOM 40.1 (frame): "forgiveness" against "blotting out".
@@ -614,7 +614,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: scapegoat Azazel Satan; day of atonement afflict your souls; the Lord's goat blood sprinkled upon the mercy seat.
   - egw: Once a year, on the great Day of Atonement; Important truths concerning the atonement; the people were taught each day.
 
-### 21b · Four Winds, Four Beasts (moved from 28 on 2026-10-20)
+### 29 · Four Winds, Four Beasts (moved from old 28 on 2026-10-20)
 
 - **Key refs:**
   - DAR 113.4: the literal interprets the figurative.
@@ -631,7 +631,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
 - **Searches:**
   - pioneer: four winds of heaven strove upon the great sea; VERSE 2 (+ctx); same ground as the image; ground is passed over again and again; lion eagle's wings; little horn came up among them; seven times of Leviticus 26.
 
-### 22 · Messiah the Prince
+### 30 · Messiah the Prince
 
 - **Key refs:**
   - DA 233.1: the decree "went into effect in the autumn of B. C. 457".
@@ -650,7 +650,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: decree of Artaxerxes 457 seventy weeks; seventy weeks cut off 2300; Messiah the Prince; confirm the covenant.
   - Queries containing "A.D." fail in search.
 
-### 23 · Then Shall the Sanctuary Be Cleansed
+### 31 · Then Shall the Sanctuary Be Cleansed
 
 - **Key refs:**
   - LUJ 177.1 (also STTHD 65.1): the seventy weeks are the first 490 of the 2300.
@@ -667,7 +667,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: heavenly things themselves with better sacrifices; what is the sanctuary; ram which thou sawest; little horn Rome exceeding great; 2300 days end 1844; daily paganism; daily service.
   - egw: 2300 days began when the commandment of Artaxerxes; The sanctuary to which the 2300 days refer; The true meaning of the daily is not to be made a test question.
 
-### 24 · The Hour of His Judgment
+### 32 · The Hour of His Judgment
 
 - **Key refs:**
   - GC 421.3 (frame).
@@ -686,7 +686,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: the judgment was set and the books were opened; investigative judgment before the advent; advocate in the judgment; our advocate is the judge; names in the book of life blotted out.
   - egw: Jesus will appear as their advocate; holy of holies … judgment; graven them on the palms of My hands.
 
-### 25 · Within the Veil
+### 33 · Within the Veil
 
 - **Key refs:**
   - GC 421.1: "Here their hopes centered".
@@ -704,7 +704,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: new and living way which he hath consecrated; anchor of the soul within the veil.
   - egw: hope anchor of the soul … forerunner; character of Christ stands in place of your character.
 
-### 27 · War in Heaven
+### 34 · War in Heaven
 
 - **Key refs:**
   - PP 42.3: love must rest on "a conviction of His justice and benevolence".
@@ -721,21 +721,21 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - pioneer: war in heaven; dragon primarily Satan; woman clothed with the sun.
   - egw: there was war in heaven; last link of sympathy; Satan's disguise was torn away; Infinite Wisdom did not destroy Satan; Not until the death of Christ.
 
-### 27b · A Living Soul (new on 2026-10-20: the case on man's nature, split from 12)
+### 35 · A Living Soul (new on 2026-10-20: the case on man's nature, split from 17)
 
-- **Key refs** (all from 12's round; each read again with `bible egw lookup` on 2026-10-20):
+- **Key refs** (all from 17's round; each read again with `bible egw lookup` on 2026-10-20):
   - HHMLD 42.1 (frame): "a lifeless man; afterward, a living one".
   - BQACM 4.3 (frame): "Man, being mortal, has it not; God has it".
   - BQACM 7.3: "Death is wholly an unconscious sleep".
   - DBC 7.4 (frame): "The departure is by death; the being with Christ is by the resurrection".
   - GC 549.3 (frame): "Time … is but a moment to them".
   - GC 556.1 (frame): the dead know nothing "of the joys or sorrows of those who were dearest to them on earth".
-- **Shape:** dust plus breath (03b's cold open, seen again) → breath goes and thoughts perish → the dead know nothing, not even of those they loved → "depart … be with Christ", with the grave between → immortality at the resurrection (12).
-- **Pictures:** 03b's clay figure and the breath; the clock that stops at death and resumes at the trumpet (shared with 12).
+- **Shape:** dust plus breath (05's cold open, seen again) → breath goes and thoughts perish → the dead know nothing, not even of those they loved → "depart … be with Christ", with the grave between → immortality at the resurrection (17).
+- **Pictures:** 05's clay figure and the breath; the clock that stops at death and resumes at the trumpet (shared with 17).
 - **Must not:** a soul leaving the body; the dead watching the living; the label "soul sleep"; spiritualism named as a movement (it appears only as a practice).
-- **Searches:** see 12; its round served both.
+- **Searches:** see 17; its round served both.
 
-### 29 · The Everlasting Gospel
+### 36 · The Everlasting Gospel
 
 - **Key refs:**
   - GC 355.3: a message possible "only in the last days".
@@ -752,7 +752,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: Sabbath as the memorial of creation; Without obedience no worship; hour of his judgment is come everlasting gospel; The message itself sheds light as to the time.
   - pioneer: everlasting gospel; worship him that made heaven creation; is come not will come; TMR hour of his judgment.
 
-### 30 · Come Out of Her
+### 37 · Come Out of Her
 
 - **Key refs:**
   - GC88 380.3: a woman as a church.
@@ -770,7 +770,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: great body of Christ's true followers; A woman is a symbol of a church; cup of intoxication; Revelation 18 points to the time; God still has a people in Babylon; Belshazzar feast golden vessels.
   - pioneer: Babylon signifies confusion; come out of her my people.
 
-### 31 · The Seal of the Living God
+### 38 · The Seal of the Living God
 
 - **Key refs:**
   - DAR 438.2: "The idea of law is inseparable from a seal".
@@ -789,7 +789,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: settling into the truth; likeness to Christ in character; The sign, or seal, of God is revealed; holding the four winds; mark upon the foreheads of the men that sigh.
   - pioneer: seal of the living God; fourth commandment seal of the law; seal of God's law; frontlets between thine eyes.
 
-### 32 · The Latter Rain
+### 39 · The Latter Rain
 
 - **Key refs:**
   - GCB 1893, 183.5: the latter rain is "the teaching of righteousness".
@@ -810,7 +810,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: latter rain, ripening earth's harvest; It is the latter rain, the refreshing; loud cry … has already begun; Let the latter rain come into my vessel.
   - Not found: any corpus text applying Deut 32:2 or Isa 55 to the latter rain.
 
-### 33 · When the Door Is Shut
+### 40 · When the Door Is Shut
 
 - **Key refs:**
   - GC 613.2: "Every case has been decided".
@@ -829,7 +829,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: When the third angel's message closes; When He leaves the sanctuary; Before the Flood, after Noah entered the ark; Jacob's night of anguish; plagues are not universal.
   - pioneer: Michael stand up close of probation; seven last plagues after probation closes; standing up of Michael.
 
-### 34 · Every Eye Shall See Him
+### 41 · Every Eye Shall See Him
 
 - **Key refs:**
   - PTUK April 13, 1899, 228.5 (frame): "no secret coming".
@@ -844,7 +844,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: small black cloud (not landed); No crown of thorns now mars; Let rocks and mountains fall on us.
   - pioneer: personal, and visible to all; dark day May 19, 1780 (found, not used: history).
 
-### 35 · A Thousand Years
+### 42 · A Thousand Years
 
 - **Key refs:**
   - DAR 696.2 (frame).
@@ -859,7 +859,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
   - egw: During the thousand years between the first and the second resurrection.
   - pioneer: thousand years bottomless pit.
 
-### 36 · The Fire That Ends
+### 43 · The Fire That Ends
 
 - **Key refs:**
   - SSII 46.2, TAR 130.2, WDNP 3.2, HHMLD 277.1, 1SG 118.1 and GC 674.1 (all frame).
@@ -872,7 +872,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
 - **Searches:**
   - egw: destroyed as in a moment others suffer many days; punishment is a strange act.
 
-### 37 · All Things New
+### 44 · All Things New
 
 - **Key refs:**
   - PT November 1, 1850, par. 8; TTKGG 12.1; SAIN 3.1; DTIS 23.1; DAR 609.3; GC 675.1 (all frame).
@@ -886,12 +886,12 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
 
 ### Doctrinal tensions found (dated, both sides; the films pick no side's gloss)
 
-1. **Atonement at the cross (06, 20, 21).**
+1. **Atonement at the cross (09, 27, 28).**
    - "Not made upon the cross": FP1889 147.3 note (1889); LUJ 238.2 (Smith, 1898).
    - "The sacrifice of Christ as an atonement for sin": Ms 70, 1901, par. 9 (EGW); DA 769.2 (1898), "Christ's completed work".
    - Wording: "sacrifice" and "offering" at the cross.
-2. **The Son's origin (05).** CHR 21.2 (Waggoner, by 1891), "proceeded forth"; LUJ 10.1 (Smith, 1898); DA 530.3 (1898), "underived". Left unresolved.
-3. **The Spirit's nature (10).**
+2. **The Son's origin (08).** CHR 21.2 (Waggoner, by 1891), "proceeded forth"; LUJ 10.1 (Smith, 1898); DA 530.3 (1898), "underived". Left unresolved.
+3. **The Spirit's nature (14).**
    - James White 1861: "his representative".
    - J. H. Waggoner 1877: personality not entered on.
    - Smith 1898: "divine afflatus".
@@ -900,26 +900,26 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
    - EGW, Ms 1906: "a person".
    - AA 52.1 (1911): "silence is golden".
    - Unsigned Review editorials of 1898: "himself".
-4. **What the hands conveyed (10).**
+4. **What the hands conveyed (14).**
    - SITI 1885: in view of "an especial work".
    - PTUK 1897: "an open question".
    - AA 161.2 (1911): "added no new grace".
-5. **Sin's origin (04).** GC 492.2 (1888/1911): no reason can be given. EB xi.2 (Jones, 1904): how it could enter. Compatible if the film shows "how" and never "why".
-6. **Christ's human nature (15).**
+5. **Sin's origin (06).** GC 492.2 (1888/1911): no reason can be given. EB xi.2 (Jones, 1904): how it could enter. Compatible if the film shows "how" and never "why".
+6. **Christ's human nature (21).**
    - "Sinful tendencies … not in himself": CHR 26.2 (c. 1891); GCB 1895.
    - "Not for one moment … an evil propensity": Lt 8, 1895; but also "took upon him our sinful nature" (RH December 15, 1896) and "the great law of heredity" (DA 48.6, 1898).
-7. **What God offered at Sinai (18).**
+7. **What God offered at Sinai (24).**
    - Waggoner against himself: SSW 1890 against GTI 185.2.
    - GTI 185.2 against PP 371.1 and 371.4 (EGW).
    - EVCO 326.3 puts the new covenant in the future, against PP 371.1, "valid in the days of Abraham".
-8. **The rest of Heb 4:9 (20).** AERS 317.1 (J. H. Waggoner, 1884): "beyond literal Sabbath-keeping". SOSL 65.3 (Andrews): "a keeping of the Sabbath". GCDB 1897 (E. J. Waggoner): rest by faith now. AERS 317.1 is not adopted.
-9. **The daily (23).** STTHD 41.4 (Smith): paganism. CWCP 99.1 (Jones, 1905): the continual service. Ms 11, 1910 (EGW): "not … a test question". Left out.
-10. **The veil of Heb 6:19 and 10:20 (25).** CWCP 82.2 (Jones, 1905); LUJ 131.2 (Smith, 1898): "not to Christ's flesh"; LOM 41.2 (Crosier, 1846): the first veil. The KJV words are kept on screen.
-11. **The ark's contents (19).** Heb 9:4 (pot, rod, tables) against 1 Kings 8:9 ("nothing … save the two tables"). STTHD 150.1 reads "wherein" as the tabernacle. The episode's title question lives inside this tension.
-12. **Are believers judged? (24).** PTUK August 2, 1894, 486.11 (John 5:24, "shall not come into judgment") against JEO 22.1 and GC 480.1.
-13. **The war in heaven (27).** DAR 513.2–513.3 (Smith, 1897): the war belongs to Christ's earthly ministry, and the dragon is pagan Rome. PP 42.3, DA 758.3 and PTUK 1895: the war began at the fall in heaven. USLP 25.1 (Smith): the dragon is "primarily … the devil".
-14. **The latter rain (32).** Jones 1893: teaching. RH 1897: the ripening of character. EW 271 and RH 1892 join the two.
-15. **The seal (31).** 8T 117.3 (1904): the outward sign. Ms 173, 1902: "settling into the truth". 7BC 970.3: "likeness to Christ in character". These are layered, not contradictory.
+8. **The rest of Heb 4:9 (27).** AERS 317.1 (J. H. Waggoner, 1884): "beyond literal Sabbath-keeping". SOSL 65.3 (Andrews): "a keeping of the Sabbath". GCDB 1897 (E. J. Waggoner): rest by faith now. AERS 317.1 is not adopted.
+9. **The daily (31).** STTHD 41.4 (Smith): paganism. CWCP 99.1 (Jones, 1905): the continual service. Ms 11, 1910 (EGW): "not … a test question". Left out.
+10. **The veil of Heb 6:19 and 10:20 (33).** CWCP 82.2 (Jones, 1905); LUJ 131.2 (Smith, 1898): "not to Christ's flesh"; LOM 41.2 (Crosier, 1846): the first veil. The KJV words are kept on screen.
+11. **The ark's contents (26).** Heb 9:4 (pot, rod, tables) against 1 Kings 8:9 ("nothing … save the two tables"). STTHD 150.1 reads "wherein" as the tabernacle. The episode's title question lives inside this tension.
+12. **Are believers judged? (32).** PTUK August 2, 1894, 486.11 (John 5:24, "shall not come into judgment") against JEO 22.1 and GC 480.1.
+13. **The war in heaven (34).** DAR 513.2–513.3 (Smith, 1897): the war belongs to Christ's earthly ministry, and the dragon is pagan Rome. PP 42.3, DA 758.3 and PTUK 1895: the war began at the fall in heaven. USLP 25.1 (Smith): the dragon is "primarily … the devil".
+14. **The latter rain (39).** Jones 1893: teaching. RH 1897: the ripening of character. EW 271 and RH 1892 join the two.
+15. **The seal (38).** 8T 117.3 (1904): the outward sign. Ms 173, 1902: "settling into the truth". 7BC 970.3: "likeness to Christ in character". These are layered, not contradictory.
 16. **When the mark is received.** James White 1850: first-day keeping as such. GC88 449.1 (1888): only under enforcement and light. The 1888 framing is used.
 
 ### Not found (all tiers)
@@ -941,7 +941,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
 - Credited by the corpus to Jones as editor but written by Waggoner, per the frame: GCDB March 8, 1897, pages 297–303.
 - `bible verse` does not print KJV margins, so the Joel 2:23 "teacher of righteousness" margin cannot be quoted as KJV text.
 
-## Verifier results for 01–03
+## Verifier results for 01, 02 and 04
 
 `scratchpad/verify.py` was last run 2026-10-11, after the final edits. It checks three things:
 
@@ -953,19 +953,19 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
 | --------------------- | ----- | ------ | ------ | ---------- | ------------------------------ |
 | 01 In Its Order       | 741   | 130    | 17.5 % | all exact  | all found                      |
 | 02 The Oracles of God | 652   | 110    | 16.9 % | all exact  | 2 flagged: MWV1 20.8, GC 598.3 |
-| 03 God Is Love        | 582   | 94     | 16.2 % | all exact  | 2 flagged: SC 10.2, SC 11.1    |
+| 04 God Is Love        | 582   | 94     | 16.2 % | all exact  | 2 flagged: SC 10.2, SC 11.1    |
 
 The four flags are false negatives of the scratch tool. I fetched each paragraph by hand with `es.py` and found the snippet word for word. The search ranks a different paragraph first when a snippet opens on curly-quoted Scripture (“Show me Thy glory,” “He that hath seen Me …”, “If any man will do His will …”), and it does so for MWV1 20.8 as well.
 
 Every beat has at most one quotation, and every script is under the 20 % cap. Each script's header records its landing position and its thesis line.
 
-## Round 2026-10-12 · "Is Jesus the Lord God Almighty?" (asitreads.com) → 05, with hand-offs to 14 and 27
+## Round 2026-10-12 · "Is Jesus the Lord God Almighty?" (asitreads.com) → 08, with hand-offs to 20 and 34
 
 **What this round did.**
 
 - Folded one third-party article into the series: Jason Smith, "Is Jesus the Lord God Almighty?" (posted June 12, 2018; originally on Facebook, December 11, 2017). Its URL is https://asitreads.com/2017-12-17-is-jesus-the-lord-god-almighty/, fetched with `curl`.
 - Verified every quotation in it and gathered the wider pioneer witness.
-- The extraction, verification table and tensions are in `asitreads-jesus-lord-god-almighty.md`. The script is `scripts/05-the-word-made-flesh.md`.
+- The extraction, verification table and tensions are in `asitreads-jesus-lord-god-almighty.md`. The script is `scripts/08-the-word-made-flesh.md`.
 
 **Tools this round.** These ran on the laptop, where the local corpus works:
 
@@ -975,7 +975,7 @@ Every beat has at most one quotation, and every script is under the 20 % cap. Ea
 
 Every snippet below was printed by the CLI on 2026-10-12. Scratch checks (not repo tools) did two things:
 
-- re-fetched every paraphrase snippet in the 05 script by refcode and matched it segment by segment: 28 of 28 pass, after one fix to the DA 24.3 quote marks;
+- re-fetched every paraphrase snippet in the 08 script by refcode and matched it segment by segment: 28 of 28 pass, after one fix to the DA 24.3 quote marks;
 - counted the quoted share: 124 of 666 words, 18.6 %.
 
 ### The article's quotations
@@ -1023,28 +1023,28 @@ Unsupported claim: that the speaker of Gen 17:1 is the pre-incarnate Son. No cor
   - RH April 5, 1906, par. 6–7; RH September 18, 1894, par. 3; RH February 18, 1896, par. 5; RH March 12, 1908, par. 4.
   - 12LtMs, Ms 71, 1897, par. 22; 18LtMs, Ms 140, 1903, par. 27–29; YI December 16, 1897, par. 5; YI May 27, 1897, par. 3; 7LtMs, Ms 43b, 1891, par. 3; 3SG 37.3.
 
-**Used in the 05 script (credits).**
+**Used in the 08 script (credits).**
 
 - FP1889 147.3; AERS 153.1; CHR 11.4, 14.3, 19.1, 24.1, 25.1; SITI July 7, 1887, 407.2, 407.4; LUJ 10.2; LIFIN 343.2.
 - PP 34.1, 36.2; DA 19.1, 19.2, 21.2, 23.3, 24.3, 336.1; YI December 16, 1897, par. 5; YI May 27, 1897, par. 3; ST August 29, 1900, par. 13; ST May 10, 1899, par. 17; RH September 18, 1894, par. 3.
 
 **Handed on.**
 
-- To 14: ST May 10, 1899, par. 16–17; PP 36.2; LIFIN 343.2.
-- To 27: 7LtMs, Ms 43b, 1891, par. 3; 3SG 37.3.
+- To 20: ST May 10, 1899, par. 16–17; PP 36.2; LIFIN 343.2.
+- To 34: 7LtMs, Ms 43b, 1891, par. 3; 3SG 37.3.
 
 ### Doctrinal tensions added (continuing the list above)
 
-17. **"The Almighty" / "Lord God Almighty" (Rev 1:8; 4:8) (05, 14).**
+17. **"The Almighty" / "Lord God Almighty" (Rev 1:8; 4:8) (08, 20).**
     - Christ: Stephenson 1854 (ATO 149.1); EGW 1895/1896 (Ms 64 = RH February 18, 1896) and 1908 (RH March 12, 1908).
     - The Father: Amadon 1861; the Review in 1862 (4.18, "never given to Jesus Christ"); Smith 1897 (DAR 335.2).
     - EGW 1903 (Ms 140, par. 28): "The man Christ Jesus was not the Lord God Almighty, yet Christ and the Father are one".
     - The series voices none of these; see series.md, Open questions 11.
-18. **Isaiah 6 and John 12:41 (05).**
+18. **Isaiah 6 and John 12:41 (08).**
     - The whole vision is Christ's: E. J. Waggoner 1887 (SITI 407.2); the unsigned SITI 1885 note; EGW 1894 and 1897.
     - Verse 10 and "Adonai" are the Son's, but "the LORD of hosts" (Jehovah) is the Father's: J. H. Waggoner 1863/1884 (AERS 170.1).
     - The script quotes Isa 6:1 and John 12:41 only.
-19. **"God" said of the Son (05).** "In a sense subordinate" (AERS 153.1, 1884); "of the very substance and nature of God" (CHR 22.1, by 1891); "equal with the Father" (LUJ 10.2, 1898; Ms 140, 1903, par. 27); "God essentially, and in the highest sense" (RH April 5, 1906). The script uses PP 34.1's "one in nature, in character, in purpose".
+19. **"God" said of the Son (08).** "In a sense subordinate" (AERS 153.1, 1884); "of the very substance and nature of God" (CHR 22.1, by 1891); "equal with the Father" (LUJ 10.2, 1898; Ms 140, 1903, par. 27); "God essentially, and in the highest sense" (RH April 5, 1906). The script uses PP 34.1's "one in nature, in character, in purpose".
 
 ### Not found (this round)
 

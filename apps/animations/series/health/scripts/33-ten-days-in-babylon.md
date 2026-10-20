@@ -39,7 +39,7 @@ Settings:
 | Babylon's palace table: roast meat and wine (Illustration) | shared (E19's banquet; casting.md Prototype 3) | `1`, `15` | as painted |
 | Babylon's gate (Illustration) | shared (E19) | `3` | as painted |
 | The royal kitchen under altar smoke (Illustration) | film | `5` | as painted |
-| Eden's garden (Illustration) | shared (Eden; T03 and C01 draw it in cut paper) | `9` | as painted |
+| Eden's garden (Illustration) | shared (Eden; T04 and C01 draw it in cut paper) | `9` | as painted |
 | The throne room (Illustration) | shared (E19) | `11` | as painted |
 | The card page: the hook card, the series card, the Scripture cards, the word card, the callout | series | `1`, `2`, `4`, `8`, `9`, `10`, `11`, `12` | the series' card style |
 

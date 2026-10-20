@@ -58,14 +58,14 @@ Quoted Scripture: 7 passages, 97 of 589 spoken words (16%; the girl's question i
 | Adam and Eve (casting.md #5, #6) | Bible figures | shared | listed, not drawn (P2) | `garden`, `book`, `work`, `teacher`, `trees`, `lost` | garment state 1, the robe of light, with sleeves to the wrist: Adam standing up in the clearing and looking around (front, three-quarter); crouching nose to nose with a ram (profile, close); both pruning a vine and lifting a laden branch (three-quarter); Eve laughing as a vine springs back (front); close on their hands with earth on them; walking beside the light on the path, faces turned to it (three-quarter, profile); Eve looking up at the second tree (front, close). Garment state 3, the coats of skins: walking out of the gate, then turning the first furrow with a digging stick (three-quarter, back) |
 | The Father (casting.md #4) | asset, not a rig: a definite human form in gold-white haze, no face | shared | listed, not drawn (owner-decided 2026-10-13) | `teacher`, `trees` (`word`) | coming along the garden path at evening, the form half seen in the light (three-quarter, profile); standing on the path behind Eve (back). The picture lines say "no figure"; casting.md §4 item 14 restages them to the veiled form, and this sheet follows casting.md |
 | The parable figure who reaches for the fruit | parable figure in story cloth (casting.md 2.5: a linen tunic, a walnut mantle) | shared | listed, not drawn | `lost` (`bread`) | small in the land below, reaching up and finding the fruit in reach (three-quarter); one gesture, the reach; sleeves |
-| Eden's creatures: a lion cub, a sheep, a ram, a heron, a small fox | creatures | shared (with Eden) | 03b's lion and bird only | `book` | walking in a slow line through the trees (profile); the ram face to face with Adam (profile); the heron turning its head to camera (front) |
+| Eden's creatures: a lion cub, a sheep, a ram, a heron, a small fox | creatures | shared (with Eden) | T05's lion and bird only | `book` | walking in a slow line through the trees (profile); the ram face to face with Adam (profile); the heron turning its head to camera (front) |
 
 Settings:
 
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
 | The city flat's kitchen, third floor: the table, the lamp, the sill, the window on brick and lit windows, the door to the stair | series (the plain family's flat; the window shows hills by 19) | `cold`, `title`, `home`, `seedling`, `thesis` | cool blue dusk with the lamp's yellow; the landing teal to yellow, hills faint at dusk |
-| Eden, the one set (T03's garden; 03b, 04b and 06b see it) | shared | `title` (out of the soil), `garden`, `book`, `work`, `teacher`, `trees`, `lost` | peach morning; mid-morning; noon gold and shadow (`trees`); warm teal evening (`teacher`); dusk (`lost`) |
+| Eden, the one set (T04's garden; T05, T07 and T10 see it) | shared | `title` (out of the soil), `garden`, `book`, `work`, `teacher`, `trees`, `lost` | peach morning; mid-morning; noon gold and shadow (`trees`); warm teal evening (`teacher`); dusk (`lost`) |
 | The land outside the garden, its homes lit one by one, and the wall of light with the branch over it | film | `lost` | dusk, gold on the column of light |
 | The parchment page: the garden as a pop-up book; the schoolroom with two trees in its yard | series | `school`, `trees` (`every`), `teacher` (`luke`) | peach |
 | A city park on a Sabbath afternoon, with a pond | series | `home` (`walk`) | afternoon |
@@ -88,7 +88,7 @@ Props:
 | A small watering can; an open Bible on the table | series | `home` |
 | A duck on the pond | film | `home` (`walk`) |
 
-New to the library: the plain family's five (the mother on the lead's sheet, the girl, the son, the baby, the grandmother) as one series design; the flat's kitchen and its window; Adam and Eve's robe of light and coats of skins in work poses; the Father walking on the path; Eden's creatures beyond 03b's two; the city park.
+New to the library: the plain family's five (the mother on the lead's sheet, the girl, the son, the baby, the grandmother) as one series design; the flat's kitchen and its window; Adam and Eve's robe of light and coats of skins in work poses; the Father walking on the path; Eden's creatures beyond T05's two; the city park.
 
 ## Beats
 
@@ -203,7 +203,7 @@ New to the library: the plain family's five (the mother on the lead's sheet, the
 ## Notes for the owner
 
 - **The author of "Adam's schoolroom"** is Ellen White. The 1899 Bulletin prints the line in a testimony that G. A. Irwin read to the session on Sabbath, March 4, 1899, under the heading "The Tree of Life and the Tree of Knowledge". The "—P.C." on its reprint is the reprinting manual's abbreviation for "Private Collection" (its own key, PH140 p. 4), not a person's initials. The credits name Ellen G. White and the Bulletin, so the line can be used as the series' opening idea. The evidence is in `../sources.md` §1.
-- **Genesis 3:8** is the evening of the fall, when they hid (theology 03 shows the hiding). This film only alludes to "the cool of the day" (`teacher`), as Ed 21.1 does for the walks before the fall. It does not quote the verse, and the picture shows an earlier evening with no hiding.
+- **Genesis 3:8** is the evening of the fall, when they hid (theology 04 shows the hiding). This film only alludes to "the cool of the day" (`teacher`), as Ed 21.1 does for the walks before the fall. It does not quote the verse, and the picture shows an earlier evening with no hiding.
 - **The tree of life as a figure of Christ** is illustration over plain texts (John 6:35; Rev 2:7; 22:2), never a doctrine of its own (typology rule). The doctrine `lost` states is the one John 6:35 states.
 - **"Not yet, and not that way"** (`trees`) is a gentle gloss: the knowledge of good and evil was not wrong to have, but wrong to take against God's word. If the owner prefers the plain text, cut it to "Of one, not."
 - **Nothing in this film tells anyone to move.** It shows the pattern only, and the seed pot is the step any family can take (episode 16 returns to it). Episode 04 carries the call.

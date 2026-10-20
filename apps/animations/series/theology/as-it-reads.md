@@ -27,7 +27,7 @@ The owner's idea for a foundational film, set against _The Path of the Just_ ([s
 ## How it meets the series
 
 - **Episode 02 already holds half of it.** 02's `plain` beat says "Read it as it reads … unless the Bible itself shows you a symbol", and its `figure` beat looks the Lamb up in Exodus. But 02's spine is the Bereans and the one measuring rule, so the two ways and the dictionary get about 50 seconds there.
-- **The owner's idea is a sharper spine:** the root of error is the way of reading, and the Bible defines its own words. It is the tool every later episode uses to "unravel common theology, indirectly" (series.md): death as sleep (12), the fire that ends (36), the beasts as kingdoms (21b), the sanctuary as a real place (16). Each later film can open its dictionary on screen.
+- **The owner's idea is a sharper spine:** the root of error is the way of reading, and the Bible defines its own words. It is the tool every later episode uses to "unravel common theology, indirectly" (series.md): death as sleep (17), the fire that ends (43), the beasts as kingdoms (29), the sanctuary as a real place (22). Each later film can open its dictionary on screen.
 
 ## A proposed shape (the owner decides)
 

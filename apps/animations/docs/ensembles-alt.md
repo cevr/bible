@@ -14,8 +14,8 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **For every Christian.** No church name, badge, garment or book title in view. No insider terms. Diversity comes from who these people are, never from a quota.
 - **Names never spoken.** All four keep the rule. Every role below can be said as "a grandfather", "a teacher" or "a boy who has been moved too often". Names are for scripts and sheets.
 - **Names avoid the Bible's own.** No cast member has a name a KJV reader would take for a Bible person, so a cast scene is never mistaken for a STORY scene.
-- **No cast death.** Grief comes through someone never cast: a portrait or a grave. Each ensemble names its own grief for theology 12.
-- **Two turns on the ledger.** One faith turn is shown in theology 09: whoever goes down into the water wears their own plain clothes. One place turn is shown in country 19. Each ensemble names its own.
+- **No cast death.** Grief comes through someone never cast: a portrait or a grave. Each ensemble names its own grief for theology 17.
+- **Two turns on the ledger.** One faith turn is shown in theology 13: whoever goes down into the water wears their own plain clothes. One place turn is shown in country 19. Each ensemble names its own.
 - **Fixed ages.** A look forward is an IDEA picture. Heights are given against the ensemble's tallest adult (1.0), with the head about ⅓ of an adult's height.
 - **The look.**
   - K1 and its colour band: each garment at HSV saturation 0.20–0.35, and no slot between 330° and 50°.
@@ -32,14 +32,14 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Country living.** The question meets the text: a developer's offer for the lower field against "the land shall not be sold for ever: for the land is mine" (Lev 25:23, country 06), and the town spreading toward the farm (country 15). Lot's pull lives in the teenager, who wants the city (country 05; education 30). The city comes in through the mother and the hired hand.
 - **Education.** It happens around the work: the grandfather's grafting knife is the trade (education 18–19), and the animals and seasons are the second book (education 9).
 - **Health.** The farm does not keep the eight remedies by itself. The grandfather will not rest. The hand lives on energy drinks.
-- **Doctrine.** It runs through a man who believes he must earn everything (theology 07–08, 20), and through a young man who has never opened the book (theology 02, 04, 07–09).
+- **Doctrine.** It runs through a man who believes he must earn everything (theology 11, 25 and 27), and through a young man who has never opened the book (theology 02, 06, 11–13).
 
 **Ledger turns:**
 
-- Faith: Teo and Sami go down into the water together in theology 09.
+- Faith: Teo and Sami go down into the water together in theology 13.
 - Place: country 19. The land is not sold. Sami builds a small house on the orchard's corner. Teo chooses for himself where he will live.
 
-**Grief (theology 12).** Arturo and Luz's first child, born still fifty years ago, lies under the oldest pear tree: "I shall go to him, but he shall not return to me" (2 Sam 12:23). This needs the owner's yes, because it is the heaviest grief in any of the casts.
+**Grief (theology 17).** Arturo and Luz's first child, born still fifty years ago, lies under the oldest pear tree: "I shall go to him, but he shall not return to me" (2 Sam 12:23). This needs the owner's yes, because it is the heaviest grief in any of the casts.
 
 ### Arturo, the grandfather
 
@@ -47,7 +47,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Temperament, want:** gruff, few words, up before the light, gentle only with trees and animals. He wants the orchard to pass whole to his grandson.
 - **Flaw or question:** he cannot rest. He believes a man earns every good thing, grace included.
 - **Arc:**
-  - Theology: he lays down dead works (07–08, Rom 4:5). In 20, "A Rest That Remains", he sits under the pear tree with empty hands.
+  - Theology: he lays down dead works (11 and 25, Rom 4:5). In 27, "A Rest That Remains", he sits under the pear tree with empty hands.
   - Health: rest (20–25) and trust (44).
   - Education: he teaches Teo to graft (19), and lets Teo choose (33).
   - Country: in 06 he learns to hold the land as a steward. In 19 he hands Teo the knife.
@@ -63,7 +63,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Temperament, want:** quick, merry and busy, the keeper of the kitchen garden and the old simple remedies. She wants everyone fed and home on the seventh day.
 - **Flaw or question:** she smooths a quarrel over before it is mended. She still asks about the child under the pear tree.
 - **Arc:**
-  - Theology: Scripture known by heart (02); grief with hope at the small grave (12; 1 Thess 4:13); the reunion (34).
+  - Theology: Scripture known by heart (02); grief with hope at the small grave (17; 1 Thess 4:13); the reunion (41).
   - Health: the remedies of the house: water (39–43), the garden's table (32–38), sunlight (11–14). Medicine is no lack of faith (50).
   - Education: she taught Ivo first (5); the second book (9).
   - Country: she posts seed to the city (16).
@@ -79,7 +79,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Temperament, want:** steady and silent, slow to anger and slow to speak at all. He wants the farm out of debt without selling the lower field.
 - **Flaw or question:** a worry he never says aloud; he answers his children with a job instead of a word. Is God in the numbers?
 - **Arc:**
-  - Theology: the grown man still on milk (01); God's love when the harvest fails (03); growing up into Him (11).
+  - Theology: the grown man still on milk (01); God's love when the harvest fails (04); growing up into Him (15).
   - Education: family worship begun at the table (10); governing by love (12–14); a household that needs its children (18).
   - Health: worry, the mind and the body (64–69).
   - Country: the offer (06); he counts what selling would cost (13); the farm stand becomes the family's trade (14); he offers Sami the corner (17).
@@ -96,7 +96,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Flaw or question:** she half believes the country is a sacrifice she made, and she measures her children against their city cousins. Did God really lead us here?
 - **Arc:**
   - Education: what it is for (1–2); when school starts, for Bea (8); grades (21); choosing a school by method, not building (26–28); "Respectable, or His?" (34).
-  - Theology: God's love when she feels exiled (03); the serpent's "hath God said" as her own doubt (04).
+  - Theology: God's love when she feels exiled (04); the serpent's "hath God said" as her own doubt (06).
   - Health: worry (64–69).
   - Country: she misses the first city, and Heb 11:10 answers her (02); she watches Teo pitch toward the town (05); she runs the farm stand, the family's bridge to the town (15).
 - **Web:** Ivo's wife; Luz's daughter-in-law; Teo's ally against his grandfather until she sees where it leads; Bea's teacher at the kitchen table. Her sister in the city is never cast.
@@ -112,7 +112,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Flaw or question:** he thinks the faith and the farm come as one package, and he wants out of both. Is any of this mine, or only theirs?
 - **Arc:**
   - Education: screens and friends (23–25); the trade or the course (19); "Called to leave, raised to stay" (33); "Lord, what wilt thou have me to do?" (35).
-  - Theology: the choice and the water, with Sami (09; Josh 24:15); prophecy tested (26).
+  - Theology: the choice and the water, with Sami (13; Josh 24:15); prophecy tested (16).
   - Health: recreation or amusement (23).
   - Country: a weekend in the city, toward Sodom (05). In 19 he chooses, for himself, the course in the town by day and home by night. The film calls neither choice the righteous one.
 - **Web:** grandson and son; at odds with Arturo; Bea's hero; Sami's friend, each envying the other's life.
@@ -128,7 +128,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Flaw or question:** a will that will not be told. "Why must I?"
 - **Arc:**
   - Education: before she can read (7); when school starts (8); small and certain commands (13); the strong will directed (16); the giants allegory (17); the second book (9).
-  - Theology: the child at the slate (01); the will drawn by goodness (07; Rom 2:4).
+  - Theology: the child at the slate (01); the will drawn by goodness (11; Rom 2:4).
   - Health: sunlight (11); a fever, cared for (52).
   - Country: the garden as a schoolroom (01); a day in the fields (10).
 - **Web:** the youngest; Luz's shadow; Teo's follower; she adopts Sami first.
@@ -144,7 +144,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Flaw or question:** he runs on energy drinks and on his phone at 2 a.m., and he thinks believers are naïve. Is there a God who wants me, and not my work?
 - **Arc:** health meets him first, as Christ's method does:
   - Health: stimulants (59–63); sleep (20–25); Luz's table (32–38); sunlight (11); the anxious mind (64–69).
-  - Theology: the open book with no expert (02); the serpent's question as his doubt (04); the stones (07–09), with the water in 09 beside Teo.
+  - Theology: the open book with no expert (02); the serpent's question as his doubt (06); the stones (11–13), with the water in 13 beside Teo.
   - Country: he comes from the first city (02); a trade on the land (14); the corner plot (17); in 19 he stays the winter and builds his own small house.
   - Education: rare. He learns by working beside others (22).
 - **Web:** Ivo's hired hand; Luz's first project; Arturo's apprentice; Teo's foil; Bea's adopted big brother.
@@ -171,7 +171,7 @@ These are the rules of [ensemble.md](ensemble.md) and the [series README](../ser
 - **Loses:**
   - The series' core viewer, a parent in a city flat, sees a family already where the series points ("easy for them"). The call loses its stand-in.
   - The move, the current spine, becomes a quieter "kept, not sold".
-  - No baby, so theology 01's cup and 11's first steps need a figure from outside the cast.
+  - No baby, so theology 01's cup and 15's first steps need a figure from outside the cast.
   - It can read as rural nostalgia, or as landowners' comfort.
 
 ---
@@ -189,10 +189,10 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 
 **Ledger turns:**
 
-- Faith: Walter goes down into the water in theology 09, with Milo watching. The boy's own choice is a forward IDEA picture.
+- Faith: Walter goes down into the water in theology 13, with Milo watching. The boy's own choice is a forward IDEA picture.
 - Place: country 19. The shared house.
 
-**Grief (theology 12).** Rae's mother, who raised her in faith, is asleep. Her Bible with her handwriting in the margins sits on Rae's shelf, and she is never cast.
+**Grief (theology 17).** Rae's mother, who raised her in faith, is asleep. Her Bible with her handwriting in the margins sits on Rae's shelf, and she is never cast.
 
 ### Rae, the mother
 
@@ -200,7 +200,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** warm, quick-tongued, proud and tired. She does everything herself, and she wants her children safe and never to need anyone's help.
 - **Flaw or question:** self-reliance. She will not ask, and she let her mother's faith go cold. If God is a father, where was He when theirs left?
 - **Arc:**
-  - Theology: the Father who does not leave (03; Ps 27:10; Heb 13:5); growing up into Him (11); her mother asleep (12); a rest that remains (20).
+  - Theology: the Father who does not leave (04; Ps 27:10; Heb 13:5); growing up into Him (15); her mother asleep (17); a rest that remains (27).
   - Education: who needs the education first (5). In 12, "Three ways to make a child obey", she starts the tired, harsh way. Never in anger (14); the bedtime story (15); the screen as babysitter (23).
   - Health: rest and sleep after shifts (20–25); trust (44); the mind (64–69).
   - Country: plant gardens where you are (16); a cost she cannot meet alone (13); one or two families together (17); the shared house (19).
@@ -218,7 +218,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Arc:**
   - Education: thinkers, not echoes (2); the only thing they take with them (3); grades (21). In 22 he serves: he reads to Walter, whose eyes are failing.
   - Health: air in a shut flat and on the walkway (6–10); sunlight (11); the anxious body (64–69).
-  - Theology: he reads the book himself, beside Walter (02); judgment without fear, "perfect love casteth out fear" (13; 1 John 4:18); he watches the water (09).
+  - Theology: he reads the book himself, beside Walter (02); judgment without fear, "perfect love casteth out fear" (18; 1 John 4:18); he watches the water (13).
   - Country: where children grow (09); a day in the fields (10).
 - **Web:** Rae's son; Tess's protective brother; Walter's reading partner; Elsie's pupil.
 - **Silhouette and feature:** narrow, with a backpack too big for him; large round glasses.
@@ -233,7 +233,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** tantrums, and a lie when she is cornered. "Why?"
 - **Arc:**
   - Education: before she can read (7); small and certain (13); the bedtime story, and why children lie (15); the strong will (16); the giants (17).
-  - Theology: the child at the slate (01); the will drawn by goodness (07).
+  - Theology: the child at the slate (01); the will drawn by goodness (11).
   - Health: a fever, cared for at home (52).
   - Country: a seedling on the walkway rail (01, 16).
 - **Web:** Rae's daughter; Milo's shadow; Desmond's sidekick, who carries his tools; Elsie's lap.
@@ -248,7 +248,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** dry, courteous and exact. A retired watch repairer who believes nothing he cannot take apart. He wants to be useful again.
 - **Flaw or question:** the pride of reason, and a loneliness he will not name. "How can a man be born when he is old?" (John 3:4).
 - **Arc:**
-  - Theology: he sets out to catch the book contradicting itself and finds it explains itself (02); the serpent's question (04); the Word made flesh (05); the stones (07–09). He goes into the water at seventy-six (09). Death talked of without fear (12); prophecy tested like a mechanism (26).
+  - Theology: he sets out to catch the book contradicting itself and finds it explains itself (02); the serpent's question (06); the Word made flesh (08); the stones (11–13). He goes into the water at seventy-six (13). Death talked of without fear (17); prophecy tested like a mechanism (16).
   - Health: the daily walk, a little farther each film (26–31); sunlight (11).
   - Education: he teaches Milo to mend things (18–19); the school that never ends, at seventy-six (37–38).
   - Country: the first city (02); he and Elsie sell the flat (17); the shared house (19).
@@ -265,7 +265,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** she hovers. Her own children live abroad and rarely come home. Will she live to see Walter's turn?
 - **Arc:**
   - Education: the first school (4–5); before they can read (7); the best schoolbook (9); one word, twenty minutes (10); the gentle way in 12, shown beside Rae's tired way; never in anger (14).
-  - Theology: God's love (03); she comforts Rae (12); rest (20).
+  - Theology: God's love (04); she comforts Rae (17); rest (27).
   - Health: the soup pot (32–38); trust (44).
   - Country: pots on the walkway rail (16); the shared house (19).
 - **Web:** Walter's wife; the mother Rae lost; the children's tutor; Desmond's ally.
@@ -281,7 +281,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** his body. Diabetes, sugar in everything, and no visit to a doctor. Does God care for the body, or only the soul?
 - **Arc:**
   - Health: abstemiousness (15–19); diet (32–38); medicine is no lack of faith (50); appetite (59–63); walking with Walter (26); trust (44).
-  - Theology: growing up into Him (11); rest (20).
+  - Theology: growing up into Him (15); rest (27).
   - Education: tools for Milo and Tess (18–19).
   - Country: his trade travels (14); he helps with the move (19).
 - **Web:** the caretaker of the building; Walter's chess opponent; Tess's partner in repairs; Rae's friend.
@@ -328,10 +328,10 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 **Ledger turns:**
 
 - Birth: Ivy is born between education 5 and 7. Films before the turn show Lena expecting; films after show the baby in a sling.
-- Faith: Kai goes down into the water in theology 09, with Bram beside him as a witness, not an officiant. Dev watches; his own choice is a forward IDEA picture.
+- Faith: Kai goes down into the water in theology 13, with Bram beside him as a witness, not an officiant. Dev watches; his own choice is a forward IDEA picture.
 - Place: country 19. The couple rent the cottage at the corner of the mentors' land.
 
-**Grief (theology 12).** Kai's father died when Kai was eleven. He is never cast: a photo on the flat's shelf.
+**Grief (theology 17).** Kai's father died when Kai was eleven. He is never cast: a photo on the flat's shelf.
 
 ### Kai, the husband
 
@@ -339,7 +339,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** easy-going, generous, funny and impulsive. An apprentice electrician after years of drifting jobs. He wants to be the father he did not have.
 - **Flaw or question:** fear that he will fail; money spent before he thinks. New to faith, and unsure where the dead are: where is my father now?
 - **Arc:**
-  - Theology: the grown man on milk, literally (01); the oracles (02); the water (09); his father asleep (12); the reunion (34).
+  - Theology: the grown man on milk, literally (01); the oracles (02); the water (13); his father asleep (17); the reunion (41).
   - Education: the parents are the first students (5); never in anger (14); a trade (19); "Before you choose" (36), for Dev.
   - Health: recreation or amusement, the late games (23); sleep (20–25); diet (32–38).
   - Country: counting the cost (13); work that travels (14); the cottage (19).
@@ -355,7 +355,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** bright and organised, a pastry cook, quietly perfectionist. Raised in a believing home. She wants to do everything right for the baby.
 - **Flaw or question:** her faith is borrowed, from her parents and from Odile. She knows the answers and is not sure she believes them. She is anxious.
 - **Arc:**
-  - Theology: God's love (03). Her perfectionism is a dead work (07); righteousness by faith (08); growing up into Him (11).
+  - Theology: God's love (04). Her perfectionism is a dead work (11); righteousness by faith (25); growing up into Him (15).
   - Education: the parents are the first students (4–5); before they can read (7); when school starts (8); worship (10).
   - Health: the bakery's white sugar and white flour against bread from whole meal (32–38); abstemiousness when expecting (15–19); water (39–43); rest after the birth (20); trust (44).
   - Country: a window box above the bakery (16); where children grow (09); the cottage (19).
@@ -368,7 +368,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 ### Ivy, the baby (after the turn)
 
 - **Age and role:** about 4 months, fixed after the birth. Minor.
-- **Part:** the milk and the cup (theology 01); the youngest in the house; her first steps are a forward IDEA picture (theology 11).
+- **Part:** the milk and the cup (theology 01); the youngest in the house; her first steps are a forward IDEA picture (theology 15).
 - **Silhouette and feature:** a small round bundle in the sling; one wisp of hair.
 - **Colour:** mint, 165° .20 .88, `#b4e0d5`. The lightest value in the cast, beside her mother's seafoam.
 - **Hair:** a line or two: an open curl and a wisp, with the skin showing through (rule 12).
@@ -380,7 +380,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** slow, patient and dry. A retired carpenter who keeps bees, and shows rather than tells. He wants to hand on what he knows while his knees still work.
 - **Flaw or question:** he and Odile raised three children who have left the faith. Did we fail them? (Prov 22:6 pulls one way, and his grief the other.)
 - **Arc:**
-  - Theology: he serves Kai the meat slowly (01); growing up into Him (11); a witness at the water (09).
+  - Theology: he serves Kai the meat slowly (01); growing up into Him (15); a witness at the water (13).
   - Education: the generation that forgot, his own grown children (6); the second book, the hive (9); a household that needs its children, Dev at the hives (18–19).
   - Health: sunlight and work (11–14, 26–31).
   - Country: his acres as Adam's schoolroom (01); a day in the fields (10); work (14); he offers the corner (17).
@@ -397,7 +397,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** she plans love, and Dev refuses plans. Was fostering at her age faith or pride?
 - **Arc:**
   - Education: she taught the couple first (5). With Dev she carries "governed by love" (12–17): small and certain (13), why children lie (15), the strong will (16).
-  - Theology: God's love (03). The waiting parent, mirrored after Luke 15:20 is told.
+  - Theology: God's love (04). The waiting parent, mirrored after Luke 15:20 is told.
   - Health: trust (44); the mind (64–69).
   - Country: the school goes with you, at her kitchen table (18).
 - **Web:** Bram's wife; Lena's old teacher; Dev's foster mother; Kai's teasing ally.
@@ -413,7 +413,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** he lies by reflex and tests every adult to find the point where they quit. How long until you give me back?
 - **Arc:**
   - Education: why children lie (15); the strong will (16); the giants (17); needed at the hives (18); screens and friends (23–25).
-  - Theology: the will drawn by goodness (07; Rom 2:4); adoption wherever a film reads Rom 8:15 or Gal 4:5; he watches the water (09).
+  - Theology: the will drawn by goodness (11; Rom 2:4); adoption wherever a film reads Rom 8:15 or Gal 4:5; he watches the water (13).
   - Health: sleep and nightmares (21); sunlight (11); the mind and the body (64–69).
   - Country: where children grow (09); a day in the fields (10).
 - **Web:** Bram and Odile's foster son; Kai's mate; wary of the baby, then the first to make her laugh.
@@ -458,14 +458,14 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **The teacher's thread.** She carries vocation and conscience: grades and ranking (education 21), the Bible as textbook (9), and where a child learns, judged by method and never by building (26–28).
 - **Country living.** The market-garden family already lives at the city's edge (country 15). The finale is a small school in their field, shared by two families (country 17–18).
 - **Health.** The classroom's air and light, a child's anxious stomach, a father's night shifts.
-- **Doctrine.** It runs through the rule-keeping father meeting grace (theology 07–08) and the tired father as the seeker (02, 04, 07–09).
+- **Doctrine.** It runs through the rule-keeping father meeting grace (theology 11 and 25) and the tired father as the seeker (02, 06, 11–13).
 
 **Ledger turns:**
 
-- Faith: Jules and Pia go down into the water together in theology 09: a tired young father and a teenage girl from the steady home, each choosing for themselves.
+- Faith: Jules and Pia go down into the water together in theology 13: a tired young father and a teenage girl from the steady home, each choosing for themselves.
 - Place: country 19. The field school opens.
 
-**Grief (theology 12).** Pia's grandmother is asleep, and the whole class grieves with Pia. Rory asks where she went. She is never cast.
+**Grief (theology 17).** Pia's grandmother is asleep, and the whole class grieves with Pia. Rory asks where she went. She is never cast.
 
 ### Greta, the teacher
 
@@ -474,7 +474,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** she runs a system she no longer believes in (marks, ranks, bells) and is too tired to fight it. Can I teach the way God teaches inside these walls?
 - **Arc:**
   - Education: what it is for (1–3); grades (21); Daniel's education (26); was school God's first plan, and where or how (27–28); the school that never ends (37–38).
-  - Theology: the Book as the textbook (02); she grieves with the class (12); prophecy tested (26).
+  - Theology: the Book as the textbook (02); she grieves with the class (17); prophecy tested (16).
   - Health: the classroom's air (6–10); lessons outdoors (11); rest (20).
   - Country: Adam's schoolroom (01); where children grow (09); the school goes with you (18); the field school (19).
 - **Web:** teacher of Oscar, Rory and Pia; Ansel's sparring partner; Jules's ally, because she sees him trying; Inés lends her the field.
@@ -489,7 +489,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** precise and conscientious, an engineer, a churchgoer, kind under the rules. He wants his son to excel and to be safe.
 - **Flaw or question:** he governs by charts, stickers and consequences, and keeps his faith the same way, as a ledger. If I stop the rewards, what holds him?
 - **Arc:**
-  - Theology: dead works (07); righteousness by faith (08), the elder brother's mirror after Luke 15 is told; the better covenant, a law written in the heart against a chart on the fridge (18).
+  - Theology: dead works (11); righteousness by faith (25), the elder brother's mirror after Luke 15 is told; the better covenant, a law written in the heart against a chart on the fridge (24).
   - Education: the first of the three ways (12); small and certain (13); grades (21); the only thing they take with them (3).
   - Country: counting the cost, with a spreadsheet (13); near the town, not in it (15).
 - **Web:** Oscar's father. Oscar's mother is part of the home but not of the cast: in a home scene she is a turned-away minor figure. Greta's sparring partner; Inés's critic, then her friend.
@@ -505,7 +505,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** he cannot bear second place. Am I worth anything if I'm not first?
 - **Arc:**
   - Education: grades (21). In 22 he serves: he teaches Rory to read. Thinkers, not echoes (2); the giants (17); calling (35).
-  - Theology: worth given, not earned (08); judgment without fear (13).
+  - Theology: worth given, not earned (25); judgment without fear (18).
   - Health: the anxious stomach (64–69); recreation (23).
   - Country: a day in the fields (10).
 - **Web:** Ansel's son; Rory's reluctant reading partner; Pia's rival, then friend.
@@ -520,7 +520,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Temperament, want:** sweet, funny, impulsive and worn out. He works nights in a warehouse and raises Rory alone. He wants her to be happy, and to like him.
 - **Flaw or question:** he cannot say no, and the tablet babysits. He was not raised in faith and doubts God would bother with "a mess like me".
 - **Arc:**
-  - Theology: the oracles (02); the serpent's question (04); the Lamb (06); the stones (07–09), with the water in 09 beside Pia. After the parable is told he learns what a father is from Luke 15:20.
+  - Theology: the oracles (02); the serpent's question (06); the Lamb (09); the stones (11–13), with the water in 13 beside Pia. After the parable is told he learns what a father is from Luke 15:20.
   - Education: the second of the three ways (12); small and certain (13); the bedtime story (15); the strong will (16); screens (23).
   - Health: night shifts and sleep (20–25); stimulants (59–63); cereal for dinner (32–38).
   - Country: a seed in a cup for Rory (16); Inés's offer of the cottage on her land (17); the field school (19).
@@ -537,7 +537,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** she lies to dodge trouble, cannot sit still, and is behind in reading. Am I bad?
 - **Arc:**
   - Education: when school starts (8); small and certain (13); lying (15); the strong will (16); the giants (17); Oscar teaches her to read (22).
-  - Theology: the child at the slate (01); the will drawn by goodness (07); "where did she go?" (12).
+  - Theology: the child at the slate (01); the will drawn by goodness (11); "where did she go?" (17).
   - Health: play and exercise (26–31); outdoors (11); a fever (52).
   - Country: the garden as a schoolroom (01); a day in the fields (10); the seed in the cup (16).
 - **Web:** Jules's daughter; Greta's challenge and delight; Oscar's pupil; Pia's follower.
@@ -553,7 +553,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** the steady home's own sin: pride in it, and overwork. She quietly judges the other parents. Are my children good, or only well trained?
 - **Arc:**
   - Education: the third way, gentle measures, shown with her own failure first (12); a household that needs its children (18); the second book (9).
-  - Theology: her pride as a dead work (07); rest (20).
+  - Theology: her pride as a dead work (11); rest (27).
   - Health: sunlight (11–14); diet (32–38); exercise in work (26–31).
   - Country: Adam's schoolroom (01); breath, light and bread (08); near the town, not in it (15); the offer of ground (17); the field school (19).
 - **Web:** Pia's mother; Greta's friend; she feeds Jules and Rory; Ansel's critic, until she owns it and apologises.
@@ -569,7 +569,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 - **Flaw or question:** resentment at always being responsible. Is the faith mine, or only my family's?
 - **Arc:**
   - Education: a household that needs its children (18); service (22); called to leave, raised to stay (33); calling (35).
-  - Theology: the water, her own choice (09); her grandmother asleep (12).
+  - Theology: the water, her own choice (13); her grandmother asleep (17).
   - Health: caring for others beside the experienced (54).
   - Country: a day in the fields (10); the field school (18).
 - **Web:** Inés's daughter; Oscar's rival; Rory's heroine; Greta's best pupil.
@@ -616,7 +616,7 @@ The ensemble's spine is "A father of the fatherless … is God in his holy habit
 
 1. **It puts the hardest viewer at the centre.** Country living's own source keeps "unnecessarily" and "many cannot", and the series must never read as a verdict on those who stay. A family that cannot simply move carries that comfort in its own life, and its finale shows a way through that does not need two incomes.
 2. **Christ's method is the ensemble's daily life.** Needs are met across a walkway before anything is said: a child minded, a meal, a walk, an inhaler. That is MH 143.3 on screen, and the order every series already follows: health wins Walter and Rae's confidence before theology calls.
-3. **The elder seeker is new and true.** Nicodemus' question in an old man's mouth (John 3:4) gives theology 09 more weight than a young seeker does. Ps 68:5–6 gives the parenting pathos a Father who stays, which reaches the many viewers without one.
+3. **The elder seeker is new and true.** Nicodemus' question in an old man's mouth (John 3:4) gives theology 13 more weight than a young seeker does. Ps 68:5–6 gives the parenting pathos a Father who stays, which reaches the many viewers without one.
 4. **It keeps the parts the current cast does well:** a mother, two children of the right ages for the will and the screens, an elder of long faith, a health lead and a garden pull.
 
 What it costs, plainly: no resident father, so the chastening and waiting-father pictures move to a grandfatherly Walter or stay with the text alone. The shared house must be seeded from the first country film (Elsie's spare room, the allotment) so that it reads as faith working, not a plot convenience.

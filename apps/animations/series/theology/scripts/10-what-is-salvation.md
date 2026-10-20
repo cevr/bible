@@ -1,20 +1,20 @@
-# 06b · What Is Salvation?
+# 10 · What Is Salvation?
 
-Series: The Path of the Just · Tier One (Milk) · the salvation arc, 3 of 3, after 06 (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · 10 of 44 · the salvation arc, 3 of 3
 Promise: the viewer sees that salvation answers all four losses at once: Jesus is the ladder over the separation, God's gift of life meets death, a new heart breaks the chain from the inside, and by beholding him the image is restored; and that the six stones that follow show how it is received, beginning with repentance.
-Prerequisites: 03b (the image), 04b (the four losses), 05 (the Word made flesh), 06 (the Lamb).
+Prerequisites: 05 (the image), 07 (the four losses), 08 (the Word made flesh), 09 (the Lamb).
 Length: about 5:50 (637 spoken words: 4:07 at 155 wpm, 4:37 with the marked breaths and holds; plus the 6 s title, seams of 0.6 s between beats and a 3 s hold into the thesis, about 30 s of music alone and 28 s of credits). Measured on that clock: the title starts at 9.9 %, the deepest turn (`image`) at 56.4 %, the landing (`bethel`) at 73.3 %, and the landing runs 35.0 s through the thesis's last word.
-Status: kept by the owner, 2026-10-19 (ask a3858e5a013), from his notes of that day (`../what-is-salvation.md`). Nothing narrated. Reviewed by counsel (deep) the same day; every finding folded or answered in `../sources-arc.md`. Every KJV line printed by `bible verse` on 2026-10-19; every paraphrase source read with `bible egw lookup` the same day, verbatim in `../sources-arc.md`, and passed by the frame's verifier. Frames: righteousness-by-faith.md, god-christ.md, nature-of-christ.md (not touched). Written to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
+Status: kept by the owner, 2026-10-19 (ask a3858e5a013), from his notes of that day (`../what-is-salvation.md`). Nothing narrated. Reviewed by counsel (deep) the same day; every finding folded or answered in `../sources.md`. Every KJV line printed by `bible verse` on 2026-10-19; every paraphrase source read with `bible egw lookup` the same day, verbatim in `../sources.md`, and passed by the frame's verifier. Frames: righteousness-by-faith.md, god-christ.md, nature-of-christ.md (not touched). Written to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header
 
-The order: the cold open at Bethel (`cold`: Jacob, a runaway who has wronged his brother, lies down on a stone afraid God has cast him off, and dreams of a ladder; what is salvation?), the title, the callback (`losses`: the four losses of 04b; salvation brings us back to what we were made to be), the first answer (`ladder`: Jesus is the ladder over the gulf, the one mediator), the second (`life`: the gift of God is eternal life), the one dose of the problem and the third answer (`forgiven`: "I am forgiven, so the problem is solved", answered at once: forgiveness reclaims from sin, a new heart), the deepest turn (`image`: by beholding we are changed into the same image; his glory is his character), the shape of the answer (`one`: Jesus spoke of eternal life three ways, one life from his word), and the landing back at Bethel (`bethel`: twenty years later God renames Jacob Israel; it began on a night when a runaway was sorry).
+The order: the cold open at Bethel (`cold`: Jacob, a runaway who has wronged his brother, lies down on a stone afraid God has cast him off, and dreams of a ladder; what is salvation?), the title, the callback (`losses`: the four losses of 07; salvation brings us back to what we were made to be), the first answer (`ladder`: Jesus is the ladder over the gulf, the one mediator), the second (`life`: the gift of God is eternal life), the one dose of the problem and the third answer (`forgiven`: "I am forgiven, so the problem is solved", answered at once: forgiveness reclaims from sin, a new heart), the deepest turn (`image`: by beholding we are changed into the same image; his glory is his character), the shape of the answer (`one`: Jesus spoke of eternal life three ways, one life from his word), and the landing back at Bethel (`bethel`: twenty years later God renames Jacob Israel; it began on a night when a runaway was sorry).
 
 Motifs:
 
-- The portrait frame (the arc's prop, from 03b and 04b). It comes back cracked in `losses`; the crack closes a piece at a time in `ladder`, `life`, `forgiven`; in `image` it holds only light, and its glass shows the beholder's face growing like the One he watches in the story beside it (casting.md: Christ is never a framed portrait); in the landing it hangs whole over the pillar.
+- The portrait frame (the arc's prop, from 05 and 07). It comes back cracked in `losses`; the crack closes a piece at a time in `ladder`, `life`, `forgiven`; in `image` it holds only light, and its glass shows the beholder's face growing like the One he watches in the story beside it (casting.md: Christ is never a framed portrait); in the landing it hangs whole over the pillar.
 - The ladder and the stone. Jacob's stone pillow in `cold` becomes the pillar of the landing; the ladder of `cold` returns in `ladder` as the Son of man.
-- The chain and the slate (04b's). The slate written over in `forgiven` is wiped and stays clean, and the paper chains open from the inside.
+- The chain and the slate (07's). The slate written over in `forgiven` is wiped and stays clean, and the paper chains open from the inside.
 - The six stones (Tier One's map). In the landing the six stones of Heb 6:1–2 stand in a row at the foot of Jacob's pillar, and the first lights.
 
 Tent poles, act light, chapter question:
@@ -31,9 +31,9 @@ Full-screen cards (CRAFT rule 1), proposed: the act's word card in `image` ("glo
 
 Frame (righteousness-by-faith.md): the new heart and the walking in his ways are God's gift and his Spirit's work (Ezek 36:26–27), never our price; Christ's work does not end at the cross (`ladder`: he connects us still; `image`: he makes the character new). Frame (god-christ.md): the LORD above the ladder is light with a form hidden in it, no face; no Trinity words. Frame (nature-of-christ.md): the film says nothing of Christ's nature; `ladder` calls him "a man with a hand on each side", Job's daysman, and settles nothing.
 
-The common view, once, in the viewer's words: `forgiven` ("I am forgiven, so the problem is solved"), answered in the next breath from 04b's slate and Ezekiel 36:26.
+The common view, once, in the viewer's words: `forgiven` ("I am forgiven, so the problem is solved"), answered in the next breath from 07's slate and Ezekiel 36:26.
 
-The eternal-life study (`../what-is-salvation.md`): used lightly, as the coordinator's brief asks. `one` names the three ways once (know God, keep his law, have the Son) and lands on one life from his word. The texts paired with each way, and how faith comes by hearing, are left to 08 (Faith Toward God).
+The eternal-life study (`../what-is-salvation.md`): used lightly, as the coordinator's brief asks. `one` names the three ways once (know God, keep his law, have the Son) and lands on one life from his word. The texts paired with each way, and how faith comes by hearing, are left to 12 (Faith Toward God).
 
 Quoted Scripture: 8 passages, 104 of 637 spoken words (16.3 %; counted 2026-10-19 over the `say` lines' “…” spans). One quotation per beat.
 
@@ -41,16 +41,16 @@ Quoted Scripture: 8 passages, 104 of 637 spoken words (16.3 %; counted 2026-10-1
 
 | Figure | Kind | Scope | In the library? | Beats | The sheet must show |
 | --- | --- | --- | --- | --- | --- |
-| Jacob (casting.md 1.5; planned T33) | Bible figure, main | shared | listed, not drawn (P5) | `cold`, `title`, `losses`, `bethel`, `thesis`, `end` | young (`cold`): walking alone at sunset with a staff and a bundle (three-quarter), lying with his head on a stone (profile), praying with his face in his hands, weeping (front, close), lying awake afraid (front), asleep, lit from the ladder (front, close); small and asleep on the page (`losses`); twenty years on (`bethel`): older, limping on the staff (profile, three-quarter), locked with the wrestler at the ford (profile), kneeling at the stone (profile), setting it up as a pillar and pouring oil from a horn (three-quarter), face lifted (front, close); olive cloth, sleeves to the wrist |
-| Angels on the ladder (casting.md #7) | Bible figures, minor | shared | listed, not drawn (T05) | `cold`, `ladder` | small figures in robe white climbing and coming down (profile, back), no wings |
-| The LORD above the ladder (Gen 28:13; casting.md #4, the Father's asset) | asset: gold-white light at the ladder's top with a definite human form hidden in it, no face | shared | listed, not drawn | `cold`, `bethel` | 03b's standing pose, far up and small, in haze (`cold`); the same light standing over the stone (`bethel`) |
-| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `ladder`, `image`, `bethel` | his earthly dress (casting.md: the linen coat and walnut mantle, OQ5): on the road seeing Nathanael come, speaking (three-quarter), a hand open at the sleeve's end (front); kneeling with a basin and towel at a disciple's feet (03b's `express` sheet, in a vignette); at the Jabbok at night, wrestling with Jacob, his face turned from the camera (profile, back; PP 196.3). Never in the portrait frame |
+| Jacob (casting.md 1.5; planned T40) | Bible figure, main | shared | listed, not drawn (P5) | `cold`, `title`, `losses`, `bethel`, `thesis`, `end` | young (`cold`): walking alone at sunset with a staff and a bundle (three-quarter), lying with his head on a stone (profile), praying with his face in his hands, weeping (front, close), lying awake afraid (front), asleep, lit from the ladder (front, close); small and asleep on the page (`losses`); twenty years on (`bethel`): older, limping on the staff (profile, three-quarter), locked with the wrestler at the ford (profile), kneeling at the stone (profile), setting it up as a pillar and pouring oil from a horn (three-quarter), face lifted (front, close); olive cloth, sleeves to the wrist |
+| Angels on the ladder (casting.md #7) | Bible figures, minor | shared | listed, not drawn (T08) | `cold`, `ladder` | small figures in robe white climbing and coming down (profile, back), no wings |
+| The LORD above the ladder (Gen 28:13; casting.md #4, the Father's asset) | asset: gold-white light at the ladder's top with a definite human form hidden in it, no face | shared | listed, not drawn | `cold`, `bethel` | 05's standing pose, far up and small, in haze (`cold`); the same light standing over the stone (`bethel`) |
+| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `ladder`, `image`, `bethel` | his earthly dress (casting.md: the linen coat and walnut mantle, OQ5): on the road seeing Nathanael come, speaking (three-quarter), a hand open at the sleeve's end (front); kneeling with a basin and towel at a disciple's feet (05's `express` sheet, in a vignette); at the Jabbok at night, wrestling with Jacob, his face turned from the camera (profile, back; PP 196.3). Never in the portrait frame |
 | Nathanael (John 1:45–51) | Bible figure, minor | shared | no: new | `ladder` | walking up a road (three-quarter), stopping, surprised (front), listening (profile); earlier, alone under a fig tree (three-quarter, far); linen tunic, olive mantle |
-| A disciple at the basin (casting.md #10, one of the twelve) | Bible figure, minor | shared | listed, not drawn | `image` | 03b's `express` sheet: seated, feet in the basin (three-quarter) |
-| Moses (casting.md #2) | Bible figure, minor | shared | listed, not drawn (P1) | `image` | as flat IDEA paper: in the cleft, the glory passing (profile), as T03 and 03b |
-| Adam and Eve (casting.md #5, #6) | Bible figures | shared | listed, not drawn (P2) | `losses` | 03b's landing sheet in the robe of light, small on the garden path (back, three-quarter) |
-| The prodigal and his father (casting.md, parable figures) | parable figures | shared | listed, not drawn (P3) | `losses` | 03's `prodigal` sheet, small in a vignette: the son walking home (profile), the father running, the embrace (three-quarter) |
-| The plain lead, the father, and the small boy | the arc's plain lead (character-design 2.3) and the second plain figure (about 0.62) | series (the arc's plain pair, from 03b and 04b; 02b's) | the plain lead's sheet exists | `ladder`, `life`, `forgiven`, `image` | small below the torn page, leaning on a hand (`ladder`); the father handing the boy bread, the boy's two hands taking it (`life`); at the slate with the paper chains (04b's sheet), a hand resting on his chest, walking free as the chains open (front); the father guiding the boy's hand on a cup, the boy older not reaching (`forgiven`); watching the vignette beside the frame (back, three-quarter), his reflection growing gentle (front, close; `image`); contemporary dress, sleeves |
+| A disciple at the basin (casting.md #10, one of the twelve) | Bible figure, minor | shared | listed, not drawn | `image` | 05's `express` sheet: seated, feet in the basin (three-quarter) |
+| Moses (casting.md #2) | Bible figure, minor | shared | listed, not drawn (P1) | `image` | as flat IDEA paper: in the cleft, the glory passing (profile), as T04 and 05 |
+| Adam and Eve (casting.md #5, #6) | Bible figures | shared | listed, not drawn (P2) | `losses` | 05's landing sheet in the robe of light, small on the garden path (back, three-quarter) |
+| The prodigal and his father (casting.md, parable figures) | parable figures | shared | listed, not drawn (P3) | `losses` | 04's `prodigal` sheet, small in a vignette: the son walking home (profile), the father running, the embrace (three-quarter) |
+| The plain lead, the father, and the small boy | the arc's plain lead (character-design 2.3) and the second plain figure (about 0.62) | series (the arc's plain pair, from 05 and 07; 03's) | the plain lead's sheet exists | `ladder`, `life`, `forgiven`, `image` | small below the torn page, leaning on a hand (`ladder`); the father handing the boy bread, the boy's two hands taking it (`life`); at the slate with the paper chains (07's sheet), a hand resting on his chest, walking free as the chains open (front); the father guiding the boy's hand on a cup, the boy older not reaching (`forgiven`); watching the vignette beside the frame (back, three-quarter), his reflection growing gentle (front, close; `image`); contemporary dress, sleeves |
 | Jacob's household (Gen 35:2–6) | crowd from the story crowd kit (casting.md Part B 2.6) | shared | the crowd kit | `bethel`, `thesis`, `end` | ten to twelve figures of every age walking up the hill behind Jacob, then standing (back, three-quarter); flocks |
 | The Spirit (casting.md #29) | signs only, never a figure | shared | listed | `forgiven` | a soft gold breath moving over the plain lead |
 
@@ -58,34 +58,34 @@ Settings:
 
 | Set | Scope | Beats | Light |
 | --- | --- | --- | --- |
-| Bethel: a stony hilltop by a road, a lone pillar stone | shared (new; Jacob's T33 can reuse it) | `cold`, `title`, `image` (its close), `bethel`, `thesis`, `end` | sunset into teal night; dawn at `image`'s close; the landing teal to yellow at morning |
+| Bethel: a stony hilltop by a road, a lone pillar stone | shared (new; Jacob's T40 can reuse it) | `cold`, `title`, `image` (its close), `bethel`, `thesis`, `end` | sunset into teal night; dawn at `image`'s close; the landing teal to yellow at morning |
 | The ford of the Jabbok at night | shared (Jacob's) | `bethel` (`wrestled`, a flash) | night into the first dawn |
-| Eden, the one set (T03's garden, C01's; 03b inside, 04b outside), from outside at the guarded gate | shared (T03, C01; 03b, 04b, 06b) | `losses` (a vignette) | cool teal |
-| Adam's tent east of the garden (04b's) | series | `losses` (a vignette) | dawn |
-| Eden's path at evening (the same set, 03b's landing) | shared (as Eden) | `losses` (a vignette) | the landing teal to yellow |
-| A road at dusk (03's `prodigal`) | shared | `losses` (a vignette) | dusk |
-| A road in Galilee with a fig tree beside it (02b's gospel country) | shared | `ladder` | teal day |
-| A hill at sunset with the lamb and the cross's shadow (06's) | shared | `life` (a vignette) | sunset |
-| The plain kitchen with a stove and a window (02b's, 03b's, 04b's) | series | `life`, `forgiven` | evening |
-| The upper room by lamplight (03b's `express`; T03's `philip`) | shared | `image` (a vignette) | lamplight |
+| Eden, the one set (T04's garden, C01's; 05 inside, 07 outside), from outside at the guarded gate | shared (T04, C01; 05, 07, 10) | `losses` (a vignette) | cool teal |
+| Adam's tent east of the garden (07's) | series | `losses` (a vignette) | dawn |
+| Eden's path at evening (the same set, 05's landing) | shared (as Eden) | `losses` (a vignette) | the landing teal to yellow |
+| A road at dusk (04's `prodigal`) | shared | `losses` (a vignette) | dusk |
+| A road in Galilee with a fig tree beside it (03's gospel country) | shared | `ladder` | teal day |
+| A hill at sunset with the lamb and the cross's shadow (09's) | shared | `life` (a vignette) | sunset |
+| The plain kitchen with a stove and a window (03's, 05's, 07's) | series | `life`, `forgiven` | evening |
+| The upper room by lamplight (05's `express`; T04's `philip`) | shared | `image` (a vignette) | lamplight |
 | The parchment page | series | `losses`, `life`, `forgiven`, `image`, `one` | peach; `forgiven` into dawn |
 
 Props:
 
 | Prop | Scope | Beats |
 | --- | --- | --- |
-| The portrait frame (03's), cracked, then whole; light only, never a portrait of Christ | series | `title`, `losses`, `ladder`, `life`, `forgiven`, `image`, `one`, `bethel` |
+| The portrait frame (04's), cracked, then whole; light only, never a portrait of Christ | series | `title`, `losses`, `ladder`, `life`, `forgiven`, `image`, `one`, `bethel` |
 | Jacob's stone, the horn of oil, his staff and bundle | shared (Jacob's) | `cold`, `bethel` |
 | The ladder of light | shared (Jacob's) | `cold`, `ladder` |
-| The vine, the spring and the cut branch (04b's) | series | `life` |
-| The slate, the cloth and the paper chains (04b's) | series | `forgiven` |
+| The vine, the spring and the cut branch (07's) | series | `life` |
+| The slate, the cloth and the paper chains (07's) | series | `forgiven` |
 | The grey coins (the wages) and the gold light laid in two hands | film | `life` |
 | The bread | shared (casting.md: bread is Christ's prop) | `life` |
 | The cup by the stove | film | `forgiven` |
 | The grey stone that turns into a red paper heart | film | `forgiven` |
-| The basin and towel (03b's) | shared | `image` |
+| The basin and towel (05's) | shared | `image` |
 | The three glyphs, the open scroll and the gold threads (02's threads) | series | `one` |
-| The two tablets (03's) | series | `one` |
+| The two tablets (04's) | series | `one` |
 | The six stones (Tier One's map) | series | `bethel`, `thesis`, `end` |
 
 New to the library: Jacob young and old, his stone and pillar, the ladder of light, Bethel and the Jabbok ford; Nathanael; Christ's wrestling sheet; the Father's asset far up at the ladder's top.
@@ -103,13 +103,13 @@ New to the library: Jacob young and old, his stone and pillar, the ladder of lig
 
 ### `title` · ~6 s
 
-**picture:** Title over the night sky above Bethel: What Is Salvation? The cracked portrait frame from 04b at the base of the words, the ladder's gold light on its glass.
+**picture:** Title over the night sky above Bethel: What Is Salvation? The cracked portrait frame from 07 at the base of the words, the ladder's gold light on its glass.
 
 ### `losses` · IDEA · ~28 s
 
 **say:** {earlier}Earlier we counted four {*}losses. {/} {image}The image. {/} {near}Nearness to God. {/} {life}Life. {/} {will}And the power to {*}stop. {/} {jacob}Jacob carried all four to that {*}stone. {/} {all}Salvation answers all {*}four. {/} {more}It is more than a {*}pardon. {/} {father}A father does not only forgive a son who {*}ran. {/} {home}He wants him home, {/} {whole}and he wants him {*}whole. {/} {back}It is God bringing us back {/} to what we were made to {*}be.
 **cite:** Genesis 1:27
-**picture:** IDEA: the parchment. The cracked portrait frame from 04b stands in the middle, its four pieces (04b's `four`): a cracked face, a grey sheet before a light, a brown branch, a pair of paper chains. On `image`, `near`, `life` and `will` each piece lifts and turns to camera as it is named. On `jacob` the sleeping Jacob of `cold`, small, at the frame's foot. On `all` a vignette in the corner: the guarded gate of Eden and Adam's tent (04b's), small. On `father` the vignette is a road at dusk, a small plain figure walking home and a larger one running to meet it (as 03's `prodigal`); on `whole` they embrace. On `back` the vignette changes to the garden path in the robe of light (03b's landing), and the frame's glass catches its light.
+**picture:** IDEA: the parchment. The cracked portrait frame from 07 stands in the middle, its four pieces (07's `four`): a cracked face, a grey sheet before a light, a brown branch, a pair of paper chains. On `image`, `near`, `life` and `will` each piece lifts and turns to camera as it is named. On `jacob` the sleeping Jacob of `cold`, small, at the frame's foot. On `all` a vignette in the corner: the guarded gate of Eden and Adam's tent (07's), small. On `father` the vignette is a road at dusk, a small plain figure walking home and a larger one running to meet it (as 04's `prodigal`); on `whole` they embrace. On `back` the vignette changes to the garden path in the robe of light (05's landing), and the frame's glass catches its light.
 **paraphrase sources (not spoken):**
 
 - Ed 15.2 (Ellen G. White) — "Through sin the divine likeness was marred, and well-nigh obliterated. … To restore in man the image of his Maker, to bring him back to the perfection in which he was created … this was to be the work of redemption." → `all`, `back`
@@ -129,7 +129,7 @@ New to the library: Jacob young and old, his stone and pillar, the ladder of lig
 
 **say:** {second}Second, {*}death. {/} {lamb}The last film showed the Lamb {/} {wages}who took on himself the wages we had {*}earned. {/} {half}We heard half a verse {*}before. {/} {rest}Here is the {*}rest. {/} {quote}“But the gift of God is eternal life through Jesus Christ our Lord.” {//} {not}Not wages. {/} {gift}A {*}gift. {/} {earn}We could never earn it. {/} {receive}We can only receive it, {/} {meal}as a child takes bread from its father's {*}hand. {/} {branch}And the cut branch is joined to the vine {*}again.
 **cite:** Romans 6:23; John 15:4–5
-**picture:** IDEA: the parchment. On `lamb` a small vignette from 06: a lamb on a hill at sunset, the cross's shadow behind it. On `wages` a pile of grey coins (the wages) slides away from the brown branch piece of the frame. On `quote` a gold light is laid in two open hands at the sleeves' ends. On `gift` the hands close round it. On `meal` STORY for a breath: the plain kitchen (03b's, 04b's), the father handing the small boy a piece of bread, the boy's two hands taking it. On `branch` the brown branch from 04b is set back on the green vine at the spring and greens to the tip; the branch piece of the frame clears.
+**picture:** IDEA: the parchment. On `lamb` a small vignette from 09: a lamb on a hill at sunset, the cross's shadow behind it. On `wages` a pile of grey coins (the wages) slides away from the brown branch piece of the frame. On `quote` a gold light is laid in two open hands at the sleeves' ends. On `gift` the hands close round it. On `meal` STORY for a breath: the plain kitchen (05's, 07's), the father handing the small boy a piece of bread, the boy's two hands taking it. On `branch` the brown branch from 07 is set back on the green vine at the spring and greens to the tip; the branch piece of the frame clears.
 **paraphrase sources (not spoken):**
 
 - MB 61.2 (Ellen G. White) — "God is the fountain of life, and we can have life only as we are in communion with Him." → `branch`
@@ -138,7 +138,7 @@ New to the library: Jacob young and old, his stone and pillar, the ladder of lig
 
 **say:** {third}Third, the {*}chain. {/} {whole}Is being forgiven the {*}whole of it? {/} {many}Many of us think {*}so: {/} {i}I am forgiven, {/} {solved}so the problem is {*}solved. {/} {but}But remember the {*}slate. {/} {wiped}Wiped clean at morning, {/} {again}written over by {*}evening. {/} {more}God's forgiveness is more than a {*}pardon. {/} {reclaim}He reclaims us from sin. {/} {boy}Think of the boy at the {*}stove. {/} {teach}His father does not only forgive him for reaching. {/} {day}He teaches him, day by day, {/} {until}until he no longer {*}wants to. {/} {promise}He promised, {quote}“A new heart also will I give you.” {//} {spirit}And he would put his own Spirit in us, {/} {walk}to make us walk in his {*}ways. {/} {inside}The chain breaks from the {*}inside.
 **cite:** Ezekiel 36:26–27
-**picture:** IDEA: the parchment. On `third` the chains piece of the frame; on `whole` it turns to camera. On `i` the plain lead from 04b stands at the slate, wiped clean, smiling; on `solved` he turns away from it. On `but` the light goes amber; on `again` the scrawl writes itself back in his hand, and the paper chains show at his wrists (04b's `bondage`). On `boy` a small vignette of the kitchen from 04b: the father beside the boy at the stove; on `teach` the father guides the boy's hand to hold a cup the right way, away from the flame; on `until` the boy, a little older, sets the cup down by the stove and does not reach. On `reclaim` a hand at a sleeve's end rests on the plain lead's chest; on `quote` a small grey stone at his chest turns to warm red paper, a heart, and beats. On `spirit` a soft gold breath moves over him (the Spirit as a sign, never a figure). On `walk` he walks across the page, and behind him the slate stays clean. On `inside` the chains open at his wrists from the inside and fall; the chains piece of the frame clears. Dawn comes up on the page.
+**picture:** IDEA: the parchment. On `third` the chains piece of the frame; on `whole` it turns to camera. On `i` the plain lead from 07 stands at the slate, wiped clean, smiling; on `solved` he turns away from it. On `but` the light goes amber; on `again` the scrawl writes itself back in his hand, and the paper chains show at his wrists (07's `bondage`). On `boy` a small vignette of the kitchen from 07: the father beside the boy at the stove; on `teach` the father guides the boy's hand to hold a cup the right way, away from the flame; on `until` the boy, a little older, sets the cup down by the stove and does not reach. On `reclaim` a hand at a sleeve's end rests on the plain lead's chest; on `quote` a small grey stone at his chest turns to warm red paper, a heart, and beats. On `spirit` a soft gold breath moves over him (the Spirit as a sign, never a figure). On `walk` he walks across the page, and behind him the slate stays clean. On `inside` the chains open at his wrists from the inside and fall; the chains piece of the frame clears. Dawn comes up on the page.
 **paraphrase sources (not spoken):**
 
 - MB 114.1 (Ellen G. White) — "God’s forgiveness is not merely a judicial act by which He sets us free from condemnation. It is not only forgiveness for sin, but reclaiming from sin. It is the outflow of redeeming love that transforms the heart." → `more`, `reclaim`
@@ -148,7 +148,7 @@ New to the library: Jacob young and old, his stone and pillar, the ladder of lig
 
 **say:** {fourth}And the {*}image. {/} {how}How does a marred likeness come {*}back? {/} {beholding}By {*}beholding. {/} {quote}“Beholding as in a glass the glory of the Lord, are changed into the same image.” {//} {glory}And what is his {*}glory? {/} {moses}Moses asked to see it, {/} {goodness}and God showed him his {*}goodness. {/} {character}His glory is his {*}character. {/} {look}We look at Jesus, {/} {become}and slowly we become like the One we {*}love. {/} {only}Only he can make the ruined character {*}new, {/} {pattern}after the pattern of his {*}own.
 **cite:** 2 Corinthians 3:18; Exodus 33:18–19
-**picture:** IDEA: the parchment. On `fourth` the cracked-face piece of the frame. On `beholding` the plain lead stands before the portrait frame, which holds only light (back, three-quarter). On `quote` a STORY vignette opens on the page beside the frame: the upper room of 03b's `express`, Jesus in his earthly coat kneeling with a basin and towel at a disciple's feet; the plain lead turns to watch him, and the frame's glass holds the faint reflection of the plain face, turned toward the scene. On `glory` the word card, full screen: "shew me thy glory" beside "all my goodness" (Ex 33:18–19), the act's one word card. On `moses` a small vignette of Moses in the cleft as the glory passes (03b's `face`). On `look` close on the plain face, lit from the vignette; on `become`, slowly, its reflection in the glass takes the same gentleness as Jesus' face bent over the basin, and the crack in the glass begins to close. STORY on `only`: the parchment gives way to dawn on Bethel's hill, the stone of `cold` lit. On `pattern` the crack is gone; the frame is whole.
+**picture:** IDEA: the parchment. On `fourth` the cracked-face piece of the frame. On `beholding` the plain lead stands before the portrait frame, which holds only light (back, three-quarter). On `quote` a STORY vignette opens on the page beside the frame: the upper room of 05's `express`, Jesus in his earthly coat kneeling with a basin and towel at a disciple's feet; the plain lead turns to watch him, and the frame's glass holds the faint reflection of the plain face, turned toward the scene. On `glory` the word card, full screen: "shew me thy glory" beside "all my goodness" (Ex 33:18–19), the act's one word card. On `moses` a small vignette of Moses in the cleft as the glory passes (05's `face`). On `look` close on the plain face, lit from the vignette; on `become`, slowly, its reflection in the glass takes the same gentleness as Jesus' face bent over the basin, and the crack in the glass begins to close. STORY on `only`: the parchment gives way to dawn on Bethel's hill, the stone of `cold` lit. On `pattern` the crack is gone; the frame is whole.
 **paraphrase sources (not spoken):**
 
 - 9LtMs, Ms 10, 1894, par. 5 (Ellen G. White) — "By beholding Christ, by talking of Him, by beholding the loveliness of His character, we become changed. Changed from glory to glory. And what is glory? Character" → `beholding`, `glory`, `character`, `look`, `become`
@@ -193,9 +193,9 @@ New to the library: Jacob young and old, his stone and pillar, the ladder of lig
 
 ## Notes for the owner
 
-- The spine is the four losses of 04b, answered in order: `ladder` (separation), `life` (death), `forgiven` (the chain), `image` (the image). The portrait frame's crack closes a piece at a time.
-- `one` uses the eternal-life study lightly: Jesus' three ways named once, one life from his word. The paired Old Testament texts and "faith cometh by hearing" are left to 08. The film's handoff is the landing's last word, to stone 1 (07, Repentance from Dead Works): salvation began on a night when a runaway was sorry.
-- `forgiven` is the one dose of the common view, "I am forgiven, so the problem is solved", answered from 04b's slate and Ezekiel 36:26. Forgiveness "reclaiming from sin" is MB 114.1; the new heart is God's gift, never our price (righteousness-by-faith frame).
+- The spine is the four losses of 07, answered in order: `ladder` (separation), `life` (death), `forgiven` (the chain), `image` (the image). The portrait frame's crack closes a piece at a time.
+- `one` uses the eternal-life study lightly: Jesus' three ways named once, one life from his word. The paired Old Testament texts and "faith cometh by hearing" are left to 12. The film's handoff is the landing's last word, to stone 1 (11, Repentance from Dead Works): salvation began on a night when a runaway was sorry.
+- `forgiven` is the one dose of the common view, "I am forgiven, so the problem is solved", answered from 07's slate and Ezekiel 36:26. Forgiveness "reclaiming from sin" is MB 114.1; the new heart is God's gift, never our price (righteousness-by-faith frame).
 - `ladder` calls Jesus "one hand on heaven, one on us", Job's daysman (Job 9:33), and says nothing on his nature (nature-of-christ frame). The LORD above the ladder in `cold` is the Father's asset, light with a form hidden in it (god-christ frame); Genesis 28:13 does not say which, and the picture does not either.
 - The landing's Peniel flash (`wrestled`) draws the one who wrestled with Jacob as the locked Christ figure, his face turned from the camera at night: PP 196.3 says "It was Christ, 'the Angel of the covenant'". Genesis 32:24 says "a man" and Hosea 12:4 "the angel"; the narration says only "he wrestled with God" (Gen 32:28, 30) and does not name him.
-- Bookends: the arc closes on "face to face, and lived" (Jacob at Peniel, Gen 32:30), which answers 03b's "there shall no man see me, and live" and 04b's consuming fire. DA 107.4 joins the two: Jacob had repented and been forgiven, so he could endure God's presence.
+- Bookends: the arc closes on "face to face, and lived" (Jacob at Peniel, Gen 32:30), which answers 05's "there shall no man see me, and live" and 07's consuming fire. DA 107.4 joins the two: Jacob had repented and been forgiven, so he could endure God's presence.
