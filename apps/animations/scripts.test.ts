@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem } from 'effect';
+import { Effect, FileSystem, Option } from 'effect';
 
 const hasCast = (text: string) => text.split('\n').some((line) => line.trim() === '## Cast');
 
@@ -114,6 +114,85 @@ describe('the series plans', () => {
       );
       expect(checked).toContain('series/theology/series.md');
       expect({ unlisted, listedButMadeGood }).toEqual({ unlisted: [], listedButMadeGood: [] });
+    }).pipe(Effect.provide(BunServices.layer)),
+  );
+});
+
+// A script's place in its series is true. Where a series plan holds entry
+// blocks (`**NN · Title**`), each of its scripts opens on its own entry's
+// heading (`# NN · Title`, the same number and the same title), and its
+// `Series:` line states its place as one segment `N of M` (`· 3 of 44 ·`):
+// N its entry's place in the plan, counted from 1, and M the plan's entry
+// blocks. A plan with no entry blocks (the talk series list theirs in
+// tables) holds no script to it.
+
+/** An entry block's number and title, where its line opens: `**03 · As It Reads**`. */
+const ENTRY_TITLE = /^\*\*(\d{2}[a-z]?) · (.+?)\*\*/gmu;
+/** A script's own heading, two digits and no letter: `# 03 · As It Reads`. */
+const HEADING = /^# (\d{2}) · (.+)$/mu;
+/** A script's header line that names its series and its place. */
+const SERIES_LINE = /^Series: (.+)$/mu;
+/** A place in a series: `3 of 44`. */
+const PLACE = /^(\d+) of (\d+)$/u;
+
+/** What is untrue in `script`'s heading or place against its plan's `entries`. */
+const placeFaults = (
+  path: string,
+  script: string,
+  entries: ReadonlyArray<readonly [string, string]>,
+): ReadonlyArray<string> =>
+  Option.match(Option.fromNullishOr(HEADING.exec(script)), {
+    onNone: () => [`${path}: no "# NN · Title" heading, two digits and no letter`],
+    onSome: ([, number = '', title = '']) => {
+      const at = entries.findIndex(([n]) => n === number);
+      const entry = Option.fromUndefinedOr(entries[at]);
+      if (Option.isNone(entry)) return [`${path}: ${number} has no entry block in its plan`];
+      const [, planned] = entry.value;
+      const faults: Array<string> = [];
+      if (planned !== title.trim()) {
+        faults.push(`${path}: its heading says "${title.trim()}", its entry "${planned}"`);
+      }
+      const line = Option.getOrElse(Option.fromNullishOr(SERIES_LINE.exec(script)?.[1]), () => '');
+      const places = line
+        .split(' · ')
+        .flatMap((segment) => Option.toArray(Option.fromNullishOr(PLACE.exec(segment.trim()))));
+      const place = Option.filter(Option.fromUndefinedOr(places[0]), () => places.length === 1);
+      if (Option.isNone(place)) {
+        faults.push(`${path}: its Series line states its place ${places.length} times, not once`);
+      } else if (place.value[1] !== String(at + 1) || place.value[2] !== String(entries.length)) {
+        faults.push(
+          `${path}: says ${place.value[0]}, its plan makes it ${at + 1} of ${entries.length}`,
+        );
+      }
+      return faults;
+    },
+  });
+
+describe('the series scripts against their plans', () => {
+  it.effect("every script's heading and place are its plan's", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const checked: Array<string> = [];
+      const faults: Array<string> = [];
+      for (const name of yield* fs.readDirectory('series')) {
+        if ((yield* fs.stat(`series/${name}`)).type !== 'Directory') continue;
+        const plan = `series/${name}/series.md`;
+        const folder = `series/${name}/scripts`;
+        if (!(yield* fs.exists(plan)) || !(yield* fs.exists(folder))) continue;
+        const entries = Array.from(
+          (yield* fs.readFileString(plan)).matchAll(ENTRY_TITLE),
+          ([, number = '', title = '']) => [number, title.trim()] as const,
+        );
+        if (entries.length === 0) continue;
+        for (const file of yield* fs.readDirectory(folder)) {
+          if (!file.endsWith('.md')) continue;
+          const path = `${folder}/${file}`;
+          checked.push(path);
+          faults.push(...placeFaults(path, yield* fs.readFileString(path), entries));
+        }
+      }
+      expect(checked).toContain('series/theology/scripts/01-in-its-order.md');
+      expect(faults).toEqual([]);
     }).pipe(Effect.provide(BunServices.layer)),
   );
 });

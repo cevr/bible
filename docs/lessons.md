@@ -1413,3 +1413,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The film README said twenty-five of the plugin's rules have an asserted message after the unit's two rules made twenty-seven.
 - **Cause:** A count in words changes with no name in its sentence changing.
 - **Guard:** skill: a count in a sentence is a claim only a reader holds to the code. Carried by `CLAUDE.md`: "a unit's review request carries this list, and the reviewer reads those lines"
+
+### series-script-place-true
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The series list has empty slots (26 and 28) and stale \"of 13\" counts in script headers"
+- **Source:** series-tidy/findings.md F1
+- **Wrong:** The theology scripts' headers said "2 of 13", "3 of 13" and "5 of 13" after the plan grew to 44 episodes, and the plan said 43 episodes and kept 26 and 28 empty with lettered numbers between.
+- **Cause:** A header's count is a copy of the plan's size, and nothing read the copy against the plan when an episode was added.
+- **Guard:** code: `apps/animations/scripts.test.ts` `placeFaults`
