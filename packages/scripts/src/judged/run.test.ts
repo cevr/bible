@@ -637,13 +637,20 @@ const choice = (label: string, history: number) => ({
   confidence: 0.96,
 });
 
-/** `effect` run on the test clock, moved on 50 ms at a time until it ends: its retries' waits pass. */
+/**
+ * `effect` run on the test clock, moved on 50 ms at a time until it ends:
+ * its retries' waits pass. The run reads and writes the store by real I/O,
+ * so the clock moves until the run is done, yielding to the event loop
+ * between ticks: a count of ticks runs out before slow I/O ends.
+ */
 const ticking = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
     const done = yield* Ref.make(false);
     const fiber = yield* Effect.forkChild(effect.pipe(Effect.ensuring(Ref.set(done, true))));
-    for (let tick = 0; tick < 2_000 && !(yield* Ref.get(done)); tick++)
+    while (!(yield* Ref.get(done))) {
       yield* TestClock.adjust('50 millis');
+      yield* Effect.yieldNow;
+    }
     return yield* Fiber.join(fiber);
   });
 
@@ -945,7 +952,12 @@ describe('a judged rule never fails on its model', () => {
    * the answer kept, and the waits between the sends at least `waits` and
    * under twice each.
    */
-  const retried = (refused: number, waits: readonly [number, number]) => {
+  const retried = (
+    refused: number,
+    waits: readonly [number, number],
+    before: (storeFile: string) => Effect.Effect<unknown, unknown, FileSystem.FileSystem> = () =>
+      Effect.void,
+  ) => {
     const typesafe = typesafeAnswering(
       (_, sent) => Math.max(refused * Number(sent < 2), 200),
       (keys) => ({
@@ -956,7 +968,10 @@ describe('a judged rule never fails on its model', () => {
       () => ({ 'retry-after': '2' }),
     );
     return Effect.gen(function* () {
-      const outcome = yield* ticking(judgeBy(historyComment, ITEMS, yield* judging));
+      const options = yield* judging;
+      const outcome = yield* ticking(
+        Effect.andThen(before(options.storeFile), judgeBy(historyComment, ITEMS, options)),
+      );
       expect(outcome.findings).toEqual([
         { file: 'src/a.ts', line: 3, start: 0, p: 0.96, kept: true },
       ]);
@@ -965,6 +980,17 @@ describe('a judged rule never fails on its model', () => {
       expect(gaps.map((gap, i) => gap >= waits[i]! && gap < 2 * waits[i]!)).toEqual([true, true]);
     }).pipe(Effect.provide(typesafe.layer), withFs);
   };
+
+  it.effect('asks again after a 429 that follows slow real I/O, and keeps the answers', () =>
+    // The store's folder is read again and again by real I/O before the run
+    // judges: the clock must move on past the retry's wait however long that takes.
+    retried(429, [2_000, 2_000], (storeFile) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        yield* Effect.repeat(fs.exists(storeFile), { times: 3_000 });
+      }),
+    ),
+  );
 
   it.effect('asks again after a 429, waiting the retry-after it names, and keeps the answers', () =>
     retried(429, [2_000, 2_000]),
