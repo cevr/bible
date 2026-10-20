@@ -3,7 +3,8 @@
  * only its words. A row can sing the right words in the wrong shape (a line
  * dropped, two lines swapped, a stanza moved, the refrain left out), and the
  * census's shape check (`outlineEntryProblems`, which `problemsOf` runs for
- * every entry) must print a `<n> shape (` line for each.
+ * every entry) must print a `<n> shape (` line for each that the hymn as
+ * committed does not print.
  *
  * The fixtures are `data/layout-mutants.json`: recipes, never text, each
  * applied in memory to the hymn's committed printed source and written back
@@ -88,9 +89,12 @@ describe('layout', () => {
           // The recipe applies to the source as committed: a changed source fails here.
           expect(Result.isFailure(mutant) ? mutant.failure : 'applies').toBe('applies');
           if (Result.isFailure(mutant)) return;
-          expect(layoutLines(census, withBase(sources, n, rowOfSource(source)), n)).toEqual([]);
+          // Caught: the mutant prints a layout line the hymn as committed does not.
+          const before = new Set(layoutLines(census, withBase(sources, n, rowOfSource(source)), n));
           expect(
-            layoutLines(census, withBase(sources, n, rowOfSource(mutant.success)), n),
+            layoutLines(census, withBase(sources, n, rowOfSource(mutant.success)), n).filter(
+              (line) => !before.has(line),
+            ),
           ).not.toEqual([]);
         }),
       );

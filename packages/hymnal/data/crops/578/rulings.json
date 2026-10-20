@@ -1,0 +1,27 @@
+{
+  "number": 578,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "578.png",
+          "crop": "578-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "abfc6a974b6ef9fb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 4: after the 4. ending's single word, the row prints a 10-word closing quotation, and its word 7 is capitalised after a comma, opening its second short phrase (the hymn's title phrase, which opens lines with a capital in every stanza) after a held note. The database's line 5 of stanza 4 (10 words) runs from the opening quote mark to the closing one, a whole join of the two phrases with the same words.",
+      "settles": [
+        "578 shape (shape2-64): the refrain after stanza 4: row 1 prints word 7 with a capital inside a line of stanza 4, where no line or sentence opens"
+      ]
+    }
+  ]
+}

@@ -48,6 +48,28 @@
       ],
       "judge": "judge-493 (Opus, effort max)",
       "why": "503-1297.jpg prints 'qui - et place I go pre - pared'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-56 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "503.png",
+          "crop": "503-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "abe25c2b41ce9268",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "503-strip0.jpg system 2 row: word 13 'with' and word 15 'my' are lowercase and word 14 'Him' is a name of God; the poem line goes on in system 3 to 'behind.' at word 4. The page prints no metre and no text below the music, so its poem line runs from 'There' (row 2 word 8) to 'behind.'; the database writes it as two whole lines (line 5 ends 'with him', line 6 opens 'my cares'), the words the same.",
+      "settles": [
+        "503 shape (shape2-56): stanza 1 line 6 opens on word 15 of stanza 1 row 2, which the page prints with no capital"
+      ]
     }
   ]
 }

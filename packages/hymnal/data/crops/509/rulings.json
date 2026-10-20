@@ -120,6 +120,28 @@
       ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 of the last system prints 'And sanc-ti-fy to thee thy deep - est dis - tress', which joins to 'distress'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-57 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "509.jpg",
+          "crop": "509-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "3060e296ea447c65",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c03 (Opus, effort max)",
+      "why": "509-strip800.jpg system 2, stanza 1 row: word 9 is 'Word!', the last word of the poem line (11 syllables, as the metre 11.11.11.11. counts), capitalised as God's Word, as 'His' before it is; it opens no poem line. The row is one poem line, opening at 'Is' and closing at 'Word!', as the database's line 2 does.",
+      "settles": [
+        "509 shape (shape2-57): stanza 1 row 2 prints word 9 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
     }
   ]
 }

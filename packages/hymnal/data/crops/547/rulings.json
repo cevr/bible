@@ -182,6 +182,71 @@
       ],
       "judge": "judge-532 (Opus, effort max)",
       "why": "547-1683.jpg lower system row 4 prints 'Still be my vi-sion, O rul-er of all.'"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-61 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "834d65799989bd2c",
+          "shows": ""
+        },
+        {
+          "image": "547.jpg",
+          "crop": "547-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "3060e08e37ef1dbe",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "547-strip800.jpg system 2, stanza 3 row: 6 words, word 4 'Now' capitalised after a comma, opening the row's second half, as the page also capitalises mid-row half-lines elsewhere (stanza 1 system 2 word 7 'Save', stanza 2 system 1 word 5 'Be'). The metre SLANE 10.10.9.10. (547-strip0.jpg) counts the whole 10-syllable row as one poem line, which is the database's line 2, its words the same, so the capital opens no poem line.",
+      "settles": [
+        "547 shape (shape2-61): stanza 3 row 2 prints word 4 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-61 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "834d65799989bd2c",
+          "shows": ""
+        },
+        {
+          "image": "547.jpg",
+          "crop": "547-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "3060e08e37ef1dbe",
+          "shows": ""
+        },
+        {
+          "image": "547.jpg",
+          "crop": "547-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "fb847d56ea15cf84",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c03 (Opus, effort max)",
+      "why": "547-strip800.jpg system 3, stanza 1 row: word 5 'By' follows a comma and opens the second half of the line; the page capitalises every such half-line (stanza 1 system 2 word 7, stanzas 2, 3 and 4 system 1 word 5). The metre SLANE 10.10.9.10. (547-strip0.jpg) counts the whole row as poem line 3, 9 syllables, which is the database's line 3: the two half-lines are written whole as one line, the words the same.",
+      "settles": [
+        "547 shape (shape2-61): stanza 1 row 3 prints word 5 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
     }
   ]
 }

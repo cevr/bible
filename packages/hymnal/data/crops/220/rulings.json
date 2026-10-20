@@ -1136,6 +1136,587 @@
       ],
       "judge": "judge-again-013 (Opus, effort max)",
       "why": "When_He_Comes2-356-458.jpg prints no echoed 'to the sky' after the closing 'ring-ing to the sky,'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip0.jpg system 1, row 1 prints 'When He comes,' twice (words 1-6), then 'We shall' (7-8), with no repeat sign; the lower voices move under each held 'comes,' but carry no words. The database's lines 1 and 2 sing 12 words there, so its 'we shall' ends at 15, not 9; the reader's 8 words are right.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 row 1 ends \"we shall\" at word 15, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip0.jpg system 2, row 1 (16 words, capitals at 3, 7, 9, 10, 15, as the reader has it) prints only 'when He comes!' (words 6-8, on m3's last two eighths and m4's held half note, under which the lower voices move without words) between 'glo-ry' and 'As I' (9-10). The database's line 4 sings 6 words there, so its 'as i' and the row's closing 'we shall' fall 3 words later.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 row 2 holds its middle \"as i\" at no place its count gives",
+        "220 shape (shape2-25): stanza 1 row 2 ends \"we shall\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip800.jpg system 3, row 1 (15 words, capitals at 3, 6, 10, 14, as the reader has it) ends 'when He comes!' (words 13-15) on m8's held note at the double bar, where the database's line 8 sings 6 words. With line 4's 3 surplus words (220-strip0.jpg system 2, row 1) this moves the row's opening, middle and close in the database.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 row 3 opens \"see the\" at two places its count gives",
+        "220 shape (shape2-25): stanza 1 row 3 holds its middle \"see the\" at no place its count gives",
+        "220 shape (shape2-25): stanza 1 row 3 ends \"he comes\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip800.jpg system 4 (Refrain), one row of 9 words: the first line's 7 words end 'sky,' on m11's held half note (the lower voices move under it, without words), then 'With the' (8-9) opens the second; the database's line 1 holds 10 words. Its opening at 52 against 46 carries the 6 surplus words of stanza 1's lines 4 and 8 (3 each, systems 2 and 3, row 1).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 1: row 1 opens \"with the\" at word 52, its count gives word 46",
+        "220 shape (shape2-25): the refrain after stanza 1: row 1 ends \"with the\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page's first refrain line is 7 words (220-strip800.jpg system 4, words 1-7), and the second, after 'With the', runs on in When_He_Comes2-strip0.jpg system 5's middle row at 'al-le-lu-ias' under m12. The database's 10-word line 1 puts 3 more words first, so 'alleluias ringing' falls at 64, not 61.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 1: row 2 opens \"alleluias ringing\" at word 64, its count gives word 61"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page's second refrain line is 7 words: 'With the' closing 220-strip800.jpg system 4, then 5 on When_He_Comes2-strip0.jpg system 5's middle row ending 'sky!' on m13's dotted half, with stanza 1's 'As I' following in the top row on m13's eighths. The database's line 2 holds 10 words, so 'as i' falls at 72, not 69.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 1: row 3 opens \"as i\" at word 72, its count gives word 69"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "Each of the page's three refrain lines (220-strip800.jpg system 4; When_He_Comes2-strip0.jpg system 5, middle row; system 6, middle row, the shared close under m15-17) is 7 words and prints 'to the sky' once, with no repeat sign and no words for the lower voices under the held 'sky'. The database's 10-word lines sing 3 words from 'to the' on that no row prints.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 sings 3 words from \"to the\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip0.jpg system 1, row 2 (stanza 2) prints 'When He comes,' twice (words 1-6), then 'We shall' (7-8), with no repeat sign. The database's lines 1 and 2 sing 12 words there, so its 'we shall' ends at 15, not 9; the reader's 8 words are right.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 row 1 ends \"we shall\" at word 15, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip0.jpg system 2, row 2 (15 words, capitals at 6, 8, 14, as the reader has it) prints only 'when He comes!' (words 5-7) between 'sound-ed' and 'We shall' (8-9). The database's line 4 sings 6 words there, so its middle and its closing 'see the' (33, not 30) fall 3 words later.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 row 2 holds its middle \"we shall\" at no place its count gives",
+        "220 shape (shape2-25): stanza 2 row 2 ends \"see the\" at word 33, its count gives word 30"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip800.jpg system 4's one row: the first refrain line's 7 words end 'sky,', then 'With the' (words 8-9), where the database's line 1 holds 10 words. Its opening at 49 against 46 carries the 3 surplus words of stanza 2's line 8 (6 words where system 3, row 2 prints 'when He comes!', words 11-13).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 2: row 1 opens \"with the\" at word 49, its count gives word 46",
+        "220 shape (shape2-25): the refrain after stanza 2: row 1 ends \"with the\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page's first refrain line is 7 words (220-strip800.jpg system 4, words 1-7), and the second, after 'With the', runs on in When_He_Comes2-strip0.jpg system 5's middle row at 'al-le-lu-ias' under m12. The database's 10-word line 1 puts 3 more words first, so 'alleluias ringing' falls at 61, not 58.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 2: row 2 opens \"alleluias ringing\" at word 61, its count gives word 58"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page's second refrain line is 7 words ('With the' closing 220-strip800.jpg system 4, then 5 on When_He_Comes2-strip0.jpg system 5's middle row to 'sky!'), and stanza 2's 'We shall' follows on that same row at m13's eighths. The database's line 2 holds 10 words, so 'we shall' falls at 69, not 66.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 2: row 3 opens \"we shall\" at word 69, its count gives word 66"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "Each of the page's three refrain lines (220-strip800.jpg system 4; When_He_Comes2-strip0.jpg system 5, middle row; system 6, middle row, the shared close under m15-17) is 7 words and prints 'to the sky' once, with no repeat sign. The database's 10-word lines sing 3 words from 'to the' on that no row prints.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 sings 3 words from \"to the\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip800.jpg system 3, row 2: word 11 'when' is lower case after 'sound-ed' with no stop, inside the poem line that opens at 'We' (word 5), so a line opening there alone would be a whole split. But the database's line 8 holds 6 words where the page prints only these 3 (words 11-13) before the double bar.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 line 8 opens on word 11 of stanza 2 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip0.jpg system 1, row 3 (stanza 3) prints 'When He comes,' twice (words 1-6), then 'We shall' (7-8), with no repeat sign. The database's lines 1 and 2 sing 12 words there, so its 'we shall' ends at 15, not 9; the reader's 8 words are right.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 row 1 ends \"we shall\" at word 15, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip0.jpg system 2, row 3 (19 words, capitals at 6, 8, 10, 17, 18, 19, as the reader has it) prints only 'when He comes!' (words 7-9) between 'Him' and 'We shall' (10-11). The database's line 4 sings 6 words there, so its middle and its closing 'when he' fall 3 words later.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 row 2 holds its middle \"we shall\" at no place its count gives",
+        "220 shape (shape2-25): stanza 3 row 2 ends \"when he\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip800.jpg system 3, row 3 opens 'calls His' straight after the 'When He' that closes 220-strip0.jpg system 2, row 3 (words 18-19), as the database's line 6 runs. The offset (37 against 34) is carried from that row's words 7-9, 'when He comes!', where the database's line 4 sings 6 words.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 row 3 opens \"calls his\" at word 37, its count gives word 34"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "220-strip800.jpg system 4's one row: the first refrain line's 7 words end 'sky,', then 'With the' (words 8-9), where the database's line 1 holds 10 words. Its opening at 57 against 54 carries the 3 surplus words of stanza 3's line 8 (6 words where system 3, row 3 prints 'when He comes!', words 15-17).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 3: row 1 opens \"with the\" at word 57, its count gives word 54",
+        "220 shape (shape2-25): the refrain after stanza 3: row 1 ends \"with the\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page's first refrain line is 7 words (220-strip800.jpg system 4, words 1-7), and the second, after 'With the', runs on in When_He_Comes2-strip0.jpg system 5's middle row at 'al-le-lu-ias' under m12. The database's 10-word line 1 puts 3 more words first, so 'alleluias ringing' falls at 69, not 66.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 3: row 2 opens \"alleluias ringing\" at word 69, its count gives word 66"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page's second refrain line is 7 words ('With the' closing 220-strip800.jpg system 4, then 5 on When_He_Comes2-strip0.jpg system 5's middle row to 'sky!'), and stanza 3's 'We shall' follows in the bottom row at m13's eighths. The database's line 2 holds 10 words, so 'we shall' falls at 77, not 74.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 3: row 3 opens \"we shall\" at word 77, its count gives word 74"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "Each of the page's three refrain lines (220-strip800.jpg system 4; When_He_Comes2-strip0.jpg system 5, middle row; system 6, middle row, the shared close under m15-17) is 7 words and prints 'to the sky' once, with no repeat sign. The database's 10-word lines sing 3 words from 'to the' on that no row prints.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 sings 3 words from \"to the\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x02 (Opus, effort max)",
+      "why": "The page opens poem lines alike in both stanzas: system 1 at words 1, 4 and 7 (capitals after 'comes,'); system 2 at words 9 and 15 in stanza 1, 8 and 14 in stanza 2; system 3 at word 6 in stanza 1, 5 in stanza 2; each 'when' before 'He comes!' is lower case. The database writes both stanzas alike in 8 lines, its lines 1, 3, 5, 6 and 7 opening at these capitals and 4 and 8 at that lower-case 'when' (whole splits), but its lines 1-2 sing 12 words where system 1 prints 6 and its lines 4 and 8 sing 6 where the page prints 3, so the 8-against-7 is not in the page's division, which is the same in both stanzas.",
+      "settles": ["220 shape (shape2-25): stanza 2 has 8 lines, stanza 1 7, under the same systems"]
     }
   ]
 }

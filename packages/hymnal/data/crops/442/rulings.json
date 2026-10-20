@@ -1,0 +1,99 @@
+{
+  "number": 442,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6231aca11b40b3c3",
+          "shows": ""
+        },
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "8b44f285d208c08b",
+          "shows": ""
+        },
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "cb758d0a5ad384a3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "Stanza 1's lines open on capitals after line-ending punctuation exactly where the database's do: 'As' after 'ear,' (p429-strip0.jpg system 1, row 1), 'Soon,' after 'home!' (p429-strip800.jpg system 2) and 'And' after 'appear,' (system 3). The page's own words there sing 9 and 11 syllables against its nominal 12.8.12.8, no word moves between lines, and the reader's counts and capitals agree with the database.",
+      "settles": [
+        "442 shape (shape2-49): stanza 1 lines 2 and 3 sing +1 and -1 syllables against the metre the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6231aca11b40b3c3",
+          "shows": ""
+        },
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "8b44f285d208c08b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p429-strip0.jpg system 1, row 2: 'Shall' is capitalised after 'sleep', opening stanza 2's second line where the database's line 2 opens, and p429-strip800.jpg system 2 opens the third line with 'And' after 'be-fore,'. The page's own words sing 10 and 9 syllables in lines 1 and 2 against the nominal 12.8.12.8; no word moves between lines.",
+      "settles": [
+        "442 shape (shape2-49): stanza 2 lines 1 and 2 sing -2 and +1 syllables against the metre the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "8b44f285d208c08b",
+          "shows": ""
+        },
+        {
+          "image": "p429.jpg",
+          "crop": "p429-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "cb758d0a5ad384a3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p429-strip800.jpg system 2, row 2: 'And' is capitalised after 'be-fore,', opening stanza 2's third line where the database's line 3 opens, and system 3 (whole on p429-strip1600.jpg) opens the fourth with 'Shall' after 'deep'. The page's own words sing 9 and 11 syllables there against the nominal 12.8.12.8; no word moves between lines.",
+      "settles": [
+        "442 shape (shape2-49): stanza 2 lines 2 and 3 sing +1 and -1 syllables against the metre the page prints"
+      ]
+    }
+  ]
+}

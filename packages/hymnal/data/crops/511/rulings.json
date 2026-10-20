@@ -1,0 +1,121 @@
+{
+  "number": 511,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-57 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5d9bb356c3218d42",
+          "shows": ""
+        },
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "496d02ff90ff99b4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "p499-strip800.jpg system 3 (Refrain) row: word 8 'and' follows 'be-liev-ed,' in lowercase, while the page capitalises the refrain's line openings 'But' (word 1) and, on p499-strip1600.jpg system 4, 'To' (word 2) and 'Unto' (word 8); the metre C.M.Ref. counts no refrain lines and no text is printed below. The page's first refrain poem line runs from 'But' to 'able'; the database writes it as two whole lines (refrain line 1 ends 'have believed', line 2 opens 'and am'), the words the same.",
+      "settles": [
+        "511 shape (shape2-57): stanza 1 line 6 opens on word 8 of the refrain after stanza 1: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-57 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5d9bb356c3218d42",
+          "shows": ""
+        },
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "496d02ff90ff99b4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain row as 511-a1, printed once and sung after stanza 2: p499-strip800.jpg system 3 word 8 'and' is lowercase after 'be-liev-ed,', the line openings capitalised are 'But', 'To' and 'Unto' (p499-strip1600.jpg system 4). The page's poem line runs from 'But' to 'able'; the database splits it whole into refrain lines 1 and 2, the words the same.",
+      "settles": [
+        "511 shape (shape2-57): stanza 2 line 6 opens on word 8 of the refrain after stanza 2: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-57 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5d9bb356c3218d42",
+          "shows": ""
+        },
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "496d02ff90ff99b4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain row as 511-a1, printed once and sung after stanza 3: p499-strip800.jpg system 3 word 8 'and' is lowercase after 'be-liev-ed,', the line openings capitalised are 'But', 'To' and 'Unto' (p499-strip1600.jpg system 4). The page's poem line runs from 'But' to 'able'; the database splits it whole into refrain lines 1 and 2, the words the same.",
+      "settles": [
+        "511 shape (shape2-57): stanza 3 line 6 opens on word 8 of the refrain after stanza 3: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-57 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "5d9bb356c3218d42",
+          "shows": ""
+        },
+        {
+          "image": "p499.jpg",
+          "crop": "p499-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "496d02ff90ff99b4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain row as 511-a1, printed once and sung after stanza 4: p499-strip800.jpg system 3 word 8 'and' is lowercase after 'be-liev-ed,', the line openings capitalised are 'But', 'To' and 'Unto' (p499-strip1600.jpg system 4). The page's poem line runs from 'But' to 'able'; the database splits it whole into refrain lines 1 and 2, the words the same.",
+      "settles": [
+        "511 shape (shape2-57): stanza 4 line 6 opens on word 8 of the refrain after stanza 4: row 1, which the page prints with no capital"
+      ]
+    }
+  ]
+}

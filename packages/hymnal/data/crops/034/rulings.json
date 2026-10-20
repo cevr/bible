@@ -1,0 +1,71 @@
+{
+  "number": 34,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p035.jpg",
+          "crop": "p035-strip0.jpg",
+          "box": [0, 0, 1820, 1000],
+          "sha": "1bf168ff99420b34",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "p035-strip0.jpg system 5, the refrain's main row (12 words): word 7 'the' is printed lower case after word 6 'song,', so the page capitalises only word 1 and prints the row as one poem line; database refrain lines 1 and 2 (6 + 6 words) write it as two, split where the music repeats and where system 6 opens its line at word 7 'The'. Same words, same order; the echo row under it is rightly left out.",
+      "settles": [
+        "34 shape (shape2-04): stanza 1 line 10 opens on word 7 of the refrain after stanza 1: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p035.jpg",
+          "crop": "p035-strip0.jpg",
+          "box": [0, 0, 1820, 1000],
+          "sha": "1bf168ff99420b34",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "The refrain is printed once, after stanza 3, and sung after each stanza: p035-strip0.jpg system 5 main row, word 7 'the' lower case after 'song,'; the page capitalises only word 1, and database refrain lines 1 and 2 (6 + 6 words) write that one poem line as two, at the place system 6 opens its line with word 7 'The'. Same words, same order.",
+      "settles": [
+        "34 shape (shape2-04): stanza 2 line 10 opens on word 7 of the refrain after stanza 2: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p035.jpg",
+          "crop": "p035-strip0.jpg",
+          "box": [0, 0, 1820, 1000],
+          "sha": "1bf168ff99420b34",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "p035-strip0.jpg system 5 main row, as after stanzas 1 and 2: word 7 'the' is lower case, the page capitalising only word 1, and database refrain lines 1 and 2 (6 + 6 words) write that one poem line as two, at the place system 6 opens its line with word 7 'The'. Same words, same order; the echo row is left out.",
+      "settles": [
+        "34 shape (shape2-04): stanza 3 line 10 opens on word 7 of the refrain after stanza 3: row 1, which the page prints with no capital"
+      ]
+    }
+  ]
+}

@@ -276,28 +276,6 @@
       ],
       "judge": "judge-again-497 (Opus, effort max)",
       "why": "593-1297.jpg row 2 (the refrain's stanza-3 ending, 'I'm ver-y sure My an-chor holds') ends 'and grips the sol-id Rock!'; 593-438.jpg and 593-1018.jpg print none of it."
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["shape-09 (the shape reading of the page)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "593.png",
-          "crop": "593-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "d8b32b23cb8df81f",
-          "shows": ""
-        }
-      ],
-      "judge": "shape-judge-judge-j3 (Opus, effort max)",
-      "why": "593-strip800.jpg system 4: the 7 words opening 'This Rock' and ending 'only One!' stand once on the upper row with nothing printed under them, and the '1, 2.' mark comes after them, in measure 15 before 'Be very sure,', where the '3.' row begins beneath it with 'I'm very sure,'. So those 7 words are printed once for all three stanzas, and stanza 3 sings them before its own words.",
-      "settles": [
-        "593 shape (shape-09): stanza 3 sings \"this rock\" and on, in no row the page prints"
-      ]
     }
   ]
 }

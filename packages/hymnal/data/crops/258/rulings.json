@@ -216,6 +216,35 @@
       ],
       "judge": "judge-209 (Opus, effort max)",
       "why": "Row 2 of p253-2023 ends 'A-men and A-men.'"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "4b80f82e970d7d35",
+          "shows": ""
+        },
+        {
+          "image": "p253.jpg",
+          "crop": "p253-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "9b8dd0eac0b77276",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p253-strip800.jpg system 2, stanza 3 row (9 words): word 6 'In' follows 'blessing;' and opens the stanza's 4th poem line (5 syllables) after its 3rd (6 syllables), as the metre 5.5.6.5 in the header (p253-strip0.jpg) counts. The database's line 2 joins these two whole poem lines, words 1 to 9, as it writes every stanza as two lines of two poem lines each.",
+      "settles": [
+        "258 shape (shape2-29): stanza 3 row 2 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
     }
   ]
 }

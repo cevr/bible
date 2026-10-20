@@ -496,39 +496,297 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["shape-09 (the shape reading of the page)"],
+      "readings": ["shape2-64 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
-      "kind": "echo",
+      "kind": "layout",
       "crops": [
         {
           "image": "580.jpg",
           "crop": "580-strip0.jpg",
           "box": [0, 0, 2268, 1000],
-          "sha": "a3c3f928aa312bda",
+          "sha": "6ae3effa12bd3a9c",
           "shows": ""
         },
         {
           "image": "580.jpg",
           "crop": "580-strip800.jpg",
           "box": [0, 800, 2268, 1000],
-          "sha": "5dc6b1b35dee2cf3",
+          "sha": "f828f95445c2fa2b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "Each of systems 1 to 3 prints stanza 1's own 5 words on its line and the 6-word phrase sung after them ('I'm going' ... 'it shine') once, on the stanza 2 line, for all three stanzas; stanza 1 sings words then phrase three times, the database's lines 1 to 6. The reader wrote the phrase as other rows, so its count puts the system 2 row at word 6, where the database's line 2 (the phrase) stands; the row's words are the database's line 3, after it.",
+      "settles": [
+        "580 shape (shape2-64): stanza 1 row 2 opens \"this little\" at no place its count gives",
+        "580 shape (shape2-64): stanza 1 row 2 holds its middle \"light of\" at no place its count gives",
+        "580 shape (shape2-64): stanza 1 row 2 ends \"of mine\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 4 prints one unnumbered 9-word row after the three stanza systems, closing each stanza ('Let it' ... 'it shine'); the database writes it as stanza 1's line 7, after lines 1 to 6. The 'let it' the check found at word 20 is inside the shared phrase of line 4; the offset comes from that phrase, printed once per system on the stanza 2 line, which the database writes inside stanza 1 and the reader wrote as other rows.",
+      "settles": [
+        "580 shape (shape2-64): the refrain after stanza 1: row 1 opens \"let it\" at word 20, its count gives word 17",
+        "580 shape (shape2-64): the refrain after stanza 1: row 1 holds its middle \"it shine\" at no place its count gives",
+        "580 shape (shape2-64): the refrain after stanza 1: row 1 ends \"it shine\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "f828f95445c2fa2b",
           "shows": ""
         },
         {
           "image": "580.jpg",
           "crop": "580-strip1600.jpg",
           "box": [0, 1600, 2268, 1000],
-          "sha": "82b4015cbbf8c24a",
+          "sha": "4fd701627ee52a86",
           "shows": ""
         }
       ],
-      "judge": "shape-judge-judge-j2 (Opus, effort max)",
-      "why": "580-strip0.jpg system 1 and 580-strip800.jpg system 2 end the shared phrase 'let it shine, (shine)': the bracketed word stands under the last measure's lower-voice notes, which move under the melody's held half note on 'shine,', an answering part for other voices. The melody sings 'shine' once there, and system 3 (580-strip1600.jpg), with no lower-voice motion at that place, prints the phrase without it.",
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The 14 words are the end of the shared phrase on system 3 (printed once, on the stanza 2 line, sung by every stanza) and the 9-word closing row of system 4; the page prints both, the first as the shared phrase and the second once after the stanza systems. The database writes them inside stanza 1 (end of line 6, and line 7) in the order sung.",
       "settles": [
-        "580 shape (shape-09): stanza 1 row 1 ends \"shine shine\", not in what it sings",
-        "580 shape (shape-09): stanza 2 row 1 ends \"shine shine\", not in what it sings",
-        "580 shape (shape-09): stanza 3 row 1 ends \"shine shine\", not in what it sings"
+        "580 shape (shape2-64): stanza 1 sings 14 words from \"going to\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "6ae3effa12bd3a9c",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "f828f95445c2fa2b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 1, stanza 2 line: its own 3 words, then the shared 6-word phrase and an echo in parentheses, the phrase printed on this line once for all three stanzas; stanza 2 sings words then phrase in each of systems 1 to 3, the database's lines 1 to 6. The reader wrote the phrase as other rows, so its count puts the system 2 row at word 4, where the database's line 2 (the phrase) stands; the row's words are the database's line 3, after it.",
+      "settles": [
+        "580 shape (shape2-64): stanza 2 row 2 opens \"everywhere i\" at no place its count gives",
+        "580 shape (shape2-64): stanza 2 row 2 holds its middle \"i go\" at no place its count gives",
+        "580 shape (shape2-64): stanza 2 row 2 ends \"i go\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "f828f95445c2fa2b",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3, stanza 2 line: its 3 words, then the shared 6-word phrase (no echo on this system). In the database this row is line 5 (word 19), after two 3-word rows and two phrases; the place the check found (word 10) is line 3, the system 2 row's same 3 words, because the reader's count leaves out the phrases, written as other rows.",
+      "settles": [
+        "580 shape (shape2-64): stanza 2 row 3 opens \"everywhere i\" at word 10, its count gives word 7"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 4's unnumbered 9-word row closes every stanza and is printed once; the database writes it as stanza 2's line 7, after lines 1 to 6. The 'let it' the check found at word 16 is inside the shared phrase of line 4; the offset comes from that phrase, which the database writes inside stanza 2 and the reader wrote as other rows.",
+      "settles": [
+        "580 shape (shape2-64): the refrain after stanza 2: row 1 opens \"let it\" at word 16, its count gives word 13",
+        "580 shape (shape2-64): the refrain after stanza 2: row 1 holds its middle \"it shine\" at no place its count gives",
+        "580 shape (shape2-64): the refrain after stanza 2: row 1 ends \"it shine\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The 12 words are the end of the shared phrase on system 3's stanza 2 line and system 4's 9-word closing row; the page prints both, the phrase once for all stanzas and the closing row once after the stanza systems. The database writes them inside stanza 2 (end of line 6, and line 7) in the order sung.",
+      "settles": [
+        "580 shape (shape2-64): stanza 2 sings 12 words from \"let it\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "6ae3effa12bd3a9c",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "f828f95445c2fa2b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "Stanza 3's line prints its own 4 words on each of systems 1 to 3 and nothing after them; the shared 6-word phrase it sings next is printed once, on the stanza 2 line of each system, so stanza 3 sings words then phrase three times, the database's lines 1 to 6. The reader wrote the phrase as other rows, so its count puts the system 2 row at word 5, where the database's line 2 (the phrase) stands; the row's words are the database's line 3, after it.",
+      "settles": [
+        "580 shape (shape2-64): stanza 3 row 2 opens \"all through\" at no place its count gives",
+        "580 shape (shape2-64): stanza 3 row 2 holds its middle \"the night\" at no place its count gives",
+        "580 shape (shape2-64): stanza 3 row 2 ends \"the night\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "f828f95445c2fa2b",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3, stanza 3 line: its 4 words, then the shared phrase printed on the stanza 2 line. In the database this row is line 5 (word 21), after two 4-word rows and two phrases; the place the check found (word 11) is line 3, the system 2 row's same 4 words, because the reader's count leaves out the phrases, written as other rows.",
+      "settles": [
+        "580 shape (shape2-64): stanza 3 row 3 opens \"all through\" at word 11, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 4's unnumbered 9-word row closes every stanza and is printed once; the database writes it as stanza 3's line 7, after lines 1 to 6. The 'let it' the check found at word 18 is inside the shared phrase of line 4; the offset comes from that phrase, which the database writes inside stanza 3 and the reader wrote as other rows.",
+      "settles": [
+        "580 shape (shape2-64): the refrain after stanza 3: row 1 opens \"let it\" at word 18, its count gives word 15",
+        "580 shape (shape2-64): the refrain after stanza 3: row 1 holds its middle \"it shine\" at no place its count gives",
+        "580 shape (shape2-64): the refrain after stanza 3: row 1 ends \"it shine\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-64 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4fd701627ee52a86",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The 13 words are the end of the shared phrase on system 3 (printed on the stanza 2 line, sung by stanza 3 after its own 4 words) and system 4's 9-word closing row; the page prints both. The database writes them inside stanza 3 (end of line 6, and line 7) in the order sung.",
+      "settles": [
+        "580 shape (shape2-64): stanza 3 sings 13 words from \"to let\" on, in no row the page prints"
       ]
     }
   ]

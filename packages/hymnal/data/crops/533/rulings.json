@@ -247,6 +247,116 @@
       ],
       "judge": "judge-532 (Opus, effort max)",
       "why": "532-b-p2-1382.jpg lowest system row 5 begins 'Of an e-ter-nal home'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "9b725752bea47b22",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3, stanza 1 row (8 words): the tune sings the C.M. stanza's last line twice and the page prints it twice in full, the second time opening on a capital 'Of' (word 5) after 'woe;'. The database's line 4 (8 words, 'of poverty' ... 'or woe') holds the line and its written-out repeat as one line, a whole join with the same words.",
+      "settles": [
+        "533 shape (shape2-59): stanza 1 row 3 prints word 5 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "9b725752bea47b22",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3, stanza 2 row (10 words): the last line is printed twice in full, the second time opening on a capital 'Can' (word 6) after 'God;'. The database's line 4 (10 words, 'can lean' ... 'its god') holds the line and its written-out repeat as one line, a whole join with the same words.",
+      "settles": [
+        "533 shape (shape2-59): stanza 2 row 3 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "9b725752bea47b22",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3, stanza 5 row (8 words): the last line is printed twice in full, the second time opening on a capital 'Of' (word 5) after 'home;'. The database's line 4 (8 words, 'of an' ... 'eternal home') holds the line and its written-out repeat as one line, a whole join with the same words.",
+      "settles": [
+        "533 shape (shape2-59): stanza 5 row 3 prints word 5 with a capital inside a line of stanza 5, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "9b725752bea47b22",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "532-b-p2-strip1600.jpg system 3, stanza 3's row: the page prints the stanza's last poem line twice for the tune's repeat, and word 6 'In' opens the second copy after 'doubt;'. The database writes both whole copies as its one line 4 (10 words, the same words in order), a whole join of two poem lines.",
+      "settles": [
+        "533 shape (shape2-59): stanza 3 row 3 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "9b725752bea47b22",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "532-b-p2-strip1600.jpg system 3, stanza 4's row: the page prints the stanza's last poem line twice for the tune's repeat, and word 6 'Nor' opens the second copy after 'beguile;'. The database writes both whole copies as its one line 4 (10 words, the same words in order), a whole join of two poem lines.",
+      "settles": [
+        "533 shape (shape2-59): stanza 4 row 3 prints word 6 with a capital inside a line of stanza 4, where no line or sentence opens"
+      ]
     }
   ]
 }

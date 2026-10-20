@@ -110,6 +110,28 @@
       ],
       "judge": "judge-532 (Opus, effort max)",
       "why": "556-848.jpg row 3 prints 'way. O God, who gave'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-62 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "556.png",
+          "crop": "556-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "009c79a175625adf",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c03 (Opus, effort max)",
+      "why": "556-strip800.jpg system 3, stanza 2 row: the poem line opens at word 2 (capitalised after the full stop on word 1), where the database's line 5 opens; word 3 'Church' is capitalised as a name (named with Christ at word 5), with no punctuation before it, and opens no poem line. The next line opens at the capital on word 9, as the database's line 6 does.",
+      "settles": [
+        "556 shape (shape2-62): stanza 2 row 3 prints word 3 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

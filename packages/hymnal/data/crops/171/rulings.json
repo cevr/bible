@@ -192,6 +192,28 @@
       ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p168-94, the refrain's one row (sung after every stanza) prints 'vic - tory'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-19 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p167.jpg",
+          "crop": "p167-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "d03bb8362a91bca8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p167-strip800.jpg system 2, stanza 2 row: word 9 is capitalised as a name (the Church), after the capital divine pronoun at word 8; it opens no poem line. The poem line opens at word 7, after the semicolon closing word 6, where the database's line 5 opens, and runs 6 syllables to word 11 as the 5.5.6.5 metre gives.",
+      "settles": [
+        "171 shape (shape2-19): stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

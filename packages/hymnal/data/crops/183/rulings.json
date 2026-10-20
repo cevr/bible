@@ -432,6 +432,370 @@
       ],
       "judge": "judge-183 (Opus, effort max)",
       "why": "The refrain row of p178-1970.jpg prints 'died (He has died) that', a parenthesized echo the database leaves out."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b8ab6eeca3ce3851",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip0.jpg system 1, stanza 1 row: 3 of its 11 words are the parenthesised echo '(I will sing)' (words 4-6), sung by alto and tenor while the melody holds 'sing'. The database leaves the echo out, and the other 8 words are its stanza 1 words 1-8, ending 'Sing of'.",
+      "settles": [
+        "183 shape (shape2-21): stanza 1 row 1 ends \"sing of\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b8ab6eeca3ce3851",
+          "shows": ""
+        },
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ce85845c3a474566",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "System 2, stanza 1 row: its 15 words hold two parenthesised inner-voice echoes, '(sing of Him)' (words 2-4) and '(for He left)' (words 12-14). The database leaves them out, and the other 9 words are its stanza 1 words 9-17, opening 'Him who' and ending 'left bright'.",
+      "settles": [
+        "183 shape (shape2-21): stanza 1 row 2 opens \"him sing\" at no place its count gives",
+        "183 shape (shape2-21): stanza 1 row 2 holds its middle \"me for\" at no place its count gives",
+        "183 shape (shape2-21): stanza 1 row 2 ends \"left bright\" at word 18, its count gives word 27"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ce85845c3a474566",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip800.jpg system 3, the refrain's first row (printed on stanza 2's line after 'snow.'), sung after stanza 1: its 7 words hold the parenthesised echo '(I will sing)' (words 4-6). The database leaves it out, and the other 4 words open its refrain line 1.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 1: row 1 holds its middle \"i will\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 1: row 1 ends \"sing of\" at word 28, its count gives word 31"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "20f20ae686353b0a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip1600.jpg system 4, refrain row sung after stanza 1: its 12 words hold the parenthesised echo '(endless praise)' (words 5-6), sung by the men while the melody holds 'praise'. The database leaves it out, and the other 10 words are its refrain words 5-14, ending 'He has'.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 1: row 2 holds its middle \"my heart\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 1: row 2 ends \"he has\" at word 38, its count gives word 40"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "20f20ae686353b0a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip1600.jpg system 5, refrain row sung after stanza 1: its 15 words hold the parenthesised echo '(He has died)' (words 2-4), sung by the men while the melody holds 'died'. The database leaves it out, and the other 12 words are its refrain words 15-26, opening 'died that' and ending 'to me'.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 1: row 3 opens \"died he\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 1: row 3 holds its middle \"live i\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 1: row 3 ends \"to me\" at word 50, its count gives word 53"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b8ab6eeca3ce3851",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip0.jpg system 1, stanza 2 row: its 11 words hold the parenthesised echo '(O the depths)' (words 4-6), sung by the inner voices while the melody holds. The database leaves it out, and the other 8 words are its stanza 2 words 1-8, ending 'Earth or'.",
+      "settles": [
+        "183 shape (shape2-21): stanza 2 row 1 holds its middle \"depths of\" at no place its count gives",
+        "183 shape (shape2-21): stanza 2 row 1 ends \"earth or\" at word 9, its count gives word 12"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b8ab6eeca3ce3851",
+          "shows": ""
+        },
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ce85845c3a474566",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "System 2, stanza 2 row: its 14 words hold two parenthesised inner-voice echoes, '(earth or heaven)' (words 2-4) and '(how that sins)' (words 11-13). The database leaves them out, and the other 8 words are its stanza 2 words 9-16, opening 'heaven can' and ending 'sins as'.",
+      "settles": [
+        "183 shape (shape2-21): stanza 2 row 2 opens \"heaven earth\" at no place its count gives",
+        "183 shape (shape2-21): stanza 2 row 2 holds its middle \"how that\" at no place its count gives",
+        "183 shape (shape2-21): stanza 2 row 2 ends \"sins as\" at word 17, its count gives word 23"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ce85845c3a474566",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip800.jpg system 3, the refrain's first row, sung after stanza 2: its 7 words hold the parenthesised echo '(I will sing)' (words 4-6). The database leaves it out, and the other 4 words open its refrain line 1.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 2: row 1 holds its middle \"i will\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 2: row 1 ends \"sing of\" at word 31, its count gives word 34"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "20f20ae686353b0a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip1600.jpg system 4, refrain row sung after stanza 2: its 12 words hold the parenthesised echo '(endless praise)' (words 5-6). The database leaves it out, and the other 10 words are its refrain words 5-14, ending 'He has'.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 2: row 2 holds its middle \"my heart\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 2: row 2 ends \"he has\" at word 41, its count gives word 43"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "20f20ae686353b0a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip1600.jpg system 5, refrain row sung after stanza 2: its 15 words hold the parenthesised echo '(He has died)' (words 2-4). The database leaves it out, and the other 12 words are its refrain words 15-26, opening 'died that' and ending 'to me'.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 2: row 3 opens \"died he\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 2: row 3 holds its middle \"live i\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 2: row 3 ends \"to me\" at word 53, its count gives word 56"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "b8ab6eeca3ce3851",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip0.jpg system 1, stanza 3 row: its 10 words hold the parenthesised echo '(nothing good)' (words 3-4), sung by the inner voices while the melody holds. The database leaves it out, and the other 8 words are its stanza 3 words 1-8, ending 'How could'.",
+      "settles": [
+        "183 shape (shape2-21): stanza 3 row 1 holds its middle \"him ive\" at no place its count gives",
+        "183 shape (shape2-21): stanza 3 row 1 ends \"how could\" at word 9, its count gives word 11"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ce85845c3a474566",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip800.jpg system 2, stanza 3 row: its 14 words hold two parenthesised inner-voice echoes, '(how could He)' (words 2-4) and '(Lord, I own)' (words 11-13). The database leaves them out, and the other 8 words are its stanza 3 words 9-16, opening 'He such' and ending 'own my'.",
+      "settles": [
+        "183 shape (shape2-21): stanza 3 row 2 opens \"he how\" at no place its count gives",
+        "183 shape (shape2-21): stanza 3 row 2 holds its middle \"lord i\" at no place its count gives",
+        "183 shape (shape2-21): stanza 3 row 2 ends \"own my\" at word 17, its count gives word 23"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ce85845c3a474566",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip800.jpg system 3, the refrain's first row, sung after stanza 3: its 7 words hold the parenthesised echo '(I will sing)' (words 4-6). The database leaves it out, and the other 4 words open its refrain line 1.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 3: row 1 holds its middle \"i will\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 3: row 1 ends \"sing of\" at word 31, its count gives word 34"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "20f20ae686353b0a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip1600.jpg system 4, refrain row sung after stanza 3: its 12 words hold the parenthesised echo '(endless praise)' (words 5-6). The database leaves it out, and the other 10 words are its refrain words 5-14, ending 'He has'.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 3: row 2 holds its middle \"my heart\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 3: row 2 ends \"he has\" at word 41, its count gives word 43"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-21 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p178.jpg",
+          "crop": "p178-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "20f20ae686353b0a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p178-strip1600.jpg system 5, refrain row sung after stanza 3: its 15 words hold the parenthesised echo '(He has died)' (words 2-4). The database leaves it out, and the other 12 words are its refrain words 15-26, opening 'died that' and ending 'to me'.",
+      "settles": [
+        "183 shape (shape2-21): the refrain after stanza 3: row 3 opens \"died he\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 3: row 3 holds its middle \"live i\" at no place its count gives",
+        "183 shape (shape2-21): the refrain after stanza 3: row 3 ends \"to me\" at word 53, its count gives word 56"
+      ]
     }
   ]
 }

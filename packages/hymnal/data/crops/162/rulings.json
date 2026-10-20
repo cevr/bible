@@ -1,0 +1,83 @@
+{
+  "number": 162,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-18 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "162.png",
+          "crop": "162-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ac9d65e3c2c5e9eb",
+          "shows": ""
+        },
+        {
+          "image": "162.png",
+          "crop": "162-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "cfb2fd49475e189e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "The tune's six phrases (12.9.6.6.12.9 syllables) and the capitals open the page's poem lines at stanza 2 words 1, 13, 22, 28, 34, 45 ('To', 'To', 'To', 'Who', 'While', 'While'), and at stanza 1 words 1, 12, 20, 25, 31, 42 ('What', 'What', 'What', 'That', 'To', 'To'). The database opens stanza 2's lines 2 and 3 at words 10 and 19 ('I will sing'), three words before the page's lines at 13 and 22, and opens stanza 1's line 4 at word 17 ('O my soul?'), three words before the page's line at 20; its other openings match or are whole splits (stanza 1 word 6).",
+      "settles": ["162 shape (shape2-18): stanza 2 has 6 lines, stanza 1 7, under the same systems"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-18 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "162.png",
+          "crop": "162-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ac9d65e3c2c5e9eb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "162-strip0.jpg system 1, stanza 2 row: word 13 is a capital 'To' after 'sing;', so the page opens a poem line there (as stanza 3 opens one at 'And' in the same place). The database opens its line 2 three words earlier, at 'I will sing' (word 10), and runs 'To' on as its 4th word; the page shows no line opening at that 'I'.",
+      "settles": [
+        "162 shape (shape2-18): stanza 2 row 1 prints word 13 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-18 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "162.png",
+          "crop": "162-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ac9d65e3c2c5e9eb",
+          "shows": ""
+        },
+        {
+          "image": "162.png",
+          "crop": "162-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "cfb2fd49475e189e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "162-strip0.jpg system 2, stanza 2 row: word 9 is a capital 'To' after 'sing;', so the page opens a poem line there (stanza 3 prints 'And' in the same place). The database opens its line 3 three words earlier, at 'I will sing' (word 6), and runs 'To' on as its 4th word to 'Lamb' at the start of system 3 (162-strip800.jpg).",
+      "settles": [
+        "162 shape (shape2-18): stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    }
+  ]
+}

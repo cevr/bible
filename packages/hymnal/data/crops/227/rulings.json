@@ -1,0 +1,27 @@
+{
+  "number": 227,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "227.png",
+          "crop": "227-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "9424aa7a3eae48ac",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "227-strip0.jpg system 1, row 3 (stanza 3): word 4 is 'He', the pronoun for Jesus capitalised as a name of God; the poem line runs on to 'reigns:' at the system's end, so the capital opens no line and the database's line stands.",
+      "settles": [
+        "227 shape (shape2-25): stanza 3 row 1 prints word 4 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    }
+  ]
+}

@@ -340,6 +340,35 @@
       ],
       "judge": "judge-122 (Opus, effort max)",
       "why": "214-1377.jpg's '5. The King shall come' is a stanza row of the next hymn (John Brownlie's) on the facing page; this hymn has no fifth stanza."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "215.jpg",
+          "crop": "215-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "5ae130145e560414",
+          "shows": ""
+        },
+        {
+          "image": "215.jpg",
+          "crop": "215-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6aa325546b495a1b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "215-strip0.jpg system 6, lower row (stanza 2), 9 words: by the header metre (10.8.10.8.7.7.7.7.10.8.) its words 1-5 and 6-9 are the 7-syllable lines 7 and 8, and system 7's lower row (10 words, word 1 capitalised, 215-strip0.jpg and 215-strip800.jpg) is the 10-syllable line 9. The database's line 7 runs to word 6, its line 8 opens on word 7 and takes system 7's words 1-4, and its line 9 opens on system 7's word 5, four words after the page's line 9 opens.",
+      "settles": [
+        "214 shape (shape2-24): stanza 2 line 9 opens on word 5 of stanza 2 row 7, which the page prints with no capital"
+      ]
     }
   ]
 }

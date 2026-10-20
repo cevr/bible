@@ -1,0 +1,34 @@
+{
+  "number": 672,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-75 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "672.png",
+          "crop": "672-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "9c87b6abf64e66ca",
+          "shows": ""
+        },
+        {
+          "image": "672.png",
+          "crop": "672-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "4f029532f83f643b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "672-strip0.jpg system 3, row 1: word 5 is lower case after word 4's comma; the whole row is one poem line, capital on word 1 only, between the stop ending system 2 and the capital opening system 4. The database writes that poem line as lines 5 and 6, a whole split at the comma, the words the same.",
+      "settles": [
+        "672 shape (shape2-75): stanza 1 line 6 opens on word 5 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    }
+  ]
+}

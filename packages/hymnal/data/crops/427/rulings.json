@@ -1,0 +1,115 @@
+{
+  "number": 427,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-47 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "427.png",
+          "crop": "427-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "60964501b0c079fb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "427-strip0.jpg systems 1-2, stanza 1 row: the page prints 'four -' at system 1's end and 'square;' at system 2's start, one word broken over the system's end, which the database writes as one word ('foursquare', closing its 4-word line 2). Counted in the row it starts in, system 2's row opens at 'It' (the database's line 3) and holds 11 words; the reader counted 'square' as a word of its own (12), and the page prints the database's words in its order.",
+      "settles": [
+        "427 shape (shape2-47): stanza 1 row 2 opens \"square it\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-47 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "427.png",
+          "crop": "427-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "60964501b0c079fb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "427-strip0.jpg systems 1-2, stanza 2 row: 'four -' ends system 1 and 'square;' opens system 2, one word broken over the system's end, which the database writes as one word ('foursquare', closing its 4-word line 2). Counted in the row it starts in, system 2's row opens at 'All' (the database's line 3) and holds 13 words; the reader counted 'square' as a word of its own (14), and the page prints the database's words in its order.",
+      "settles": [
+        "427 shape (shape2-47): stanza 2 row 2 opens \"square all\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-47 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "427.png",
+          "crop": "427-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "60964501b0c079fb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "427-strip0.jpg system 1, stanza 2 row: the page itself prints 'in' (word 8) in lower case (the reader read it right), but a poem line opens there: 'made,' ends the line before with a comma after 7 syllables, as line 1 does in stanzas 1, 3 and 4, and those stanzas open line 2 with a capital on the same note ('Lies', 'To', 'In'). The database opens its line 2 at 'in' where the page does; the missing capital is the page's own, not another division.",
+      "settles": [
+        "427 shape (shape2-47): stanza 2 line 2 opens on word 8 of stanza 2 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-47 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "427.png",
+          "crop": "427-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "60964501b0c079fb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "427-strip0.jpg systems 1-2, stanza 4 row: 'four -' ends system 1 and 'square,' opens system 2, one word broken over the system's end, which the database writes as one word ('foursquare', closing its 4-word line 2). Counted in the row it starts in, system 2's row opens at 'For' (the database's line 3) and holds 13 words; the reader counted 'square' as a word of its own (14), and the page prints the database's words in its order.",
+      "settles": [
+        "427 shape (shape2-47): stanza 4 row 2 opens \"square for\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-47 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "427.png",
+          "crop": "427-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "7a34b5217013f31c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "427-strip800.jpg system 4 (the refrain's second system, bars 14-18): the second row is the lower voices' part, set to the alto's notes below the main row, the same words with 'by years' sung twice (15 words). The main row holds the database's refrain lines 3-4 (7 and 6 words) in its order; the database leaves the lower voices' row out.",
+      "settles": [
+        "427 shape (shape2-47): a row \"and they\" (second refrain row under system 4: the lower voices' words to their own rhythm, with 'by years' sung again) is in no part of the printed source"
+      ]
+    }
+  ]
+}

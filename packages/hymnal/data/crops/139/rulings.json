@@ -1,0 +1,34 @@
+{
+  "number": 139,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-16 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "139.png",
+          "crop": "139-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "b35a0e0850736649",
+          "shows": ""
+        },
+        {
+          "image": "139.png",
+          "crop": "139-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "5f22bee5feecf14f",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "139-strip0.jpg system 2, stanza 1 row: word 6 'Angel' carries a name's capital in the title 'The Angel of the Lord' ('Lord' capitalised on system 3) and opens no line. The poem line opens at 'The' (word 5) after 'ground,', where the database's line 3 opens; that line is 8 syllables, matching line 1 in this 8.6.8.6 tune.",
+      "settles": [
+        "139 shape (shape2-16): stanza 1 row 2 prints word 6 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    }
+  ]
+}

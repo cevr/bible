@@ -1,0 +1,107 @@
+{
+  "number": 660,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-73 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "6772821cc8adcde3",
+          "shows": ""
+        },
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "0d9b43af8ac25c48",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "p646-strip800.jpg, 660 system 1, row 1: word 6 'and' is lower case after 'Father,'; the page's poem line runs from 'Glory' to 'Ghost;' (p646-strip1600.jpg, system 2), its other capitals names of God, and the header prints no metre. The database writes that one poem line as lines 1, 2 and 3, whole splits at its commas, the words the same.",
+      "settles": [
+        "660 shape (shape2-73): stanza 1 line 2 opens on word 6 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-73 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "6772821cc8adcde3",
+          "shows": ""
+        },
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "0d9b43af8ac25c48",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "p646-strip800.jpg, 660 system 1, row 1: word 10 'and' is lower case after 'Son,', inside the poem line from 'Glory' to 'Ghost;'. The database's line 3 is a whole split of that poem line at the comma, the words the same.",
+      "settles": [
+        "660 shape (shape2-73): stanza 1 line 3 opens on word 10 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-73 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "0d9b43af8ac25c48",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "p646-strip1600.jpg, 660 system 2, row 1: word 9 'is' is lower case after 'beginning,'; the poem line opened by 'As' after 'Ghost;' runs on through system 3 with no other line-opening capital. The database writes it as lines 4 to 7, whole splits at its commas and its stop, the words the same.",
+      "settles": [
+        "660 shape (shape2-73): stanza 1 line 5 opens on word 9 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-73 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p646.jpg",
+          "crop": "p646-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "0d9b43af8ac25c48",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "p646-strip1600.jpg, 660 system 3, row 1: word 6 'world' is lower case after 'be,', inside the poem line opened by 'As'. The database's line 6 is a whole split of that poem line at the comma, the words the same.",
+      "settles": [
+        "660 shape (shape2-73): stanza 1 line 6 opens on word 6 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    }
+  ]
+}

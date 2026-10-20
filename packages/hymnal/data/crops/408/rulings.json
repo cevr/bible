@@ -31,6 +31,148 @@
       ],
       "judge": "judge-284 (Opus, effort max)",
       "why": "Row 3. ends 'Once for all when', and the next system (p395-879.jpg) goes on 'You were slain'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-45 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "99e2f4192d2f7936",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "08754ce5bb5f80be",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98e224bd26d2926a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "The metre 8.7.8.7.4.7 gives six poem lines. Stanza 4 opens them at Life and Stricken (system 1), Heav'n and Worship (system 2), Alleluia and Ris'n (system 3, row 4 read on p395-strip1600.jpg), and the database's six lines (4, 5, 6, 6, 1, 3 words) open at the same words. Stanza 1 opens them at Lord and First (system 1), You and Lifting (system 2), Alleluia and Jesus (system 3); the database opens its lines 1-4 at the same words and joins the page's whole lines 5 and 6 (1 + 5 words) into its line 5, so stanza 1 is one line shorter than stanza 4 with its words the same (stanzas 2 and 3 join lines 5 and 6 the same way).",
+      "settles": ["408 shape (shape2-45): stanza 4 has 6 lines, stanza 1 5, under the same systems"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-45 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "99e2f4192d2f7936",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "08754ce5bb5f80be",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98e224bd26d2926a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "The header prints KINGLEY VALE 8.7.8.7.4.7 (p395-strip0.jpg, a blot after it), and stanza 1 sings six poem lines over systems 1-3, opening at 'Lord', 'First', 'You', 'Lifting', 'Alleluia' (system 3 word 3, 4 syllables) and 'Jesus' (word 4, 7 syllables). The database's lines 1-4 are poem lines 1-4 and its line 5 joins poem lines 5 and 6 whole, words the same, where stanza 4 writes them as two lines.",
+      "settles": [
+        "408 shape (shape2-45): stanza 1 has 5 lines, which the metre the page prints fits in no way, where stanza 4's 6 fit it"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-45 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "99e2f4192d2f7936",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "08754ce5bb5f80be",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98e224bd26d2926a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "Stanza 2 sings the six poem lines of the metre 8.7.8.7.4.7, opening at 'Tho'', 'As', 'Here', 'Branch', 'Alleluia' (p395-strip800.jpg system 3 word 3, 4 syllables) and 'We' (word 4, 7 syllables). The database's lines 1-4 are poem lines 1-4 and its line 5 joins poem lines 5 and 6 whole, words the same, where stanza 4 writes them as two lines.",
+      "settles": [
+        "408 shape (shape2-45): stanza 2 has 5 lines, which the metre the page prints fits in no way, where stanza 4's 6 fit it"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-45 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "99e2f4192d2f7936",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "08754ce5bb5f80be",
+          "shows": ""
+        },
+        {
+          "image": "p395.jpg",
+          "crop": "p395-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "98e224bd26d2926a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "Stanza 3 sings the six poem lines of the metre 8.7.8.7.4.7, opening at 'Paschal', 'Once', 'In', 'Shall', 'Alleluia' (p395-strip800.jpg system 3, after 'remain.', 4 syllables) and 'Cleansing' (7 syllables). The database's lines 1-4 are poem lines 1-4 (its 'forever more' is the page's one word broken over systems 2-3, no difference) and its line 5 joins poem lines 5 and 6 whole, words the same, where stanza 4 writes them as two lines.",
+      "settles": [
+        "408 shape (shape2-45): stanza 3 has 5 lines, which the metre the page prints fits in no way, where stanza 4's 6 fit it"
+      ]
     }
   ]
 }

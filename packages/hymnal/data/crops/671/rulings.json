@@ -1,0 +1,27 @@
+{
+  "number": 671,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-75 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "671.png",
+          "crop": "671-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8e9769371dd05407",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "671-strip0.jpg system 1, row 1: word 7 'take' is lower case after 'pray,'; the poem line opens at word 1 and runs to word 13 before 'From' (word 14), words 2 and 3 being a name of God, and no metre is printed. The database writes that poem line as lines 1 and 2, a whole split at the comma, the words the same.",
+      "settles": [
+        "671 shape (shape2-75): stanza 1 line 2 opens on word 7 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    }
+  ]
+}

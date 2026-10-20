@@ -1,0 +1,93 @@
+{
+  "number": 446,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p434.jpg",
+          "crop": "p434-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "c6539627872ae8aa",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p434-strip1600.jpg, top system (refrain row 3): 'no more on' has no comma after 'more' and 'on' (word 8) is lower case, the next capital coming after 'shore;'. The page's poem line runs from 'When' to 'shore;', and the database writes it as refrain lines 4 ('when we' … 'no more') and 5 ('on canaans' … 'happy shore'), a whole split with the same words.",
+      "settles": [
+        "446 shape (shape2-50): stanza 1 line 13 opens on word 8 of the refrain after stanza 1: row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p434.jpg",
+          "crop": "p434-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "c6539627872ae8aa",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 2 is the one printed once: p434-strip1600.jpg top system (refrain row 3) runs 'no more on' with no comma and a lower-case 'on' (word 8), so the page's poem line runs from 'When' to 'shore;'. The database writes it as refrain lines 4 and 5, split at 'on', a whole split with the same words.",
+      "settles": [
+        "446 shape (shape2-50): stanza 2 line 13 opens on word 8 of the refrain after stanza 2: row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p434.jpg",
+          "crop": "p434-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "c6539627872ae8aa",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 3 is the one printed once: p434-strip1600.jpg top system (refrain row 3) runs 'no more on' with no comma and a lower-case 'on' (word 8), so the page's poem line runs from 'When' to 'shore;'. The database writes it as refrain lines 4 and 5, split at 'on', a whole split with the same words.",
+      "settles": [
+        "446 shape (shape2-50): stanza 3 line 13 opens on word 8 of the refrain after stanza 3: row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p434.jpg",
+          "crop": "p434-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "c6539627872ae8aa",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 4 is the one printed once: p434-strip1600.jpg top system (refrain row 3) runs 'no more on' with no comma and a lower-case 'on' (word 8), so the page's poem line runs from 'When' to 'shore;'. The database writes it as refrain lines 4 and 5, split at 'on', a whole split with the same words.",
+      "settles": [
+        "446 shape (shape2-50): stanza 4 line 13 opens on word 8 of the refrain after stanza 4: row 3, which the page prints with no capital"
+      ]
+    }
+  ]
+}

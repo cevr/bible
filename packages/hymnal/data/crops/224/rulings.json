@@ -275,6 +275,64 @@
       ],
       "judge": "judge-220 (Opus, effort max)",
       "why": "224-1778.jpg row 5 prints 'glo-rious' plainly; the OCR split it as 'gio rious'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "1fd78de6a562b1b9",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "04b3b5ee45a992dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "224-strip1600.jpg system 4, stanza 5 row: 8 words, 11 syllables, one poem line by the header metre (CRANHAM 11.11.11.11., 224-strip0.jpg); its word 5 opens the row's second half, which the page capitalises in some rows (row 4 of every stanza, row 1 of stanzas 1-2) and not in others (row 1 of stanzas 3-5), so it opens no poem line. The database's line 4 is the whole row, as the metre counts it.",
+      "settles": [
+        "224 shape (shape2-25): stanza 5 row 4 prints word 5 with a capital inside a line of stanza 5, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "1fd78de6a562b1b9",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "04b3b5ee45a992dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "224-strip1600.jpg system 4, stanza 2 row (9 words): word 6 is printed with a capital after word 5, with no stop; it opens the 5-syllable second half of the row's 11-syllable line, the line the header's metre 11.11.11.11 counts (224-strip0.jpg), and row 4 of stanzas 1, 3, 4 and 5 capitalises the same half-line opening. The database's line 4 is the whole row, words 1 to 9: the two halves written as one line, words the same.",
+      "settles": [
+        "224 shape (shape2-25): stanza 2 row 4 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

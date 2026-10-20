@@ -1,0 +1,222 @@
+{
+  "number": 669,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "06608ff71422c1d7",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "669-strip0.jpg system 2, main row: word 2 'and' is lower case after 'you,' (lower case in the lower row too), inside the poem line opened by 'The Lord' after 'you;' (system 1, word 8). The database writes that poem line as lines 2 and 3, a whole split at the comma, the words the same.",
+      "settles": [
+        "669 shape (shape2-74): stanza 1 line 3 opens on word 2 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "06608ff71422c1d7",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "669-strip0.jpg system 2: the main row prints word 10 lower case with no stop after 'peace', but the lower voices' row under it prints 'peace; The Lord' at the same place, as the page opens each 'The Lord' (system 1 word 8, system 4 word 4). The page opens a poem line at this word and the database's line 4 opens there; the reader's row 2 capitals follow the main row only.",
+      "settles": [
+        "669 shape (shape2-74): stanza 1 line 4 opens on word 10 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "06608ff71422c1d7",
+          "shows": ""
+        },
+        {
+          "image": "669.png",
+          "crop": "669-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fbbea2d11a734cf",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "669-strip0.jpg system 3, main row: word 9 'and' is lower case after 'you,' (lower case in the lower row too), inside the poem line that opens at system 2 word 10 and runs to 'gracious,' before 'The Lord' (669-strip800.jpg, system 4 word 4). The database writes it as lines 4 and 5, a whole split at the comma, the words the same.",
+      "settles": [
+        "669 shape (shape2-74): stanza 1 line 5 opens on word 9 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fbbea2d11a734cf",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "4c423fb41ccd0ef8",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fe99c2c915f7870e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "Under '2. alternate ending' (systems 6 to 8) the first row under the treble staff is the second voice's own run of 6 Amens, sung at the same time as three other voices' rows of 5, 7 and 7. The database writes the one Amen of the first ending (669-strip800.jpg, system 5) as line 7, and has no way to write voices at once.",
+      "settles": [
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': first Amen row under the treble staff (second voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': first Amen row under the treble staff (second voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': first Amen row under the treble staff (second voice)) is in no part of the printed source"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fbbea2d11a734cf",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "4c423fb41ccd0ef8",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fe99c2c915f7870e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "Under '2. alternate ending' (systems 6 to 8) the second row between the staves is the third voice's own run of 7 Amens (3, 2 and 2 by system), sung at the same time as the other voices' rows. The database writes the one Amen of the first ending (669-strip800.jpg, system 5) as line 7, and has no way to write voices at once.",
+      "settles": [
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': second Amen row between the staves, above the bass staff (third voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': second Amen row between the staves, above the bass staff (third voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': second Amen row between the staves, above the bass staff (third voice)) is in no part of the printed source"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fbbea2d11a734cf",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "4c423fb41ccd0ef8",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fe99c2c915f7870e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "Under '2. alternate ending' (systems 6 to 8) the row under the bass staff is the lowest voice's own run of 7 Amens (3, 2 and 2 by system), sung at the same time as the other voices' rows. The database writes the one Amen of the first ending (669-strip800.jpg, system 5) as line 7, and has no way to write voices at once.",
+      "settles": [
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': Amen row under the bass staff (lowest voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': Amen row under the bass staff (lowest voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': Amen row under the bass staff (lowest voice)) is in no part of the printed source"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-74 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "669.png",
+          "crop": "669-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "9fbbea2d11a734cf",
+          "shows": ""
+        },
+        {
+          "image": "The_Lord_Bless_You_and_Keep_You2.png",
+          "crop": "The_Lord_Bless_You_and_Keep_You2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "4c423fb41ccd0ef8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "The_Lord_Bless_You_and_Keep_You2-strip0.jpg, systems 6 to 8: the row above the treble staff is the top voice's run of 5 Amens in the optional '2. alternate ending', which stands in place of the first ending's one Amen (669-strip800.jpg, system 5). The database writes the first ending's one Amen as line 7 and leaves the optional ending out, its word the same.",
+      "settles": [
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': Amen row printed above the treble staff (top voice)) is in no part of the printed source",
+        "669 shape (shape2-74): a row \"amen amen\" (ending marked '2. alternate …': Amen row printed above the treble staff (top voice)) is in no part of the printed source"
+      ]
+    }
+  ]
+}

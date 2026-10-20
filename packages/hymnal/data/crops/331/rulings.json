@@ -1,0 +1,297 @@
+{
+  "number": 331,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        },
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p321-strip800.jpg system 3, row 1 (stanza 1): word 7 is a capital opening a poem line after word 6 ends a 7-syllable one; the header's ANGEL'S STORY 7.6.7.6.D puts a 7- and a 6-syllable poem line in each system. The database writes the stanza's poem lines 5 and 6 as one line (its line 3), two whole poem lines joined, the words the same.",
+      "settles": [
+        "331 shape (shape2-37): stanza 1 row 3 prints word 7 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p321-strip1600.jpg system 4, row 1 (stanza 1): word 6 is a capital opening the 6-syllable poem line after words 1-5 sing the 7-syllable one (7.6.7.6.D). The database writes the stanza's poem lines 7 and 8 as one line (its line 4), two whole poem lines joined, the words the same.",
+      "settles": [
+        "331 shape (shape2-37): stanza 1 row 4 prints word 6 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        },
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p321-strip800.jpg system 3, row 2 (stanza 2): word 7 is a capital after a comma at word 6, opening the 6-syllable poem line after the 7-syllable one (7.6.7.6.D). The database writes the stanza's poem lines 5 and 6 as one line (its line 3), two whole poem lines joined, the words the same.",
+      "settles": [
+        "331 shape (shape2-37): stanza 2 row 3 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p321-strip800.jpg system 2, row 3 (stanza 3): word 7 is a capital opening the 6-syllable poem line after words 1-6 sing the 7-syllable one (7.6.7.6.D). The database writes the stanza's poem lines 3 and 4 as one line (its line 2), two whole poem lines joined, the words the same.",
+      "settles": [
+        "331 shape (shape2-37): stanza 3 row 2 prints word 7 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7c1e504ad153df73",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip0.jpg system 1, stanza 1 row (11 words): word 6 'To' opens the stanza's 2nd poem line (6 syllables) after the 7-syllable 1st, as the header's metre 7.6.7.6.D counts. The database's line 1 is the whole row: two whole poem lines written as one, as it writes every row of the hymn.",
+      "settles": [
+        "331 shape (shape2-37): stanza 1 row 1 prints word 6 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7c1e504ad153df73",
+          "shows": ""
+        },
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip800.jpg system 2, stanza 1 row (10 words): word 6 'My' follows 'me,' and opens the 4th poem line (6 syllables) after the 7-syllable 3rd (metre 7.6.7.6.D, p321-strip0.jpg). The database's line 2 is the whole row: two whole poem lines written as one.",
+      "settles": [
+        "331 shape (shape2-37): stanza 1 row 2 prints word 6 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip1600.jpg system 4, stanza 1 row (11 words): word 11 'Guide' is the row's last word, capitalised as a title of Christ (after the capital 'Thou' at word 7); it opens no poem line. The database's line 4 is the whole row, the 7th and 8th poem lines (the 8th opens at word 6 'If').",
+      "settles": [
+        "331 shape (shape2-37): stanza 1 row 4 prints word 11 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip800.jpg system 2, stanza 2 row (11 words): word 7 'The' follows 'dazzle,' and opens the 4th poem line (6 syllables) after the 7-syllable 3rd (metre 7.6.7.6.D). The database's line 2 is the whole row: two whole poem lines written as one.",
+      "settles": [
+        "331 shape (shape2-37): stanza 2 row 2 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip1600.jpg system 4, stanza 2 row (11 words): word 6 'And' follows 'nearer,' and opens the 8th poem line (6 syllables) after the 7-syllable 7th (metre 7.6.7.6.D). The database's line 4 is the whole row: two whole poem lines written as one.",
+      "settles": [
+        "331 shape (shape2-37): stanza 2 row 4 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7c1e504ad153df73",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip0.jpg system 1, stanza 3 row (10 words): word 6 'To' opens the 2nd poem line (6 syllables) after the 7-syllable 1st (metre 7.6.7.6.D). The database's line 1 is the whole row: two whole poem lines written as one.",
+      "settles": [
+        "331 shape (shape2-37): stanza 3 row 1 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "428ac5a2b19c8741",
+          "shows": ""
+        },
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip800.jpg system 3, stanza 3 row (11 words): word 6 'To' opens the 6th poem line (6 syllables) after the 7-syllable 5th (metre 7.6.7.6.D). The database's line 3 is the whole row: two whole poem lines written as one.",
+      "settles": [
+        "331 shape (shape2-37): stanza 3 row 3 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-37 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p321.jpg",
+          "crop": "p321-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "3211494151717a79",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c02 (Opus, effort max)",
+      "why": "p321-strip1600.jpg system 4, stanza 3 row (11 words): word 7 'My' opens the 8th poem line (6 syllables) after the 7-syllable 7th that ends at word 6 (metre 7.6.7.6.D); stanza 1 opens the same line with 'My' after 'me,'. The database's line 4 is the whole row: two whole poem lines written as one.",
+      "settles": [
+        "331 shape (shape2-37): stanza 3 row 4 prints word 7 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    }
+  ]
+}

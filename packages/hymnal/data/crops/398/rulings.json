@@ -1,0 +1,27 @@
+{
+  "number": 398,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-44 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "398.png",
+          "crop": "398-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "b5e06ee8c4e01298",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "398-strip800.jpg system 4: after the double bar the music runs two more bars, and stanza 2's row (the last stanza) prints 'A - men.' under them while stanza 1's row is blank there, so the page prints an Amen sung after the last stanza. The database ends stanza 2 with its line 4 and writes no Amen anywhere.",
+      "settles": [
+        "398 shape (shape2-44): a row \"amen\" (Amen printed on stanza 2's row after the double bar near the end of system 4, so sung after the last stanza only; not counted in stanza 2's row.) is in no part of the printed source"
+      ]
+    }
+  ]
+}

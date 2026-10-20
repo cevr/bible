@@ -1,0 +1,34 @@
+{
+  "number": 418,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-46 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p404.jpg",
+          "crop": "p404-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "95486d70075de996",
+          "shows": ""
+        },
+        {
+          "image": "p404.jpg",
+          "crop": "p404-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "14171221c504994c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c03 (Opus, effort max)",
+      "why": "p404-strip1600.jpg system 4, stanza 4 row: word 4 is 'My', a pronoun of the Lord inside His quoted words (the quote opens at 'Come' in system 2 on p404-strip800.jpg), capitalised as a divine name; it opens no poem line. The poem line opens at word 3 'Shall' (7 syllables, as the metre 8.7.8.7.8.7. counts), where the database's line 6 opens.",
+      "settles": [
+        "418 shape (shape2-46): stanza 4 row 4 prints word 4 with a capital inside a line of stanza 4, where no line or sentence opens"
+      ]
+    }
+  ]
+}

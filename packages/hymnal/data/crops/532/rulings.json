@@ -412,6 +412,42 @@
       ],
       "judge": "judge-532 (Opus, effort max)",
       "why": "532-b-p2-306.jpg row 3 prints 'mo-ments fleet-ing, Till I reach the prom-ised land.'"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "532-b.jpg",
+          "crop": "532-b-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c989f0397e0d8de9",
+          "shows": ""
+        },
+        {
+          "image": "532.jpg",
+          "crop": "532-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "f86e67ba8490d678",
+          "shows": ""
+        },
+        {
+          "image": "532.jpg",
+          "crop": "532-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "f3bcc8e1f320836b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3, stanza 2 row: word 5 is 'Coun-sel-lor', capitalised as a title of God inside the database's line 4 ('He whose' ... 'and power', 7 words, 9 syllables as the 10.9.10.9.D metre's fourth line), not a poem line's opening. The page's next line opens on 'The' after 'power.', where the database's line 5 opens.",
+      "settles": [
+        "532 shape (shape2-59): stanza 2 row 3 prints word 5 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

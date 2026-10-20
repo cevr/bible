@@ -1,0 +1,34 @@
+{
+  "number": 393,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-44 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "p381.jpg",
+          "crop": "p381-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "4ee969e5eb2c4db2",
+          "shows": ""
+        },
+        {
+          "image": "p381.jpg",
+          "crop": "p381-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1464935059b34d55",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p381-strip800.jpg/p381-strip1600.jpg system 3, row 1 (stanza 1): the row prints the rest of the database's line 4 (opened by system 2's last two words) and its line 5, the last line sung again, in order, ending at line 5's end. The compound the page splits with a hyphen (words 3-4 and 10-11) is one word in the database, so the reader's 12 words are its 10, one off at each compound: no difference.",
+      "settles": [
+        "393 shape (shape2-44): stanza 1 row 3 ends \"worn breast\" at two places its count gives"
+      ]
+    }
+  ]
+}

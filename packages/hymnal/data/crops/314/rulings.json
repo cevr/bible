@@ -235,6 +235,151 @@
       ],
       "judge": "judge-314 (Opus, effort max)",
       "why": "Row 6 of 313-369.jpg, 313-1002.jpg and 313-1470.jpg prints stanza 6, closing with the shared 'O Lamb of God, I come' printed once on 313-1470.jpg; p306-642.jpg prints only stanza 1, but its music closes 'I come, I come', so 314 sings 'I come' again."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-35 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "33719f63d81a3e4d",
+          "shows": ""
+        },
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "12276e209fad0587",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p306-strip0.jpg: under the music the page prints stanza 1 only (systems 1-2); its last poem line (system 2, words 9-16) is 8 words ending in a doubled 'I come'. p306-strip800.jpg's footnote sends the other stanzas to No. 313: no row of stanza 2 and no system 3 is printed here, so the reader's 6-word row is not on the page. The header's L.M. gives each stanza's last line these 8 notes, and the database's 8-word stanza 2 line 4 sings the line printed once.",
+      "settles": [
+        "314 shape (shape2-35): stanza 2 sings 2 words from \"i come\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-35 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "33719f63d81a3e4d",
+          "shows": ""
+        },
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "12276e209fad0587",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p306-strip0.jpg prints stanza 1 only (systems 1-2), its last poem line 8 words ending in a doubled 'I come'; p306-strip800.jpg's footnote sends the other stanzas to No. 313, so no row of stanza 3 (and no system 3) is on the page and the reader's 6-word row is not printed. Under the L.M. tune each stanza's last line takes those 8 notes; the database's 8-word stanza 3 line 4 sings the line printed once.",
+      "settles": [
+        "314 shape (shape2-35): stanza 3 sings 2 words from \"i come\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-35 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "33719f63d81a3e4d",
+          "shows": ""
+        },
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "12276e209fad0587",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p306-strip0.jpg prints stanza 1 only (systems 1-2), its last poem line 8 words ending in a doubled 'I come'; p306-strip800.jpg's footnote sends the other stanzas to No. 313, so no row of stanza 4 (and no system 3) is on the page and the reader's 6-word row is not printed. Under the L.M. tune each stanza's last line takes those 8 notes; the database's 8-word stanza 4 line 4 sings the line printed once.",
+      "settles": [
+        "314 shape (shape2-35): stanza 4 sings 2 words from \"i come\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-35 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "33719f63d81a3e4d",
+          "shows": ""
+        },
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "12276e209fad0587",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p306-strip0.jpg prints stanza 1 only (systems 1-2), its last poem line 8 words ending in a doubled 'I come'; p306-strip800.jpg's footnote sends the other stanzas to No. 313, so no row of stanza 5 (and no system 3) is on the page and the reader's 6-word row is not printed. Under the L.M. tune each stanza's last line takes those 8 notes; the database's 8-word stanza 5 line 4 sings the line printed once.",
+      "settles": [
+        "314 shape (shape2-35): stanza 5 sings 2 words from \"i come\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-35 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "33719f63d81a3e4d",
+          "shows": ""
+        },
+        {
+          "image": "p306.jpg",
+          "crop": "p306-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "12276e209fad0587",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "p306-strip0.jpg prints stanza 1 only (systems 1-2), its last poem line 8 words ending in a doubled 'I come'; p306-strip800.jpg's footnote sends the other stanzas to No. 313, so no row of stanza 6 (and no system 3) is on the page and the reader's 6-word row is not printed. Under the L.M. tune each stanza's last line takes those 8 notes; the database's 8-word stanza 6 line 4 sings the line printed once.",
+      "settles": [
+        "314 shape (shape2-35): stanza 6 sings 2 words from \"i come\" on, in no row the page prints"
+      ]
     }
   ]
 }

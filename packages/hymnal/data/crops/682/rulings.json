@@ -1,0 +1,56 @@
+{
+  "number": 682,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-76 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "682.png",
+          "crop": "682-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "22f0a501efdbdda2",
+          "shows": ""
+        },
+        {
+          "image": "682.png",
+          "crop": "682-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fe209501e6e3ebc4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "682-strip0.jpg system 3, row 1: word 2 'before' is lower case after word 1 with no stop; the poem line opens on 'My' after the stop ending system 2 word 4 and runs to the stop on system 3 word 6, before 'Light' (word 7), with no metre printed. The database writes that poem line as lines 3 and 4, a whole split, the words the same.",
+      "settles": [
+        "682 shape (shape2-76): stanza 1 line 4 opens on word 2 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-76 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "682.png",
+          "crop": "682-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "fe209501e6e3ebc4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "682-strip800.jpg system 4, row 1: word 4 'and' is lower case after 'nations,'; the poem line opened by 'Light' (system 3 word 7) after a stop runs to the final stop, its only later capitals a pronoun of God and a name. The database writes that poem line as lines 5 and 6, a whole split at the comma, the words the same.",
+      "settles": [
+        "682 shape (shape2-76): stanza 1 line 6 opens on word 4 of stanza 1 row 4, which the page prints with no capital"
+      ]
+    }
+  ]
+}

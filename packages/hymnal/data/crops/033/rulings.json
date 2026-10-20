@@ -286,6 +286,148 @@
       ],
       "judge": "judge-033 (Opus, effort max)",
       "why": "033-1583.jpg row 4 prints 'earth. O sing a new'; 033-140.jpg, 033-512.jpg and 033-1080.jpg hold no words of the place."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fd7a02ca623c6dfa",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6841fa9457e5aa80",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "7a7ea1f6bd5dadc9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "The metre 7.7.6.5.8 (033-strip0.jpg) gives 5 poem lines. Stanza 4 opens them at system 1 words 1 and 8, system 2 words 1 and 5 (capitalised), system 3 word 5, and the database's 5 lines (7, 5, 4, 5, 8 words) open at those words. Stanza 1 opens them at system 1 words 1 and 8, system 2 words 1 and 5 (lower case), system 3 word 5; the database writes its poem lines 3 and 4 as one (4 + 5 = 9 words), as in stanzas 2 and 3, so stanza 4 is one line longer with its words the same.",
+      "settles": ["33 shape (shape2-04): stanza 4 has 5 lines, stanza 1 4, under the same systems"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fd7a02ca623c6dfa",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6841fa9457e5aa80",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "7a7ea1f6bd5dadc9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "The printed metre 7.7.6.5.8. (033-strip0.jpg) splits stanza 1's third sentence (033-strip800.jpg system 2 into 033-strip1600.jpg system 3) into a 6-syllable line ending 'triumph' and a 5-syllable line opening on lowercase 'and'. The database's line 3 (9 words) joins these two whole poem lines; its lines 1, 2 and 4 are the page's 7-, 7- and 8-syllable lines, the words the same and in order, while stanza 4 writes the 6 and 5 apart.",
+      "settles": [
+        "33 shape (shape2-04): stanza 1 has 4 lines, which the metre the page prints fits in no way, where stanza 4's 5 fit it"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fd7a02ca623c6dfa",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6841fa9457e5aa80",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "7a7ea1f6bd5dadc9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "Stanza 2 (033-strip800.jpg system 2 into 033-strip1600.jpg system 3): by the metre 7.7.6.5.8. the page sings a 6-syllable line ending 'remembers' and a 5-syllable line opening on the divine pronoun 'His'. The database's line 3 (8 words) joins these two whole poem lines; its other three lines are the page's 7-, 7- and 8-syllable lines, the words the same and in order.",
+      "settles": [
+        "33 shape (shape2-04): stanza 2 has 4 lines, which the metre the page prints fits in no way, where stanza 4's 5 fit it"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "fd7a02ca623c6dfa",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "6841fa9457e5aa80",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "7a7ea1f6bd5dadc9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "Stanza 3 (033-strip800.jpg system 2 into 033-strip1600.jpg system 3): by the metre 7.7.6.5.8. the page sings a 6-syllable line ending 'chorus' and a 5-syllable line opening on lowercase 'with'. The database's line 3 (8 words) joins these two whole poem lines; its other three lines are the page's 7-, 7- and 8-syllable lines, the words the same and in order.",
+      "settles": [
+        "33 shape (shape2-04): stanza 3 has 4 lines, which the metre the page prints fits in no way, where stanza 4's 5 fit it"
+      ]
     }
   ]
 }

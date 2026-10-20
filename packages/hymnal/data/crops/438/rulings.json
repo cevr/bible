@@ -1,0 +1,150 @@
+{
+  "number": 438,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "438.jpg",
+          "crop": "438-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "bca4c28a5e8da259",
+          "shows": ""
+        },
+        {
+          "image": "438.jpg",
+          "crop": "438-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c51de578d678ab0b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "438-strip1600.jpg system 4 (the refrain's second system), row 1: 'mu-sic which' has no comma and no capital on 'which', so the page's last refrain poem line runs from 'Hear' to 'air.' (the two shorter lines before it each end 'mu-sic,' on 438-strip800.jpg system 3). The database writes that one poem line as refrain lines 3 ('hear the' … 'of music') and 4 ('which is' … 'the air'), a whole split with the same words.",
+      "settles": [
+        "438 shape (shape2-49): stanza 1 line 8 opens on word 6 of the refrain after stanza 1: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "438.jpg",
+          "crop": "438-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "bca4c28a5e8da259",
+          "shows": ""
+        },
+        {
+          "image": "438.jpg",
+          "crop": "438-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c51de578d678ab0b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 2 is the one printed once: 438-strip1600.jpg system 4, row 1 runs 'mu-sic which' with no comma and no capital on 'which', so its last poem line runs from 'Hear' to 'air.'. The database writes that poem line as refrain lines 3 and 4, split at 'which', a whole split with the same words.",
+      "settles": [
+        "438 shape (shape2-49): stanza 2 line 8 opens on word 6 of the refrain after stanza 2: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "438.jpg",
+          "crop": "438-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "bca4c28a5e8da259",
+          "shows": ""
+        },
+        {
+          "image": "438.jpg",
+          "crop": "438-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c51de578d678ab0b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 3 is the one printed once: 438-strip1600.jpg system 4, row 1 runs 'mu-sic which' with no comma and no capital on 'which', so its last poem line runs from 'Hear' to 'air.'. The database writes that poem line as refrain lines 3 and 4, split at 'which', a whole split with the same words.",
+      "settles": [
+        "438 shape (shape2-49): stanza 3 line 8 opens on word 6 of the refrain after stanza 3: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "438.jpg",
+          "crop": "438-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "bca4c28a5e8da259",
+          "shows": ""
+        },
+        {
+          "image": "438.jpg",
+          "crop": "438-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c51de578d678ab0b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 4 is the one printed once: 438-strip1600.jpg system 4, row 1 runs 'mu-sic which' with no comma and no capital on 'which', so its last poem line runs from 'Hear' to 'air.'. The database writes that poem line as refrain lines 3 and 4, split at 'which', a whole split with the same words.",
+      "settles": [
+        "438 shape (shape2-49): stanza 4 line 8 opens on word 6 of the refrain after stanza 4: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "438.jpg",
+          "crop": "438-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "bca4c28a5e8da259",
+          "shows": ""
+        },
+        {
+          "image": "438.jpg",
+          "crop": "438-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "c51de578d678ab0b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "The refrain after stanza 5 is the one printed once: 438-strip1600.jpg system 4, row 1 runs 'mu-sic which' with no comma and no capital on 'which', so its last poem line runs from 'Hear' to 'air.'. The database writes that poem line as refrain lines 3 and 4, split at 'which', a whole split with the same words.",
+      "settles": [
+        "438 shape (shape2-49): stanza 5 line 8 opens on word 6 of the refrain after stanza 5: row 2, which the page prints with no capital"
+      ]
+    }
+  ]
+}

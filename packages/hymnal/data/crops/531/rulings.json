@@ -1,0 +1,188 @@
+{
+  "number": 531,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "p520-strip800.jpg system 3 (Refrain) prints two full-size rows at once: the upper, under the soprano's held dotted halves, holds 10 words, 'We'll build' at words 1 and 6, the database's refrain lines 1 and 2; the lower, the other voices' running words, holds 18 words (one 9-word phrase sung twice) ending 'solid Rock'. The database sings the melody's upper row and leaves out the lower, which the reader listed as refrain row 2.",
+      "settles": [
+        "531 shape (shape2-59): the refrain after stanza 1: row 2 holds its middle \"well build\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 1: row 2 ends \"solid rock\" at word 46, its count gives word 55"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "p520-strip1600.jpg system 4 row holds 14 words, opening 'We'll build', 'solid Rock' at words 8-9 and ending 'mighty Rock': the database's refrain line 3 (9 words) and line 4 (5 words, opening 'On Christ'), in order. Its place is off only because the reader counts the other voices' 18-word lower row of system 3 (p520-strip800.jpg) before it.",
+      "settles": [
+        "531 shape (shape2-59): the refrain after stanza 1: row 3 opens \"well build\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 1: row 3 holds its middle \"solid rock\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 1: row 3 ends \"mighty rock\" at word 51, its count gives word 60"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain as 531-a1, printed once and sung after stanza 2: p520-strip800.jpg system 3's upper row (10 words, the melody) is the database's refrain lines 1 and 2; its lower row (18 words, ending 'solid Rock') is the other voices' part, which the database leaves out and the reader listed as row 2.",
+      "settles": [
+        "531 shape (shape2-59): the refrain after stanza 2: row 2 holds its middle \"well build\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 2: row 2 ends \"solid rock\" at word 47, its count gives word 56"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain as 531-a2, sung after stanza 2: p520-strip1600.jpg system 4 row (14 words, 'We'll build' to 'mighty Rock') is the database's refrain lines 3 and 4 in order; its place is off only because the reader counts the other voices' 18-word lower row of system 3 before it.",
+      "settles": [
+        "531 shape (shape2-59): the refrain after stanza 2: row 3 opens \"well build\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 2: row 3 holds its middle \"solid rock\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 2: row 3 ends \"mighty rock\" at word 52, its count gives word 61"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain as 531-a1, printed once and sung after stanza 3: p520-strip800.jpg system 3's upper row (10 words, the melody) is the database's refrain lines 1 and 2; its lower row (18 words, ending 'solid Rock') is the other voices' part, which the database leaves out and the reader listed as row 2.",
+      "settles": [
+        "531 shape (shape2-59): the refrain after stanza 3: row 2 holds its middle \"well build\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 3: row 2 ends \"solid rock\" at word 46, its count gives word 55"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-59 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "147edf12955b2910",
+          "shows": ""
+        },
+        {
+          "image": "p520.jpg",
+          "crop": "p520-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d3a93dfcd0d67f1e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a07 (Opus, effort max)",
+      "why": "The same refrain as 531-a2, sung after stanza 3: p520-strip1600.jpg system 4 row (14 words, 'We'll build' to 'mighty Rock') is the database's refrain lines 3 and 4 in order; its place is off only because the reader counts the other voices' 18-word lower row of system 3 before it.",
+      "settles": [
+        "531 shape (shape2-59): the refrain after stanza 3: row 3 opens \"well build\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 3: row 3 holds its middle \"solid rock\" at no place its count gives",
+        "531 shape (shape2-59): the refrain after stanza 3: row 3 ends \"mighty rock\" at word 51, its count gives word 60"
+      ]
+    }
+  ]
+}

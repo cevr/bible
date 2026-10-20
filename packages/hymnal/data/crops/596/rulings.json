@@ -1,0 +1,205 @@
+{
+  "number": 596,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 1, stanza 1 row: 'way marks' stands twice, split by a space (hyphenated 'way - marks' where it recurs on system 4), and both parts are words, so by the counting rule each counts two and the row holds 18 words, the database's lines 1 and 2 (9 + 9). The reader counted each as one word (16), the 2-word offset; the words and their order are the database's.",
+      "settles": [
+        "596 shape (shape2-66): stanza 1 row 1 ends \"by one\" at word 19, its count gives word 17"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        },
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 3 (Refrain), first row: 'way marks' twice, each two words by the counting rule (both parts words), gives 18 words, the database's refrain lines 1 and 2 (10 + 8), the second opening on the capital 'Down'; the two words printed in broken syllables without hyphens there (prophetic, kingdoms) count one each, as in the database. The reader counted each 'way marks' as one word (16), which moves its middle and its end 2 words.",
+      "settles": [
+        "596 shape (shape2-66): the refrain after stanza 1: row 1 holds its middle \"down through\" at no place its count gives",
+        "596 shape (shape2-66): the refrain after stanza 1: row 1 ends \"kingdoms four\" at word 54, its count gives word 52"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 4, the refrain's second row: 'way - marks' printed twice, a hyphenated word whose parts are each a word, so each counts two and the row holds 14 words, the database's refrain lines 3 and 4 (10 + 4). The reader counted each as one word (12), the 2-word offset.",
+      "settles": [
+        "596 shape (shape2-66): the refrain after stanza 1: row 2 ends \"almost oer\" at word 68, its count gives word 66"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        },
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The same refrain row of system 3, sung after stanza 2: 'way marks' twice, each two words by the counting rule, gives 18 words, the database's refrain lines 1 and 2 (10 + 8). The reader's 16 counts each as one word, which moves its middle and its end 2 words.",
+      "settles": [
+        "596 shape (shape2-66): the refrain after stanza 2: row 1 holds its middle \"down through\" at no place its count gives",
+        "596 shape (shape2-66): the refrain after stanza 2: row 1 ends \"kingdoms four\" at word 46, its count gives word 44"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The same system 4 row, sung after stanza 2: 'way - marks' printed twice, each two words by the counting rule, gives 14 words, the database's refrain lines 3 and 4 (10 + 4). The reader's 12 counts each as one word.",
+      "settles": [
+        "596 shape (shape2-66): the refrain after stanza 2: row 2 ends \"almost oer\" at word 60, its count gives word 58"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        },
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The same refrain row of system 3, sung after stanza 3: 'way marks' twice, each two words by the counting rule, gives 18 words, the database's refrain lines 1 and 2 (10 + 8). The reader's 16 counts each as one word, which moves its middle and its end 2 words.",
+      "settles": [
+        "596 shape (shape2-66): the refrain after stanza 3: row 1 holds its middle \"down through\" at no place its count gives",
+        "596 shape (shape2-66): the refrain after stanza 3: row 1 ends \"kingdoms four\" at word 49, its count gives word 47"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "ff90295c9a40f3bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "The same system 4 row, sung after stanza 3: 'way - marks' printed twice, each two words by the counting rule, gives 14 words, the database's refrain lines 3 and 4 (10 + 4). The reader's 12 counts each as one word.",
+      "settles": [
+        "596 shape (shape2-66): the refrain after stanza 3: row 2 ends \"almost oer\" at word 63, its count gives word 61"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "596.png",
+          "crop": "596-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8464a05341f758f7",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "596-strip0.jpg system 2, stanza 2's row: word 11 'Where' is capitalised, opening the short question the system's last bar sings after the fermata that ends the short line opening at word 7 'Rome'. The database writes those two whole poem lines, in order, as its one line 4 (8 words), a whole join, as it does with the same pair of bars in stanzas 1 and 3.",
+      "settles": [
+        "596 shape (shape2-66): stanza 2 row 2 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    }
+  ]
+}

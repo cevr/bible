@@ -76,7 +76,7 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["shape-13 (the shape reading of the page)"],
+      "readings": ["shape2-47 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
       "kind": "echo",
@@ -85,14 +85,36 @@
           "image": "p407.jpg",
           "crop": "p407-strip1600.jpg",
           "box": [0, 1600, 1758, 1000],
-          "sha": "172b2ffd38690937",
+          "sha": "8595bcda6bc810d1",
           "shows": ""
         }
       ],
-      "judge": "shape-judge-judge-j1 (Opus, effort max)",
-      "why": "p407-strip1600.jpg system 5, row 2: 'heaven-ly Zi-on,' is printed under the middle of the system only, unnumbered, beneath row 1's 'Zi - on,', where the bass staff moves while the treble holds 'Zi-'. Row 1 is a whole line without it, so it is a part for the lower voices, as is the half row under system 4.",
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "p407-strip1600.jpg system 4 (the refrain's first system): below the main row the page prints a second, shorter row of 5 words under the system's first half only, the lower voices' words beside the melody's. The database's refrain lines 1-2 (4 and 3 words) are the main row's words in its order; it leaves the lower voices' row out.",
       "settles": [
-        "422 shape (shape-13): a row \"heavenly zion\" (second refrain row under the treble staff, no mark, printed under the middle of the system only: other words for part of the refrain, likely for other voices) is in no part of the printed source"
+        "422 shape (shape2-47): a row \"were marching\" (second, shorter row under the refrain's first system (under 'We're marching to Zion'): other words for the lower voices beside the main refrain row) is in no part of the printed source"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-47 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p407.jpg",
+          "crop": "p407-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "8595bcda6bc810d1",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "p407-strip1600.jpg system 5 (the refrain's second system): a 2-word row ('heavenly Zion') is printed below the main row under its middle only, the lower voices' words while the melody sings 'Zion, The'. The database's refrain lines 3-4 (5 and 5 words) are the main row's words in its order; it leaves the lower voices' row out.",
+      "settles": [
+        "422 shape (shape2-47): a row \"heavenly zion\" (second, shorter row under the refrain's second system (under 'Zion, The'): other words for the lower voices beside the main refrain row) is in no part of the printed source"
       ]
     }
   ]

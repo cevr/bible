@@ -97,7 +97,7 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["shape-04 (the shape reading of the page)"],
+      "readings": ["shape2-29 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
       "kind": "layout",
@@ -106,13 +106,201 @@
           "image": "262.png",
           "crop": "262-strip0.jpg",
           "box": [0, 0, 1274, 1000],
-          "sha": "621757b89fb98686",
+          "sha": "ebaf9788e5fbe9b8",
           "shows": ""
         }
       ],
-      "judge": "shape-judge-judge-j1 (Opus, effort max)",
-      "why": "262-strip0.jpg system 2, row 1: the 1st ending prints 'Lord; There are', with 'There are' under the two quarter notes that lead over the end-repeat back to the start-repeat in system 1, where stanza 2's row is blank under the pickup notes and opens 'sweet ex-'. So stanza 1 ends 'the Lord' and 'There are' is stanza 2's lead-in.",
-      "settles": ["262 shape (shape-04): stanza 1 row 2 ends \"there are\", not in what it sings"]
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "262-strip0.jpg system 2, top row: stanza 1's line 2 ends at word 4, before the 1st ending; words 5-6, under the 1st ending (word 5 a capital), are stanza 2's first two words, printed as a lead-in back into the repeat, where stanza 2's row (system 1, row 2) goes on lower case. The database rightly opens its stanza 2 line 1 with them.",
+      "settles": [
+        "262 shape (shape2-29): stanza 1 row 2 holds its middle \"lord there\" at no place its count gives",
+        "262 shape (shape2-29): stanza 1 row 2 ends \"there are\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ebaf9788e5fbe9b8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "262-strip0.jpg system 2, top row: after the 2nd ending, under the Refrain mark, words 8-9 are the refrain's first two words in the database's order (its line 1 ends on system 3's word 1). The check's place is off only by the two lead-in words under the 1st ending (words 5-6), which the database rightly sings as stanza 2's opening; the refrain follows the 2nd ending.",
+      "settles": [
+        "262 shape (shape2-29): the refrain after stanza 1: row 1 opens \"sweet holy\" at no place its count gives",
+        "262 shape (shape2-29): the refrain after stanza 1: row 1 holds its middle \"holy\" at no place its count gives",
+        "262 shape (shape2-29): the refrain after stanza 1: row 1 ends \"sweet holy\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ebaf9788e5fbe9b8",
+          "shows": ""
+        },
+        {
+          "image": "262.png",
+          "crop": "262-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "2eed7a67bf51d474",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "System 3 (262-strip0.jpg, again at the top of 262-strip800.jpg): its 13 words are, in order, the last word of the database's refrain line 1, its lines 2 and 3 whole, and the first four words of line 4, with capitals where those lines open (words 2, 5 and 10). Its place is off only by the two lead-in words under the 1st ending in system 2.",
+      "settles": [
+        "262 shape (shape2-29): the refrain after stanza 1: row 2 opens \"spirit sweet\" at no place its count gives",
+        "262 shape (shape2-29): the refrain after stanza 1: row 2 holds its middle \"here with\" at no place its count gives",
+        "262 shape (shape2-29): the refrain after stanza 1: row 2 ends \"with your\" at word 34, its count gives word 36"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "2eed7a67bf51d474",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "262-strip800.jpg system 4: word 6 is printed lower case with no stop after word 5; the page's poem line runs from word 2 (capital, after a comma) to word 11 (comma), and the next opens at word 12 (capital). The database writes that one poem line as its refrain lines 5 and 6 (4 + 6 words): a whole split, the words the same.",
+      "settles": [
+        "262 shape (shape2-29): stanza 1 line 8 opens on word 6 of the refrain after stanza 1: row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "2eed7a67bf51d474",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "262-strip800.jpg systems 4-5: system 5's word 4 is printed lower case with no stop after word 3; the page's poem line runs from system 4's word 12 (capital, after a comma) to system 5's word 8, and the next opens at system 5's word 9 (capital). The database writes that one poem line as its refrain lines 7 and 8 (5 + 5 words): a whole split, the words the same.",
+      "settles": [
+        "262 shape (shape2-29): stanza 1 line 10 opens on word 4 of the refrain after stanza 1: row 4, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ebaf9788e5fbe9b8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "262-strip0.jpg system 1, row 2 (stanza 2): the row prints nothing under the pickup and opens lower case at its word 1, going on from the two words printed as a lead-in under the 1st ending in system 2's top row (words 5-6). Those are the database's stanza 2 words 1-2, so its line 1 rightly opens there and the row's word 1 is its word 3.",
+      "settles": [
+        "262 shape (shape2-29): stanza 2 row 1 opens \"sweet expressions\" at word 3, its count gives word 1"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "2eed7a67bf51d474",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain is printed once. 262-strip800.jpg system 4: word 6 is lower case with no stop after word 5; the poem line runs from word 2 (capital, after a comma) to word 11 (comma). The database writes that one poem line as its refrain lines 5 and 6 (4 + 6 words): a whole split, the words the same.",
+      "settles": [
+        "262 shape (shape2-29): stanza 2 line 8 opens on word 6 of the refrain after stanza 2: row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "2eed7a67bf51d474",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain is printed once. 262-strip800.jpg systems 4-5: system 5's word 4 is lower case with no stop after word 3; the poem line runs from system 4's word 12 (capital, after a comma) to system 5's word 8, the next opening at system 5's word 9 (capital). The database writes it as its refrain lines 7 and 8 (5 + 5 words): a whole split, the words the same.",
+      "settles": [
+        "262 shape (shape2-29): stanza 2 line 10 opens on word 4 of the refrain after stanza 2: row 4, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ebaf9788e5fbe9b8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "262-strip0.jpg: stanza 1 (top row) opens its poem lines at system 1 words 1 and 9 (capitals, word 9 after a comma) and ends at system 2 word 4. Stanza 2 opens line 1 with the lead-in under the 1st ending (system 2 top row, words 5-6, capital), going on at system 1 row 2 word 1 (lower case), and line 2 at row 2 word 6 (capital, after a comma), ending on the 2nd ending's word. Two lines each, where the database opens them; the third line the check counts in stanza 1 is stanza 2's lead-in.",
+      "settles": ["262 shape (shape2-29): stanza 2 has 1 lines, stanza 1 3, under the same systems"]
     }
   ]
 }

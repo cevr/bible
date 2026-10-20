@@ -48,6 +48,182 @@
       ],
       "judge": "judge-443 (Opus, effort max)",
       "why": "Row 4 of the second system prints 'As the fruits up - on the fig tree', one hyphenated word 'upon'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "5a0916c9028d53a6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip0.jpg system 1, row 1: word 7, 'as', follows a comma in lower case, the row's only capital being word 1, while the header metre 8.7.8.7.6. counts the 8 syllables before it and the 7 from it as two lines. The database writes those two metre lines (6 and 6 words), a whole split of the page's capital-led line with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 1 line 2 opens on word 7 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "8cbc1320e87d64b3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip800.jpg system 2, row 1: word 8, 'as', follows a comma in lower case, the row's only capital being word 2, while the metre 8.7.8.7.6. counts the 8 syllables from word 2 and the 7 from word 8 (ending on system 3) as two lines. The database writes those two lines (6 and 6 words), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 1 line 4 opens on word 8 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "5a0916c9028d53a6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip0.jpg system 1, row 2 (stanza 2): word 7, 'as', follows a comma in lower case, the row's only capital being word 1, while the metre 8.7.8.7.6. counts the 8 syllables before it and the 7 from it as two lines. The database writes those two lines (6 and 6 words), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 2 line 2 opens on word 7 of stanza 2 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "8cbc1320e87d64b3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip800.jpg system 2, row 2 (stanza 2): word 8, 'as', follows a comma in lower case, the row's only capital being word 2, while the metre 8.7.8.7.6. counts the 8 syllables from word 2 and the 7 from word 8 as two lines. The database writes those two lines (6 and 6 words), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 2 line 4 opens on word 8 of stanza 2 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "5a0916c9028d53a6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip0.jpg system 1, row 3 (stanza 3): word 7, 'as', follows a comma in lower case, the row's only capital being word 1, while the metre 8.7.8.7.6. counts the 8 syllables before it and the 7 from it as two lines. The database writes those two lines (6 and 6 words), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 3 line 2 opens on word 7 of stanza 3 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "8cbc1320e87d64b3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip800.jpg system 2, row 3 (stanza 3): word 8, 'as', follows a comma in lower case, the row's only capital being word 2, while the metre 8.7.8.7.6. counts the 8 syllables from word 2 and the 7 from word 8 as two lines. The database writes those two lines (6 and 6 words), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 3 line 4 opens on word 8 of stanza 3 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "5a0916c9028d53a6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip0.jpg system 1, row 4 (stanza 4): word 7, 'as', follows a comma in lower case, the row's only capital being word 1, while the metre 8.7.8.7.6. counts the 8 syllables before it and the 7 from it as two lines. The database writes those two lines (6 and 6 words), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 4 line 2 opens on word 7 of stanza 4 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-51 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "459.jpg",
+          "crop": "459-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "8cbc1320e87d64b3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "459-strip800.jpg system 2, row 4 (stanza 4): word 9, 'as', follows a comma in lower case, the row's only capital being word 2, while the metre 8.7.8.7.6. counts the 8 syllables from word 2 and the 7 from word 9 as two lines. The database writes those two lines (7 and 6 words, 'fig tree' counted as two), a whole split with the same words.",
+      "settles": [
+        "459 shape (shape2-51): stanza 4 line 4 opens on word 9 of stanza 4 row 2, which the page prints with no capital"
+      ]
     }
   ]
 }

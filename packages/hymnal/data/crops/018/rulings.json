@@ -1,0 +1,125 @@
+{
+  "number": 18,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a2e4e66a538934ad",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "018-strip800.jpg system 3, stanza 2 row: word 11 'Warm' is capitalised mid-sentence (no stop after the word before) and opens the poem line sung from bar 15, where stanza 1 opens 'Great', stanza 3 'Christ' and stanza 4 its line. Database line 7 runs it on (7 words, to row word 14) and opens line 8 at system 4 word 1 'O' (bar 16, where stanzas 1, 3 and 4 print lower case), 4 words after the page's opening and 4 before the page's next one at system 4 word 5 'For'.",
+      "settles": [
+        "18 shape (shape2-02): stanza 2 row 3 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a2e4e66a538934ad",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "018-strip800.jpg system 4, stanza 3 row: word 1 'to' is lower case (bar 16, lower case in stanzas 1 and 4 too), so the page opens no line there. The page opens its poem lines at system 3 word 9 'Christ' (bar 15, after 'Al-le-lu-ia!') and at system 4 word 4 'Life', capitalised mid-sentence (bar 17); database line 8 opens 3 words after the one and 3 before the other.",
+      "settles": [
+        "18 shape (shape2-02): stanza 3 line 8 opens on word 1 of stanza 3 row 4, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "2dee01b72f9cb41b",
+          "shows": ""
+        },
+        {
+          "image": "018.png",
+          "crop": "018-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a2e4e66a538934ad",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "Stanza 1 opens 10 poem lines at system 1 words 1, 8, 16; system 2 words 5, 11; system 3 words 4, 10, 12; system 4 words 3, 6, as the database's 10 lines do. Stanza 2 opens 10 on the same bars: system 1 words 1, 9, 16; system 2 words 5, 12; system 3 words 3, 8, 11 ('Warm', mid-sentence capital); system 4 words 5 ('For'), 9. The database agrees through line 7's opening, then runs line 7 to system 3 word 14 and opens line 8 at system 4 word 1 ('O', bar 16, lower case in the other stanzas), so words move over a line's end; no whole split or join gives the page's lines.",
+      "settles": ["18 shape (shape2-02): stanza 2 has 9 lines, stanza 1 10, under the same systems"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "2dee01b72f9cb41b",
+          "shows": ""
+        },
+        {
+          "image": "018.png",
+          "crop": "018-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a2e4e66a538934ad",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "Stanza 1 opens its 10 poem lines as in 18-a3. Stanza 3 opens 10 on the same bars: system 1 words 1, 6, 13; system 2 words 5, 12; system 3 words 3, 8, 9 ('Christ', bar 15); system 4 words 4 ('Life', mid-sentence capital), 6. The database opens line 7 at system 3 word 8 but runs it on to word 11 (4 words) and opens line 8 at system 4 word 1 ('to', lower case, bar 16), so 3 words move over a line's end; no whole split or join gives the page's lines.",
+      "settles": ["18 shape (shape2-02): stanza 3 has 9 lines, stanza 1 10, under the same systems"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-02 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a2e4e66a538934ad",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "018-strip800.jpg system 4 (bars 16-17), stanza 3 row: 'Life' (word 4) opens the 4-syllable phrase of bar 17 ('Life forever,', rhyming with 'never'), at the place where stanza 1 prints 'Rich', stanza 2 'For' and stanza 4 'Tell'. The database's line 8 joins two whole 4-syllable poem lines ('to us giving' + 'Life forever') with the page's words in order, as its other final-section lines join 4 + 4.",
+      "settles": [
+        "18 shape (shape2-02): stanza 3 row 4 prints word 4 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    }
+  ]
+}

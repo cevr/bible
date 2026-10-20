@@ -48,6 +48,35 @@
       ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 2 of the second system prints 'wont-ed hymn out-pour-ing;', joined 'outpouring' (a t, not an r)."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-06 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "slip",
+      "crops": [
+        {
+          "image": "054.jpg",
+          "crop": "054-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "3dd8a723e7c70e8a",
+          "shows": ""
+        },
+        {
+          "image": "054.jpg",
+          "crop": "054-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "322e09e280e315a8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "054-strip800.jpg systems 2 and 3, stanza 3: system 2's row prints database line 3 after its first word (which ends system 1 on 054-strip0.jpg) and line 4, system 3's row lines 5 and 6, in order and opening where the metre 6.6.7.6.6.7 opens them. The -1/+1 is two compounds counted one off: the reader split the hyphenated 'life-giv-er' (system 2) into two words where the database writes one, and the page prints 'for-ev-er' (system 3) as one word where the database writes two. The 055 strips show the same spread.",
+      "settles": [
+        "54 shape (shape2-06): stanza 3 row 2 and stanza 3 row 3 span -1 and +1 words against their counts"
+      ]
     }
   ]
 }

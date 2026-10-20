@@ -1,0 +1,63 @@
+{
+  "number": 430,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-48 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p417.jpg",
+          "crop": "p417-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1cb363901e0e14ab",
+          "shows": ""
+        },
+        {
+          "image": "p417.jpg",
+          "crop": "p417-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ac71dc987b23bb4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "p417-strip800.jpg system 3: the stanza ending 'New Jerusalem.' (2 words) is printed once, on stanza 1's row before the double bar, and stanza 2's row ends system 2 at 'In the' with nothing under it in system 3, so stanza 2 sings that printed ending too. The database writes it as stanza 2's line 4 (4 words): 13 + 10 words on the page's rows, then 2, give 25, and the refrain opens at word 26.",
+      "settles": [
+        "430 shape (shape2-48): the refrain after stanza 2: row 1 opens \"joy joy\" at word 26, its count gives word 24"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-48 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p417.jpg",
+          "crop": "p417-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1cb363901e0e14ab",
+          "shows": ""
+        },
+        {
+          "image": "p417.jpg",
+          "crop": "p417-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "ac71dc987b23bb4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "p417-strip800.jpg system 3: the stanza ending 'New Jerusalem.' (2 words) is printed once, on stanza 1's row, and stanza 3's row ends system 2 at 'In the' with nothing under it in system 3, so stanza 3 sings that printed ending too. The database writes it as stanza 3's line 4 (4 words): 11 + 9 words on the page's rows, then 2, give 22, and the refrain opens at word 23.",
+      "settles": [
+        "430 shape (shape2-48): the refrain after stanza 3: row 1 opens \"joy joy\" at word 23, its count gives word 21"
+      ]
+    }
+  ]
+}

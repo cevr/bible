@@ -383,6 +383,122 @@
       ],
       "judge": "judge-again-440 (Opus, effort max)",
       "why": "p427-2103.jpg prints stanzas 2 and 3 below the music and then the hymn's closing rule; the page has no stanza 4."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1250d2365722a2e8",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "65d5d2d2275e1d4b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p427-strip1600.jpg: stanza 2 stands as 4 text lines below the music, its third and fourth lines ('Where we' … 'part again.') printed once, but the tune sings a stanza's last two lines twice, as stanza 1's top row under the treble does on p427-strip800.jpg systems 2-3 and p427-strip1600.jpg system 4. The database's lines 5-6 (8 + 4 = 12 words) are that repeat of its lines 3-4.",
+      "settles": [
+        "440 shape (shape2-49): stanza 2 sings 12 words from \"where we\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1250d2365722a2e8",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "65d5d2d2275e1d4b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p427-strip1600.jpg: stanza 2's 4 text lines open on capitals ('It', 'Where', 'Where', 'And') exactly where the database's lines 1-4 open, with the same counts (8, 6, 8, 4); no division differs. The database's lines 5-6 repeat lines 3-4 as the tune sings them, stanza 1's top row singing its last two lines twice (p427-strip800.jpg systems 2-3, p427-strip1600.jpg system 4).",
+      "settles": [
+        "440 shape (shape2-49): stanza 2 is printed as 4 lines of text, the printed source writes 6 other lines"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1250d2365722a2e8",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "65d5d2d2275e1d4b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p427-strip1600.jpg: stanza 3 stands as 4 text lines below the music, its third and fourth lines ('We long' … 'blissful home.') printed once, but the tune sings a stanza's last two lines twice, as stanza 1's top row does on p427-strip800.jpg systems 2-3 and p427-strip1600.jpg system 4. The database's lines 5-6 (8 + 5 = 13 words) are that repeat of its lines 3-4.",
+      "settles": [
+        "440 shape (shape2-49): stanza 3 sings 13 words from \"we long\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-49 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "1250d2365722a2e8",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "65d5d2d2275e1d4b",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p427-strip1600.jpg: stanza 3's 4 text lines open on capitals ('Fly', 'Dear', 'We', 'And') exactly where the database's lines 1-4 open, with the same counts (6, 4, 8, 5); no division differs. The database's lines 5-6 repeat lines 3-4 as the tune sings them, stanza 1's top row singing its last two lines twice (p427-strip800.jpg systems 2-3, p427-strip1600.jpg system 4).",
+      "settles": [
+        "440 shape (shape2-49): stanza 3 is printed as 4 lines of text, the printed source writes 6 other lines"
+      ]
     }
   ]
 }

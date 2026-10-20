@@ -128,6 +128,122 @@
       ],
       "judge": "judge-562 (Opus, effort max)",
       "why": "571-484.jpg row 2 ends 'mer - cy; Walk'; the other crops hold only music or the next system."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-63 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "728fb7aecfe00e69",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "e90df23c20cd9313",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 2, stanza 1 row (10 words, as the reader counts): word 10 is capitalised after a semicolon, opening the last of three short imperative clauses that open on words 6, 8 and 10, each capitalised after a question mark or semicolon. The database's line 3 (9 words) opens on word 6 and runs through the 1, 2 ending's row to its full stop, joining the three clauses whole with the same words, as stanza 3's matching line (no capital after word 6) is one line.",
+      "settles": [
+        "571 shape (shape2-63): stanza 1 row 2 prints word 10 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-63 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "728fb7aecfe00e69",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "e90df23c20cd9313",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 2, stanza 2 row (11 words): word 11 is capitalised after a semicolon, the last of three short imperative clauses opening on words 7, 9 and 11, the same three clauses stanza 1 prints. The database's line 3 (9 words) opens on word 7 and runs through the 1, 2 ending's second row to its full stop, a whole join of the clauses with the same words.",
+      "settles": [
+        "571 shape (shape2-63): stanza 2 row 2 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-63 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "728fb7aecfe00e69",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "e90df23c20cd9313",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "571-strip0.jpg system 2, stanza 1's row: word 8 is capitalised after a semicolon, as are words 6 and 10, opening three short poem lines that run to system 3's last word. The database writes all three whole, the same words in order, as its one line 3 (9 words), a whole join; no line opens elsewhere (words left out: the page prints a words copyright line).",
+      "settles": [
+        "571 shape (shape2-63): stanza 1 row 2 prints word 8 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-63 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "728fb7aecfe00e69",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "e90df23c20cd9313",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "571-strip0.jpg system 2, stanza 2's row: word 9 is capitalised after a semicolon, as are words 7 and 11, opening three short poem lines that run to system 3's last word. The database writes all three whole, the same words in order, as its one line 3 (9 words), a whole join; no line opens elsewhere (words left out: the page prints a words copyright line).",
+      "settles": [
+        "571 shape (shape2-63): stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

@@ -14,6 +14,7 @@ import { Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {
+  bookOf,
   applyRulings,
   baseDigestOf,
   baseOf,
@@ -569,6 +570,36 @@ describe('census', () => {
         }),
     );
 
+    it.effect(
+      'makes a hymn with a disputed ruling unsettled, its words as they are, and flags one that settles nothing',
+      () =>
+        Effect.gen(function* () {
+          const { census, sources } = yield* read;
+          const entry = first(
+            census,
+            'matches',
+            (one) => (sources.rulings.get(one.number) ?? []).length > 0,
+          );
+          const n = entry.number;
+          const all = sources.rulings.get(n) ?? [];
+          const one = all[0]!;
+          const broken: Ruling = { ...one, kind: 'disputed', sung: one.row, settles: [] };
+          const lines = about(census, withRulings(sources, n, [...all.slice(1), broken]), n);
+          expect(lines).toContain(`${n} says matches, its rulings make it unsettled`);
+          expect(lines).toContain(`${n} ruling ${all.length} is disputed but settles no line`);
+          // Its words stay the base row's: the row itself is never in question.
+          expect(lines.filter((line) => line.startsWith(`${n} row:`))).toEqual([]);
+          const waiting = withEntry(census, n, (held) => ({
+            ...held,
+            row: 'unsettled',
+            note: 'waits',
+          }));
+          expect(
+            about(waiting, withRulings(sources, n, [...all.slice(1), broken]), n),
+          ).not.toContain(`${n} says unsettled, its rulings make it matches`);
+        }),
+    );
+
     describe('rulings of one stretch read the page one way (M3)', () => {
       /** A ruling of hymn `n`'s unit 1 at `at`: its row words, the words it sings, its crops those of `like`. */
       const ruling = (like: Ruling, at: number, row: string, sung: string): Ruling => ({
@@ -865,7 +896,8 @@ describe('census', () => {
       () =>
         Effect.gen(function* () {
           const { census, sources } = yield* read;
-          const entry = first(census, 'matches', (one) => !sources.outlines.has(one.number));
+          // Every hymn with a deciding page has a shape reading now: the readings are held here with none.
+          const entry = first(census, 'matches', () => true);
           const n = entry.number;
           const deciding = decidingOf(sources.inventory).get(n)!;
           const base = baseOf(sources, n);
@@ -936,10 +968,23 @@ describe('census', () => {
             const row = sources.rows.get(n)!;
             const outline = outlineOf(sources, n);
             expect(entryOf(census, n).readings.reader).toBe(0);
-            expect(outlineProblems(n, outline, row, sources.fixes.get(n), false)).toEqual([]);
+            const order = sources.orders.get(n);
+            expect(
+              outlineProblems(
+                n,
+                outline,
+                row,
+                sources.fixes.get(n),
+                false,
+                order,
+                bookOf(sources, n),
+              ),
+            ).toEqual([]);
             const mutant = mutate(row, mode);
             expect(mutant).not.toEqual(row);
-            expect(outlineProblems(n, outline, mutant, undefined, false)).not.toEqual([]);
+            expect(
+              outlineProblems(n, outline, mutant, undefined, false, order, bookOf(sources, n)),
+            ).not.toEqual([]);
             expect(
               about(census, withBase(sources, n, mutant), n).some((p) =>
                 p.startsWith(`${n} shape (${outline.reader}): `),
@@ -956,21 +1001,41 @@ describe('census', () => {
           const n = 187;
           const outline = outlineOf(sources, n);
           const row = sources.rows.get(n)!;
+          const order = sources.orders.get(n);
           const what = `${n} shape (${outline.reader})`;
           // The page prints no refrain, the row writes one.
           expect(
-            outlineProblems(n, { ...outline, refrain: null }, row, undefined, false),
+            outlineProblems(
+              n,
+              { ...outline, refrain: null },
+              row,
+              undefined,
+              false,
+              order,
+              bookOf(sources, n),
+            ),
           ).toContain(`${what}: the page prints no refrain, the printed source has one`);
           // An unnumbered row the page prints, which the row lacks.
           const unnumbered = {
             system: 1,
             strip: 'x.jpg',
+            words: 4,
             first: 'quorum vellum',
+            mid: 'vellum zephyr',
             last: 'zephyr quartz',
+            capitals: [1],
             why: 'a row with no number',
           };
           expect(
-            outlineProblems(n, { ...outline, extra: [unnumbered] }, row, undefined, false),
+            outlineProblems(
+              n,
+              { ...outline, extra: [unnumbered] },
+              row,
+              undefined,
+              false,
+              order,
+              bookOf(sources, n),
+            ),
           ).toContain(
             `${what}: a row "quorum vellum" (a row with no number) is in no part of the printed source`,
           );
@@ -981,8 +1046,8 @@ describe('census', () => {
             return { ...v, text: [lines.at(-1)!, ...lines.slice(1, -1), lines[0]!].join('\n') };
           });
           expect(
-            outlineProblems(n, outline, swapped, undefined, false).some((p) =>
-              p.startsWith(`${what}: stanza 1 `),
+            outlineProblems(n, outline, swapped, undefined, false, order, bookOf(sources, n)).some(
+              (p) => p.startsWith(`${what}: stanza 1 `),
             ),
           ).toBe(true);
           // A line the page never prints, at the end of stanza 1 (before the refrain sung after it).
@@ -994,36 +1059,58 @@ describe('census', () => {
               text: [...lines, 'quorum vellum zephyr quartz'].join('\n'),
             };
           });
-          expect(outlineProblems(n, outline, added, undefined, false)).toContain(
-            `${what}: stanza 1 sings "quorum vellum" and on, in no row the page prints`,
+          // The refrain's rows after it no longer stand where their counts put them, and
+          // stanza 1 has a line more than the metre fits: every line is about stanza 1.
+          const moved = outlineProblems(
+            n,
+            outline,
+            added,
+            undefined,
+            false,
+            order,
+            bookOf(sources, n),
           );
+          const about1 = new RegExp(
+            `^${what.replace(/[()]/g, '\\$&')}: (the refrain after stanza 1: |stanza 1 has )`,
+          );
+          expect(moved.some((line) => line.includes('the refrain after stanza 1: '))).toBe(true);
+          for (const line of moved) expect(line).toMatch(about1);
           // A line the page never prints at the refrain's end, closing on the
           // last words of stanza 1's last row: that row stops at its stanza's end.
           const closing = outline.stanzas[0]!.rows.at(-1)!.last;
           const tail = row.map((v) =>
             v.id < 0 ? { ...v, text: `${v.text}\nquorum vellum zephyr ${closing}` } : v,
           );
-          expect(outlineProblems(n, outline, tail, undefined, false)).toContain(
-            `${what}: stanza 1 sings "quorum vellum" and on, in no row the page prints`,
+          expect(
+            outlineProblems(n, outline, tail, undefined, false, order, bookOf(sources, n)),
+          ).toContain(
+            `${what}: stanza 1 sings 5 words from "quorum vellum" on, in no row the page prints`,
           );
         }),
     );
 
-    it.effect("flags the refrain's end a photo cuts off, after the last stanza too", () =>
+    it.effect("flags the refrain's end a page does not print, after the last stanza too", () =>
       Effect.gen(function* () {
         const { sources } = yield* read;
-        const outline = (sources.outlines.get(86) ?? []).find((one) => one.reader === 'shape-14')!;
+        const n = 187;
+        const outline = outlineOf(sources, n);
+        const refrain = outline.refrain!;
+        const cut = { ...outline, refrain: { ...refrain, rows: refrain.rows.slice(0, -1) } };
         const problems = outlineProblems(
-          86,
-          outline,
-          sources.rows.get(86)!,
-          sources.fixes.get(86),
+          n,
+          cut,
+          sources.rows.get(n)!,
+          sources.fixes.get(n),
           false,
+          sources.orders.get(n),
+          bookOf(sources, n),
         );
-        for (const i of [1, 2, 3, 4])
-          expect(problems).toContain(
-            `86 shape (shape-14): stanza ${i} sings "soul my" and on, in no row the page prints`,
-          );
+        for (const i of outline.stanzas.keys())
+          expect(
+            problems.some((p) =>
+              p.startsWith(`${n} shape (${outline.reader}): stanza ${i + 1} sings `),
+            ),
+          ).toBe(true);
       }),
     );
   });
@@ -1039,11 +1126,18 @@ describe('census', () => {
             outlines.some((outline) => outlineVaries(outline).length > 0),
           );
           expect(varying.map(([n]) => n)).toEqual(expect.arrayContaining([140, 258, 593]));
+          // Held: the fix writes varies parts, or the census prints a line for it, open or
+          // settled by a judge's ruling on crops (86 prints its stanza 4 twice).
           for (const [n] of varying) {
             const parts = (sources.fixes.get(n)?.refrain?.lines ?? []).some(
               (item) => 'varies' in item,
             );
-            expect(parts || problems.some((p) => p.startsWith(`${n} shape (`))).toBe(true);
+            const settled = (sources.rulings.get(n) ?? []).some((ruling) =>
+              (ruling.settles ?? []).some((line) => line.includes('the page prints refrain rows')),
+            );
+            expect(parts || settled || problems.some((p) => p.startsWith(`${n} shape (`))).toBe(
+              true,
+            );
           }
         }),
     );
@@ -1069,17 +1163,30 @@ describe('census', () => {
 
     it.effect('flags 220 with its varies parts sung as one refrain after every stanza', () =>
       Effect.gen(function* () {
-        const { census, sources } = yield* read;
+        const { sources } = yield* read;
         const fix = sources.fixes.get(220)!;
         const lines = fix.refrain!.lines.flatMap((item) =>
           'varies' in item ? item.varies[0]!.lines : [item],
         );
-        const flat = withFixFile(sources, 220, { ...fix, refrain: { lines } });
-        expect(
-          about(census, flat, 220).some((p) =>
-            p.startsWith(`220 shape (${outlineOf(sources, 220).reader}): stanza 2 `),
-          ),
-        ).toBe(true);
+        // Against the hymn's own unflattened lines, settled ones too: 220 waits on the owner
+        // (`disputed` rulings settle the lines its page contradicts).
+        const outline = outlineOf(sources, 220);
+        const linesOf = (fixed: typeof fix) =>
+          outlineProblems(
+            220,
+            outline,
+            sources.rows.get(220)!,
+            fixed,
+            false,
+            sources.orders.get(220),
+            bookOf(sources, 220),
+          );
+        const before = new Set(linesOf(fix));
+        const after = linesOf({ ...fix, refrain: { lines } }).filter((p) => !before.has(p));
+        expect(after).toContain(
+          `220 shape (${outline.reader}): the page prints refrain rows for stanzas [1] and [2] and [3] only, and the printed source sings no varies part after them`,
+        );
+        expect(after.some((p) => p.includes(': the refrain after stanza 2: '))).toBe(true);
       }),
     );
   });

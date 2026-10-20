@@ -1,0 +1,195 @@
+{
+  "number": 44,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        },
+        {
+          "image": "044.png",
+          "crop": "044-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "b5ea628a65b77389",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "044-strip800.jpg system 3, stanza 1 row (9 words): word 6 is capitalised after an unpunctuated word 5 and opens the page's closing 4-syllable poem line, after the 5-syllable line of words 2-5; the page's capitals give 8 poem lines a stanza (5.5.5.4.5.5.5.4 syllables). Database line 4 writes these two whole poem lines as one (4 + 4 = 8 words), the pairing every database line in the hymn uses; no word moves.",
+      "settles": [
+        "44 shape (shape2-05): stanza 1 row 3 prints word 6 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "044-strip0.jpg system 1, stanza 2 row (11 words): word 6 is capitalised and opens the page's second 5-syllable poem line, after the first (words 1-5). Database line 1 writes these two whole poem lines as one (5 + 3 = 8 words), the same pairing as every database line in the hymn; no word moves.",
+      "settles": [
+        "44 shape (shape2-05): stanza 2 row 1 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "b5ea628a65b77389",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "044-strip800.jpg system 3, stanza 3 row (7 words): word 4 is capitalised after an unpunctuated word 3 and opens the page's closing 4-syllable poem line, after the 5-syllable line of words 2-3. Database line 4 writes these two whole poem lines as one (2 + 4 = 6 words), as in stanzas 1 and 2; no word moves.",
+      "settles": [
+        "44 shape (shape2-05): stanza 3 row 3 prints word 4 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "044-strip0.jpg system 1, stanza 1 row: word 4 'Like' is capitalised after word 3 with no stop and opens the second 5-syllable phrase (bar 2), a poem line of the tune's short lines. The database's line 1 (7 words) joins two whole poem lines (words 1-3 and 4-7), the words the same and in order.",
+      "settles": [
+        "44 shape (shape2-05): stanza 1 row 1 prints word 4 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "044-strip0.jpg system 2, stanza 1 row: word 2 'Like' opens the 4-syllable poem line that closes the first half (bars 3-4). The database's line 2 joins two whole poem lines (the 5-syllable line opening 'Blackbird' at the end of system 1 and the 4-syllable line opening 'Like'), the words the same and in order.",
+      "settles": [
+        "44 shape (shape2-05): stanza 1 row 2 prints word 2 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "044-strip0.jpg system 2, stanza 2 row: word 2 'On' opens the 4-syllable poem line of bars 3-4, where stanza 1 prints 'Like'. The database's line 2 joins two whole poem lines (opening 'Like' at the end of system 1 and 'On'), the words in order; its 9 words against the page's 8 is one off at the compound the page prints hyphenated as row word 1.",
+      "settles": [
+        "44 shape (shape2-05): stanza 2 row 2 prints word 2 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "044-strip0.jpg system 2, stanza 2 row: word 10 'Of' opens the 5-syllable poem line under the notes where stanza 1 prints its second 'Praise'. The database's line 3 joins two whole poem lines (opening 'Praise' and 'Of'), the words the same and in order.",
+      "settles": [
+        "44 shape (shape2-05): stanza 2 row 2 prints word 10 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "044.png",
+          "crop": "044-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "0769702d4c4435e6",
+          "shows": ""
+        },
+        {
+          "image": "044.png",
+          "crop": "044-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "b5ea628a65b77389",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "044-strip800.jpg system 3 (also at the foot of 044-strip0.jpg), stanza 2 row: word 5 'Where' opens the closing 4-syllable poem line, under the notes where stanza 1 prints 'Fresh'. The database's line 4 joins two whole poem lines (opening 'Sprung' and 'Where'), the words the same and in order.",
+      "settles": [
+        "44 shape (shape2-05): stanza 2 row 3 prints word 5 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    }
+  ]
+}

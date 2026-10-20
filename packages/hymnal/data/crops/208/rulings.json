@@ -1,0 +1,179 @@
+{
+  "number": 208,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p203-strip800.jpg system 3 prints one unnumbered row whose first 7 words, before the double bar and the Refrain mark, finish every stanza's last line; the database writes them into each stanza (line 3's last word and line 4), so its refrain opens at word 31, after stanza 1's 30 words. The reader filed those 7 words as an other row, so the check's count misses them; the refrain rows (5, 9 and 12 words on systems 3-5) match the database's refrain lines in order.",
+      "settles": [
+        "208 shape (shape2-23): the refrain after stanza 1: row 1 opens \"to gather\" at word 25, its count gives word 24"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "System 4, the refrain's second row (9 words): it closes with the 2 words that open the refrain's third line, where the database's refrain line 3 opens (word 43 after stanza 1). The gap to the reader's count is the shared 7-word stanza ending on system 3, which the database writes in each stanza and the reader filed as an other row.",
+      "settles": [
+        "208 shape (shape2-23): the refrain after stanza 1: row 2 ends \"therell be\" at word 45, its count gives word 39"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p203-strip800.jpg system 3: the shared 7-word ending before the double bar finishes stanza 2's last line too; the database writes it into stanza 2 (line 3's last word and line 4), so its refrain opens at word 30, after the stanza's 29 words. The reader filed the ending as an other row; the refrain rows match the database's refrain lines in order.",
+      "settles": [
+        "208 shape (shape2-23): the refrain after stanza 2: row 1 opens \"to gather\" at word 24, its count gives word 23"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "System 4, the refrain's second row (9 words): it closes with the 2 words that open the refrain's third line, where the database's refrain line 3 opens (word 42 after stanza 2). The gap to the reader's count is the shared 7-word stanza ending of system 3, left out of the reader's stanza rows.",
+      "settles": [
+        "208 shape (shape2-23): the refrain after stanza 2: row 2 ends \"therell be\" at word 44, its count gives word 38"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p203-strip800.jpg system 3: the shared 7-word ending before the double bar finishes stanza 3's last line too; the database writes it into stanza 3 (line 3's last word and line 4), so its refrain opens at word 30, after the stanza's 29 words. The reader filed the ending as an other row; the refrain rows match the database's refrain lines in order.",
+      "settles": [
+        "208 shape (shape2-23): the refrain after stanza 3: row 1 opens \"to gather\" at word 24, its count gives word 23"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "03d9a88c64d402ab",
+          "shows": ""
+        },
+        {
+          "image": "p203.jpg",
+          "crop": "p203-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d42d0a770dbb5fef",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "System 4, the refrain's second row (9 words): it closes with the 2 words that open the refrain's third line, where the database's refrain line 3 opens (word 42 after stanza 3). The gap to the reader's count is the shared 7-word stanza ending of system 3, left out of the reader's stanza rows.",
+      "settles": [
+        "208 shape (shape2-23): the refrain after stanza 3: row 2 ends \"therell be\" at word 44, its count gives word 38"
+      ]
+    }
+  ]
+}

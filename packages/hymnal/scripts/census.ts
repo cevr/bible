@@ -71,6 +71,8 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 import { Order } from '../src/hymn.js';
+import { counts } from '../src/syllables.js';
+import { decodeOrders } from './sources.js';
 
 const DATA = path.resolve(import.meta.dir, '../data');
 export const FIRST = 1;
@@ -255,7 +257,20 @@ const quoted = (words: readonly string[]) => `"${words.join(' ')}"`;
  * - `shared`: a line printed once under bars every stanza sings;
  * - `layout`: the row's words printed at another place of the hymn (a refrain
  *   printed before the first stanza, a stanza's lines in another system),
- *   which the row sings where it does;
+ *   which the row sings where it does; or the page's words in the row's
+ *   order, which the row divides into lines otherwise than the page's
+ *   capitals do (a poem line written as two lines, two written as one, a
+ *   stanza a line longer than its siblings): the row keeps its own division;
+ * - `slip`: the page prints there what the row sings, and a shape reader
+ *   miscounted, missed a capital or placed a row elsewhere (a ruling that
+ *   settles shape lines only, with no site);
+ * - `disputed`: the page lays the row's words out otherwise than the row, in
+ *   no way a row's own convention explains (a poem line opened at another
+ *   word, in no whole split or join of the row's lines; a block sung where
+ *   the page does not sing it), or two judges found a shape line's place
+ *   printing a word otherwise than the row (an Amen the row leaves out): the
+ *   row keeps its words and layout and waits on the owner, the hymn
+ *   `unsettled` (a ruling that settles shape lines only, with no site);
  * - `unreadable`: the crop does not show the words clearly enough to say;
  * - `owner`: words a judge saw the crop print but would not transcribe
  *   (copyright), copied by the owner from his own book at that place: read
@@ -271,6 +286,8 @@ const Kind = Schema.Literals([
   'repeat',
   'shared',
   'layout',
+  'slip',
+  'disputed',
   'unreadable',
   'owner',
 ]);
@@ -300,12 +317,26 @@ const Ruling = Schema.Struct({
   judge: Schema.String,
   why: Schema.String,
   /**
-   * The shape differences (`shapeProblems`' lines) this ruling settles: the
+   * The layout lines (`layoutLinesOf`, `formatProblems`) this ruling settles: the
    * judge read the place on its crops and found the printed source right
    * there, the shape reader's slip (or a part, such as an echo, the row
    * rightly leaves out). A ruling that settles a difference may have no site.
    */
   settles: Schema.optionalKey(Schema.Array(Schema.String)),
+  /**
+   * The layout mutants of the hymn (`layout.ts`'s names, `repeatstanza:4`)
+   * its page cannot tell apart from the row, as the crops show (a stanza the
+   * page prints twice, two lines it prints alike): the generated property's
+   * committed unreachable list.
+   */
+  unreachable: Schema.optionalKey(Schema.Array(Schema.String)),
+  /**
+   * The layout mutants of the hymn its page tells apart from the row, as the
+   * crops show (a word printed lower case where the mutant opens a line), but
+   * no check of the shape readings does, or that a judge could not tell from
+   * the crops: the generated property's committed list of the check's gaps.
+   */
+  gaps: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 export type Ruling = typeof Ruling.Type;
 
@@ -668,6 +699,9 @@ export interface Deciding {
 /** The deciding page with no image: a hymn no page of the 1985 text shows. */
 export const NO_PAGE: Deciding = { source: 'none', images: [], readable: [] };
 
+/** Each inventory's deciding pages, worked out once: a check of one hymn asks for them again. */
+const decided = new WeakMap<Inventory, ReadonlyMap<number, Deciding>>();
+
 /**
  * Each hymn's deciding page: its photos, when they show it whole; else its
  * scan pages, when every one is shown; else its engravings, unless revised
@@ -675,6 +709,14 @@ export const NO_PAGE: Deciding = { source: 'none', images: [], readable: [] };
  * or an engraving stands beside that page.
  */
 export const decidingOf = (inventory: Inventory): ReadonlyMap<number, Deciding> => {
+  const known = decided.get(inventory);
+  if (known !== undefined) return known;
+  const deciding = decideAll(inventory);
+  decided.set(inventory, deciding);
+  return deciding;
+};
+
+const decideAll = (inventory: Inventory): ReadonlyMap<number, Deciding> => {
   const withheld = new Set([
     ...inventory.scan.withheld,
     ...inventory.scan.copies.map((copy) => copy.page),
@@ -1082,72 +1124,181 @@ export const outlineVaries = (outline: Outline): number[][] => {
   return [...groups.values()].toSorted((a, b) => (a[0] ?? 0) - (b[0] ?? 0));
 };
 
-/** The printed source's shape: each stanza's words, the refrain sung after stanza i (1-based), and its varying parts. */
-interface PrintedOutline {
-  readonly stanzas: ReadonlyArray<readonly string[]>;
-  readonly refrain: boolean;
-  readonly refrainAfter: (stanza: number) => readonly string[];
-  readonly varies: ReadonlyArray<readonly number[]>;
+/**
+ * One printed line: its words as compared, for each word whether the source
+ * opens a sentence on it and whether the source writes it with a capital
+ * inside its line (`linesOf`), and whether its text opens with whitespace
+ * (an indent).
+ */
+export interface PrintedLine {
+  readonly words: readonly string[];
+  readonly sentences: readonly boolean[];
+  readonly capitals: readonly boolean[];
+  readonly indent: boolean;
 }
 
-const linesWords = (lines: ReadonlyArray<{ readonly text: string }>) =>
-  wordsOf(lines.map((line) => line.text).join('\n'));
-
-/** The printed source the fidelity oracle reads: the fix file when there is one, else the row. */
-const printedOutlineOf = (row: Verses, fix: Fix | undefined): PrintedOutline => {
-  if (fix !== undefined) {
-    const items = fix.refrain?.lines ?? [];
-    return {
-      stanzas: fix.stanzas.map(linesWords),
-      refrain: fix.refrain !== undefined,
-      refrainAfter: (stanza) =>
-        linesWords(
-          items.flatMap((item) =>
-            'varies' in item
-              ? (item.varies.find((part) => part.after.includes(stanza))?.lines ?? [])
-              : [item],
-          ),
-        ),
-      varies: items.flatMap((item) =>
-        'varies' in item
-          ? item.varies.map((part) => [...part.after].toSorted((a, b) => a - b))
-          : [],
-      ),
+/** A refrain item: a line every stanza sings, or a part that varies by stanza (the lines sung after the stanzas it names). */
+export type RefrainItem =
+  | PrintedLine
+  | {
+      readonly varies: ReadonlyArray<{
+        readonly after: readonly number[];
+        readonly lines: readonly PrintedLine[];
+      }>;
     };
-  }
-  const refrain = wordsOf(
-    row
-      .filter((verse) => verse.id < 0)
-      .map((verse) => verse.text)
-      .join('\n'),
-  );
+
+/**
+ * The printed source as the layout check reads it: each stanza's lines, the
+ * refrain's items (`undefined` when it has none), and where `refrains.json`
+ * has the refrain sung.
+ */
+export interface PrintedLayout {
+  readonly stanzas: ReadonlyArray<readonly PrintedLine[]>;
+  readonly refrain: readonly RefrainItem[] | undefined;
+  readonly order: Order | undefined;
+}
+
+/** A token that ends a sentence: `.`, `!` or `?`, and any closing quote or bracket after it. */
+const SENTENCE_END = /[.!?]["”’)]*$/u;
+/** A token that opens a quote or a bracket. */
+const QUOTE_OPEN = /^["“‘(]/u;
+
+/**
+ * The lines of one text block as printed (a stanza, a refrain's run), each
+ * word marked where the source opens a sentence on it (the block's first
+ * word, a word after one that ends `.`, `!` or `?`, and a word that opens a
+ * quote: the page capitalises such a word wherever it falls in a row), and
+ * where the source writes it with a capital inside its line (`midCapital`).
+ */
+export const linesOf = (texts: readonly string[]): PrintedLine[] => {
+  let open = true;
+  return texts.map((text) => {
+    const [words, sentences, capitals]: [string[], boolean[], boolean[]] = [[], [], []];
+    let before: string | undefined;
+    for (const token of text.split(/\s+/u)) {
+      if (token === '') continue;
+      const these = wordsOf(token);
+      const capital = midCapital(token, before);
+      for (const [k, word] of these.entries()) {
+        words.push(word);
+        sentences.push(k === 0 && (open || QUOTE_OPEN.test(token)));
+        capitals.push(capital);
+      }
+      if (these.length > 0 || SENTENCE_END.test(token)) open = SENTENCE_END.test(token);
+      before = token;
+    }
+    return { words, sentences, capitals, indent: /^\s/u.test(text) };
+  });
+};
+
+/**
+ * Whether a token of a line is written with a capital inside it: not first
+ * in its line, after a token that ends no sentence, clause or quote (`.`,
+ * `!`, `?`, `:`, `;`, a quote mark), opening no quote itself.
+ */
+const midCapital = (token: string, before: string | undefined) =>
+  before !== undefined &&
+  !/[.!?:;"“]$/u.test(before) &&
+  !QUOTE_OPEN.test(token) &&
+  /^\p{Lu}/u.test(token.replace(/^['’]/u, ''));
+
+/** A row's text as its lines: one block, its blank lines left out. */
+const textLines = (text: string) => linesOf(text.split('\n').filter((line) => line.trim() !== ''));
+
+/** A fix's refrain items as printed: its shared lines one block, each varying part its own. */
+const refrainItemsOf = (items: NonNullable<Fix['refrain']>['lines']) => {
+  const shared = linesOf(items.flatMap((item) => ('varies' in item ? [] : [item.text])));
+  let k = 0;
+  return items.map((item): RefrainItem => {
+    if ('varies' in item)
+      return {
+        varies: item.varies.map((part) => ({
+          after: part.after,
+          lines: linesOf(part.lines.map((line) => line.text)),
+        })),
+      };
+    k += 1;
+    return shared[k - 1] ?? { words: [], sentences: [], capitals: [], indent: false };
+  });
+};
+
+/**
+ * The printed source the fidelity oracle reads, as lines: the fix file when
+ * there is one, else the row (its stanzas by id, its refrain verses as
+ * stored); `order` is where `refrains.json` has its refrain sung.
+ */
+export const layoutOf = (
+  row: Verses,
+  fix: Fix | undefined,
+  order: Order | undefined,
+): PrintedLayout => {
+  const made = layouts.get(row) ?? [];
+  layouts.set(row, made);
+  const found = made.find((one) => one.fix === fix && one.order === order);
+  if (found !== undefined) return found.layout;
+  const layout = sourceLayoutOf(row, fix, order);
+  made.push({ fix, order, layout });
+  return layout;
+};
+
+/** Each row's printed layouts made so far, by the fix and order they were made with (the same objects give the same layout). */
+const layouts = new WeakMap<
+  Verses,
+  Array<{
+    readonly fix: Fix | undefined;
+    readonly order: Order | undefined;
+    readonly layout: PrintedLayout;
+  }>
+>();
+
+const sourceLayoutOf = (
+  row: Verses,
+  fix: Fix | undefined,
+  order: Order | undefined,
+): PrintedLayout => {
+  if (fix !== undefined)
+    return {
+      stanzas: fix.stanzas.map((lines) => linesOf(lines.map((line) => line.text))),
+      refrain: fix.refrain === undefined ? undefined : refrainItemsOf(fix.refrain.lines),
+      order,
+    };
+  const refrain = row.filter((verse) => verse.id < 0).flatMap((verse) => textLines(verse.text));
   return {
     stanzas: row
       .filter((verse) => verse.id >= 0)
       .toSorted((a, b) => a.id - b.id)
-      .map((verse) => wordsOf(verse.text)),
-    refrain: refrain.length > 0,
-    refrainAfter: () => refrain,
-    varies: [],
+      .map((verse) => textLines(verse.text)),
+    refrain: refrain.length > 0 ? refrain : undefined,
+    order,
   };
 };
 
-/** The edit distance of two words, up to 2 (2 means 2 or more). */
-const distance = (a: string, b: string) => {
-  if (a === b) return 0;
-  if (Math.abs(a.length - b.length) > 1) return 2;
-  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    const next = [i];
-    for (let j = 1; j <= b.length; j++)
-      next[j] = Math.min(
-        (prev[j] ?? 0) + 1,
-        (next[j - 1] ?? 0) + 1,
-        (prev[j - 1] ?? 0) + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-    prev = next;
-  }
-  return Math.min(2, prev[b.length] ?? 2);
+/** The refrain lines sung after stanza `i` (1-based): every shared line, and the varying part written for it. */
+export const refrainAfter = (layout: PrintedLayout, i: number): readonly PrintedLine[] =>
+  (layout.refrain ?? []).flatMap((item) =>
+    'varies' in item ? (item.varies.find((part) => part.after.includes(i))?.lines ?? []) : [item],
+  );
+
+/** The stanza groups each varying part of the refrain follows, each sorted. */
+const variesOf = (layout: PrintedLayout) =>
+  (layout.refrain ?? []).flatMap((item) =>
+    'varies' in item ? item.varies.map((part) => [...part.after].toSorted((a, b) => a - b)) : [],
+  );
+
+/** Where the printed source sings its refrain: `refrains.json`'s order, else after each stanza (a fix that writes it with each), else none. */
+const sourceOrderOf = (layout: PrintedLayout): Order | undefined =>
+  layout.refrain === undefined ? undefined : (layout.order ?? 'after-each');
+
+/** Whether two words are at most one edit apart: one letter changed, added or left out. */
+const oneEdit = (a: string, b: string) => {
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (long.length - short.length > 1) return false;
+  let i = 0;
+  while (i < short.length && short[i] === long[i]) i++;
+  // Past the first difference the rest agree: after one change, or one letter of the longer skipped.
+  return short.length === long.length
+    ? short.slice(i + 1) === long.slice(i + 1)
+    : short.slice(i) === long.slice(i + 1);
 };
 
 /**
@@ -1160,146 +1311,789 @@ const distance = (a: string, b: string) => {
  * is no difference, as in the word runs); the exact spelling a word on wins
  * over a near one.
  */
-const anchorAt = (words: readonly string[], anchor: readonly string[], from: number) => {
-  const want = anchor.join('');
-  if (want === '') return { at: from, length: 0 };
-  const lengths = [anchor.length, anchor.length + 1, anchor.length - 1];
-  const spelt = (at: number, near: boolean) => {
-    for (const length of lengths) {
-      if (length < 1 || at < 0 || at + length > words.length) continue;
-      const span = words.slice(at, at + length);
-      const have = span.join('');
-      // A word split alone is no difference (`in stead` against `instead`): the
-      // anchor may hold the tail of the span's first word or the head of its last.
-      const split =
-        (have.endsWith(want) && have.length - want.length < (span[0]?.length ?? 0)) ||
-        (have.startsWith(want) && have.length - want.length < (span.at(-1)?.length ?? 0));
-      if (have === want || split || (near && want.length >= 4 && distance(have, want) <= 1))
-        return { at, length };
-    }
-    return undefined;
-  };
-  for (let at = Math.max(0, from); at < words.length; at++) {
-    const exact = spelt(at, false);
-    if (exact !== undefined) return exact;
-    // A near spelling gives way to the exact one a word on (`i know he` against `know he`).
-    if (spelt(at, true) !== undefined) return spelt(at + 1, false) ?? spelt(at, true);
-  }
+const spellsAt = (text: Text, anchor: Anchor, at: number, near: boolean): number | undefined => {
+  const n = anchor.words.length;
+  for (const length of [n, n + 1, n - 1])
+    if (
+      length >= 1 &&
+      at >= 0 &&
+      at + length <= text.words.length &&
+      spellsOver(text, anchor, at, length, near)
+    )
+      return length;
   return undefined;
 };
 
-/** Where one row stands in `words`: its first word and one past its last. */
-interface Found {
+/** Whether the `length` words at `at` spell the anchor (`spellsAt`). */
+const spellsOver = (text: Text, anchor: Anchor, at: number, length: number, near: boolean) => {
+  const { words, joined, off } = text;
+  const want = anchor.joined;
+  const [head, tail] = [words[at]?.length ?? 0, words[at + length - 1]?.length ?? 0];
+  // Letters to spare: none for an exact spelling, one for a near one, less
+  // than the first or last word's for a split one.
+  const spare = (off[at + length] ?? 0) - (off[at] ?? 0) - want.length;
+  if (spare < -1 || (spare > 1 && spare >= head && spare >= tail)) return false;
+  const [from, to] = [off[at] ?? 0, off[at + length] ?? 0];
+  if (spare >= 0 && spellsWhole(joined, want, from, to, spare < head, spare < tail)) return true;
+  return near && want.length >= 4 && spare <= 1 && oneEdit(joined.slice(from, to), want);
+};
+
+/**
+ * Whether the run `from`..`to` of `joined` spells `want` exactly, or holds
+ * it as a word split alone (`in stead` against `instead`): the anchor the
+ * tail of the run's first word (`head`, its letters to spare fewer than
+ * that word's) or the head of its last (`tail`). Read in place, with no copy
+ * of the run.
+ */
+const spellsWhole = (
+  joined: string,
+  want: string,
+  from: number,
+  to: number,
+  head: boolean,
+  tail: boolean,
+) =>
+  (to - from === want.length && joined.startsWith(want, from)) ||
+  (head && joined.startsWith(want, to - want.length)) ||
+  (tail && joined.startsWith(want, from));
+
+/** Words as the anchors are sought in them: the words, run together, and where each word starts in the run (and one past the last). */
+interface Text {
+  readonly words: readonly string[];
+  readonly joined: string;
+  readonly off: readonly number[];
+}
+
+export const textOf = (words: readonly string[]): Text => {
+  const off = [0];
+  for (const word of words) off.push((off.at(-1) ?? 0) + word.length);
+  return { words, joined: words.join(''), off };
+};
+
+/** An anchor's words, and run together. */
+interface Anchor {
+  readonly words: readonly string[];
+  readonly joined: string;
+}
+
+const anchorOf = (text: string): Anchor => {
+  const words = wordsOf(text);
+  return { words, joined: words.join('') };
+};
+
+const anchors = new WeakMap<OutlineRow, { first: Anchor; mid: Anchor; last: Anchor }>();
+
+/** A row's three anchors, read once. */
+const anchorsOf = (row: OutlineRow) => {
+  const known = anchors.get(row);
+  if (known !== undefined) return known;
+  const found = { first: anchorOf(row.first), mid: anchorOf(row.mid), last: anchorOf(row.last) };
+  anchors.set(row, found);
+  return found;
+};
+
+/**
+ * How far a row's place may stand from where the counts put it: a blind
+ * count can be one off where the page elides or splits a word (`heav'n`,
+ * `in stead`), and a line's words are never fewer than two.
+ */
+const SLACK = 1;
+
+/**
+ * Each place in `lo`..`hi` where an anchor stands: its first word's place,
+ * or, `end`, one past its last word's. Exact spellings, else near ones.
+ */
+const placesOf = (text: Text, anchor: Anchor, lo: number, hi: number, end: boolean): number[] => {
+  const n = anchor.words.length;
+  if (n === 0) return [];
+  for (const near of [false, true]) {
+    const found: number[] = [];
+    for (let at = Math.max(0, end ? lo - n - 1 : lo); at <= hi && at < text.words.length; at++) {
+      const length = spellsAt(text, anchor, at, near);
+      if (length === undefined) continue;
+      const place = end ? at + length : at;
+      if (place >= lo && place <= hi && !found.includes(place)) found.push(place);
+    }
+    if (found.length > 0) return found;
+  }
+  return [];
+};
+
+/** No place: the anchor stands nowhere in reach. */
+const NONE = -1;
+/** Two places: the anchor stands at more than one in reach, none where the counts put it. */
+const TWO = -2;
+
+/** The one place an anchor stands at: where the counts put it when it stands there, else its only place; else `NONE` or `TWO`. */
+const oneOf = (places: readonly number[], want: number): number =>
+  places.includes(want)
+    ? want
+    : places.length === 1
+      ? (places[0] ?? want)
+      : places.length === 0
+        ? NONE
+        : TWO;
+
+/**
+ * Where an anchor stands about `want`: within `SLACK` of it, else anywhere
+ * in `lo`..`hi` (a slip of the reader's moves only its own row); never
+ * before `lo` (a row never opens inside the row before it).
+ */
+const seek = (
+  text: Text,
+  anchor: Anchor,
+  want: number,
+  [lo, hi]: readonly [number, number],
+  end: boolean,
+  slack = SLACK,
+) => {
+  const near = oneOf(placesOf(text, anchor, Math.max(lo, want - slack), want + slack, end), want);
+  return near === NONE ? oneOf(placesOf(text, anchor, lo, hi, end), want) : near;
+};
+
+/** The problem with an anchor sought at `want` and found at `place` (`''` when it stands within `slack` of it). */
+const anchorLine = (what: string, anchor: Anchor, want: number, place: number, slack = SLACK) =>
+  place >= 0 && Math.abs(place - want) <= slack
+    ? ''
+    : place >= 0
+      ? `${what} ${quoted(anchor.words)} at word ${place + 1}, its count gives word ${want + 1}`
+      : `${what} ${quoted(anchor.words)} at ${place === TWO ? 'two places' : 'no place'} its count gives`;
+
+/**
+ * Where one row stands in the words sung: its first word and one past its
+ * last; `anchored` when its first and last words stand at their places;
+ * `sure` when they stand where its count puts them too; `held` when its last
+ * words stand at its end (the row after it opens there, no word between);
+ * `middle` the word of its count its middle words open on, `middleAt` the
+ * place they stand at (`NONE` when they stand at none, or at two).
+ */
+interface Placed {
   readonly start: number;
   readonly end: number;
+  readonly anchored: boolean;
+  readonly sure: boolean;
+  readonly held: boolean;
+  readonly middle: number;
+  readonly middleAt: number;
 }
 
 /**
- * Each row's anchors, first then last, found in order in `words`: the rows
- * found (each one's span), and the first that is not, if any. The last row
- * stretches to a later place of its last words no further than `upto`.
+ * How far word `c` of an anchored row may stand from where its first word
+ * puts it: none when the row is sure; when its count is one off where the
+ * page elides or splits a word, none before the slip and the row's whole
+ * slip after it. Its first word opens where its first words were found (its
+ * last word may open one before its last words end: a word the page breaks
+ * over two systems, `For-` `get`, is one word of the row and two sung); its
+ * middle words, found at their place, say on which side of them the slip
+ * lies: a word on the other side stands off by one amount.
  */
-interface RowsFound {
-  readonly found: readonly Found[];
-  readonly miss?: string;
-}
+const offsetsOf = (one: Placed, count: number, c: number): readonly number[] => {
+  const slip = one.end - one.start - count;
+  if (c === 1) return [0];
+  const atMiddle = one.middleAt - (one.start + one.middle - 1);
+  const known = one.middleAt >= 0 && (atMiddle === 0 || atMiddle === slip);
+  if (!known) return [...new Set([0, slip])];
+  if (c >= one.middle && c <= one.middle + 1) return [atMiddle];
+  return c < one.middle ? [...new Set([0, atMiddle])] : [...new Set([atMiddle, slip])];
+};
 
-const rowsIn = (
-  words: readonly string[],
-  rows: ReadonlyArray<{ readonly first: string; readonly last: string }>,
-  upto: number = words.length,
-): RowsFound => {
-  const found: Found[] = [];
-  let from = 0;
-  for (const [r, row] of rows.entries()) {
-    const first = anchorAt(words, wordsOf(row.first), from);
-    if (first === undefined)
-      return { found, miss: `row ${r + 1} opens ${quoted(wordsOf(row.first))}` };
-    const last = anchorAt(words, wordsOf(row.last), first.at);
-    if (last === undefined)
-      return { found, miss: `row ${r + 1} ends ${quoted(wordsOf(row.last))}` };
-    found.push({ start: first.at, end: last.at + last.length });
-    from = last.at + last.length;
-  }
-  // A row's last words can stand more than once in it (`like Jesus` twice in
-  // one row): it ends at their last place before the next row opens.
-  return {
-    found: found.map((one, r) => {
-      const until = found[r + 1]?.start ?? Math.max(upto, one.end);
-      const anchor = wordsOf(rows[r]?.last ?? '');
-      let end = one.end;
-      for (let at = one.end; at < until; at++) {
-        const next = anchorAt(words, anchor, at);
-        if (next === undefined || next.at + next.length > until) break;
-        end = next.at + next.length;
-        at = next.at;
-      }
-      return { start: one.start, end };
-    }),
+/**
+ * Where word `c` of an anchored row stands in the words sung (`offsetsOf`):
+ * one place when the row is sure, or the slip's side is known; else two, the
+ * place its first word counts and the place its last word counts, each
+ * inside the row.
+ */
+const wordPlaces = (one: Placed, count: number, c: number): readonly number[] =>
+  offsetsOf(one, count, c)
+    .map((off) => one.start + c - 1 + off)
+    .filter((at) => one.start <= at && at < one.end);
+
+/** The word numbers of an anchored row that may stand at `at` (`wordPlaces`). */
+const wordsAt = (one: Placed, count: number, at: number): readonly number[] => {
+  const slip = one.end - one.start - count;
+  const atMiddle = one.middleAt >= 0 ? one.middleAt - (one.start + one.middle - 1) : 0;
+  return [...new Set([0, slip, atMiddle].map((off) => at - one.start + 1 - off))].filter(
+    (c) => c >= 1 && c <= count && wordPlaces(one, count, c).includes(at),
+  );
+};
+
+/**
+ * One row placed from `pos`: its span, and its anchors' problems. After a
+ * row whose last words were found (`held`), it opens at `pos` itself: a word
+ * between the two is in no row.
+ */
+const placeRow = (text: Text, row: OutlineRow, pos: number, held: boolean) => {
+  const count = Math.max(1, row.words);
+  const { first, last, mid } = anchorsOf(row);
+  // Its first words, where the row before ends.
+  const slack = held ? 0 : SLACK;
+  const near = seek(text, first, pos, [pos, pos + count], false, slack);
+  const start = near >= 0 ? near : pos;
+  const opens = anchorLine('opens', first, pos, near, slack);
+  // Its last words, its count later.
+  const want = start + count;
+  const to = seek(text, last, want, [start + 1, want + count], true);
+  const end = to >= 0 ? to : want;
+  const ends = anchorLine('ends', last, want, to);
+  // Its middle words, half its count in.
+  const middle = start + Math.floor(count / 2);
+  const holds = oneOf(placesOf(text, mid, middle - SLACK, middle + SLACK, false), middle);
+  const centre = holds >= 0 ? '' : anchorLine('holds its middle', mid, middle, holds);
+  const anchored = opens === '' && ends === '';
+  const placed: Placed = {
+    start,
+    end,
+    anchored,
+    sure: anchored && end - start === count,
+    held: to >= 0,
+    middle: Math.floor(count / 2) + 1,
+    middleAt: holds >= 0 ? holds : NONE,
   };
-};
-
-/** The runs of three or more words that no found row covers, each as its first two words. */
-const uncovered = (words: readonly string[], found: readonly Found[]): string[] => {
-  const covered = words.map(() => false);
-  for (const one of found) for (let k = one.start; k < one.end; k++) covered[k] = true;
-  const runs: string[] = [];
-  for (let k = 0; k < words.length;) {
-    if (covered[k] === true) {
-      k++;
-      continue;
-    }
-    let end = k;
-    while (end < words.length && covered[end] !== true) end++;
-    if (end - k >= 3) runs.push(quoted(words.slice(k, k + 2)));
-    k = end;
-  }
-  return runs;
+  return { placed, problems: [opens, centre, ends].filter((line) => line !== '') };
 };
 
 /**
- * Stanza `i`'s rows and the refrain rows the page prints for it, each in
- * order in what the source sings for it (`words`), and every three words of
- * it in some row.
+ * The page's rows placed in the words a stanza sings, in order, each span
+ * fixed by its count: a row opens where the row before ends, ends its count
+ * of words later, and holds its middle words at its middle place, each
+ * within `SLACK`. An anchor not at its place is a problem line, and so is
+ * one that stands at two places within `SLACK` of it (unresolved). A row
+ * whose anchor is not at its place is placed by the one place of the anchor
+ * within its count of words (a reader's slip moves only its own row), else
+ * by its count, and the rows after it are placed and checked as before.
  */
-const stanzaRowProblems = (
+const placeRows = (
+  text: Text,
+  rows: ReadonlyArray<{ readonly label: string; readonly row: OutlineRow }>,
+) => {
+  const placed: Placed[] = [];
+  const problems: string[] = [];
+  let pos = 0;
+  for (const [k, { label, row }] of rows.entries()) {
+    const one = placeRow(text, row, pos, placed[k - 1]?.held ?? true);
+    placed.push(one.placed);
+    for (const line of one.problems) problems.push(`${label} ${line}`);
+    pos = one.placed.end;
+    const before = rows[k - 1];
+    const [a, b] = [spanOff(placed[k - 1], before?.row), spanOff(one.placed, row)];
+    if (before !== undefined && a !== 0 && b !== 0 && Math.sign(a) !== Math.sign(b))
+      problems.push(
+        `${before.label} and ${label} span ${a > 0 ? '+' : ''}${a} and ${b > 0 ? '+' : ''}${b} words against their counts`,
+      );
+  }
+  return { placed, end: pos, problems };
+};
+
+/**
+ * How many words more (or fewer) a placed row spans than its count. One row
+ * off is count noise (a compound the page splits); two neighbours off the
+ * opposite ways are a word moved over the boundary between them.
+ */
+const spanOff = (placed: Placed | undefined, row: OutlineRow | undefined) =>
+  placed === undefined || row === undefined
+    ? 0
+    : placed.end - placed.start - Math.max(1, row.words);
+
+/**
+ * The words stanza `i` (1-based) sings, the refrain after it, the place each
+ * of its lines opens at, and for each word whether a sentence opens on it.
+ */
+const sungOf = (layout: PrintedLayout, i: number) => {
+  const lines = [...(layout.stanzas[i - 1] ?? []), ...refrainAfter(layout, i)];
+  const [words, opens, sentences, capitals]: [string[], number[], boolean[], boolean[]] = [
+    [],
+    [],
+    [],
+    [],
+  ];
+  for (const line of lines) {
+    opens.push(words.length);
+    words.push(...line.words);
+    sentences.push(...line.sentences);
+    capitals.push(...line.capitals);
+  }
+  return { words, opens, sentences, capitals, own: layout.stanzas[i - 1]?.length ?? 0 };
+};
+
+/**
+ * The refrain rows the page prints for stanza `i` (those every stanza sings,
+ * and those marked for it), and whether the page sings them before the
+ * stanza's words or after them. A source that writes its refrain apart sings
+ * it after each stanza here, as `sungOf` does (where it is sung is held
+ * apart, order against order); a source that writes it inside its stanzas
+ * sings it where the page's order has it: after each stanza, after the last
+ * (`last`, the source's last stanza), before each, or before the first and
+ * after each or after the last.
+ */
+const refrainRowsFor = (outline: Outline, i: number, apart: boolean, last: number) => {
+  const rows = (outline.refrain?.rows ?? []).filter(
+    (one) =>
+      one.stanzas.length === 0 ||
+      one.stanzas.length >= outline.stanzas.length ||
+      one.stanzas.includes(i),
+  );
+  const order = apart ? 'after-each' : (outline.refrain?.order ?? 'after-each');
+  const after =
+    order === 'after-each' ||
+    order === 'first-and-after-each' ||
+    (i === last && (order === 'after-last' || order === 'first-and-last'));
+  const before =
+    order === 'before-each' ||
+    (i === 1 && (order === 'first-and-after-each' || order === 'first-and-last'));
+  return { before: before ? rows : [], after: after ? rows : [] };
+};
+
+/**
+ * Stanza `i` against the page: its rows, then the refrain rows the page
+ * prints for it, placed in what the source sings for it (`placeRows`); no
+ * word sung after the last row; each line of the source opening on a word
+ * the page prints with a capital (a poetic line opens on one: a line break
+ * the page does not print is a word moved over a break, or a line split);
+ * and a stanza printed as text below the music written in its printed lines.
+ * `count` is how many of the source's lines open inside the stanza's own
+ * rows (a refrain or an Amen the source writes inside the stanza left out).
+ */
+export interface StanzaCheck {
+  readonly lines: readonly string[];
+  readonly count: number;
+}
+
+/** Stanza `i`'s rows placed in the words it sings (`placeRows`): it reads the words alone, never where the lines break. */
+export interface Placement {
+  readonly rows: ReadonlyArray<{ readonly label: string; readonly row: OutlineRow }>;
+  readonly placed: readonly Placed[];
+  readonly lines: readonly string[];
+  /** Where the stanza's own rows stand among `rows`. */
+  readonly ownAt: readonly number[];
+}
+
+export const placementOf = (
   what: string,
   outline: Outline,
-  printed: PrintedOutline,
+  layout: PrintedLayout,
   i: number,
-  rows: Outline['stanzas'][number]['rows'],
-  words: readonly string[],
-): string[] => {
-  const problems: string[] = [];
-  const page = outline.stanzas.length;
-  // The stanza's last row stretches over no word of the refrain after it.
-  const own = rowsIn(words, rows, printed.stanzas[i - 1]?.length ?? 0);
-  if (own.miss !== undefined)
-    problems.push(`${what}: stanza ${i} ${own.miss}, not in what it sings`);
-  const refrainRows = (outline.refrain?.rows ?? []).filter(
-    (one) => one.stanzas.length === 0 || one.stanzas.length >= page || one.stanzas.includes(i),
-  );
-  const refrain = rowsIn(words, refrainRows);
-  if (refrain.miss !== undefined)
-    problems.push(`${what}: the refrain after stanza ${i}: ${refrain.miss}, not in what it sings`);
-  if (own.miss === undefined && refrain.miss === undefined)
-    for (const run of uncovered(words, [...own.found, ...refrain.found]))
-      problems.push(`${what}: stanza ${i} sings ${run} and on, in no row the page prints`);
-  return problems;
+): Placement => {
+  const { words } = sungOf(layout, i);
+  const stanzaRows = outline.stanzas[i - 1]?.rows ?? [];
+  const refrain = refrainRowsFor(outline, i, layout.refrain !== undefined, layout.stanzas.length);
+  const own = stanzaRows.map((row, r) => ({ label: `stanza ${i} row ${r + 1}`, row }));
+  const after = refrain.after.map((row, r) => ({
+    label: `the refrain after stanza ${i}: row ${r + 1}`,
+    row,
+  }));
+  // A refrain the page prints inside the stanza's run of systems, and the
+  // source writes inside each stanza, is sung where its systems stand.
+  const inside = outline.refrain?.at === 'inside' && layout.refrain === undefined;
+  const rows = [
+    ...refrain.before.map((row, r) => ({
+      label: `the refrain before stanza ${i}: row ${r + 1}`,
+      row,
+    })),
+    ...(inside
+      ? [...own, ...after].toSorted((a, b) => a.row.system - b.row.system)
+      : [...own, ...after]),
+  ];
+  const text = textOf(words);
+  const { placed, end, problems } = placeRows(text, rows);
+  const lines = problems.map((line) => `${what}: ${line}`);
+  // A word sung after the last row is in no row, unless an extra row of the
+  // page (an Amen printed apart, sung after the last stanza) stands there.
+  const tail = words.length - end;
+  if (
+    tail > 0 &&
+    !(
+      i === layout.stanzas.length &&
+      outline.extra.some((extra) =>
+        spansOf(text, extra).some((span) => span.start === end && span.end === words.length),
+      )
+    )
+  )
+    lines.push(
+      `${what}: stanza ${i} sings ${tail} words from ${quoted(words.slice(end, end + 2))} on, in no row the page prints`,
+    );
+  const labels = new Set(own.map((one) => one.label));
+  const ownAt = rows.flatMap((one, k) => (labels.has(one.label) ? [k] : []));
+  return { rows, placed, lines, ownAt };
+};
+
+/** The named metres the 1985 book prints, as syllables a line. */
+const NAMED_METRES = new Map<string, readonly number[]>([
+  ['CM', [8, 6, 8, 6]],
+  ['LM', [8, 8, 8, 8]],
+  ['SM', [6, 6, 8, 6]],
+]);
+
+/**
+ * The syllables each line of a stanza sings by the metre the page prints
+ * (`8.7.8.7.D.`, `C.M.`, a `Ref.` or Alleluias after it left out): its
+ * numbers, twice over for a `D.`; `undefined` for none, or one with no numbers
+ * (`Irregular`).
+ */
+export const metreOf = (printed: string | null): readonly number[] | undefined => {
+  if (printed === null) return undefined;
+  const text = printed
+    .replace(/\s+/g, '')
+    .replace(/(withRefrain|Refrain|Ref\.?|Alleluias?|Amens?)$/i, '');
+  const double = /\.?D\.?$/.test(text);
+  const body = (double ? text.replace(/\.?D\.?$/, '') : text).replace(/\.$/, '');
+  const named = NAMED_METRES.get(body.replace(/\./g, ''));
+  const base = named ?? (/^\d+(\.\d+)*$/.test(body) ? body.split('.').map(Number) : undefined);
+  return base === undefined ? undefined : double ? [...base, ...base] : base;
+};
+
+const syllableMemo = new Map<string, readonly [number, number]>();
+
+/** The fewest and the most syllables a word may be sung in. */
+const syllablesOf = (word: string): readonly [number, number] => {
+  const known = syllableMemo.get(word);
+  if (known !== undefined) return known;
+  const all = counts(word);
+  const found =
+    all.length === 0 ? ([0, 0] as const) : ([Math.min(...all), Math.max(...all)] as const);
+  syllableMemo.set(word, found);
+  return found;
 };
 
 /**
- * One shape reading against the printed source, stanza by stanza, on what is
- * sung: the stanza's words, then the refrain sung after it (a refrain the
+ * The syllables each of `k` lines sings by the metre the page prints: its
+ * groups when the lines are as many, twice over when twice as many (a line a
+ * group), two groups a line when half as many; `undefined` when they are
+ * otherwise many.
+ */
+const metreFor = (k: number, metre: readonly number[]): readonly number[] | undefined =>
+  k === metre.length
+    ? metre
+    : k === metre.length * 2
+      ? [...metre, ...metre]
+      : k * 2 === metre.length
+        ? Array.from({ length: k }, (_, j) => (metre[2 * j] ?? 0) + (metre[2 * j + 1] ?? 0))
+        : undefined;
+
+/** The fewest and the most syllables a line may be sung in. */
+const lineSyllables = (line: PrintedLine): readonly [number, number] => {
+  let [lo, hi] = [0, 0];
+  for (const word of line.words) {
+    const [fewest, most] = syllablesOf(word);
+    lo += fewest;
+    hi += most;
+  }
+  return [lo, hi];
+};
+
+/**
+ * A stanza's lines against the metre the page prints (`metreFor`): each
+ * line's syllables, fewest to most, hold its group's number or miss it by so
+ * many. A word moved over a line break leaves two neighbouring lines missing
+ * it the opposite ways; each such pair is a line. A line that misses alone
+ * (a syllable the counts read otherwise, an elision) is none.
+ */
+const metreLines = (
+  what: string,
+  i: number,
+  lines: readonly PrintedLine[],
+  metre: readonly number[],
+) => {
+  const want = metreFor(lines.length, metre);
+  if (want === undefined) return [];
+  const miss = lines.map(lineSyllables).map(([lo, hi], j) => {
+    const m = want[j] ?? 0;
+    return m < lo ? lo - m : m > hi ? hi - m : 0;
+  });
+  const found: string[] = [];
+  for (let j = 0; j + 1 < lines.length; j++) {
+    const [a, b] = [miss[j] ?? 0, miss[j + 1] ?? 0];
+    if (a !== 0 && b !== 0 && Math.sign(a) !== Math.sign(b))
+      found.push(
+        `${what}: stanza ${i} lines ${j + 1} and ${j + 2} sing ${a > 0 ? '+' : ''}${a} and ${b > 0 ? '+' : ''}${b} syllables against the metre the page prints`,
+      );
+  }
+  return found;
+};
+
+/**
+ * Each stanza whose count of lines the metre the page prints fits in no way
+ * (`metreFor`), where another stanza's fits: a line joined to the next, or
+ * one split in two.
+ */
+const metreCountLines = (what: string, outline: Outline, layout: PrintedLayout) => {
+  const metre = metreOf(outline.metre);
+  if (metre === undefined) return [];
+  const fits = layout.stanzas.map((lines) => metreFor(lines.length, metre) !== undefined);
+  const fitting = fits.indexOf(true);
+  if (fitting < 0) return [];
+  return fits.flatMap((fit, k) =>
+    fit
+      ? []
+      : [
+          `${what}: stanza ${k + 1} has ${layout.stanzas[k]?.length ?? 0} lines, which the metre the page prints fits in no way, where stanza ${fitting + 1}'s ${layout.stanzas[fitting]?.length ?? 0} fit it`,
+        ],
+  );
+};
+
+/**
+ * Stanza `i`'s check, its rows placed by `placement` (given when the words
+ * it sings are the ones already placed: a line break moved moves no word).
+ */
+export const stanzaCheckOf = (
+  what: string,
+  outline: Outline,
+  layout: PrintedLayout,
+  i: number,
+  book: ReadonlySet<string>,
+  placement: Placement = placementOf(what, outline, layout, i),
+): StanzaCheck => {
+  const sung = sungOf(layout, i);
+  const { opens, own } = sung;
+  const { rows, placed } = placement;
+  const stanzaRows = outline.stanzas[i - 1]?.rows ?? [];
+  const lines = [...placement.lines];
+  for (const [k, open] of opens.entries()) {
+    const r = placed.findIndex((one) => one.anchored && one.start <= open && open < one.end);
+    const [row, one] = [rows[r]?.row, placed[r]];
+    if (row === undefined || one === undefined) continue;
+    const places = wordsAt(one, Math.max(1, row.words), open);
+    if (places.length > 0 && places.every((place) => !row.capitals.includes(place)))
+      lines.push(
+        `${what}: stanza ${i} line ${k + 1} opens on word ${places[0] ?? 0} of ${rows[r]?.label ?? ''}, which the page prints with no capital`,
+      );
+  }
+  lines.push(...unopenedCapitals(what, i, placement, sung, book));
+  const ownRows = placement.ownAt.flatMap((k) => placed[k] ?? []);
+  const inside = opens.filter((open) => ownRows.some((one) => one.start <= open && open < one.end));
+  if (stanzaRows.length > 0 && stanzaRows.every((row) => row.system === 0)) {
+    const starts = new Set(ownRows.map((one) => one.start));
+    if (own !== stanzaRows.length || inside.some((open) => !starts.has(open)))
+      lines.push(
+        `${what}: stanza ${i} is printed as ${stanzaRows.length} lines of text, the printed source writes ${own} other lines`,
+      );
+  }
+  const metre = metreOf(outline.metre);
+  if (metre !== undefined) lines.push(...metreLines(what, i, layout.stanzas[i - 1] ?? [], metre));
+  return { lines, count: inside.length };
+};
+
+/**
+ * Each capital the page prints inside an anchored row where the source opens
+ * no line and no sentence and writes no capital itself, on a word the page
+ * does not capitalise wherever it falls (`book`, `capitalsOf`), at every
+ * place the word may stand (`wordPlaces`): the page opens a line there that
+ * the source runs on.
+ */
+const unopenedCapitals = (
+  what: string,
+  i: number,
+  placement: Placement,
+  sung: {
+    readonly words: readonly string[];
+    readonly opens: readonly number[];
+    readonly sentences: readonly boolean[];
+    readonly capitals: readonly boolean[];
+  },
+  book: ReadonlySet<string>,
+) => {
+  const opens = new Set(sung.opens);
+  return placement.placed.flatMap((one, r) => {
+    const row = placement.rows[r];
+    if (!one.anchored || row === undefined) return [];
+    const opened = (at: number) =>
+      opens.has(at) ||
+      sung.sentences[at] === true ||
+      sung.capitals[at] === true ||
+      book.has(sung.words[at] ?? '');
+    return row.row.capitals.flatMap((c) => {
+      const places = wordPlaces(one, Math.max(1, row.row.words), c);
+      return places.length === 0 || places.some(opened)
+        ? []
+        : [
+            `${what}: ${row.label} prints word ${c} with a capital inside a line of stanza ${i}, where no line or sentence opens`,
+          ];
+    });
+  });
+};
+
+/** Two stanzas the page prints under the same systems (no text stanza among them) open as many lines in their own rows. */
+const sameSystemsLines = (what: string, outline: Outline, checks: readonly StanzaCheck[]) => {
+  const systemsOf = (k: number) =>
+    (outline.stanzas[k]?.rows ?? []).map((row) => row.system).join(',');
+  const first = checks[0]?.count ?? 0;
+  if (systemsOf(0).split(',').includes('0')) return [];
+  return checks.flatMap((check, k) =>
+    k > 0 && systemsOf(k) === systemsOf(0) && check.count !== first
+      ? [
+          `${what}: stanza ${k + 1} has ${check.count} lines, stanza 1 ${first}, under the same systems`,
+        ]
+      : [],
+  );
+};
+
+/** The refrain against the page's: printed when the source has one, sung where the page has it, its varying rows a source's varies parts. */
+const refrainLines = (what: string, outline: Outline, layout: PrintedLayout) => {
+  const lines: string[] = [];
+  const order = sourceOrderOf(layout);
+  if (outline.refrain === null && order !== undefined)
+    lines.push(`${what}: the page prints no refrain, the printed source has one`);
+  if (outline.refrain !== null && order !== undefined && outline.refrain.order !== order)
+    lines.push(
+      `${what}: the page sings its refrain ${outline.refrain.order}, the printed source ${order}`,
+    );
+  const key = (group: readonly number[]) => group.join(', ');
+  const parts = new Set(variesOf(layout).map(key));
+  const unvaried = outlineVaries(outline).filter((group) => !parts.has(key(group)));
+  if (unvaried.length > 0)
+    lines.push(
+      `${what}: the page prints refrain rows for stanzas ${unvaried.map((group) => `[${key(group)}]`).join(' and ')} only, and the printed source sings no varies part after them`,
+    );
+  return lines;
+};
+
+/** Each other row of the page, but an echo or a descant, sung somewhere in the source. */
+const extraLines = (what: string, outline: Outline, layout: PrintedLayout) => {
+  const rows = outline.extra.filter((extra) => !isEcho(extra));
+  if (rows.length === 0) return [];
+  const sung = Array.from({ length: layout.stanzas.length }, (_, k) => sungOf(layout, k + 1).words);
+  return rows
+    .filter((extra) => !sung.some((words) => spansOf(words, extra).length > 0))
+    .map(
+      (extra) =>
+        `${what}: a row ${quoted(wordsOf(extra.first))} (${extra.why}) is in no part of the printed source`,
+    );
+};
+
+/**
+ * One shape reading against the printed source (its layout), on what is
+ * sung: each stanza's words, then the refrain sung after it (a refrain the
  * row writes inside each stanza sings the same). The page prints as many
  * stanzas (a hymn that lends the rest of its stanzas from another prints no
- * more); each stanza's rows, and the refrain rows sung after it, stand in
- * order in what the source sings for it, and every three words it sings
- * stand in a row the page prints; a refrain the source writes apart is one
- * the page prints; each group of refrain rows the page prints for some
- * stanzas only is a `varies` part of the source after those stanzas (a part
- * the page prints as each stanza's own rows sings the same, and is checked
- * as sung); and no other row the source lacks but an echo or a descant.
+ * more); each stanza against its rows (`stanzaShapeProblems`); two stanzas
+ * the page prints under the same systems have as many lines; a refrain the
+ * source writes apart is one the page prints, sung where the page has it
+ * sung (`refrains.json`'s order); each group of refrain rows the page prints
+ * for some stanzas only is a `varies` part of the source after those
+ * stanzas (a part the page prints as each stanza's own rows sings the same,
+ * and is checked as sung); and no other row the source lacks but an echo or
+ * a descant. `known` gives a stanza already checked against this same
+ * reading, these same stanza words and this refrain (a stanza's check
+ * reads only them), taken as given, not checked again; `undefined` checks it.
+ * The lines come one at a time, so a caller that needs only the first new
+ * one stops there. A hymn under copyright has its quoted words cut from
+ * every line (`"…"`): its anchors stay in `shapes.json`.
+ */
+export const layoutLinesIn = function* (
+  ...args: Parameters<typeof layoutLinesRead>
+): Generator<string> {
+  const [n] = args;
+  if (!UNDER_COPYRIGHT.has(n)) return yield* layoutLinesRead(...args);
+  for (const line of layoutLinesRead(...args)) yield line.replace(/"[^"]*"/g, '"…"');
+};
+
+const layoutLinesRead = function* (
+  n: number,
+  reading: Outline,
+  layout: PrintedLayout,
+  borrower: boolean,
+  book: ReadonlySet<string>,
+  known: (i: number) => StanzaCheck | undefined = () => undefined,
+): Generator<string> {
+  const outline = readAs(reading, layout);
+  const what = `${n} shape (${outline.reader})`;
+  const [page, source] = [outline.stanzas.length, layout.stanzas.length];
+  if (borrower ? page > source : page !== source)
+    yield `${what}: the page prints ${page} stanzas, the printed source ${source}`;
+  const checks: StanzaCheck[] = [];
+  for (let i = 1; i <= Math.min(page, source); i++) {
+    const check = known(i) ?? stanzaCheckOf(what, outline, layout, i, book);
+    checks.push(check);
+    yield* check.lines;
+  }
+  yield* sameSystemsLines(what, outline, checks);
+  yield* metreCountLines(what, outline, layout);
+  yield* refrainLines(what, outline, layout);
+  yield* extraLines(what, outline, layout);
+};
+
+/** Every line `layoutLinesIn` finds, in its order. */
+export const layoutLinesOf = (...args: Parameters<typeof layoutLinesIn>): string[] => [
+  ...layoutLinesIn(...args),
+];
+
+const asRefrain = new WeakMap<Outline, Outline>();
+
+/**
+ * A reading as the census holds it to a layout. A page that prints its
+ * refrain first, numbered as stanza 1, and returns to it (D.C. al Fine) is
+ * read with no refrain and one stanza more than the source; where the source
+ * sings its refrain `first-and-after-each` and prints one stanza fewer, the
+ * page's stanza 1 is that refrain, printed before the stanzas. Any other
+ * reading is held as read. (The same reading gives the same object.)
+ */
+export const readAs = (outline: Outline, layout: PrintedLayout): Outline => {
+  if (
+    outline.refrain !== null ||
+    sourceOrderOf(layout) !== 'first-and-after-each' ||
+    outline.stanzas.length !== layout.stanzas.length + 1
+  )
+    return outline;
+  const known = asRefrain.get(outline);
+  if (known !== undefined) return known;
+  const [first, ...rest] = outline.stanzas;
+  const read: Outline = {
+    ...outline,
+    stanzas: rest,
+    refrain: {
+      label: null,
+      at: 'before',
+      order: 'first-and-after-each',
+      rows: (first?.rows ?? []).map((row) => ({ ...row, stanzas: [] })),
+    },
+  };
+  asRefrain.set(outline, read);
+  return read;
+};
+
+/** Whether an extra row is an echo or a descant: words sung again over the main row, which the source may leave out. */
+export const isEcho = (extra: Outline['extra'][number]) =>
+  /echo|descant|parenthes/i.test(extra.why);
+
+/**
+ * Each place a row stands in `words`, as its first word and one past its
+ * last: its first words there, its last words its count later, its middle
+ * words half its count in, each within `SLACK`.
+ */
+export const spansOf = (sung: readonly string[] | Text, row: OutlineRow) => {
+  const words = 'joined' in sung ? sung : textOf(sung);
+  const count = Math.max(1, row.words);
+  const { first, mid, last } = anchorsOf(row);
+  const middle = Math.floor(count / 2);
+  return placesOf(words, first, 0, words.words.length, false).flatMap((start) => {
+    const end = placesOf(words, last, start + count - SLACK, start + count + SLACK, true)[0];
+    return end !== undefined &&
+      placesOf(words, mid, start + middle - SLACK, start + middle + SLACK, false).length > 0
+      ? [{ start, end }]
+      : [];
+  });
+};
+
+/** Each shape reading's lines, by the row they were held to, with the rest of what they read. */
+const heldLines = new WeakMap<
+  Outline,
+  WeakMap<
+    Verses,
+    Array<{
+      readonly n: number;
+      readonly fix: Fix | undefined;
+      readonly borrower: boolean;
+      readonly order: Order | undefined;
+      readonly book: ReadonlySet<string>;
+      readonly lines: readonly string[];
+    }>
+  >
+>();
+
+/**
+ * One shape reading against a hymn's row and fix: `layoutLinesOf` over its
+ * printed layout. The same reading held to the same row, fix, order and
+ * book (the same objects) gives the lines found before: a census run with
+ * one hymn changed checks that hymn again, and no other.
  */
 export const outlineProblems = (
   n: number,
@@ -1307,39 +2101,46 @@ export const outlineProblems = (
   row: Verses,
   fix: Fix | undefined,
   borrower: boolean,
+  order: Order | undefined,
+  book: ReadonlySet<string>,
 ): string[] => {
-  const printed = printedOutlineOf(row, fix);
-  const what = `${n} shape (${outline.reader})`;
-  const problems: string[] = [];
-  const [page, source] = [outline.stanzas.length, printed.stanzas.length];
-  if (borrower ? page > source : page !== source)
-    problems.push(`${what}: the page prints ${page} stanzas, the printed source ${source}`);
-  const sungOf = (i: number) => [
-    ...(printed.stanzas[i - 1] ?? []),
-    ...(printed.refrain ? printed.refrainAfter(i) : []),
-  ];
-  for (const [k, stanza] of outline.stanzas.slice(0, source).entries())
-    problems.push(...stanzaRowProblems(what, outline, printed, k + 1, stanza.rows, sungOf(k + 1)));
-  if (outline.refrain === null && printed.refrain)
-    problems.push(`${what}: the page prints no refrain, the printed source has one`);
-  const key = (group: readonly number[]) => group.join(', ');
-  const parts = new Set(printed.varies.map(key));
-  const unvaried = outlineVaries(outline).filter((group) => !parts.has(key(group)));
-  if (unvaried.length > 0)
-    problems.push(
-      `${what}: the page prints refrain rows for stanzas ${unvaried.map((group) => `[${key(group)}]`).join(' and ')} only, and the printed source sings no varies part after them`,
-    );
-  const everywhere = Array.from({ length: source }, (_, k) => sungOf(k + 1));
-  for (const extra of outline.extra)
-    if (
-      !/echo|descant|parenthes/i.test(extra.why) &&
-      !everywhere.some((words) => rowsIn(words, [extra]).miss === undefined)
-    )
-      problems.push(
-        `${what}: a row ${quoted(wordsOf(extra.first))} (${extra.why}) is in no part of the printed source`,
-      );
-  return problems;
+  const byRow = heldLines.get(outline) ?? new WeakMap();
+  heldLines.set(outline, byRow);
+  const held = byRow.get(row) ?? [];
+  byRow.set(row, held);
+  const found = held.find(
+    (one) =>
+      one.n === n &&
+      one.fix === fix &&
+      one.borrower === borrower &&
+      one.order === order &&
+      one.book === book,
+  );
+  if (found !== undefined) return [...found.lines];
+  const lines = layoutLinesOf(n, outline, layoutOf(row, fix, order), borrower, book);
+  held.push({ n, fix, borrower, order, book, lines });
+  return [...lines];
 };
+
+/** Each line of the printed source that opens with whitespace: the row format holds no indent. */
+export const formatProblems = (n: number, layout: PrintedLayout): string[] => [
+  ...layout.stanzas.flatMap((lines, s) =>
+    lines.flatMap((line, k) =>
+      line.indent ? [`${n} lines: stanza ${s + 1} line ${k + 1} opens with whitespace`] : [],
+    ),
+  ),
+  ...(layout.refrain ?? []).flatMap((item, k) =>
+    ('varies' in item ? item.varies.flatMap((part) => part.lines) : [item]).some(
+      (line) => line.indent,
+    )
+      ? [`${n} lines: refrain item ${k + 1} opens with whitespace`]
+      : [],
+  ),
+];
+
+/** Whether a census line is a layout line of hymn `n`: its shape check's or its line format's. */
+export const isLayoutLine = (n: number, line: string) =>
+  line.startsWith(`${n} shape (`) || line.startsWith(`${n} lines: `);
 
 /** What the checks read: all committed, and the base rows read from git. */
 export interface Sources {
@@ -1358,9 +2159,60 @@ export interface Sources {
   readonly photos: ReadonlyMap<string, Uint8Array>;
   /** Each hymn's shape readings (`data/shapes.json`). */
   readonly outlines: ReadonlyMap<number, readonly Outline[]>;
+  /** Where each refrain hymn's row has its refrain sung (`data/fixes/refrains.json`). */
+  readonly orders: ReadonlyMap<number, Order>;
   /** The hymns with a fix file at the census's base commit, read from git. */
   readonly baseFixes: readonly number[];
+  /** Each hymn's words the page capitalises wherever they fall (`capitalsOf`). */
+  readonly capitals: ReadonlyMap<number, ReadonlySet<string>>;
 }
+
+/** Counts each word of a row line by its places inside the line: capitalised, then not (`midCapital`). */
+const tallyLine = (counts: Map<string, [number, number]>, line: string) => {
+  let before: string | undefined;
+  for (const token of line.split(/\s+/u)) {
+    if (token === '') continue;
+    const inside = before !== undefined && !/[.!?:;"“]$/u.test(before) && !QUOTE_OPEN.test(token);
+    if (inside)
+      for (const word of wordsOf(token)) {
+        const count = counts.get(word) ?? [0, 0];
+        count[midCapital(token, before) ? 0 : 1] += 1;
+        counts.set(word, count);
+      }
+    before = token;
+  }
+};
+
+/**
+ * Each hymn's words the page capitalises wherever they fall, so that such a
+ * capital inside a row opens no line: a word the committed rows write with a
+ * capital in at least half of their places inside a line (a name of God,
+ * `I`, `O`, `Thee`), and a word the hymn's own row writes so in at least half
+ * of its places inside a line (`You` addressed to God in a hymn that always
+ * capitalises it). A place inside a line is one `midCapital` reads: not first
+ * in its line, after no `.`, `!`, `?`, `:`, `;` or quote mark, opening no
+ * quote. A word capitalised in fewer of its places (`To` where a row writes
+ * two poem lines as one) is no such word: its capital opens a line, unless
+ * the row writes that very word there with a capital (`PrintedLine.capitals`).
+ */
+export const capitalsOf = (
+  rows: ReadonlyMap<number, Verses>,
+): ReadonlyMap<number, ReadonlySet<string>> => {
+  const tally = (counts: Map<string, [number, number]>, row: Verses) => {
+    for (const verse of row) for (const line of verse.text.split('\n')) tallyLine(counts, line);
+    return counts;
+  };
+  const mostly = (counts: Map<string, [number, number]>) =>
+    [...counts].flatMap(([word, [capital, lower]]) => (capital >= lower ? [word] : []));
+  const book = mostly([...rows.values()].reduce(tally, new Map()));
+  return new Map(
+    [...rows].map(([n, row]) => [n, new Set([...book, ...mostly(tally(new Map(), row))])]),
+  );
+};
+
+/** A hymn's words the page capitalises wherever they fall (`capitalsOf`). */
+export const bookOf = (sources: Sources, n: number): ReadonlySet<string> =>
+  sources.capitals.get(n) ?? new Set();
 
 /** The base row of a hymn: its row at the base commit, read from git. */
 export const baseOf = (sources: Sources, n: number): Verses => sources.base.get(n) ?? [];
@@ -1438,6 +2290,8 @@ const photoProblems = (photos: ReadonlyMap<string, Uint8Array>): string[] =>
 /** What the rulings make of a hymn: its state, and the row its rulings give. */
 export interface Derived {
   readonly row: Entry['row'];
+  /** The state its words alone give: `row`, but for a `disputed` ruling, which leaves the words as they are. */
+  readonly words: Entry['row'];
   readonly units: ReadonlyArray<readonly string[]>;
   readonly changes: number;
 }
@@ -1449,11 +2303,13 @@ const on1985 = (ruling: Ruling) =>
 
 /**
  * A hymn's state from its rulings alone: `unsettled` when a ruling could not
- * read its crops or a ruling that changes words rests on an engraving's
- * crop, `fixed` when rulings on crops of the 1985 book change words, else
- * `matches`. Only rulings that apply count: rulings in conflict
- * (`misplaced`) apply none, and the census prints each conflict. A
- * `nopage` entry is its own claim: the readings run holds it.
+ * read its crops, a ruling that changes words rests on an engraving's crop,
+ * or a judge found the page lays the row out otherwise (`disputed`),
+ * `fixed` when rulings on crops of the 1985 book change words,
+ * else `matches`. Its words are the base row's, or with every ruling applied
+ * when they are `fixed` (a `disputed` ruling changes no word). Only rulings that apply
+ * count: rulings in conflict (`misplaced`) apply none, and the census prints
+ * each conflict. A `nopage` entry is its own claim: the readings run holds it.
  */
 export const derive = (
   base: ReadonlyArray<readonly string[]>,
@@ -1465,15 +2321,16 @@ export const derive = (
   const applied = applyRulings(base, rulings);
   const changing = applied.applied.filter(changes);
   const unreadable = rulings.some((ruling) => ruling.kind === 'unreadable');
-  const row: Entry['row'] =
+  const words: Entry['row'] =
     unreadable || changing.some((ruling) => !on1985(ruling))
       ? 'unsettled'
       : changing.length > 0
         ? 'fixed'
         : 'matches';
   return {
-    row,
-    units: row === 'fixed' ? applied.units : base.map((unit) => [...unit]),
+    row: rulings.some((ruling) => ruling.kind === 'disputed') ? 'unsettled' : words,
+    words,
+    units: words === 'fixed' ? applied.units : base.map((unit) => [...unit]),
     changes: rulings.filter(changes).length,
     misplaced: applied.misplaced,
     spans: applied.spans,
@@ -1545,6 +2402,8 @@ const rulingProblems = (
   rulings.flatMap((ruling, i) => {
     const what = `${n} ruling ${i + 1}`;
     const named = [...ruling.why.matchAll(IMAGE)].map((match) => match[0]);
+    // What a ruling may hold in place of a site: lines it settles, mutants it lists.
+    const held = [ruling.settles, ruling.unreachable, ruling.gaps].flatMap((list) => list ?? []);
     return [
       ...(ruling.crops.length === 0 ? [`${what} names no crop`] : []),
       ...ruling.crops.flatMap((one) => cropProblems(what, n, deciding, one, crops)),
@@ -1554,18 +2413,21 @@ const rulingProblems = (
       ...named
         .filter((image) => !crops.has(`${pad(n)}/${image}`))
         .map((image) => `${what} reads ${image}, which is no committed crop`),
-      ...(ruling.sites.length === 0 && (ruling.settles ?? []).length === 0
-        ? [`${what} has no site`]
-        : []),
+      ...(ruling.sites.length === 0 && held.length === 0 ? [`${what} has no site`] : []),
       ...(ruling.readings.length === 0 ? [`${what} names no reading`] : []),
       ...(ruling.judge === '' ? [`${what} names no judge`] : []),
       ...((ruling.kind === 'words' || ruling.kind === 'owner') &&
       !same(wordsOf(ruling.sung), wordsOf(ruling.printed))
         ? [`${what} sings "${ruling.sung}", not the words it prints`]
         : []),
-      ...((ruling.kind === 'echo' || ruling.kind === 'layout') &&
+      ...((ruling.kind === 'echo' || ruling.kind === 'layout' || ruling.kind === 'disputed') &&
       !same(wordsOf(ruling.sung), wordsOf(ruling.row))
-        ? [`${what} is ${ruling.kind === 'echo' ? 'an echo' : 'a layout'} but changes the row`]
+        ? [
+            `${what} is ${ruling.kind === 'echo' ? 'an echo' : `a ${ruling.kind}`} but changes the row`,
+          ]
+        : []),
+      ...(ruling.kind === 'disputed' && (ruling.settles ?? []).length === 0
+        ? [`${what} is disputed but settles no line`]
         : []),
       ...applyRulings(base, [ruling]).misplaced.map((one) => `${what} ${lineOfConflict(one)}`),
     ];
@@ -1614,10 +2476,12 @@ const fixFileProblems = (
   deciding: Deciding,
   fix: Fix | undefined,
   row: Verses,
+  words: Entry['row'],
 ): string[] => {
   const n = entry.number;
-  if (fix === undefined)
-    return entry.row === 'fixed' ? [`${n} says fixed but has no fix file`] : [];
+  // A row whose words are fixed and whose layout waits on the owner (`disputed`) keeps its fix file.
+  const fixed = entry.row === 'fixed' || (entry.row === 'unsettled' && words === 'fixed');
+  if (fix === undefined) return fixed ? [`${n} says ${entry.row} but has no fix file`] : [];
   const sings = unitDiff(
     fixUnitLinesOf(fix).map((lines) => wordsOf(lines.map((line) => line.text).join('\n'))),
     unitsOf(row),
@@ -1627,7 +2491,7 @@ const fixFileProblems = (
     return PRIOR_FIXES.has(n) ? own : [...own, `${n} fix file carries no replaces`];
   return [
     ...own,
-    ...(entry.row === 'fixed' || (entry.row === 'matches' && fixVaries(fix) && sings === undefined)
+    ...(fixed || (entry.row === 'matches' && fixVaries(fix) && sings === undefined)
       ? []
       : [`${n} has a fix file of its own but says ${entry.row}`]),
     ...fixLines(fix)
@@ -1710,18 +2574,77 @@ const entryProblems = (entry: Entry, deciding: Deciding, sources: Sources): stri
     ...(entry.stanzas === stanzas && entry.refrain === refrain
       ? []
       : [`${n} claims ${entry.stanzas} stanzas, refrain ${entry.refrain}`]),
-    ...fixFileProblems(entry, deciding, fix, row),
+    ...fixFileProblems(entry, deciding, fix, row, derived.words),
     ...(fix?.replaces === undefined ? [] : spanProblems(n, fix, rulings, derived.spans)),
     ...outlineEntryProblems(entry, deciding, sources),
   ];
 };
 
+/** The refrain rows a lender's page sings after its stanza `i`, read as that stanza's own rows. */
+const lentRefrain = (their: Outline, i: number) =>
+  their.refrain === null || their.refrain.order !== 'after-each'
+    ? []
+    : their.refrain.rows.filter((row) => row.stanzas.length === 0 || row.stanzas.includes(i));
+
+/** The shape readings a hymn is held to, and whether it borrows stanzas no reading of its lender prints (`outlinesOf`). */
+export interface HeldTo {
+  readonly outlines: readonly Outline[];
+  readonly borrower: boolean;
+}
+
 /**
- * An entry against its shape readings: a hymn whose page no model reader
- * transcribed (machine OCR places the page's words over the row's own
- * stanzas, lines and refrain, so it reads no shape) has a shape reading of
- * its deciding page; each shape reading is of that page, and agrees with
- * the printed source (`shapeProblems`).
+ * The shape readings a hymn is held to: its own, and for a hymn whose page
+ * lends its other stanzas from another (`Inventory.lent`), each of its own
+ * with the stanzas it does not print taken from each reading of the
+ * lender's page (and the refrain it sings after them), as `lentReadings`
+ * does for word readings. A borrower whose
+ * lender has no shape reading is held to its own, which prints no more
+ * stanzas than the source (`borrower`).
+ */
+export const outlinesOf = (sources: Sources, n: number): HeldTo => {
+  const byOutlines = heldTo.get(sources.inventory) ?? new WeakMap();
+  heldTo.set(sources.inventory, byOutlines);
+  const byHymn = byOutlines.get(sources.outlines) ?? new Map<number, HeldTo>();
+  byOutlines.set(sources.outlines, byHymn);
+  const found = byHymn.get(n) ?? readingsHeld(sources, n);
+  byHymn.set(n, found);
+  return found;
+};
+
+/** `outlinesOf` by the inventory and the readings it was given (the same objects give the same readings). */
+const heldTo = new WeakMap<
+  Inventory,
+  WeakMap<ReadonlyMap<number, readonly Outline[]>, Map<number, HeldTo>>
+>();
+
+const readingsHeld = (sources: Sources, n: number): HeldTo => {
+  const own = sources.outlines.get(n) ?? [];
+  const lent = sources.inventory.lent.find((one) => one.hymn === n);
+  const theirs = lent === undefined ? [] : (sources.outlines.get(lent.from) ?? []);
+  if (theirs.length === 0) return { outlines: own, borrower: lent !== undefined };
+  return {
+    outlines: own.flatMap((outline) =>
+      theirs.map((their) => ({
+        ...outline,
+        images: [...outline.images, ...their.images],
+        stanzas: [
+          ...outline.stanzas,
+          ...their.stanzas.slice(outline.stanzas.length).map((stanza, k) => ({
+            ...stanza,
+            rows: [...stanza.rows, ...lentRefrain(their, outline.stanzas.length + k + 1)],
+          })),
+        ],
+      })),
+    ),
+    borrower: false,
+  };
+};
+
+/**
+ * An entry against its shape readings: every hymn with a deciding page has
+ * a shape reading of it; each shape reading is of that page, and agrees
+ * with the printed source (`layoutLinesOf`, `formatProblems`) but for the
+ * lines a ruling settles, and a ruling settles only a line the census finds.
  */
 export const outlineEntryProblems = (
   entry: Entry,
@@ -1729,19 +2652,24 @@ export const outlineEntryProblems = (
   sources: Sources,
 ): string[] => {
   const n = entry.number;
-  const outlines = sources.outlines.get(n) ?? [];
-  const borrower = sources.inventory.lent.some((one) => one.hymn === n);
+  const { outlines, borrower } = outlinesOf(sources, n);
   const found = outlines.flatMap((outline) =>
-    outlineProblems(n, outline, sources.rows.get(n) ?? [], sources.fixes.get(n), borrower),
+    outlineProblems(
+      n,
+      outline,
+      sources.rows.get(n) ?? [],
+      sources.fixes.get(n),
+      borrower,
+      sources.orders.get(n),
+      bookOf(sources, n),
+    ),
   );
   const settled = new Set((sources.rulings.get(n) ?? []).flatMap((ruling) => ruling.settles ?? []));
   return [
-    ...(entry.row !== 'nopage' &&
-    entry.readings.reader === 0 &&
-    entry.readings.ocr > 0 &&
-    outlines.length === 0
-      ? [`${n} says ${entry.row} on machine OCR alone, with no shape reading of its page`]
+    ...(entry.row !== 'nopage' && outlines.length === 0
+      ? [`${n} says ${entry.row} with no shape reading of its page`]
       : []),
+    ...formatProblems(n, layoutOf(sources.rows.get(n) ?? [], sources.fixes.get(n), undefined)),
     ...outlines
       .filter((outline) => !ofPage(outline.images, deciding))
       .map(
@@ -2080,6 +3008,9 @@ export const loadSources = Effect.gen(function* () {
   )).hymns)
     outlines.set(outline.number, [...(outlines.get(outline.number) ?? []), outline]);
   const baseFixes = yield* baseFixesAt(census.base.commit);
+  const orders = yield* decodeOrders(
+    yield* fs.readFileString(path.join(DATA, 'fixes/refrains.json')),
+  );
   const sources: Sources = {
     inventory,
     rows,
@@ -2089,7 +3020,9 @@ export const loadSources = Effect.gen(function* () {
     crops,
     photos,
     outlines,
+    orders,
     baseFixes,
+    capitals: capitalsOf(rows),
   };
   return sources;
 });
@@ -2141,16 +3074,16 @@ const loadReadings = (root: string) =>
 // ----------------------------------------------------------------------------
 
 /**
- * The shape readers' reports under `root` (`shape/*.json`, each
- * `{ hymns: [...] }`), each named by its file (`shape-NN`).
+ * The shape readers' reports in `dir` (`*.json`, each `{ hymns: [...] }`),
+ * each named by its file (`shape2-NN`).
  */
-const loadOutlineReports = (root: string) =>
+const loadOutlineReports = (dir: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const outlines: Outline[] = [];
-    for (const file of yield* filesUnder(path.join(root, 'shape'), '.json')) {
+    for (const file of yield* filesUnder(dir, '.json')) {
       const record = yield* Schema.decodeEffect(Schema.fromJsonString(ReportFile))(
-        yield* fs.readFileString(path.join(root, 'shape', file)),
+        yield* fs.readFileString(path.join(dir, file)),
       );
       outlines.push(
         ...record.hymns.map((one) => outlineOfReport(one, path.basename(file, '.json'))),
@@ -2193,7 +3126,6 @@ const readingsRun = (census: Census, sources: Sources, root: string) =>
           sources.outlines.get(entry.number) ?? [],
         ),
       ),
-      ...outlineReportProblems(sources, yield* loadOutlineReports(root)),
     ];
   });
 
@@ -2226,6 +3158,7 @@ const run = (flags: {
   readonly readings?: string | undefined;
   readonly scans?: string | undefined;
   readonly witness?: string | undefined;
+  readonly reports?: string | undefined;
 }) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -2241,6 +3174,15 @@ const run = (flags: {
       );
     if (flags.readings !== undefined)
       problems.push(...(yield* readingsRun(census, sources, path.resolve(flags.readings))));
+    if (flags.reports !== undefined || flags.readings !== undefined)
+      problems.push(
+        ...outlineReportProblems(
+          sources,
+          yield* loadOutlineReports(
+            path.resolve(flags.reports ?? path.join(flags.readings ?? '', 'shape')),
+          ),
+        ),
+      );
     if (flags.witness !== undefined)
       problems.push(...(yield* witnessRun(census, sources, path.resolve(flags.witness))));
     for (const problem of problems) console.log(`problem ${problem}`);
@@ -2296,6 +3238,7 @@ if (import.meta.main) {
       readings: after('--readings'),
       scans: after('--scans'),
       witness: after('--witness'),
+      reports: after('--shapes'),
     }).pipe(Effect.provide(censusLayer)),
   );
 }

@@ -1,0 +1,106 @@
+{
+  "number": 1,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-01 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "001.jpg",
+          "crop": "001-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "4c809244b87d9b44",
+          "shows": ""
+        },
+        {
+          "image": "001.jpg",
+          "crop": "001-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "2d879a9c51bbc6af",
+          "shows": ""
+        },
+        {
+          "image": "001.jpg",
+          "crop": "001-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "42be3ab2909ee07e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "001-strip800.jpg and 001-strip1600.jpg system 3, stanza 1 row: word 8 'Now' is capitalised and opens the page's 7-syllable poem line 4 (metre 14.14.4.7.8 on 001-strip0.jpg) after the 4-syllable poem line 3 that ends 'hear,'. Database line 3 writes these two whole poem lines as one (4 + 6 = 10 words), as it does in every stanza; no word moves.",
+      "settles": [
+        "1 shape (shape2-01): stanza 1 row 3 prints word 8 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-01 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "001.jpg",
+          "crop": "001-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "4c809244b87d9b44",
+          "shows": ""
+        },
+        {
+          "image": "001.jpg",
+          "crop": "001-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "42be3ab2909ee07e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "001-strip1600.jpg system 3, stanza 3 row: word 6 'What' is capitalised and opens the 7-syllable poem line 4 (metre 14.14.4.7.8 on 001-strip0.jpg) after the 4-syllable poem line 3 'Pon-der a-new'. Database line 3 writes these two whole poem lines as one (2 + 5 = 7 words), as in stanzas 1 and 2; no word moves.",
+      "settles": [
+        "1 shape (shape2-01): stanza 3 row 3 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-01 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "001.jpg",
+          "crop": "001-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "4c809244b87d9b44",
+          "shows": ""
+        },
+        {
+          "image": "001.jpg",
+          "crop": "001-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "2d879a9c51bbc6af",
+          "shows": ""
+        },
+        {
+          "image": "001.jpg",
+          "crop": "001-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "42be3ab2909ee07e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "001-strip1600.jpg system 3, stanza 2 row: word 7 'How' follows 'seen' and opens the 7-syllable poem line of the printed metre 14.14.4.7.8. (001-strip0.jpg header). The database joins two whole poem lines (4 + 7 syllables, 'Hast thou not seen' + 'How ... have been') into its line 3, as it does in stanzas 1 and 3 ('Now', 'What'); the words are the same.",
+      "settles": [
+        "1 shape (shape2-01): stanza 2 row 3 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    }
+  ]
+}

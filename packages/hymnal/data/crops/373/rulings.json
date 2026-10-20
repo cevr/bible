@@ -76,7 +76,7 @@
     {
       "sites": [],
       "row": "",
-      "readings": ["shape-13 (the shape reading of the page)"],
+      "readings": ["shape2-42 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
       "kind": "repeat",
@@ -85,37 +85,328 @@
           "image": "p363.jpg",
           "crop": "p363-strip800.jpg",
           "box": [0, 800, 1758, 1000],
-          "sha": "afd848bd1bfe6f68",
+          "sha": "2f71978cb5091f0f",
           "shows": ""
         },
         {
           "image": "p363.jpg",
           "crop": "p363-strip1600.jpg",
           "box": [0, 1600, 1758, 1000],
-          "sha": "de2c665b2fe5301c",
-          "shows": ""
-        },
-        {
-          "image": "p363.jpg",
-          "crop": "p363-strip2400.jpg",
-          "box": [0, 2400, 1758, 228],
-          "sha": "fb112e65537b6391",
+          "sha": "1bcbe1f11926a415",
           "shows": ""
         },
         {
           "image": "p364.jpg",
           "crop": "p364-strip0.jpg",
           "box": [0, 0, 1758, 1000],
-          "sha": "631d7a1370bcf351",
+          "sha": "1dd8176ca55a4b8c",
           "shows": ""
         }
       ],
-      "judge": "shape-judge-judge-j1 (Opus, effort max)",
-      "why": "p363-strip800.jpg and p363-strip1600.jpg, system 3: the refrain opens at a start-repeat sign with braced rows 'Go-ing a-' over 'In-to the'; p364-strip0.jpg, system 5: row 1 ends 'back a-gain,' in the 1st ending before the end-repeat, and row 2 ends 'sin-ners slain.' in the 2nd ending. So row 1 of systems 4 and 5 is sung first and row 2 of both after the repeat, which is the database's order.",
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain stands under repeat signs (opening at the end of system 3, p363-strip800.jpg) with 1st and 2nd endings (system 5, p364-strip0.jpg): the first pass sings system 4's upper row then system 5's upper row, the second pass system 4's lower row then system 5's lower row. The reader's row 2 (system 4, lower row, 6 words, p363-strip1600.jpg) is the database's refrain line 3, sung on the second pass, after system 5's upper row.",
       "settles": [
-        "373 shape (shape-13): the refrain after stanza 1: row 3 opens \"bringing the\", not in what it sings",
-        "373 shape (shape-13): the refrain after stanza 2: row 3 opens \"bringing the\", not in what it sings",
-        "373 shape (shape-13): the refrain after stanza 3: row 3 opens \"bringing the\", not in what it sings"
+        "373 shape (shape2-42): the refrain after stanza 1: row 2 opens \"into the\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 1: row 2 holds its middle \"of my\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 1: row 2 ends \"my redeemer\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "Under the refrain's repeat signs, p364-strip0.jpg system 5's upper row (7 words) runs into the 1st ending and is sung on the first pass right after system 4's upper row (p363-strip1600.jpg); it is the database's refrain line 2. The reader listed it after system 4's lower row (page order), so its count places it 6 words late.",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 1: row 3 opens \"bringing the\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 1: row 3 holds its middle \"back again\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 1: row 3 ends \"back again\" at word 36, its count gives word 42"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "Under the refrain's repeat signs, p364-strip0.jpg system 5's lower row (9 words) runs into the 2nd ending and is sung on the second pass right after system 4's lower row (p363-strip1600.jpg); it is the database's refrain line 4 and opens after line 3, not after the reader's row 3 (system 5's upper row, sung on the first pass).",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 1: row 4 opens \"jesus the\" at word 42, its count gives word 36"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain is printed once and sung after stanza 2 too, under repeat signs with 1st and 2nd endings: first pass system 4's upper row then system 5's upper row, second pass system 4's lower row then system 5's lower row. The reader's row 2 (system 4, lower row, 6 words, p363-strip1600.jpg) is the database's refrain line 3, sung on the second pass.",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 2: row 2 opens \"into the\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 2: row 2 holds its middle \"of my\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 2: row 2 ends \"my redeemer\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "After stanza 2 as after stanza 1: p364-strip0.jpg system 5's upper row (7 words, into the 1st ending) is sung on the first pass right after system 4's upper row and is the database's refrain line 2; the reader listed it after system 4's lower row (page order), so its count places it 6 words late.",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 2: row 3 opens \"bringing the\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 2: row 3 holds its middle \"back again\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 2: row 3 ends \"back again\" at word 42, its count gives word 48"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "After stanza 2 as after stanza 1: p364-strip0.jpg system 5's lower row (9 words, into the 2nd ending) is sung on the second pass right after system 4's lower row; it is the database's refrain line 4 and opens after line 3, not after the reader's row 3 (system 5's upper row).",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 2: row 4 opens \"jesus the\" at word 48, its count gives word 42"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain is printed once and sung after stanza 3 too, under repeat signs with 1st and 2nd endings: first pass system 4's upper row then system 5's upper row, second pass system 4's lower row then system 5's lower row. The reader's row 2 (system 4, lower row, 6 words, p363-strip1600.jpg) is the database's refrain line 3, sung on the second pass.",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 3: row 2 opens \"into the\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 3: row 2 holds its middle \"of my\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 3: row 2 ends \"my redeemer\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "After stanza 3 as after stanza 1: p364-strip0.jpg system 5's upper row (7 words, into the 1st ending) is sung on the first pass right after system 4's upper row and is the database's refrain line 2; the reader listed it after system 4's lower row (page order), so its count places it 6 words late.",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 3: row 3 opens \"bringing the\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 3: row 3 holds its middle \"back again\" at no place its count gives",
+        "373 shape (shape2-42): the refrain after stanza 3: row 3 ends \"back again\" at word 41, its count gives word 47"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-42 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "2f71978cb5091f0f",
+          "shows": ""
+        },
+        {
+          "image": "p363.jpg",
+          "crop": "p363-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1bcbe1f11926a415",
+          "shows": ""
+        },
+        {
+          "image": "p364.jpg",
+          "crop": "p364-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "1dd8176ca55a4b8c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "After stanza 3 as after stanza 1: p364-strip0.jpg system 5's lower row (9 words, into the 2nd ending) is sung on the second pass right after system 4's lower row; it is the database's refrain line 4 and opens after line 3, not after the reader's row 3 (system 5's upper row).",
+      "settles": [
+        "373 shape (shape2-42): the refrain after stanza 3: row 4 opens \"jesus the\" at word 47, its count gives word 41"
       ]
     }
   ]

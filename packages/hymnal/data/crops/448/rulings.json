@@ -1,0 +1,92 @@
+{
+  "number": 448,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "448.png",
+          "crop": "448-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "3644f3cb737d5b40",
+          "shows": ""
+        },
+        {
+          "image": "448.png",
+          "crop": "448-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "8e95659ff2a7f896",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "448-strip0.jpg system 3: each stanza's row ends 'in that' and runs on to system 4 (448-strip800.jpg), whose one lyric row prints 'morn-ing.' once for all three stanzas, before the Refrain mark over 'O,'. The database ends stanza 1's line 4 with that shared word (37 words), so its refrain rightly opens at word 38; the reader set the word apart and counted 36.",
+      "settles": [
+        "448 shape (shape2-50): the refrain after stanza 1: row 1 opens \"o shout\" at word 38, its count gives word 37"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "448.png",
+          "crop": "448-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "3644f3cb737d5b40",
+          "shows": ""
+        },
+        {
+          "image": "448.png",
+          "crop": "448-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "8e95659ff2a7f896",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "448-strip0.jpg system 3: stanza 2's row ends 'in that' and runs on to the one lyric row of system 4 (448-strip800.jpg), which prints 'morn-ing.' once for all three stanzas, before the Refrain mark. The database ends stanza 2's line 4 with that shared word (38 words), so its refrain rightly opens at word 39; the reader set the word apart and counted 37.",
+      "settles": [
+        "448 shape (shape2-50): the refrain after stanza 2: row 1 opens \"o shout\" at word 39, its count gives word 38"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-50 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "448.png",
+          "crop": "448-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "3644f3cb737d5b40",
+          "shows": ""
+        },
+        {
+          "image": "448.png",
+          "crop": "448-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "8e95659ff2a7f896",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "448-strip0.jpg system 3: stanza 3's row ends 'in that' and runs on to the one lyric row of system 4 (448-strip800.jpg), which prints 'morn-ing.' once for all three stanzas, before the Refrain mark. The database ends stanza 3's line 4 with that shared word (39 words), so its refrain rightly opens at word 40; the reader set the word apart and counted 38.",
+      "settles": [
+        "448 shape (shape2-50): the refrain after stanza 3: row 1 opens \"o shout\" at word 40, its count gives word 39"
+      ]
+    }
+  ]
+}

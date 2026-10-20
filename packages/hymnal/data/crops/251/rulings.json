@@ -429,6 +429,72 @@
       ],
       "judge": "judge-234 (Opus, effort max)",
       "why": "He_Lives2-1189.jpg prints 'how I know He lives'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-28 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "1c24a56e67f13289",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "He_Lives2-strip0.jpg system 6, main row: word 8 is printed lower case with no stop after word 7; the page's poem line runs from the last word of system 5 (capital) to word 11 of system 6 (comma), one musical phrase. The database writes that one poem line as its refrain lines 2 and 3 (8 + 4 words): a whole split, the words the same.",
+      "settles": [
+        "251 shape (shape2-28): stanza 1 line 7 opens on word 8 of the refrain after stanza 1: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-28 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "1c24a56e67f13289",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain is printed once and sung after stanza 2 too. He_Lives2-strip0.jpg system 6, main row: word 8 is lower case with no stop after word 7; the poem line runs from the last word of system 5 (capital) to word 11 of system 6 (comma). The database writes it as its refrain lines 2 and 3 (8 + 4 words): a whole split, the words the same.",
+      "settles": [
+        "251 shape (shape2-28): stanza 2 line 7 opens on word 8 of the refrain after stanza 2: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-28 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "1c24a56e67f13289",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a04 (Opus, effort max)",
+      "why": "The refrain is printed once and sung after stanza 3 too. He_Lives2-strip0.jpg system 6, main row: word 8 is lower case with no stop after word 7; the poem line runs from the last word of system 5 (capital) to word 11 of system 6 (comma). The database writes it as its refrain lines 2 and 3 (8 + 4 words): a whole split, the words the same.",
+      "settles": [
+        "251 shape (shape2-28): stanza 3 line 7 opens on word 8 of the refrain after stanza 3: row 2, which the page prints with no capital"
+      ]
     }
   ]
 }

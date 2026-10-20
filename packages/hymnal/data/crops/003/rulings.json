@@ -151,6 +151,35 @@
       ],
       "judge": "judge-003 (Opus, effort max)",
       "why": "003-1833.jpg row 3 prints 'Lord of all our be-ing' plainly."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-01 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "4f65ba40d28ce3c7",
+          "shows": ""
+        },
+        {
+          "image": "003.jpg",
+          "crop": "003-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "2841e726c23092a3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "003-strip1600.jpg system 4, stanza 1 row (11 words): word 5 is printed lower case, so the page opens no line there. By the metre 6.6.8.6.6.8.3.3.6.6 (003-strip0.jpg) and the music, the 6-syllable poem line 9 opens on word 4 (capitalised, comma after it), as stanzas 2 and 3 open theirs on word 4 of their system 4 rows; the two 3-syllable lines are words 1-3 of this row and the last 3 words of system 3. Database line 7 runs on to take word 4 (7 words) and line 8 opens at word 5; they should end and open one word earlier (6 words, then 4).",
+      "settles": [
+        "3 shape (shape2-01): stanza 1 line 8 opens on word 5 of stanza 1 row 4, which the page prints with no capital"
+      ]
     }
   ]
 }

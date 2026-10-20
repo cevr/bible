@@ -24,6 +24,57 @@
       ],
       "judge": "judge-663 (Opus, effort max)",
       "why": "The crop's row ends 'lift up my soul to Thee.' and then prints 'A - - - - - - - - men.' under the closing bars."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-76 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "685.png",
+          "crop": "685-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8ba0a3a75bfa5798",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "685-strip0.jpg system 2, row 1: word 5 'for' is lower case after 'morning,'; the poem line opens on 'Cause' (system 1 word 1) and runs to the stop on system 2 word 10, before the next 'Cause' (system 3 word 1), its other capitals pronouns of God and 'I'. The database writes that poem line as lines 1 and 2, a whole split at the comma, the words the same.",
+      "settles": [
+        "685 shape (shape2-76): stanza 1 line 2 opens on word 5 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-76 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "685.png",
+          "crop": "685-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "8ba0a3a75bfa5798",
+          "shows": ""
+        },
+        {
+          "image": "685.png",
+          "crop": "685-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "632e67b4f2469bb6",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-d01 (Opus, effort max)",
+      "why": "System 3's row (685-strip0.jpg, whole again on 685-strip800.jpg): word 8 is the pronoun 'I', always capitalised, inside the run from the capital at word 1 to word 10 'walk'. The capital opens no poem line, so the database's line 3 stands.",
+      "settles": [
+        "685 shape (shape2-76): stanza 1 row 3 prints word 8 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
     }
   ]
 }

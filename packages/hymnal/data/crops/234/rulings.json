@@ -168,6 +168,204 @@
       ],
       "judge": "judge-234 (Opus, effort max)",
       "why": "234-881.jpg row 4 prints 'Give God the glo-ry', so 'glory'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip0.jpg system 2, stanza 1 row (8 words): word 1 is lowercase, as in all four stanzas' system 2 rows, because the sentence runs on from the semicolon that closes each system 1 row; the re-engraving prints no metre. The database opens line 3 there, where the system's 4-bar phrase begins, and line 4 on word 5 at bar 7: whole splits, the words and order the page's.",
+      "settles": [
+        "234 shape (shape2-26): stanza 1 line 3 opens on word 1 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0a814f25e75a983a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip800.jpg system 3, stanza 1 row (10 words): it opens on a capital after the full stop closing system 2; word 6 is lowercase after a comma and opens bar 11, where the database splits every stanza's system 3 row. The database writes the row as lines 5 and 6, a whole split with the words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 1 line 6 opens on word 6 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip0.jpg system 2, stanza 2 row (8 words): word 1 is lowercase, the sentence running on from the semicolon that closes system 1, as in every stanza. The database opens line 3 there, at the start of the system's phrase, and line 4 on word 6 at bar 7: whole splits, the words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 2 line 3 opens on word 1 of stanza 2 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip0.jpg system 2, stanza 2 row: word 6 is lowercase and opens bar 7, the place where stanzas 1, 3 and 4 take a comma mid-row and the database splits every stanza's system 2 row. Lines 3 and 4 are a whole split of the row, its words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 2 line 4 opens on word 6 of stanza 2 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0a814f25e75a983a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip800.jpg system 3, stanza 2 row (9 words): it opens on a capital after the full stop closing system 2; word 5 is lowercase and opens bar 11, where the database splits every stanza's system 3 row. Lines 5 and 6 are a whole split of the row, its words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 2 line 6 opens on word 5 of stanza 2 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip0.jpg system 2, stanza 3 row (8 words, no capital): word 1 runs on from the semicolon that closes system 1, as in every stanza. The database opens line 3 there, at the start of the system's phrase, and line 4 on word 5 at bar 7: whole splits, the words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 3 line 3 opens on word 1 of stanza 3 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip0.jpg system 2, stanza 3 row: word 5 is lowercase after a comma and opens bar 7, the place where the database splits every stanza's system 2 row. Lines 3 and 4 are a whole split of the row, its words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 3 line 4 opens on word 5 of stanza 3 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0a814f25e75a983a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip800.jpg system 3, stanza 3 row (9 words): it opens on a capital after the comma closing system 2; word 5 is lowercase and opens bar 11, where the database splits every stanza's system 3 row. Lines 5 and 6 are a whole split of the row, its words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 3 line 6 opens on word 5 of stanza 3 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-26 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "053d3fa157c505bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "234-strip0.jpg system 2, stanza 4 row (8 words): word 1 is lowercase after the semicolon closing system 1, though the same four words open systems 1 and 3 with a capital, so the page runs it on. The database opens line 3 there, at the start of the system's phrase, and line 4 on word 5 at bar 7: whole splits, the words the same.",
+      "settles": [
+        "234 shape (shape2-26): stanza 4 line 3 opens on word 1 of stanza 4 row 2, which the page prints with no capital"
+      ]
     }
   ]
 }

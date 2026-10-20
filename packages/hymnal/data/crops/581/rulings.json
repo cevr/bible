@@ -55,6 +55,35 @@
       ],
       "judge": "judge-562 (Opus, effort max)",
       "why": "581-1950.jpg row 1 prints 'we' between 'world' and 'ban - ish'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-65 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "581.jpg",
+          "crop": "581-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "ca75bc077a8de37f",
+          "shows": ""
+        },
+        {
+          "image": "581.jpg",
+          "crop": "581-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "4a698076d6e3d878",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c03 (Opus, effort max)",
+      "why": "581-strip1600.jpg system 3, stanza 3 row: word 8 is a pronoun for the Lord, who is addressed at word 1 of the row; it is capitalised as a divine name and opens no poem line. The poem line opens at the capital on word 5, after word 4, and runs 5 syllables to the semicolon, as the metre 6.5.6.5.D. (581-strip0.jpg) counts. The database's line 6 opens there too.",
+      "settles": [
+        "581 shape (shape2-65): stanza 3 row 3 prints word 8 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
     }
   ]
 }

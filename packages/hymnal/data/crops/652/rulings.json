@@ -1,0 +1,161 @@
+{
+  "number": 652,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-72 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6d1920e631c1779e",
+          "shows": ""
+        },
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "834c1e6395a7cb83",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 4 is one row for all stanzas: before the double bar the stanzas' shared last line ('When there's' ... 'at home', 5 words, the 7.5.7.5.7.7.7.5 metre's eighth line), then after the Refrain mark the refrain's first line, whose last word opens system 5. The database writes the shared line as stanza 1's line 8 and the refrain's first line whole (6 words); the reader wrote the shared line as an other row and cut the refrain at the system's end, so its row 1 (5 words) is counted where the database's line 8 stands.",
+      "settles": [
+        "652 shape (shape2-72): the refrain after stanza 1: row 1 opens \"love at\" at two places its count gives",
+        "652 shape (shape2-72): the refrain after stanza 1: row 1 holds its middle \"home love\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-72 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "834c1e6395a7cb83",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 5 opens with the last word of the refrain's first line, then the refrain's two other lines, opening on capitals at the row's words 2 and 7 (5 + 5 words), the database's refrain lines 2 and 3. The reader's count leaves out the 5-word shared line on system 4, which the database writes as stanza 1's line 8, so its row is counted early; the words and their order are the database's.",
+      "settles": [
+        "652 shape (shape2-72): the refrain after stanza 1: row 2 opens \"home time\" at word 47, its count gives word 41"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-72 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6d1920e631c1779e",
+          "shows": ""
+        },
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "834c1e6395a7cb83",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "After stanza 2 the same system 4 row is sung: the shared last line (the database's stanza 2 line 8, 5 words) and then the refrain's first line, carried over the system's end. The database writes the refrain's first line whole (6 words); the reader's row 1 (5 words) is the system 4 part only and, with the shared line in its other row, is counted where the database's line 8 stands.",
+      "settles": [
+        "652 shape (shape2-72): the refrain after stanza 2: row 1 opens \"love at\" at two places its count gives",
+        "652 shape (shape2-72): the refrain after stanza 2: row 1 holds its middle \"home love\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-72 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "834c1e6395a7cb83",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 5 after stanza 2: the carried-over last word of the refrain's first line, then the refrain's lines 2 and 3 (5 + 5 words), opening on capitals. The reader's count leaves out the shared line on system 4 (the database's stanza 2 line 8), so its row is counted early; the words and their order are the database's.",
+      "settles": [
+        "652 shape (shape2-72): the refrain after stanza 2: row 2 opens \"home time\" at word 49, its count gives word 43"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-72 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6d1920e631c1779e",
+          "shows": ""
+        },
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "834c1e6395a7cb83",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "After stanza 3 the same system 4 row is sung: the shared last line as system 4 prints it ('When there's' ... 'at home', the database's stanza 3 line 8, 5 words) and then the refrain's first line, carried over the system's end. The database writes the refrain's first line whole (6 words); the reader's row 1 (5 words) is the system 4 part only and, with the shared line in its other row, is counted where the database's line 8 stands.",
+      "settles": [
+        "652 shape (shape2-72): the refrain after stanza 3: row 1 opens \"love at\" at two places its count gives",
+        "652 shape (shape2-72): the refrain after stanza 3: row 1 holds its middle \"home love\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-72 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p639.jpg",
+          "crop": "p639-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "834c1e6395a7cb83",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b01 (Opus, effort max)",
+      "why": "System 5 after stanza 3: the carried-over last word of the refrain's first line, then the refrain's lines 2 and 3 (5 + 5 words), opening on capitals. The reader's count leaves out the shared line on system 4 (the database's stanza 3 line 8), so its row is counted early; the words and their order are the database's.",
+      "settles": [
+        "652 shape (shape2-72): the refrain after stanza 3: row 2 opens \"home time\" at word 47, its count gives word 41"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,263 @@
+{
+  "number": 180,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "p175-strip800.jpg system 3 (Refrain) prints two full-size rows with no stanza mark: the upper row, under the treble staff's notes, is the main row the database writes (its refrain line 1 and the first 4 words of line 2). The reader's row 2 is the lower row, printed under the bass staff's notes from bar 3 only and answering the upper row while the treble rests: a part for other voices, which the database leaves out.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 1: row 2 opens \"who but\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 1: row 2 holds its middle \"upon the\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 1: row 2 ends \"cross he\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "p175-strip1600.jpg system 4, upper row: 7 words with capitals at 1, 3 and 5, word for word the last 4 words of the database's refrain line 2 and its line 3, so the main row is printed as the database sings it. The check lost its place only because the reader counted system 3's lower answering row (an echo row) into the refrain before it.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 1: row 3 opens \"where is\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 1: row 3 holds its middle \"now in\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 1: row 3 ends \"heaven interceding\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "p175-strip1600.jpg system 4, lower row (9 words, capitals at 4 and 7): the bass staff's voices carry on the answering part begun by the lone 'He' at the end of system 3, overlapping the upper row and then singing its last 3 words with it, which the database writes once as line 3. A part for other voices, which the database leaves out.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 1: row 4 opens \"died for\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 1: row 4 holds its middle \"it thou\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 1: row 4 ends \"heaven interceding\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "The refrain after stanza 2 is the one printed refrain: p175-strip800.jpg system 3's lower row, under the bass staff's notes from bar 3 only, answers the upper (main) row while the treble rests. It is a part for other voices; the database writes the upper row (its refrain lines 1-2) and leaves this one out.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 2: row 2 opens \"who but\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 2: row 2 holds its middle \"upon the\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 2: row 2 ends \"cross he\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "The refrain after stanza 2 is the one printed refrain: p175-strip1600.jpg system 4's upper row (7 words, capitals at 1, 3 and 5) is word for word the end of the database's line 2 and its line 3. The flag comes only from system 3's lower answering row, counted into the refrain before it.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 2: row 3 opens \"where is\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 2: row 3 holds its middle \"now in\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 2: row 3 ends \"heaven interceding\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "The refrain after stanza 2 is the one printed refrain: p175-strip1600.jpg system 4's lower row (9 words) is the bass staff voices' answering part, overlapping the upper row and joining it on its last 3 words, which the database writes once as line 3. A part for other voices, which the database leaves out.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 2: row 4 opens \"died for\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 2: row 4 holds its middle \"it thou\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 2: row 4 ends \"heaven interceding\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "The refrain after stanza 3 is the one printed refrain: p175-strip800.jpg system 3's lower row, under the bass staff's notes from bar 3 only, answers the upper (main) row while the treble rests. It is a part for other voices; the database writes the upper row (its refrain lines 1-2) and leaves this one out.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 3: row 2 opens \"who but\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 3: row 2 holds its middle \"upon the\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 3: row 2 ends \"cross he\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "df9f2614a64ae012",
+          "shows": ""
+        },
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "The refrain after stanza 3 is the one printed refrain: p175-strip1600.jpg system 4's upper row (7 words, capitals at 1, 3 and 5) is word for word the end of the database's line 2 and its line 3. The flag comes only from system 3's lower answering row, counted into the refrain before it.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 3: row 3 opens \"where is\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 3: row 3 holds its middle \"now in\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 3: row 3 ends \"heaven interceding\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p175.jpg",
+          "crop": "p175-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "1242638fb11fb0a9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-x01 (Opus, effort max)",
+      "why": "The refrain after stanza 3 is the one printed refrain: p175-strip1600.jpg system 4's lower row (9 words) is the bass staff voices' answering part, overlapping the upper row and joining it on its last 3 words, which the database writes once as line 3. A part for other voices, which the database leaves out.",
+      "settles": [
+        "180 shape (shape2-20): the refrain after stanza 3: row 4 opens \"died for\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 3: row 4 holds its middle \"it thou\" at no place its count gives",
+        "180 shape (shape2-20): the refrain after stanza 3: row 4 ends \"heaven interceding\" at no place its count gives"
+      ]
+    }
+  ]
+}

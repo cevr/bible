@@ -1,0 +1,268 @@
+{
+  "number": 80,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip0.jpg system 2, stanza 1 row: word 2 'profound' is lowercase after 'strange,'; the capitalised poem line runs from 'O' (system 1) to 'fair,' (word 6). The database writes it as lines 1 and 2, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 1 line 2 opens on word 2 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip0.jpg system 2, stanza 1 row: word 13 'but' is lowercase after 'thought,'; the poem line opens at capital 'Beyond' (word 7) and runs to 'care!' on system 3. The database writes it as lines 3 and 4, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 1 line 4 opens on word 13 of stanza 1 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        },
+        {
+          "image": "080.png",
+          "crop": "080-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "d76575f45c3c7947",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "System 3, stanza 1 row: word 11 'whirling' is lowercase with no stop before it; the poem line opens at capital 'We' (word 4) and runs to 'space;' on system 4. The database writes it as lines 5 and 6, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 1 line 6 opens on word 11 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "d76575f45c3c7947",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip800.jpg system 4, stanza 1 row: word 9 'with' is lowercase after 'home,'; the poem line opens at capital 'We' (word 2) and runs to 'race.' (word 15). The database writes it as lines 7 and 8, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 1 line 8 opens on word 9 of stanza 1 row 4, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip0.jpg system 2, stanza 2 row: word 2 'so' is lowercase after 'lived,'; the poem line opens at 'O' (system 1) and runs to 'pain,' (word 7). The database writes it as lines 1 and 2, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 2 line 2 opens on word 2 of stanza 2 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip0.jpg system 2, stanza 2 row: word 15 'so' is lowercase after 'good,'; the poem line opens at capital 'So' (word 8) and runs to 'reign!' on system 3. The database writes it as lines 3 and 4, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 2 line 4 opens on word 15 of stanza 2 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        },
+        {
+          "image": "080.png",
+          "crop": "080-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "d76575f45c3c7947",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "System 3, stanza 2 row: word 14 'and' is lowercase after 'loved,'; the poem line opens at capital 'It' (word 6) and runs to 'plan,' on system 4. The database writes it as lines 5 and 6, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 2 line 6 opens on word 14 of stanza 2 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip0.jpg system 2, stanza 3 row: word 2 'there' is lowercase after 'years!'; the poem line opens at 'O' (system 1) and runs to 'still,' (word 9). The database writes it as lines 1 and 2, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 3 line 2 opens on word 2 of stanza 3 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip0.jpg system 2, stanza 3 row: word 16 'a' is lowercase with no stop before it; the poem line opens at capital 'A' (word 10) and runs to 'hill;' on system 3. The database writes it as lines 3 and 4, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 3 line 4 opens on word 16 of stanza 3 row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "bc47a323e251cd4e",
+          "shows": ""
+        },
+        {
+          "image": "080.png",
+          "crop": "080-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "d76575f45c3c7947",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "System 3, stanza 3 row: word 12 'the' is lowercase after 'seen,'; the poem line opens at capital 'In' (word 4) and runs to 'revealed,' on system 4. The database writes it as lines 5 and 6, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 3 line 6 opens on word 12 of stanza 3 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "080.png",
+          "crop": "080-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "d76575f45c3c7947",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "080-strip800.jpg system 4, stanza 3 row: word 8 'the' is lowercase after 'God,'; the poem line opens at capital 'The' (word 1) and runs to 'healed.' in the '3.' ending on system 5. The database writes it as lines 7 and 8, the same words in order, 8 syllables each: a whole split.",
+      "settles": [
+        "80 shape (shape2-09): stanza 3 line 8 opens on word 8 of stanza 3 row 4, which the page prints with no capital"
+      ]
+    }
+  ]
+}

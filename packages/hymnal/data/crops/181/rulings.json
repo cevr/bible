@@ -72,6 +72,50 @@
       ],
       "judge": "judge-128 (Opus, effort max)",
       "why": "Crop p176-1997, the refrain's one row ends with the parenthesized echo '(He cares.)' under the lower voices' last notes."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p176.jpg",
+          "crop": "p176-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "f52917b4ef6ec915",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p176-strip1600.jpg system 5, the refrain's last row (sung after stanza 1): '(He cares.)' is printed in parentheses after 'cares.', on alto and tenor notes while the melody and bass hold, and repeats the refrain's own words: an echo for other voices, which a hymn's text leaves out. The database sings those 2 words as text, the end of refrain line 4.",
+      "settles": [
+        "181 shape (shape2-20): stanza 1 sings 2 words from \"he cares\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-20 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p176.jpg",
+          "crop": "p176-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "f52917b4ef6ec915",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "p176-strip1600.jpg system 5, the same refrain row sung after stanza 2: '(He cares.)' is printed in parentheses after 'cares.', an alto and tenor echo while the melody holds, which a hymn's text leaves out. The database sings those 2 words as text, the end of refrain line 4.",
+      "settles": [
+        "181 shape (shape2-20): stanza 2 sings 2 words from \"he cares\" on, in no row the page prints"
+      ]
     }
   ]
 }

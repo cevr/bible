@@ -1,0 +1,41 @@
+{
+  "number": 72,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-08 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p069.jpg",
+          "crop": "p069-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "7208cf91f341874b",
+          "shows": ""
+        },
+        {
+          "image": "p069.jpg",
+          "crop": "p069-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "19950cecb8f29117",
+          "shows": ""
+        },
+        {
+          "image": "p069.jpg",
+          "crop": "p069-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "8432dc18d6cef5c4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-c01 (Opus, effort max)",
+      "why": "Stanza 3's four L.M. lines (header p069-strip0.jpg) open where the database's lines 1-4 open ('To', 'And', 'Laud', 'From', across systems 1-3), the words in order. p069-strip1600.jpg system 3: 'A-men.' is printed after the final double bar on stanza 3's row only, outside the metre and sung after the last stanza; the database writes it as stanza 3's fifth line, one line longer than its siblings with the page's words.",
+      "settles": [
+        "72 shape (shape2-08): stanza 3 has 5 lines, which the metre the page prints fits in no way, where stanza 1's 4 fit it"
+      ]
+    }
+  ]
+}

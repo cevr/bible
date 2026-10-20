@@ -1,0 +1,34 @@
+{
+  "number": 58,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-07 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "058.png",
+          "crop": "058-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "871bfddd35ade857",
+          "shows": ""
+        },
+        {
+          "image": "058.png",
+          "crop": "058-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "412d353c8cec61d3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "058-strip0.jpg systems 1-2: rows 1 and 2 are both sung to bars 1-5, which close after 'clear;' and 'ear.' with an end-repeat sign and no endings, so after row 1 the music goes back to bar 1 for row 2. The unnumbered 4-word block (bars 6-13, ending on 058-strip800.jpg with its own end-repeat) is printed once after that repeat and is sung after row 2 only; database stanza 1 line 3 sings it after stanza 1, where the page does not (stanza 2 line 3 is right).",
+      "settles": [
+        "58 shape (shape2-07): stanza 1 sings 4 words from \"jubilate jubilate\" on, in no row the page prints"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "number": 207,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "e4fbddad795941b6",
+          "shows": ""
+        },
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4f5f9735095d58bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p202-strip1600.jpg system 5, the refrain's second row (printed once, sung after every stanza): word 1 'Hal-le-lu-jah!' takes a capital after the comma that closes 'turn-eth,' and word 2 repeats it in lowercase, so the page's poem line opens on word 1; the header metre (12.12.12.7.Ref., p202-strip0.jpg) counts no refrain line. The database ends refrain line 3 on word 1 and opens line 4 (stanza 1's line 8) on word 2, one word later.",
+      "settles": [
+        "207 shape (shape2-23): stanza 1 line 8 opens on word 2 of the refrain after stanza 1: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "e4fbddad795941b6",
+          "shows": ""
+        },
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4f5f9735095d58bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "The same shared refrain row (p202-strip1600.jpg system 5): word 1 is capitalised after a comma and word 2 is lowercase, so the page opens its poem line on word 1. The database ends refrain line 3 on word 1 and opens line 4 (stanza 2's line 8) on word 2, one word later.",
+      "settles": [
+        "207 shape (shape2-23): stanza 2 line 8 opens on word 2 of the refrain after stanza 2: row 2, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-23 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "e4fbddad795941b6",
+          "shows": ""
+        },
+        {
+          "image": "p202.jpg",
+          "crop": "p202-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "4f5f9735095d58bb",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "The same shared refrain row (p202-strip1600.jpg system 5): word 1 is capitalised after a comma and word 2 is lowercase, so the page opens its poem line on word 1. The database ends refrain line 3 on word 1 and opens line 4 (stanza 3's line 8) on word 2, one word later.",
+      "settles": [
+        "207 shape (shape2-23): stanza 3 line 8 opens on word 2 of the refrain after stanza 3: row 2, which the page prints with no capital"
+      ]
+    }
+  ]
+}

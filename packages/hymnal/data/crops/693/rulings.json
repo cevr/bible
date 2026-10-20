@@ -1,0 +1,27 @@
+{
+  "number": 693,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-77 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p671.jpg",
+          "crop": "p671-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "5e19a605f8b25aa1",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-b02 (Opus, effort max)",
+      "why": "p671-strip1600.jpg, 693 system 1, row 1: word 6 'and' is lower case after 'prayer,'; the text is one poem line from 'Almighty' to the stop on 'Thee.' (system 2), its other capitals names of God and the Amen after the stop, and no metre is printed. The database writes that poem line as lines 1 and 2, a whole split at the comma, the words the same.",
+      "settles": [
+        "693 shape (shape2-77): stanza 1 line 2 opens on word 6 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    }
+  ]
+}

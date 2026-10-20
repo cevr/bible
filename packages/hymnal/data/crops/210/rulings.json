@@ -1,0 +1,309 @@
+{
+  "number": 210,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "System 2 closes with an end-repeat sign (p205-strip800.jpg), and each stanza prints two rows under systems 1 and 2: the first rows of both systems are sung, then on the repeat the second rows. The database sings that order, so stanza 1's second row under system 1 opens at word 17, after the 16 words of the two first rows; the reader listed the rows top to bottom.",
+      "settles": [
+        "210 shape (shape2-24): stanza 1 row 2 opens \"midnights solemn\" at word 17, its count gives word 11"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 2, stanza 1's first row (6 words): sung straight after system 1's first row, before the repeat sign; the database sings it there, as the end of line 2 and line 3 (words 11-16), not after system 1's second row where the reader's top-to-bottom order puts it.",
+      "settles": [
+        "210 shape (shape2-24): stanza 1 row 3 opens \"heights are\" at no place its count gives",
+        "210 shape (shape2-24): stanza 1 row 3 holds its middle \"awake jerusalem\" at no place its count gives",
+        "210 shape (shape2-24): stanza 1 row 3 ends \"jerusalem arise\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 2, stanza 1's second row (8 words): sung on the repeat, after system 1's second row; the database sings it there, as the end of line 5 and line 6, so it ends where the database's line 6 ends.",
+      "settles": [
+        "210 shape (shape2-24): stanza 1 row 4 opens \"nearer rolling\" at no place its count gives",
+        "210 shape (shape2-24): stanza 1 row 4 holds its middle \"prepare ye\" at no place its count gives",
+        "210 shape (shape2-24): stanza 1 row 4 ends \"virgins wise\" at word 34, its count gives word 40"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "Systems 1-2 stand under the repeat sign closing system 2 (p205-strip800.jpg): stanza 2's first rows of both systems (10 and 9 words) are sung first, so its second row under system 1 opens at word 20, as the database sings it; the reader listed the rows top to bottom.",
+      "settles": [
+        "210 shape (shape2-24): stanza 2 row 2 opens \"forth her\" at word 20, its count gives word 11"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 2, stanza 2's first row (9 words): sung straight after system 1's first row, before the repeat sign; the database sings it there, as the end of line 2 and line 3 (words 11-19).",
+      "settles": [
+        "210 shape (shape2-24): stanza 2 row 3 opens \"is springing\" at no place its count gives",
+        "210 shape (shape2-24): stanza 2 row 3 holds its middle \"she rises\" at no place its count gives",
+        "210 shape (shape2-24): stanza 2 row 3 ends \"her gloom\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 2, stanza 2's second row (10 words): sung on the repeat, after system 1's second row; the database sings it there, as the end of line 5 and line 6 (words 30-39).",
+      "settles": [
+        "210 shape (shape2-24): stanza 2 row 4 opens \"truth victorious\" at no place its count gives",
+        "210 shape (shape2-24): stanza 2 row 4 holds its middle \"risen her\" at no place its count gives",
+        "210 shape (shape2-24): stanza 2 row 4 ends \"is come\" at word 40, its count gives word 49"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "Systems 1-2 stand under the repeat sign closing system 2 (p205-strip800.jpg): stanza 3's first rows of both systems (11 and 9 words) are sung first, so its second row under system 1 opens at word 21, as the database sings it; the reader listed the rows top to bottom.",
+      "settles": [
+        "210 shape (shape2-24): stanza 3 row 2 opens \"by the\" at word 21, its count gives word 12"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 2, stanza 3's first row (9 words): sung straight after system 1's first row, before the repeat sign; the database sings it there, as the end of line 2 and line 3 (words 12-20).",
+      "settles": [
+        "210 shape (shape2-24): stanza 3 row 3 opens \"sing before\" at no place its count gives",
+        "210 shape (shape2-24): stanza 3 row 3 holds its middle \"harp and\" at no place its count gives",
+        "210 shape (shape2-24): stanza 3 row 3 ends \"clearest tone\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 2, stanza 3's second row (9 words): sung on the repeat, after system 1's second row; the database sings it there, as the end of line 5 and line 6 (words 32-40).",
+      "settles": [
+        "210 shape (shape2-24): stanza 3 row 4 opens \"voice of\" at no place its count gives",
+        "210 shape (shape2-24): stanza 3 row 4 holds its middle \"echoes round\" at no place its count gives",
+        "210 shape (shape2-24): stanza 3 row 4 ends \"dazzling throne\" at no place its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "repeat",
+      "crops": [
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "6e021d03b59c2dbb",
+          "shows": ""
+        },
+        {
+          "image": "p205.jpg",
+          "crop": "p205-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "16d64635c45b8903",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p205-strip800.jpg system 3, stanza 3's row (13 words): sung after the repeated systems 1-2, whose four rows hold 40 words; the database sings it as lines 7 and 8 (words 41-53). The check's count runs on from its top-to-bottom placing of the rows before it.",
+      "settles": [
+        "210 shape (shape2-24): stanza 3 row 5 opens \"no vision\" at no place its count gives",
+        "210 shape (shape2-24): stanza 3 row 5 holds its middle \"hath ever\" at no place its count gives",
+        "210 shape (shape2-24): stanza 3 row 5 ends \"and joy\" at word 54, its count gives word 63"
+      ]
+    }
+  ]
+}

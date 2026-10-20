@@ -1,0 +1,77 @@
+{
+  "number": 415,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-46 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "415.png",
+          "crop": "415-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "1c25a6494381f312",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "415-strip800.jpg system 4, stanza 1 row: after 'clouds.' (the last word of the database's line 6) the page prints '(on the clouds)' in parentheses, the lower voices' echo under the held melody note, then the 5 words of the database's line 7. The database leaves the echo out, so the row holds 6 of its words where the reader counted 9.",
+      "settles": [
+        "415 shape (shape2-46): stanza 1 row 4 opens \"clouds on\" at no place its count gives",
+        "415 shape (shape2-46): stanza 1 row 4 holds its middle \"christ ascended\" at no place its count gives",
+        "415 shape (shape2-46): stanza 1 row 4 ends \"the clouds\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-46 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "415.png",
+          "crop": "415-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "1c25a6494381f312",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "415-strip800.jpg system 4, stanza 2 row: after 'clouds.' (the last word of the database's line 6) the page prints '(on the clouds)' in parentheses, the lower voices' echo under the held melody note, then the 5 words of the database's line 7. The database leaves the echo out, so the row holds 6 of its words where the reader counted 9.",
+      "settles": [
+        "415 shape (shape2-46): stanza 2 row 4 opens \"clouds on\" at no place its count gives",
+        "415 shape (shape2-46): stanza 2 row 4 holds its middle \"christ approaches\" at no place its count gives",
+        "415 shape (shape2-46): stanza 2 row 4 ends \"the clouds\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-46 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "415.png",
+          "crop": "415-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "1c25a6494381f312",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "415-strip800.jpg system 4, stanza 3 row: after 'clouds.' (the last word of the database's line 6) the page prints '(on the clouds)' in parentheses, the lower voices' echo under the held melody note, then the 6 words of the database's line 7. The database leaves the echo out, so the row holds 7 of its words where the reader counted 10.",
+      "settles": [
+        "415 shape (shape2-46): stanza 3 row 4 opens \"clouds on\" at no place its count gives",
+        "415 shape (shape2-46): stanza 3 row 4 holds its middle \"is coming\" at no place its count gives",
+        "415 shape (shape2-46): stanza 3 row 4 ends \"the clouds\" at two places its count gives"
+      ]
+    }
+  ]
+}

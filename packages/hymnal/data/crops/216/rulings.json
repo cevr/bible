@@ -1,0 +1,158 @@
+{
+  "number": 216,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "5821604fba3da559",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p211-strip0.jpg system 1, stanza 1 row: its 14 words are the page's 15-syllable poem line 1 (header metre 15.11.15.11.), opening on word 1; word 9 is lowercase after a comma. The database writes that one line as lines 1 and 2, split at word 9: a whole split, the words the same.",
+      "settles": [
+        "216 shape (shape2-24): stanza 1 line 2 opens on word 9 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "391a73a2dd5907c9",
+          "shows": ""
+        },
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d4446bd65db02134",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "Stanza 1: the page's 15-syllable poem line 3 opens on system 2's word 9 with a capital and ends on system 3's word 8, before the next capital; system 3's word 4 is lowercase. The database writes that line as lines 4 and 5, split at that word: a whole split, the words the same.",
+      "settles": [
+        "216 shape (shape2-24): stanza 1 line 5 opens on word 4 of stanza 1 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "5821604fba3da559",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p211-strip0.jpg system 1, stanza 2 row: its 13 words are the page's 15-syllable poem line 1, opening on word 1; word 7 is lowercase. The database writes that one line as lines 1 and 2, split at word 7: a whole split, the words the same.",
+      "settles": [
+        "216 shape (shape2-24): stanza 2 line 2 opens on word 7 of stanza 2 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "391a73a2dd5907c9",
+          "shows": ""
+        },
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d4446bd65db02134",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "Stanza 2: the page's 15-syllable poem line 3 opens on system 2's word 8 with a capital and ends on system 3's word 9, before the next capital; system 3's word 4 is lowercase. The database writes that line as lines 4 and 5, split at that word: a whole split, the words the same.",
+      "settles": [
+        "216 shape (shape2-24): stanza 2 line 5 opens on word 4 of stanza 2 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "5821604fba3da559",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "p211-strip0.jpg system 1, stanza 3 row: its 12 words are the page's 15-syllable poem line 1, opening on word 1; word 7 is lowercase. The database writes that one line as lines 1 and 2, split at word 7: a whole split, the words the same.",
+      "settles": [
+        "216 shape (shape2-24): stanza 3 line 2 opens on word 7 of stanza 3 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-24 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "391a73a2dd5907c9",
+          "shows": ""
+        },
+        {
+          "image": "p211.jpg",
+          "crop": "p211-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "d4446bd65db02134",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a03 (Opus, effort max)",
+      "why": "Stanza 3: the page's 15-syllable poem line 3 opens on system 2's word 11 with a capital and ends on system 3's word 10, before the next capital; system 3's word 4 is lowercase. The database writes that line as lines 4 and 5, split at that word: a whole split, the words the same.",
+      "settles": [
+        "216 shape (shape2-24): stanza 3 line 5 opens on word 4 of stanza 3 row 3, which the page prints with no capital"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "number": 78,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 1, stanza 1 row: word 15 'and' is lowercase after 'us,'; the poem line opens at capital 'For' (word 10) and runs to 'too.' (word 18). The database writes it as lines 3 (words 10-14) and 4 (words 15-18), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 1 line 4 opens on word 15 of stanza 1 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 2, refrain row: word 12 'loves' is lowercase after 'children,'; no capital opens a line from word 8 to the row's end (word 14). The database writes that run as refrain lines 3 (words 8-11) and 4 (words 12-14), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 1 line 8 opens on word 12 of the refrain after stanza 1: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 1, stanza 2 row: word 5 'the' is lowercase after 'Savior,'; besides names, the row's only capitals are 'He' at words 1 and 8. The database writes words 1-7 as lines 1 (1-4) and 2 (5-7), the same words in order: a whole split that matches stanza 1's short lines under the same notes.",
+      "settles": [
+        "78 shape (shape2-09): stanza 2 line 2 opens on word 5 of stanza 2 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 1, stanza 2 row: word 12 'to' is lowercase with no stop before it; the poem line opens at 'He' (word 8) and runs to 'free.' (word 15). The database writes it as lines 3 (words 8-11) and 4 (words 12-15), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 2 line 4 opens on word 12 of stanza 2 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 2, the one refrain row sung after stanza 2: word 12 'loves' is lowercase after 'children,'; no capital opens a line from word 8 to word 14. The database writes that run as refrain lines 3 (words 8-11) and 4 (words 12-14), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 2 line 8 opens on word 12 of the refrain after stanza 2: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 2, the one refrain row sung after stanza 3: word 12 'loves' is lowercase after 'children,'; no capital opens a line from word 8 to word 14. The database writes that run as refrain lines 3 (words 8-11) and 4 (words 12-14), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 3 line 8 opens on word 12 of the refrain after stanza 3: row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 1, stanza 4 row: word 11 'while' is lowercase with no stop before it; the poem line opens at capital 'To' (word 7) and runs to 'last.' (word 14). The database writes it as lines 3 (words 7-10) and 4 (words 11-14), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 4 line 4 opens on word 11 of stanza 4 row 1, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-09 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "078.png",
+          "crop": "078-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "31270c5d38fc26c3",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a02 (Opus, effort max)",
+      "why": "078-strip0.jpg system 2, the one refrain row sung after stanza 4: word 12 'loves' is lowercase after 'children,'; no capital opens a line from word 8 to word 14. The database writes that run as refrain lines 3 (words 8-11) and 4 (words 12-14), the same words in order: a whole split.",
+      "settles": [
+        "78 shape (shape2-09): stanza 4 line 8 opens on word 12 of the refrain after stanza 4: row 1, which the page prints with no capital"
+      ]
+    }
+  ]
+}

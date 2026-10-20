@@ -1,0 +1,35 @@
+{
+  "number": 479,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-53 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "p468.jpg",
+          "crop": "p468-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "6e73ed3648434656",
+          "shows": ""
+        },
+        {
+          "image": "p468.jpg",
+          "crop": "p468-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "a42851dde31b1e57",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a06 (Opus, effort max)",
+      "why": "p468-strip800.jpg system 3 and p468-strip1600.jpg system 4 each print, under the main refrain row, a second unnumbered row ('Tread soft-ly here,' twice, 6 words) under the first half of the system only, set to the lower voices' quarter notes against the melody's long notes: a part for other voices. The database's refrain is the main rows (4 + 4 and 4 + 5 words, 'tread softly' … 'draw near') and rightly leaves the second rows out.",
+      "settles": [
+        "479 shape (shape2-53): a row \"tread softly\" (second refrain row with its own words for the lower voices (same type size, no number), sung in quarter notes against the main row's long notes over the first half of the system) is in no part of the printed source",
+        "479 shape (shape2-53): a row \"tread softly\" (second refrain row with its own words for the lower voices (same type size, no number), sung in quarter notes against the main row's long notes over the first half of the system) is in no part of the printed source"
+      ]
+    }
+  ]
+}

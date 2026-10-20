@@ -1,0 +1,34 @@
+{
+  "number": 402,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-45 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "401.jpg",
+          "crop": "401-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "51c867a991b86ed4",
+          "shows": ""
+        },
+        {
+          "image": "402.jpg",
+          "crop": "402-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "51c867a991b86ed4",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-a05 (Opus, effort max)",
+      "why": "402-strip800.jpg (the same photo as 401-strip800.jpg) system 1, stanza 2 row: the page prints 'our stead Is here,' with a capital on 'Is' (word 7), so poem line 1 ends at 'stead' (word 6) and line 2 opens at 'Is'; the metre 8.8.8.4 agrees (8 syllables in each). The database opens its line 2 at 'stead', one word early: its line 1 holds 5 words where the page's holds 6, its line 2 holds 7 where the page's holds 6.",
+      "settles": [
+        "402 shape (shape2-45): stanza 2 line 2 opens on word 6 of stanza 2 row 1, which the page prints with no capital"
+      ]
+    }
+  ]
+}
