@@ -400,6 +400,76 @@ The form of an entry, each field on its own line:
 - **Cause:** The shot was read from the whole transform the rig was drawn under, and a scene folds a hand's size into the place it draws it at.
 - **Guard:** code: `packages/film/src/rive/rive.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
 
+### face-marks-are-line-too
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Facial ink strokes bypass `ink`"
+- **Source:** p6-closeink/review-2.md F2
+- **Wrong:** The brows and the mouth line kept their widths at every shot while the rest of each figure's ink thinned in a close shot, so in the shots where a face reads most its marks grew heavy against its line.
+- **Cause:** The face's marks were read as features, not line; the owner's answer was "every figure's line".
+- **Guard:** code: `packages/film/src/style/figures-file.test.ts` `binds every ink stroke of a figure and its hands, the brows and the mouth among them`
+
+### sized-draw-throw-keeps-its-save
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A failed sized draw leaves the context scaled"
+- **Source:** p6-closeink/review-2.md F1
+- **Wrong:** A rig that throws while drawn at a size leaves its context scaled.
+- **Cause:** The draw path keeps no try/finally; a throw fails the frame.
+- **Guard:** none: declined; a throw fails its frame, and every frame sets its context's transform afresh as it starts (`packages/film/src/canvas/film.ts`), as `at` and `paintCanvas` already rely on.
+
+### ink-bind-names-its-target
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Tests do not verify the ink binding target"
+- **Source:** p6-closeink/review-3.md F1
+- **Wrong:** The generator test held each ink bind's source to an id's shape only, so a bind aimed at another number of the view model passed.
+- **Cause:** The test read the bind's form, not what it names.
+- **Guard:** code: `packages/film/src/style/figures-file.test.ts` `binds every ink stroke of a figure and its hands, the brows and the mouth among them`
+
+### sized-draw-proved-sized
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The size test passes when sizing does nothing"
+- **Source:** p6-closeink/review-3.md F2
+- **Wrong:** The size test read only the widths Rive sets and the shot read, so a draw that ignored `size` passed.
+- **Cause:** The mock context wrote down no transform at a stroke.
+- **Guard:** code: `packages/film/src/rive/rive.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
+
+### readme-row-after-face-fold
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "README still excludes face marks"
+- **Source:** p6-closeink/review-3.md F3
+- **Wrong:** The style row of the film README said the face's marks stay as cut after they were bound.
+- **Cause:** The fold changed the code and the tests, and the row was not read back.
+- **Guard:** none: `bun run doc-lines` already lists the row for each change to the style files, and the review reads it; the row is corrected.
+
+### silhouette-ink-bind-tested
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Narrowing removes silhouette-binding coverage"
+- **Source:** p6-closeink/review-5.md F1
+- **Wrong:** RBF's build test, narrowed to the lead and his hand for speed, and the generator's ink test both drew only round-headed figures, so a silhouette stroke left unbound passed both.
+- **Cause:** The narrowed print kept no figure the silhouette draws, and no test of the silhouette read its bind.
+- **Guard:** code: `packages/film/src/style/rig/parts.test.ts` `binds its ink's width to the figure's number`
+
+### walker-comment-after-its-change
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Walker comment describes removed filtering"
+- **Source:** p6-closeink/review-6.md F1
+- **Wrong:** A test helper's comment said it skipped a named node after its `skip` was removed.
+- **Cause:** The helper's code changed and its comment was not read back.
+- **Guard:** skill: whether a comment still says what its code does is judged by reading both, and the judged comment rule is off on its corpus. Carried by `CLAUDE.md`: "A comment says what the code does now and why"
+
 ## Figures and the cast
 
 ### bookend-the-setting

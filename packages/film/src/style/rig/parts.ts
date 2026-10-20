@@ -938,7 +938,10 @@ const brow = (fig: Figure, k: FaceShape, side: 'L' | 'R', x: number) =>
         ],
         false,
       ),
-      el('Stroke', { thickness: k.brow, cap: 'round', name: 'Ink' }, [solid(inkOf(fig.direction))]),
+      el('Stroke', { thickness: k.brow, cap: 'round', name: 'Ink' }, [
+        solid(inkOf(fig.direction)),
+        ...fig.inkBind(k.brow, 0),
+      ]),
       fig.bind('browTilt', KEY.rotation),
     ]),
   ]);
@@ -984,6 +987,7 @@ const mouth = (fig: Figure, k: FaceShape) =>
       ]),
       el('Stroke', { thickness: k.mouthLine, cap: 'round', join: 'round', name: 'Ink' }, [
         solid(inkOf(fig.direction)),
+        ...fig.inkBind(k.mouthLine, 0),
       ]),
       fig.bind('mouthLine', KEY.opacity),
     ]),

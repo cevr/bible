@@ -54,7 +54,7 @@ describe("RBF's figures", () => {
   );
 
   it.effect(
-    "bake their ink, and bound would bind every ink stroke but each face's brows and mouth to `ink`",
+    "bake their ink, and bound would bind every ink stroke to `ink`, each face's brows and mouth too",
     () =>
       Effect.sync(() => {
         const blocks = (rml: string) =>
@@ -66,11 +66,26 @@ describe("RBF's figures", () => {
         expect(FIGURES.baked).toBe(true);
         // Its rigs follow no shot: they have no number `ink` to follow it by.
         expect(FIGURES.shot).toEqual({});
-        expect(binds(figuresRml(FIGURES))).toEqual([]);
-        const bound = figuresRml({ ...FIGURES, baked: false });
-        const faces = Object.values(FIGURES.boards).filter((b) => 'figure' in b).length;
-        expect(blocks(bound).length - binds(bound).length).toBe(3 * faces);
-        expect(binds(bound).length).toBeGreaterThan(3 * faces);
+        // The lead (a round head) and the judge (a cut silhouette) with their hands, laid as the
+        // file lays them, then bound.
+        const two = (baked: boolean) =>
+          figuresRml(
+            figuresFile({
+              weight: FIGURES.weight,
+              baked,
+              boards: {
+                lead: FIGURES.boards.lead,
+                leadHand: FIGURES.boards.leadHand,
+                judge: FIGURES.boards.judge,
+                skinHand: FIGURES.boards.skinHand,
+              },
+            }),
+          );
+        const baked = two(FIGURES.baked);
+        expect(blocks(baked).length).toBeGreaterThan(0);
+        expect(binds(baked)).toEqual([]);
+        const bound = two(false);
+        expect(binds(bound)).toEqual(blocks(bound));
       }),
   );
 

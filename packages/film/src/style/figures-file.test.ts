@@ -233,9 +233,8 @@ describe("a film's figures file", () => {
   });
 });
 
-/** `e` and every element under it, front first; none under a node `skip` names. */
-const under = (e: Element, skip = ''): Element[] =>
-  nameOf(e) === skip && e.name === 'Node' ? [] : [e, ...e.children.flatMap((c) => under(c, skip))];
+/** `e` and every element under it, front first. */
+const under = (e: Element): Element[] => [e, ...e.children.flatMap(under)];
 const attr = (e: Element, key: string) => e.attrs.find(([k]) => k === key)?.[1];
 const nameOf = (e: Element) => attr(e, 'name');
 
@@ -257,15 +256,15 @@ const drawnIn = (direction: typeof DIRECTION) => {
   ];
 };
 
-/** Each ink stroke under `roots` but the face's marks, with the shape it lies in. */
+/** Each ink stroke under `roots`, with the shape it lies in and the root it is drawn under. */
 const inkStrokes = (roots: ReadonlyArray<Element>) =>
   roots.flatMap((root) =>
-    under(root, 'face')
+    under(root)
       .filter((e) => e.name === 'Shape')
       .flatMap((shape) =>
         shape.children
           .filter((c) => c.name === 'Stroke' && nameOf(c) === 'Ink')
-          .map((stroke) => ({ shape, stroke })),
+          .map((stroke) => ({ root, shape, stroke })),
       ),
   );
 
@@ -279,7 +278,7 @@ describe("a figure's ink, bound to its view model's ink", () => {
   const models = roots.filter((r) => r.name === 'ViewModel');
   const strokes = inkStrokes(roots);
 
-  test('binds every ink stroke of a figure and its hands, the face marks aside, to the number `ink`, 1 at rest', () => {
+  test('binds every ink stroke of a figure and its hands, the brows and the mouth among them, to the number `ink`, 1 at rest', () => {
     expect(models.map(nameOf)).toEqual(['Lead', 'LeadHand']);
     for (const vm of models) {
       const ink = vm.children.find(
@@ -291,18 +290,29 @@ describe("a figure's ink, bound to its view model's ink", () => {
         .find((c) => attr(c, 'viewModelPropertyId') === attr(ink ?? c, 'id'));
       expect(attr(rest ?? vm, 'propertyValue')).toBe(1);
     }
-    // The head's, the tunic's and each leg's line, and the hand's on its own artboard.
+    // The face's brows and mouth, the head's, the tunic's and each leg's line, and the hand's on
+    // its own artboard.
     expect(strokes.map(({ shape }) => nameOf(shape))).toEqual([
+      'browL',
+      'browR',
+      'mouthLine',
       'headPaper',
       'tunic',
       'legL',
       'legR',
       'palm',
     ]);
-    for (const { stroke } of strokes) {
+    // Each binds to the number `ink` of its own artboard's view model.
+    const inkOf = new Map(
+      models.map((vm) => {
+        const ink = vm.children.find((c) => nameOf(c) === INK_NUMBER) ?? vm;
+        return [attr(vm, 'id'), `${attr(vm, 'id')}-${attr(ink, 'id')}`] as const;
+      }),
+    );
+    for (const { root, stroke } of strokes) {
       const binds = stroke.children.filter((c) => c.name === 'DataBindContext');
       expect(binds.map((b) => attr(b, 'propertyKey'))).toEqual([47]);
-      expect(String(attr(binds[0] ?? stroke, 'sourcePathIds'))).toMatch(/^1:\d+-1:\d+$/);
+      expect(attr(binds[0] ?? stroke, 'sourcePathIds')).toBe(inkOf.get(attr(root, 'viewModelId')));
       expect(converters.has(String(attr(binds[0] ?? stroke, 'converterId')))).toBe(true);
     }
   });
