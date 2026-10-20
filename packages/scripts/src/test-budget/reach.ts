@@ -12,12 +12,11 @@
 // each test file whose path holds it; `--path-ignore-patterns` takes none
 // its globs match. `bun run <script>` runs that script of the workspace.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
-// under the config's `testDir`, matched by its `testMatch`, not by its
-// `testIgnore` (a glob as playwright reads one: `**/` before it, any case),
-// and by one of the command's filters when it names any; a config the
-// reader cannot read (none, a `testDir`, `testMatch` or `testIgnore` named
-// as anything but a literal, a regex anchored at the path's start,
-// `projects`) takes none. A by-hand script's other commands (a wrapper of `bun test`) reach a
+// under the config's `testDir`, its absolute path matched by its
+// `testMatch`, not by its `testIgnore` (a glob as playwright reads one: `**/`
+// before it, any case), and by one of the command's filters when it names
+// any; a config the reader cannot read (none, a `testDir`, `testMatch` or
+// `testIgnore` named as anything but a literal, `projects`) takes none. A by-hand script's other commands (a wrapper of `bun test`) reach a
 // file only by naming it, or a folder that holds it, by its path. A file
 // named as a test that registers none (`holdsTests`) needs no script.
 
@@ -204,11 +203,10 @@ const globOf = (pattern: string) => {
 };
 
 /**
- * A config's `key` (`testMatch`, `testIgnore`) as a test of a path from the
- * workspace: a regex literal or a quoted glob, `absent` when the config sets
- * none; none when it sets it some other way (a list, a name) or by a regex
- * anchored at the path's start (playwright tests the absolute path, which
- * this does not see), which this does not read.
+ * A config's `key` (`testMatch`, `testIgnore`) as a test of a file's
+ * absolute path, as playwright tests it: a regex literal or a quoted glob,
+ * `absent` when the config sets none; none when it sets it some other way (a
+ * list, a name), which this does not read.
  */
 const patternOf = (
   text: string,
@@ -221,9 +219,7 @@ const patternOf = (
     ),
     {
       onSome: (regex) => {
-        const source = regex[1] ?? '';
-        if (source.startsWith('^')) return Option.none();
-        const match = new RegExp(source, regex[2]);
+        const match = new RegExp(regex[1] ?? '', regex[2]);
         return Option.some((file: string) => match.test(file));
       },
       onNone: () =>
@@ -235,15 +231,17 @@ const patternOf = (
 
 /**
  * The files `playwright test` takes with `words` (the command's words past
- * `test`), its configs by their path from the workspace: those under the
- * config's `testDir` (from the config's folder; the folder itself when it
- * sets none) its `testMatch` takes and its `testIgnore` does not, and one of the command's filters (each
- * a pattern of the file's path) when it names any. None when the config is
+ * `test`) in the workspace at `absolute`, its configs by their path from
+ * it: those under the config's `testDir` (from the config's folder; the
+ * folder itself when it sets none) whose absolute path its `testMatch`
+ * takes and its `testIgnore` does not, and one of the command's filters
+ * (each a regex of that path) when it names any. None when the config is
  * missing or sets its files in a way this does not read.
  */
 const playwrightRun = (
   words: ReadonlyArray<string>,
   configs: Readonly<Record<string, string>>,
+  absolute: string,
 ): Run => {
   const filters: Array<string> = [];
   let config = Option.none<string>();
@@ -281,8 +279,9 @@ const playwrightRun = (
             ([matches, ignored]) =>
               (path: string) => {
                 const under = root === '' || path.startsWith(`${root}/`);
-                const named = filters.length === 0 || filters.some((f) => new RegExp(f).test(path));
-                return under && matches(path) && !ignored(path) && named;
+                const file = `${absolute}/${path}`;
+                const named = filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
+                return under && matches(file) && !ignored(file) && named;
               },
           ),
         ),
@@ -303,11 +302,11 @@ const programWords = (words: ReadonlyArray<string>) => {
 
 /** What the script `name` of a workspace runs, the scripts it runs with `bun run` followed. */
 const runsOf = (
-  workspace: Pick<Workspace, 'scripts' | 'configs'>,
+  workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute'>,
   name: string,
   seen: ReadonlySet<string> = new Set(),
 ): ReadonlyArray<Run> => {
-  const { scripts, configs } = workspace;
+  const { scripts, configs, absolute } = workspace;
   if (seen.has(name)) return [];
   const script = Option.fromUndefinedOr(scripts[name]);
   if (Option.isNone(script)) return [];
@@ -315,7 +314,7 @@ const runsOf = (
   return commandsOf(script.value).flatMap((command): ReadonlyArray<Run> => {
     const words = programWords(command);
     if (words[0] === 'playwright' && words[1] === 'test')
-      return [playwrightRun(words.slice(2), configs)];
+      return [playwrightRun(words.slice(2), configs, absolute)];
     if (words[0] !== 'bun') return [runOf('named', words.slice(1))];
     const at = subcommandAt(words);
     const sub = words[at] ?? '';
@@ -342,9 +341,10 @@ const reachOf = (workspace: Workspace, file: string): Option.Option<string> => {
   );
 };
 
-/** A workspace: its folder from the repo root, its package scripts, and its playwright configs' texts by their paths from it. */
+/** A workspace: its folder from the repo root and its absolute path, its package scripts, and its playwright configs' texts by their paths from it. */
 interface Workspace {
   readonly dir: string;
+  readonly absolute: string;
   readonly scripts: Readonly<Record<string, string>>;
   readonly configs: Readonly<Record<string, string>>;
 }
@@ -447,7 +447,7 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
         const configs = yield* playwrightConfigs(dir, scripts, (file) =>
           Effect.option(read(path.join(dir, file))),
         );
-        return { dir, scripts, configs } satisfies Workspace;
+        return { dir, absolute: path.join(root, dir), scripts, configs } satisfies Workspace;
       }),
     { concurrency: 16 },
   );

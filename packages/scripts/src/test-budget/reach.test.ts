@@ -6,14 +6,14 @@ import { reachesIn, repoTests } from './reach.ts';
 /** A test file's text: one that imports its runner. */
 const RUNNER = "import { test } from 'bun:test';\n";
 
-/** How `scripts` (a workspace at `w`, its playwright configs `configs`) reach each of `files` (paths from `w`), as `<file>: <script>`, or `none`. */
+/** How `scripts` (a workspace at `w`, `/repo/w`, its playwright configs `configs`) reach each of `files` (paths from `w`), as `<file>: <script>`, or `none`. */
 const reaches = (
   scripts: Record<string, string>,
   files: ReadonlyArray<string>,
   configs: Record<string, string> = {},
 ) =>
   reachesIn(
-    [{ dir: 'w', scripts, configs }],
+    [{ dir: 'w', absolute: '/repo/w', scripts, configs }],
     files.map((file) => ({ file: `w/${file}`, text: RUNNER })),
   ).map(({ file, by }) => `${file.slice(2)}: ${Option.getOrElse(by, () => 'none')}`);
 
@@ -25,8 +25,8 @@ describe("a workspace's test files", () => {
       expect(
         reachesIn(
           [
-            { dir: 'w', scripts: test, configs: {} },
-            { dir: 'w/nested', scripts: {}, configs: {} },
+            { dir: 'w', absolute: '/repo/w', scripts: test, configs: {} },
+            { dir: 'w/nested', absolute: '/repo/w/nested', scripts: {}, configs: {} },
           ],
           [
             of('w/a.test.ts', RUNNER),
@@ -199,22 +199,32 @@ describe("a workspace's test files", () => {
         ]);
         // A file its testIgnore names is not taken, by a glob (read as playwright reads one:
         // any folder before it, any case) or a regex, its key bare or quoted.
+        // A regex is of the absolute path, as playwright tests it.
         for (const ignore of [
           "testIgnore: '**/a.spec.ts'",
           "testIgnore: 'A.spec.ts'",
           '"testIgnore": /a\\.spec/',
+          'testIgnore: /\\/test\\/browser\\/a\\.spec\\.ts$/',
+          'testIgnore: /^\\/repo\\/w\\/test\\/browser\\/a/',
         ])
           expect(reaches(scripts, files, config(`export default { ${ignore} };`))).toEqual([
             'test/browser/a.spec.ts: none',
             'test/browser/b.test.ts: test:browser',
             'test/c.spec.ts: none',
           ]);
+        // A regex anchored at a path from the workspace matches no absolute path, in playwright too.
+        expect(
+          reaches(scripts, files, config('export default { testMatch: /^test\\/browser\\// };')),
+        ).toEqual([
+          'test/browser/a.spec.ts: none',
+          'test/browser/b.test.ts: none',
+          'test/c.spec.ts: none',
+        ]);
         // A config it cannot read, or none, takes nothing.
         for (const configs of [
           config('export default { testDir: here };'),
           config("export default { testIgnore: ['**/a.spec.ts'] };"),
           config("const testIgnore = '**/a.spec.ts';\nexport default { testIgnore };"),
-          config('export default { testMatch: /^test\\/browser\\// };'),
           config('export default { projects: [] };'),
           config("export default { 'projects': [] };"),
           {},
