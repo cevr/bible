@@ -262,7 +262,8 @@ const open = async ({
    * middle, or the tab bar's link named `tab`: a press at once. That task
    * runs as a frame begins, its scroll's event already sent for that frame,
    * so the app has a whole frame to leave the list before the event comes.
-   * Answers where he left the list and the row.
+   * Answers where he left the list and the row; fails at once, with its
+   * message, when the list is not shown or the link is not there.
    */
   const leaveAtOnce = async (at: number, tab?: string) => {
     // A row he can press is drawn.
@@ -270,8 +271,10 @@ const open = async ({
     await page.evaluate((y) => window.hymnal.away(y), at);
     return page.evaluate(
       ([y, link]) =>
-        new Promise<{ top: number; label: string }>((done) =>
-          requestAnimationFrame(() => done(window.hymnal.leave(y, link))),
+        // Inside the frame's callback a throw reaches only the page's error event; in the
+        // microtask that follows it, still before the frame draws, it rejects what the press answers.
+        new Promise<number>((frame) => requestAnimationFrame(frame)).then(() =>
+          window.hymnal.leave(y, link),
         ),
       [at, tab] as const,
     );
@@ -808,6 +811,21 @@ describe('the search field', () => {
     await app.settle(150);
     const after = await app.page.evaluate(() => document.activeElement?.getAttribute('role'));
     expect({ before, after }).toEqual({ before: 'searchbox', after: null });
+  });
+});
+
+describe('a press at once', () => {
+  it.concurrent('whose link is not there fails at once, saying so', async () => {
+    await using app = await open();
+    const started = performance.now();
+    const outcome = await app.leaveAtOnce(2000, 'Nowhere').then(
+      () => 'pressed',
+      (error: Error) => error.message,
+    );
+    expect({ outcome, soon: performance.now() - started < 3000 }).toEqual({
+      outcome: expect.stringContaining('no link to Nowhere'),
+      soon: true,
+    });
   });
 });
 
