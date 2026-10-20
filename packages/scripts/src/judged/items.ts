@@ -205,8 +205,16 @@ const foldProse = (text: string) => text.replace(/\s+/g, ' ').trim();
 /** A string as a parsed form writes it: quoted, its quotes and backslashes escaped. */
 const quoted = (text: string) => `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 
-/** What a node's parsed form leaves out: where it stands, and a literal's spelling (its value stays). */
-const PLACE = new Set(['type', 'start', 'end', 'range', 'loc', 'raw', 'parent']);
+/** What a node's parsed form leaves out: where it stands. */
+const PLACE = new Set(['type', 'start', 'end', 'range', 'loc', 'parent']);
+
+/**
+ * Whether a field of a node of `type` is left out of its parsed form: where
+ * it stands, or a `Literal`'s spelling (`raw`; its value stays). A template's
+ * `raw` stays, as `String.raw` reads it.
+ */
+const leftOut = (type: string, key: string) =>
+  PLACE.has(key) || (type === 'Literal' && key === 'raw');
 
 const PARSED = new WeakMap<object, string>();
 
@@ -225,7 +233,7 @@ const parsedOf = (value: unknown): string => {
   if (known) return known;
   const type = String(Reflect.get(value, 'type') ?? '');
   const fields = Object.keys(value)
-    .filter((key) => !PLACE.has(key))
+    .filter((key) => !leftOut(type, key))
     .map((key) => `${key}:${parsedOf(Reflect.get(value, key))}`);
   const parsed = `${type}{${fields.join(',')}}`;
   PARSED.set(value, parsed);

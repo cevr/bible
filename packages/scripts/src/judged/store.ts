@@ -34,7 +34,7 @@ export type Store = typeof Store.Type;
  * The form of the keys this module makes, hashed into each: an answer kept
  * under another form is never found, and is asked again.
  */
-const KEY_FORM = 'items-parsed';
+const KEY_FORM = 'items-parsed-2';
 
 /** The store's key of the item whose key is `item`, judged by the rule whose words hash to `rule` on `model`. */
 export const cacheKey = (rule: string, model: string, item: string) =>

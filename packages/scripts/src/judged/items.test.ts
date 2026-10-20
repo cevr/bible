@@ -81,6 +81,7 @@ describe('the judged keys', () => {
             'function f(a: number) { return a; }',
             'function f(a: number) { return\na; }',
           ],
+          ['src/a.ts', 'const f = () => String.raw`\\u0061`;', 'const f = () => String.raw`a`;'],
         ];
         for (const [file, one, other] of pairs)
           expect(keys('functions', file, [one])).not.toEqual(keys('functions', file, [other]));
