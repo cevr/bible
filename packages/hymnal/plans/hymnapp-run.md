@@ -187,6 +187,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - One 2.9 now (owner, 2026-10-20: "Also, let's update to one 2.9, please"): `one29` takes the next heavy slot after coldload, beside the queue (playstall's gate, census2 r2, render). It also checks whether 2.9.0 lets Android start a recording paused at a place with the lock screen (closing playstall's F5 gap) and reports bytes. (one29)
 
+- `gateload` moves from follow-up to the next unit, ahead of every queued unit: gates 7 and 8 started at load 3.7 and 6.5 and still went red only on 5 s timeouts outside the units (animations RBF's figures, film, film's docs check), so no unit can merge on a green gate until it lands. Invariant: the gate passes when started at load ≤ 12, with no timeout raised and no test skipped. playstall's gate, one29, census2 r2 and render wait for it; coldload's review runs meanwhile. (gateload; carried tooling first)
+
 ## Owner questions
 
 - hymnrows (2026-10-20): the rewrite failed its 3 rounds (r6 changes: M1, repeat of r5 M1). The data at head `ebb5933da` is sound by every check: 0 census problems, 518 crops re-cut byte-identical, 584 matches its crop, and the gate is green. The defect is the census's reach: 115 hand-made layout mutants in 25 hymns pass it unseen. Options: (A, recommended) merge the data now and open unit `census2` with the 115 mutants as red fixtures first; (B) one more rewrite before anything merges; (C) merge the data and drop the census's layout check. Answer: pending.
