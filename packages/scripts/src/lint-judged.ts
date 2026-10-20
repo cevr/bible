@@ -21,8 +21,10 @@
 // two items of one key go in the request once), or why it skipped
 // (`[judged] skipped rule=<rule> reason=<reason> items=<n>`, the items it
 // could not judge). The model's reasons are no-key, no-credits, timeout,
-// rate-limit, http, too-big (one item alone past the model's input limit)
-// and incomplete. A store that does not decode is read as empty, and says so on
+// rate-limit and overloaded (a 429 or a 529 still met after three retries
+// inside the part's 5 s, each after the wait the refusal names, else a
+// backoff), http, too-big (one item alone past the model's input limit) and
+// incomplete. A store that does not decode is read as empty, and says so on
 // one `[judged] store unread file=<file> reason=decode` line. Any other failure (git, the lint config, a defect) is one
 // `[judged] skipped rule=* reason=error` line, its `detail=` the failure's tag
 // and its words on one stderr line; answers the store cannot keep are asked

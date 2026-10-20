@@ -3903,9 +3903,12 @@ series script, an answer the store could not keep), and one line a rule;
 `--strict` prints every finding and fails on any. It never fails on its
 model or its host: no key (`TYPESAFE_API_KEY`, else the keychain item
 `typesafe-api-key` within 2 s), a part past 5 s, an account with no
-credits left, a rate limit, an HTTP error, one item alone past the input
-limit or an answer that misses items passes (after no key, no credits, a
-rate limit or a part past 5 s, no part not yet sent is sent), and prints
+credits left, a rate limit or an overloaded host (a 429 or a 529, each sent
+again up to three times inside the part's 5 s, after the wait the refusal
+names or a backoff from 250 ms), an HTTP error, one item alone past the
+input limit or an answer that misses items passes (after no key, no
+credits, a rate limit or an overloaded host past its retries, or a part
+past 5 s, no part not yet sent is sent), and prints
 `[judged] skipped rule=<rule> reason=<reason> items=<n>`; any other failure
 (git, the lint config, a defect) is `rule=* reason=error` with
 `detail=<tag>`, a store that does not decode is read as empty with one

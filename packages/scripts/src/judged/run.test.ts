@@ -384,8 +384,9 @@ describe('a judged rule', () => {
 const typesafeAnswering = (
   status: Parameters<typeof typesafeHttp>[0],
   body: (keys: ReadonlyArray<string>) => unknown,
+  headers?: Parameters<typeof typesafeHttp>[2],
 ) => {
-  const http = typesafeHttp(status, body);
+  const http = typesafeHttp(status, body, headers);
   const over = (vars: Record<string, string>) =>
     judgedModel('jev-latest').pipe(
       Layer.provide(Layer.mergeAll(http.layer, missing().layer, env(vars))),
@@ -403,6 +404,16 @@ const choice = (label: string, history: number) => ({
   probabilities: { today: 1 - history, history },
   confidence: 0.96,
 });
+
+/** `effect` run on the test clock, moved on 50 ms at a time until it ends: its retries' waits pass. */
+const ticking = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+  Effect.gen(function* () {
+    const done = yield* Ref.make(false);
+    const fiber = yield* Effect.forkChild(effect.pipe(Effect.ensuring(Ref.set(done, true))));
+    for (let tick = 0; tick < 2_000 && !(yield* Ref.get(done)); tick++)
+      yield* TestClock.adjust('50 millis');
+    return yield* Fiber.join(fiber);
+  });
 
 /** Judges ITEMS through `layer`, expects no finding, and answers the run's `[judged]` line. */
 const lineOver = <E>(layer: Layer.Layer<DecisionModel.DecisionModel, E>) =>
@@ -649,12 +660,71 @@ describe('a judged rule never fails on its model', () => {
     });
   });
 
-  it.effect('skips rate-limit on a 429', () =>
+  it.effect('skips rate-limit on a 429 still met after three retries', () =>
     Effect.gen(function* () {
       const typesafe = typesafeAnswering(429, () => ({ message: 'Rate limit exceeded' }));
+      expect(yield* ticking(lineOver(typesafe.layer))).toBe(
+        '[judged] skipped rule=historyComment reason=rate-limit items=3',
+      );
+      expect(typesafe.requests).toHaveLength(4);
+    }),
+  );
+
+  /**
+   * Judges ITEMS through a TypeSafe that refuses the first two requests with
+   * `refused` (each naming `retry-after: 2`) and answers the third; expects
+   * the answer kept, and the waits between the sends at least `waits` and
+   * under twice each.
+   */
+  const retried = (refused: number, waits: readonly [number, number]) => {
+    const typesafe = typesafeAnswering(
+      (_, sent) => Math.max(refused * Number(sent < 2), 200),
+      (keys) => ({
+        model: 'jev-latest',
+        answers: Object.fromEntries(keys.map((k) => [k, FIRST.get(k) ?? choice('today', 0.04)])),
+        usage: { input_tokens: 10, output_tokens: 3 },
+      }),
+      () => ({ 'retry-after': '2' }),
+    );
+    return Effect.gen(function* () {
+      const outcome = yield* ticking(judgeBy(historyComment, ITEMS, yield* judging));
+      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96, kept: true }]);
+      const at = typesafe.requests.map((request) => request.at);
+      const gaps = at.slice(1).map((time, i) => time - (at[i] ?? 0));
+      expect(gaps.map((gap, i) => gap >= waits[i]! && gap < 2 * waits[i]!)).toEqual([true, true]);
+    }).pipe(Effect.provide(typesafe.layer), withFs);
+  };
+
+  it.effect('asks again after a 429, waiting the retry-after it names, and keeps the answers', () =>
+    retried(429, [2_000, 2_000]),
+  );
+
+  // TypeSafe's client reads a retry-after for a rate limit alone: a 529 backs off.
+  it.effect('asks again after a 529, backing off 250 ms then 500 ms, and keeps the answers', () =>
+    retried(529, [250, 500]),
+  );
+
+  it.effect('waits for no retry that would end past the deadline: the part skips at once', () =>
+    Effect.gen(function* () {
+      const typesafe = typesafeAnswering(
+        429,
+        () => ({ message: 'Rate limit exceeded' }),
+        () => ({ 'retry-after': '30' }),
+      );
       expect(yield* lineOver(typesafe.layer)).toBe(
         '[judged] skipped rule=historyComment reason=rate-limit items=3',
       );
+      expect(typesafe.requests).toHaveLength(1);
+    }),
+  );
+
+  it.effect('skips overloaded on a 529 still met after three retries', () =>
+    Effect.gen(function* () {
+      const typesafe = typesafeAnswering(529, () => ({ message: 'Overloaded' }));
+      expect(yield* ticking(lineOver(typesafe.layer))).toBe(
+        '[judged] skipped rule=historyComment reason=overloaded items=3',
+      );
+      expect(typesafe.requests).toHaveLength(4);
     }),
   );
 
@@ -676,11 +746,12 @@ describe('a judged rule never fails on its model', () => {
         [429, { message: 'Rate limit exceeded' }, 'rate-limit'],
       ] as const) {
         const typesafe = typesafeAnswering(status, () => body);
-        expect(yield* onePartEachOver(typesafe.layer)).toBe(
+        expect(yield* ticking(onePartEachOver(typesafe.layer))).toBe(
           `[judged] skipped rule=historyComment reason=${reason} items=20`,
         );
-        // Twenty parts of one item; only those already in flight are sent.
-        expect(typesafe.requests.length).toBeLessThanOrEqual(8);
+        // Twenty parts of one item; only those already in flight are sent, a
+        // rate-limited one with its three retries.
+        expect(typesafe.requests.length).toBeLessThanOrEqual(8 * 4);
       }
     }),
   );

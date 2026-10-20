@@ -3,6 +3,7 @@
 // client, so no test reads the real keychain or reaches the network.
 
 import {
+  Clock,
   ConfigProvider,
   Effect,
   Layer,
@@ -82,22 +83,25 @@ const Sent = Schema.fromJsonString(
 
 /**
  * A fake TypeSafe HTTP client answering every request with `status` and
- * `body` (each of the request's question keys, or a status the same for
- * every request); it records each request's URL, authorization header and
- * keys.
+ * `body` (each of the request's question keys and how many requests came
+ * before it, or a status the same for every request), and the response
+ * headers `headers` gives it; it records each request's URL, authorization
+ * header, keys and time on the clock.
  */
 export const typesafeHttp = (
-  status: number | ((keys: ReadonlyArray<string>) => number),
+  status: number | ((keys: ReadonlyArray<string>, sent: number) => number),
   body: (keys: ReadonlyArray<string>) => unknown,
+  headers: (sent: number) => Record<string, string> = () => ({}),
 ) => {
   const requests: Array<{
     readonly url: string;
     readonly authorization: Option.Option<string>;
     readonly keys: ReadonlyArray<string>;
+    readonly at: number;
   }> = [];
-  const statusOf = (keys: ReadonlyArray<string>) => {
+  const statusOf = (keys: ReadonlyArray<string>, sent: number) => {
     if (Predicate.isNumber(status)) return status;
-    return status(keys);
+    return status(keys, sent);
   };
   const layer = Layer.succeed(
     HttpClient.HttpClient,
@@ -106,14 +110,20 @@ export const typesafeHttp = (
         if (request.body._tag !== 'Uint8Array') return yield* Effect.die('no JSON body');
         const sent = yield* Schema.decodeEffect(Sent)(new TextDecoder().decode(request.body.body));
         const keys = Object.keys(sent.questions);
+        const before = requests.length;
+        const at = yield* Clock.currentTimeMillis;
         requests.push({
           url: request.url,
           authorization: Headers.get(request.headers, 'authorization'),
           keys,
+          at,
         });
         return HttpClientResponse.fromWeb(
           request,
-          Response.json(body(keys), { status: statusOf(keys) }),
+          Response.json(body(keys), {
+            status: statusOf(keys, before),
+            headers: headers(before),
+          }),
         );
       }).pipe(Effect.orDie),
     ),

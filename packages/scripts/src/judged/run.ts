@@ -2,15 +2,17 @@
 // of every rule, goes to the model in ONE request (a classify per item, each
 // with its own rule's instructions and labels, keys c0…cN), split only past
 // `bound` items or `budget` estimated input tokens, the parts sent eight at
-// a time. A run never fails on the model: no key, no credits, a request past
-// its deadline, a rate limit, an HTTP error or an answer that misses items
-// skips the items it could not judge, and says so on one line per rule; a
-// failure that says the same of every part sends none of the parts after it. Nor on its cache:
+// a time. A part refused for a rate limit or an overloaded host is sent again
+// while its deadline allows (`retrying`). A run never fails on the model: no
+// key, no credits, a request past its deadline, a rate limit or an
+// overloaded host past its retries, an HTTP error or an answer that misses
+// items skips the items it could not judge, and says so on one line per rule;
+// a failure that says the same of every part sends none of the parts after
+// it. Nor on its store:
 // answers it cannot keep are asked again next run. A finding is a warning, or
 // an error when its rule's severity is `error`.
 
-import type { Duration } from 'effect';
-import { Clock, Console, Effect, Option, Predicate, Ref, Result, Schema } from 'effect';
+import { Clock, Console, Duration, Effect, Option, Predicate, Ref, Result, Schema } from 'effect';
 import { type AiError, Decision, DecisionModel } from 'effect/ai';
 
 import { changes, keepAnswers, readCache } from './cache.js';
@@ -23,6 +25,7 @@ type SkipReason =
   | 'no-credits'
   | 'timeout'
   | 'rate-limit'
+  | 'overloaded'
   | 'http'
   | 'incomplete'
   | 'too-big';
@@ -71,12 +74,18 @@ const billing = (reason: AiError.AiError['reason']) =>
   Predicate.isString(reason.description) &&
   reason.description.includes('billing_error');
 
+/** Whether a failure is TypeSafe's `529 Overloaded`: a host too busy, for now, to answer. */
+const overloaded = (reason: AiError.AiError['reason']) =>
+  reason._tag === 'InternalProviderError' && reason.http?.response?.status === 529;
+
 /**
  * The skip reason an `AiError` from the model is: `too-big` for a request
- * past the model's input limit, `no-credits` for an account with none left.
+ * past the model's input limit, `no-credits` for an account with none left,
+ * `overloaded` for a host too busy to answer.
  */
 const reasonOf = (error: AiError.AiError): SkipReason => {
   if (billing(error.reason)) return 'no-credits';
+  if (overloaded(error.reason)) return 'overloaded';
   switch (error.reason._tag) {
     case 'InvalidRequestError':
       if (
@@ -106,7 +115,43 @@ const Input = Schema.Record(Schema.String, Schema.String);
 const instructionsFor = (rule: JudgedRule, id: string) =>
   `Judge the ${rule.subject} under key ${id}. ${rule.instructions}`;
 
-/** One request: each question's text under the keys c0…cN, a classify of its rule's each, inside `deadline`. */
+/** How many times a part refused for a rate limit or an overloaded host is sent again. */
+const RETRIES = 3;
+
+/** The wait before retry `n` (0, 1, 2) when the refusal names none: 250 ms, doubled each time. */
+const backoff = (n: number) => Duration.millis(250 * 2 ** n);
+
+/**
+ * `request` sent again, up to `RETRIES` times, while TypeSafe refuses it
+ * for a rate limit (429) or an overloaded host (529): each time after the
+ * wait the refusal names (`retry-after`), else `backoff`'s, so long as the
+ * wait ends before `deadline` from the first send. A wait past it is not
+ * waited: the refusal is the part's, and the run halts on it (`RUN_WIDE`).
+ */
+const retrying = <A, R>(
+  request: Effect.Effect<A, AiError.AiError, R>,
+  deadline: Duration.Input,
+): Effect.Effect<A, AiError.AiError, R> =>
+  Effect.flatMap(Clock.currentTimeMillis, (sent) => {
+    const end = sent + Duration.toMillis(Duration.fromInputUnsafe(deadline));
+    const attempt = (n: number): Effect.Effect<A, AiError.AiError, R> =>
+      Effect.catch(request, (error) => {
+        if (n >= RETRIES || !(error.reason._tag === 'RateLimitError' || overloaded(error.reason)))
+          return Effect.fail(error);
+        const wait = Option.getOrElse(Option.fromUndefinedOr(error.retryAfter), () => backoff(n));
+        return Effect.flatMap(Clock.currentTimeMillis, (now) => {
+          if (now + Duration.toMillis(wait) >= end) return Effect.fail(error);
+          return Effect.andThen(Effect.sleep(wait), attempt(n + 1));
+        });
+      });
+    return attempt(0);
+  });
+
+/**
+ * One request: each question's text under the keys c0…cN, a classify of its
+ * rule's each, inside `deadline`, sent again on a rate limit or an
+ * overloaded host while the deadline allows (`retrying`).
+ */
 const askPart = (questions: ReadonlyArray<Question>, deadline: Duration.Input) => {
   const ids = questions.map((_, i) => `c${i}`);
   const definition = Decision.make({
@@ -122,7 +167,7 @@ const askPart = (questions: ReadonlyArray<Question>, deadline: Duration.Input) =
     ),
   });
   const input = Object.fromEntries(ids.map((id, i) => [id, questions[i]?.text ?? '']));
-  return DecisionModel.decide(definition, { input }).pipe(
+  return retrying(DecisionModel.decide(definition, { input }), deadline).pipe(
     Effect.timeoutOption(deadline),
     Effect.result,
     Effect.map((result) =>
@@ -209,12 +254,14 @@ type PartResult = Result.Result<
 
 /**
  * The reasons a part fails for that say the same of every part: the account
- * (no key, no credits, a rate limit) or a host that does not answer in time.
+ * (no key, no credits, a rate limit still met after its retries) or a host
+ * overloaded past its retries or that does not answer in time.
  */
 const RUN_WIDE: ReadonlySet<SkipReason> = new Set([
   'no-key',
   'no-credits',
   'rate-limit',
+  'overloaded',
   'timeout',
 ]);
 
