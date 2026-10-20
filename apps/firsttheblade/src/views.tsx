@@ -255,7 +255,7 @@ const NotFound = () => (
           There is nothing at this address. The link may be mistyped, or the page may have moved.
         </p>
         <a class="button" href="/">
-          Go to the home page
+          <span class="button-label">Go to the home page</span>
         </a>
       </div>
     </section>

@@ -1263,3 +1263,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check credited `w/linked/a.spec.ts` to `playwright test`, where `w/linked` is a tracked folder made a symbolic link: git still lists its file, and playwright's walk does not enter the link.
 - **Cause:** The reader asked whether the test file itself is a link, not whether a folder above it is one.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
+
+### button-words-optically-centred
+
+- **Date:** 2026-10-20
+- **Kind:** owner
+- **Said:** "it's not centred. The subscribe button here on YouTube. So let's make sure the buttons are optically centred."
+- **Source:** scrawl capture of firsttheblade.com, 2026-10-20 12:42 (frames #1 and #3: the header pill and the night button)
+- **Wrong:** The words of the site's buttons sat above the middle of their pills: 2.75 px in the header pill and 3.13 px in the night button.
+- **Cause:** A font's line box keeps room above the capitals and below the baseline, and the buttons centred the line box, not the letters.
+- **Guard:** code: `apps/firsttheblade/src/buttons.test.ts` `a pill and a button label are trimmed to the cap height and the baseline, so their letters sit in the middle`; `every button wraps its words in a trimmed label`

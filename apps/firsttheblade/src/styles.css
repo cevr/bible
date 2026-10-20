@@ -356,6 +356,13 @@ a {
   }
 }
 
+/* A font's line box keeps room above the capitals and below the baseline,
+   so centred words sit low. The label is trimmed to the cap height and the
+   baseline, and the flex centres what is left: the letters themselves. */
+.button-label {
+  text-box: trim-both cap alphabetic;
+}
+
 /* By night: an outline in the night's accent. */
 .button-night {
   border: var(--border-outline) solid var(--color-night-accent);
@@ -456,6 +463,15 @@ a {
 @media (hover: hover) {
   .pill:hover {
     background: var(--color-accent);
+  }
+}
+/* Its words are trimmed to the cap height and the baseline, as a button's
+   label is; the padding takes back the line box's height, so the pill keeps
+   its size and its letters sit in its middle. */
+@supports (text-box: trim-both cap alphabetic) {
+  .pill {
+    padding-block: calc(var(--space-3) + (1.2em - 1cap) / 2);
+    text-box: trim-both cap alphabetic;
   }
 }
 

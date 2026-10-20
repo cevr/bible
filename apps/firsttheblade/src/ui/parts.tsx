@@ -153,7 +153,7 @@ export const NightClose = () => (
         <span class="nowrap">{CHANNEL.handle}</span>
       </p>
       <a class="button button-night" href={SUBSCRIBE.href}>
-        {SUBSCRIBE.label}
+        <span class="button-label">{SUBSCRIBE.label}</span>
       </a>
     </div>
   </section>

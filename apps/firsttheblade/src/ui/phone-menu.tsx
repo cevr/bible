@@ -68,7 +68,7 @@ export const PhoneMenu = () => {
                 </For>
                 <li>
                   <a class="button" href={SUBSCRIBE.href}>
-                    {SUBSCRIBE.label}
+                    <span class="button-label">{SUBSCRIBE.label}</span>
                   </a>
                 </li>
               </ul>
