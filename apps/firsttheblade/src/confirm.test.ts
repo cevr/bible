@@ -18,7 +18,7 @@ describe('confirming from the letter', () => {
     Effect.gen(function* () {
       const page = yield* read('ui/mail.tsx');
       const confirm = page.slice(page.indexOf('export const Confirm ='));
-      expect(confirm).toContain('<form method="post" id={CONFIRM_FORM_ID} class="confirm-press">');
+      expect(confirm).toContain('<form method="post" id={CONFIRM_FORM_ID}>');
       const entry = yield* read('client.tsx');
       expect(entry).toContain('document.getElementById(CONFIRM_FORM_ID)');
       expect(entry).toContain("const loadConfirm = () => import('./confirm.ts');");
@@ -26,15 +26,25 @@ describe('confirming from the letter', () => {
       expect(CONFIRM_FORM_ID).toBe('confirm');
     }));
 
-  test('never reloads: the answer is drawn in place, and the press waits hidden for a browser with no script', () =>
+  test('loads into the next step: a skeleton while the post runs, the answer drawn in place, the button only with no script', () =>
     Effect.gen(function* () {
       const inPlace = yield* read('confirm.ts');
       expect(inPlace).toContain('HttpClientRequest.post(location.href)');
       expect(inPlace).toContain("history.replaceState(history.state, '', path)");
+      expect(inPlace).toContain("shown.classList.add('confirm-arrived')");
+      expect(inPlace).toContain('const HOLD = Duration.millis(600);');
       const page = yield* read('ui/mail.tsx');
       const confirm = page.slice(page.indexOf('export const Confirm ='));
-      expect(confirm).toContain('<p class="confirm-press">');
+      expect(confirm.indexOf('confirm-pending')).toBeLessThan(
+        confirm.indexOf('<div class="confirm-press">'),
+      );
+      expect(confirm).toContain('<div class="wrap lost" role="status" aria-busy="true">');
       const styles = yield* read('styles.css');
-      expect(styles).toContain('animation: confirm-press-shown 0s 3s both;');
+      expect(styles).toContain(
+        '@media (scripting: none) {\n  .confirm-pending {\n    display: none;',
+      );
+      expect(styles).toContain(
+        '.confirm-arrived > :not(img) {\n  animation: confirm-arrive 300ms ease-out both;',
+      );
     }));
 });

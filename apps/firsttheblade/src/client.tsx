@@ -2,9 +2,9 @@
  * The browser's entry: the site's stylesheet, the phone menu, and the
  * confirm page's press. The pages are served whole (`./prerender.tsx`); the
  * menu mounts in place of the link the served page carries in its slot, and
- * on the confirm page the form is posted as it opens and the page it leads
- * to is drawn in place, so a person who opens the link in the letter is
- * confirmed in that one step, with no reload between the two pages.
+ * on the confirm page, which already shows the confirmed notice, the form is
+ * posted as it opens and its answer drawn in place, so a person who opens the
+ * link in the letter is confirmed in that one step and sees one page.
  */
 import { render } from '@solidjs/web';
 import { Effect } from 'effect';

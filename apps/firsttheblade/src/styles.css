@@ -1044,17 +1044,109 @@ button.button-night {
 .lost form {
   display: contents;
 }
-/* The confirm page's press shows only when the browser's entry has not
-   confirmed in place within three seconds: a browser with no script. */
+/* The confirm page: with script, a skeleton of the notice while its script
+   confirms, then the answer's words in a staged entrance; with none, the
+   button. A first-time moment, so it takes the delight budget: the skeleton's
+   sheen is a progress cue (linear), the entrance the staged pattern (each
+   chunk 300ms, 100ms apart). */
 .confirm-press {
-  animation: confirm-press-shown 0s 3s both;
+  display: none;
 }
-@keyframes confirm-press-shown {
+@media (scripting: none) {
+  .confirm-pending {
+    display: none;
+  }
+  .confirm-press {
+    display: block;
+  }
+}
+.skeleton {
+  display: block;
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in oklab, var(--color-paper) 70%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 250% 100% no-repeat,
+    color-mix(in oklab, var(--color-soft) 16%, var(--color-paper));
+  animation: skeleton-sheen 1.4s linear infinite;
+}
+/* Each bar stands in the line box of the text it holds the place of, so the
+   notice's words arrive without moving the page. */
+.skeleton-heading {
+  width: min(22rem, 80%);
+  height: calc(var(--size-heading) * 0.7);
+  margin-block: calc(var(--size-heading) * (var(--line-tight) - 0.7) / 2);
+}
+.skeleton-lines {
+  display: grid;
+  width: min(36rem, 100%);
+}
+.skeleton-line {
+  height: calc(var(--size-reading) * 0.6);
+  margin-block: calc(var(--size-reading) * (var(--line-reading) - 0.6) / 2);
+}
+.skeleton-line + .skeleton-line {
+  width: 62%;
+}
+.skeleton-lines + .skeleton-lines .skeleton-line:first-child {
+  width: 84%;
+}
+.skeleton-lines + .skeleton-lines .skeleton-line + .skeleton-line {
+  width: 24%;
+}
+.skeleton-button {
+  width: 11rem;
+  height: var(--size-target);
+}
+@keyframes skeleton-sheen {
   from {
-    visibility: hidden;
+    background-position:
+      150% 0,
+      0 0;
   }
   to {
-    visibility: visible;
+    background-position:
+      -100% 0,
+      0 0;
+  }
+}
+.confirm-arrived img {
+  animation: confirm-settle 300ms ease-out both;
+}
+.confirm-arrived > :not(img) {
+  animation: confirm-arrive 300ms ease-out both;
+}
+.confirm-arrived > :nth-child(3) {
+  animation-delay: 100ms;
+}
+.confirm-arrived > :nth-child(4) {
+  animation-delay: 200ms;
+}
+.confirm-arrived > :nth-child(n + 5) {
+  animation-delay: 300ms;
+}
+@keyframes confirm-arrive {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    translate: 0 12px;
+  }
+}
+@keyframes confirm-settle {
+  from {
+    scale: 0.96;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .confirm-arrived img {
+    animation: none;
   }
 }
 

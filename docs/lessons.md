@@ -1731,8 +1731,8 @@ The form of an entry, each field on its own line:
 - **Said:** "when we open the confirm link, it kind of flashes. It goes from one state to the next. It's kind of janky a bit."
 - **Source:** the owner's confirm of the live email list, 2026-10-20
 - **Wrong:** The confirm page showed its words and button, then reloaded into the confirmed page: two pages and a flash for one step.
-- **Cause:** The one-step confirm submitted the form as the page opened, so the browser loaded a second page, and the press stayed visible until it did.
-- **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `never reloads: the answer is drawn in place, and the press waits hidden for a browser with no script`
+- **Cause:** The one-step confirm submitted the form as the page opened, so the browser loaded a second page, and the press stayed visible until it did; drawing the answer in place still swapped one set of words for another, so the page now opens on a skeleton of the notice and the answer's words arrive into it.
+- **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `loads into the next step: a skeleton while the post runs, the answer drawn in place, the button only with no script`
 
 ### lead-hands-off-cuffs
 

@@ -150,25 +150,44 @@ export const Notice = (props: NoticeProps) => {
 };
 
 /**
- * The confirm page. Opening the link in the confirm letter only shows it,
- * since mail scanners open links; in a browser its script posts the form at
- * once and draws the page it leads to in place (`../client.tsx`), so
- * confirming is one step with no reload. The words and the button stay
- * hidden for three seconds (`.confirm-press`), so they show only where no
- * script confirmed first. Its form names no action, so it posts back to the
- * page's own address, the token with it.
+ * The confirm page. Opening the link in the confirm letter confirms no one,
+ * since mail scanners open links: the confirm is the form's post. In a browser
+ * with script the page opens on a quiet skeleton of the notice to come while
+ * its script posts the form (`../confirm.ts`), and the answer's words arrive
+ * in its place. With no script the skeleton is hidden and the button is there
+ * to press (`.confirm-pending`, `.confirm-press`, by `@media (scripting)`).
+ * Its form names no action, so it posts back to the page's own address, the
+ * token with it.
  */
 export const Confirm = () => (
-  <Lost title="Confirm your email">
-    <p class="confirm-press">
-      Press the button and we will send you one email for each new film, and nothing else.
-    </p>
-    <form method="post" id={CONFIRM_FORM_ID} class="confirm-press">
-      <button class="button" type="submit">
-        <span class="button-label">Confirm my email</span>
-      </button>
-    </form>
-  </Lost>
+  <>
+    <section class="section-band confirm-pending">
+      <div class="wrap lost" role="status" aria-busy="true">
+        <img src={MARK.large} alt="" width="320" height="320" />
+        <span class="visually-hidden">Confirming your email</span>
+        <span class="skeleton skeleton-heading" aria-hidden="true" />
+        <span class="skeleton-lines" aria-hidden="true">
+          <span class="skeleton skeleton-line" />
+          <span class="skeleton skeleton-line" />
+        </span>
+        <span class="skeleton-lines" aria-hidden="true">
+          <span class="skeleton skeleton-line" />
+          <span class="skeleton skeleton-line" />
+        </span>
+        <span class="skeleton skeleton-button" aria-hidden="true" />
+      </div>
+    </section>
+    <div class="confirm-press">
+      <Lost title="Confirm your email">
+        <p>Press the button and we will send you one email for each new film, and nothing else.</p>
+        <form method="post" id={CONFIRM_FORM_ID}>
+          <button class="button" type="submit">
+            <span class="button-label">Confirm my email</span>
+          </button>
+        </form>
+      </Lost>
+    </div>
+  </>
 );
 
 /**
