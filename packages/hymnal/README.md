@@ -192,6 +192,53 @@ expected order from the text and the fixes alone, never from the compiler,
 and refuses a refrain `refrains.json` does not place. The tests read no
 chart, key or compiled file.
 
+## Recordings
+
+`bun run render --hymns 1,46` (or `--all`) plays the hymnal's MIDI files as
+MP3 recordings in style C, "Warm band", the style the owner picked by ear from
+the listening pilot. The code is `scripts/render/`; its numbers are data in
+`scripts/render/style.ts`. The app plays the set `RECORDING_SET` from
+`src/recordings.ts` (`warm-1`), uploaded by the app's `audio:upload`
+(`apps/hymnal/README.md`).
+
+- `voices` (`src/voices.ts`) reads a hymn's four parts through the score's own
+  reading: S the melody, B the bass, A and T the inner voices. `Midi.secondsOf`
+  gives a file's length from its tempo map.
+- Each stem (piano; violas, cellos, contrabass and melody violins) is its own
+  MIDI file on the hymn file's own clock: every tempo, meter and key event at
+  its tick, the notes at their ticks, only the velocities humanised by a
+  seeded ±5 (`scripts/render/stems.ts`). One key sounds once at a time. No
+  onset moves, so the words stay synced to the MIDI.
+- The sampler is sfizz_render 1.2.3, built from its tarball (pinned by sha256)
+  with `sfizz-render-float.patch`, which writes float WAV. Each instrument is
+  loaded whole before the first note (a `hint_ram_based` wrapper): streamed,
+  two renders of one stem differ.
+- The instruments are fetched into the cache from `instruments.lock.json`
+  (made by `--lock` from GitHub's trees at pinned commits): each file by its
+  raw URL, size and sha256.
+- The mix levels each stem by the film's meter (`@bible/film/measure`), pans
+  it and sums it. The master runs in-process through NodeAV's FFmpeg: the
+  room (a seeded impulse response, `scripts/render/impulse.ts`), a compressor,
+  the fade, then −16 LUFS limited at −2 dBFS, LAME 192 kb/s bit-exact, the
+  credits as the one comment.
+- Each hymn is checked on the MP3 as a player decodes it
+  (`scripts/render/checks.ts`): length, true peak, loudness, clipping, silence
+  while notes sound, onset lag, every stem sounding, and each process's peak
+  memory. A hymn that fails gets a `<n>.png` sheet beside its record.
+
+The cache is `$HYMN_RENDER_CACHE` (default `~/.cache/manna-hymn-render`), and
+the set goes to `sets/warm-1/` there unless `--out` names a folder: `<n>.mp3`,
+`<n>.json` (its checks, memory, times and resume key) and `manifest.json`. A
+rerun renders only a hymn whose MIDI file, style, lock, sampler, NodeAV or
+render code changed, or that failed. Before each hymn the run waits while swap
+use is over 8 GB or the load over 12, and stops under 3 GB of free disk. The
+bytes are this Mac's: another host's sampler and FFmpeg give others, so a set
+is rendered on one host and recorded with its tools' hashes.
+
+The piano is the Salamander Grand Piano V3 by Alexander Holm, CC BY 3.0; the
+strings are VS Chamber Orchestra 2: Community Edition by Versilian Studios,
+CC0 1.0. `RECORDING_CREDITS` holds the credit Settings → About shows.
+
 ## The census
 
 `bun run census` holds every hymn 1 to 695 against its printed page in the

@@ -220,13 +220,23 @@ a press on it opens the hymn. Playing another hymn replaces the first.
 
 The 1985 SDA Hymnal's recordings are in the Cloudflare R2 bucket `cvr-hymns`,
 served publicly at `https://hymns.cvr.im`. The app builds each URL from
-`src/remote.ts` (`audioUrl(n)` is `https://hymns.cvr.im/audio/sdah/<n>.mp3`).
-That module imports nothing, so the app, Vite and the infra all read it.
+`src/remote.ts` (`audioUrl(n)` is `https://hymns.cvr.im/audio/warm-1/sdah/<n>.mp3`).
+That module imports only `@bible/hymnal/recordings`, which imports nothing, so
+the app, Vite and the infra all read it.
 
 Key layout:
 
-- `audio/sdah/<n>.mp3`: hymn `n` of the 1985 hymnal, with the number unpadded.
+- `audio/<set>/sdah/<n>.mp3`: hymn `n` of the 1985 hymnal in a rendered set,
+  with the number unpadded. The app plays the set `RECORDING_SET` in
+  `packages/hymnal/src/recordings.ts` (`warm-1`). A set is rendered from the
+  hymnal's MIDI files (`packages/hymnal/README.md`, "Recordings") and is never
+  replaced: changed recordings are a new set (`warm-2`) beside it.
+- `audio/sdah/<n>.mp3`: the recordings copied from the old S3 bucket
+  (`sourcedKey(n)`). They stay, so going back is one constant.
 - `data/`: reserved for the compiled hymn data.
+
+Settings → About credits the instruments the sets are played on
+(`src/about.tsx`), as the Salamander piano's CC BY 3.0 licence asks.
 
 ### The stack
 
@@ -288,6 +298,34 @@ A real run ends with
 
 `bun run test` runs the copy job's tests against fake stores, and the adapters'
 tests over a recording HTTP client. Neither uses the network.
+
+### The upload
+
+`bun run audio:upload --set DIR` uploads a rendered set (the folder the render
+writes, `~/.cache/manna-hymn-render/sets/warm-1/` by default) into R2 under
+`audio/<set>/sdah/<n>.mp3`. The code is `infra/audio/upload.ts`, and its plan
+is `infra/audio/upload-plan.ts`.
+
+- It refuses the set before any upload unless its `manifest.json` is the set
+  the app plays and holds hymns 1 to 695 once each, each with its own key and
+  each passed, and unless every MP3 has the manifest's sha256, MD5 and size.
+- It lists the set's prefix once. A key R2 holds with the manifest's size and
+  MD5 is kept. A key R2 lacks is uploaded, 4 at a time, as `audio/mpeg` with
+  `cache-control: public, max-age=31536000, immutable`, and R2's reply must
+  carry that MD5 and size.
+- A key R2 holds with other bytes is a conflict. It is never replaced: the run
+  says to bump the set to `warm-2`. That refusal is what makes `immutable`
+  true.
+- At the end it lists the prefix again and checks every hymn. A failed hymn
+  does not stop the others, the run exits non-zero unless all 695 are
+  verified, and a rerun uploads only what is still missing.
+
+`--dry-run` reads and checks the local set only. It does not touch R2 or the
+Cloudflare profile. Both modes end with
+`audio-upload <run|dry-run> set=warm-1 kept K uploaded U conflict C failed F verified V/695`.
+A real run writes with the owner's Alchemy Cloudflare profile, as the copy job
+does, and runs before the change that points the app at the set reaches
+`main`, so the app never plays keys that do not exist.
 
 ### Deploy and copy
 
