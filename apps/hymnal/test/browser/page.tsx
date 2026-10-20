@@ -67,7 +67,7 @@ export interface Hymnal {
   watching?: Promise<First>;
   /**
    * Leaves the list in one task, as a reader who scrolls and presses at
-   * once: scrolls it a few pixels, then clicks the fully shown row nearest
+   * once: scrolls it three rows, then clicks the fully shown row nearest
    * its middle, or the tab bar's link named `tab`. Answers the offset it
    * left at and the row.
    */
@@ -245,7 +245,10 @@ window.hymnal = {
   leave: (tab) => {
     const node = scroller();
     if (node === undefined) throw new Error('the list is not shown');
-    node.scrollTop += node.scrollTop > 8 ? -8 : 8;
+    // Three rows: more than the one row a return may miss by, so a list that
+    // kept the offset of its last scroll event, not the one it is at, misses.
+    const nudge = 3 * 44;
+    node.scrollTop += node.scrollTop >= nudge ? -nudge : nudge;
     left = { node, top: node.scrollTop };
     const { row } = middleOf(node);
     const target =
