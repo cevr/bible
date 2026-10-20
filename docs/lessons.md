@@ -1453,3 +1453,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The place test read a plan's entries with an optional letter, so a plan could grow `44b`, a gap or a duplicate again and every test stayed green while no script sat on that entry.
 - **Cause:** The test held scripts to their plan but never held the plan's own numbers to their count.
 - **Guard:** code: `apps/animations/scripts.test.ts` `planFaults`
+
+### code-chip-font-under-button-reset
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The mark chips do not get the font that `.st-code-chip` sets"
+- **Source:** p6-studio-steps/review-4.md F1
+- **Wrong:** A mark's chip that seeks was set in Geist on an 18 px line while a plain chip was set in the code's mono face, so the band's chips differed by whether they could be pressed.
+- **Cause:** The chip's font sat on one class (0,1,0), and the studio's button reset `.st-app button:where(…) { font: inherit }` (0,1,1) outranked it on a button.
+- **Guard:** code: `packages/film/e2e/lab/studio/code.dom.test.ts` `chip.fontFamily === code.fontFamily`
