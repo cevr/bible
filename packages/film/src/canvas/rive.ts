@@ -12,7 +12,8 @@
 // the frame is drawn, bound to a view-model instance of its own (the model's
 // defaults, then the pose's numbers), with the pose's timelines applied in
 // order and the artboard advanced by no time. A rig that follows the shot
-// (`ink`) has its ink set from the frame's scale before the pose's numbers. Nothing a frame does to an
+// (`ink`) has its ink set from the frame's scale before the pose's numbers,
+// read before the pose's `size` scales it. Nothing a frame does to an
 // instance outlives it: no path a shape keeps from an earlier frame's
 // rounding (`PathComposer` remakes a shape's paths only when their geometry
 // or their transform moves past a tolerance), no constraint solved from the
@@ -108,7 +109,8 @@ export interface RivePropSpec<Tl extends string = string, N extends string = str
   readonly concept?: ConceptRef;
   /**
    * The rig's ink as the shot draws it: the number `ink` (`INK_NUMBER`) at
-   * the shot's scale where the rig is drawn (`shotScale`), set each frame
+   * the shot's scale where the rig stands (`shotScale`, read before the
+   * pose's `size`), set each frame
    * before the pose's numbers, so a pose that names `ink` sets it itself
    * (`inkAt`, `@bible/film/style`). Left out, the ink stays at the model's
    * default. A rig whose view model has no number `ink` is refused at load.
@@ -119,11 +121,15 @@ export interface RivePropSpec<Tl extends string = string, N extends string = str
 /**
  * One frame's pose: each timeline at its time in seconds, applied in this
  * order with its mix (1 by default; 0 leaves it out), then the view model's
- * numbers by name (one left out at the model's default).
+ * numbers by name (one left out at the model's default), and the rig's
+ * `size`: how many times the space it stands in it is drawn (1 when left
+ * out), its shot read in that space before it is sized, so a figure's hand
+ * drawn larger than the hand rig follows its figure's shot.
  */
 interface RivePose<Tl extends string = string, N extends string = string> {
   readonly timelines: ReadonlyArray<readonly [name: Tl, seconds: number, mix?: number]>;
   readonly numbers?: Readonly<Partial<Record<N, number>>>;
+  readonly size?: number;
 }
 
 /** The pose a declared rig takes: its own timelines and numbers. */
@@ -311,8 +317,8 @@ const unposable = (spec: RivePropSpec, rig: LoadedRig, pose: RivePose): string |
 /**
  * `artboard`, a frame's own, set to `pose`: its view-model instance (`vm`,
  * the frame's own too) bound and given its `ink` (none when undefined), then
- * the pose's numbers, the pose's
- * timelines applied in order, each on an instance made for it (held in the
+ * the pose's numbers, the pose's timelines applied in order, each on an
+ * instance made for it (held in the
  * frame's slot, deleted with the frame), then the artboard advanced by no
  * time, which applies the binds.
  */
@@ -482,7 +488,8 @@ const declareFigure = (ctx: CanvasRenderingContext2D, spec: RivePropSpec, artboa
 /**
  * Pose a new instance of `rig` (as `spec` declares it) to `pose`, its ink
  * at the shot's scale when it follows the shot (`spec.ink`), and draw it
- * at our origin under the context's transform, declaring its face, then
+ * at our origin under the context's transform (sized by the pose's `size`
+ * once the shot is read), declaring its face, then
  * delete it: nothing once drawn, else why it cannot be (the pose names what
  * the rig lacks, or no WebGL 2 context can be made for a `webgl2` rig's
  * target), which the film throws (`f.rive`). The pose's names are
@@ -504,11 +511,24 @@ export const drawRig = (
   const artboard = rig.frame.hold(rig.file.artboardByName(spec.source.artboard));
   const vm = rig.model === undefined ? undefined : rig.frame.hold(rig.model.defaultInstance());
   posed(rig, artboard, vm, pose, spec.ink?.(shotScale(ctx)));
-  if (rig.paints && spec.engine === 'canvas') paintCanvas(ctx, spec, rig, artboard);
-  const painted =
-    rig.paints && spec.engine === 'webgl2' ? paintGl(ctx, spec, rig, artboard) : undefined;
-  declareFace(ctx, spec, rig, artboard);
-  declareFigure(ctx, spec, artboard);
+  const painted = sized(ctx, pose.size, () => {
+    if (rig.paints && spec.engine === 'canvas') paintCanvas(ctx, spec, rig, artboard);
+    const gl =
+      rig.paints && spec.engine === 'webgl2' ? paintGl(ctx, spec, rig, artboard) : undefined;
+    declareFace(ctx, spec, rig, artboard);
+    declareFigure(ctx, spec, artboard);
+    return gl;
+  });
   rig.frame.free();
   return painted;
+};
+
+/** `draw` under the context's transform scaled `size` times about our origin; as it stands when no size is given. */
+const sized = <A>(ctx: CanvasRenderingContext2D, size: number | undefined, draw: () => A): A => {
+  if (size === undefined) return draw();
+  ctx.save();
+  ctx.scale(size, size);
+  const drawn = draw();
+  ctx.restore();
+  return drawn;
 };

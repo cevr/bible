@@ -4178,8 +4178,10 @@ the checks stay ours.
   shot's scale, frame heights per unit, set each frame before the pose's
   numbers, so a pose that names `ink` sets it itself). `f.rive` takes only a declared
   name, and a pose (`timelines`: each `[name, seconds, mix?]`; `numbers` by
-  name) names only that rig's timelines and numbers: anything else does not
-  compile (`canvas/drawing.types.ts`).
+  name; `size`: how many times the space it stands in it is drawn, its shot
+  read before it, so a hand drawn larger than the hand rig follows its
+  figure's shot) names only that rig's timelines and numbers: anything else
+  does not compile (`canvas/drawing.types.ts`).
 - **Loaded by its film.** The film's rigs are the ones its drawings declare
   (`film.rigs.declared`), never listed a second time. `loadRigs`
   (`src/rive/load.ts`) loads them through the `RiveRuntime` service before

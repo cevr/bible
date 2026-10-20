@@ -390,6 +390,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The ink's widths were written into the print as numbers; no shot could reach them.
 - **Guard:** code: `packages/film/src/style/rig/parts.ts` `inkBind` (every ink stroke of a figure and its hands binds its width to `ink`); `packages/film/src/style/house.ts` `inkAt` (0.75 from a head three tenths of the frame); `packages/film/src/style/figures-file.test.ts` `a figure's ink, bound to its view model's ink` (cfd2a1ed7); `packages/film/src/rive/rive.test.ts` `draws an ink stroke as wide as its number maps it` (the runtime maps a bound width linearly; 039ae92ba)
 
+### hand-follows-its-figures-shot
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Local hand sizing changes the shot's ink value"
+- **Source:** p6-closeink/review-1.md F1
+- **Wrong:** A hand drawn larger than the hand rig (the judge's at 1.23) read its shot with its own size in it, so in a push-in its ink thinned before its figure's.
+- **Cause:** The shot was read from the whole transform the rig was drawn under, and a scene folds a hand's size into the place it draws it at.
+- **Guard:** code: `packages/film/src/rive/rive.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
+
 ## Figures and the cast
 
 ### bookend-the-setting

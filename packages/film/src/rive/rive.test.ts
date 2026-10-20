@@ -206,16 +206,29 @@ const INK_AT_REST = [5, 14, 2] as const;
 
 /**
  * A 2D context `height` pixels high, `pixels` per unit of the space it draws
- * in, that writes down each stroke's width (`lineWidth` as the stroke is
- * made) and answers nothing else.
+ * in (scaled by `scale`, kept by `save` and `restore`), that writes down each
+ * stroke's width (`lineWidth` as the stroke is made) and, in `drawn`, the
+ * pixels a unit it is made at, and answers nothing else.
  */
-const strokedContext = (widths: number[], pixels = 1, height = 100): CanvasRenderingContext2D => {
+const strokedContext = (
+  widths: number[],
+  pixels = 1,
+  height = 100,
+  drawn: number[] = [],
+): CanvasRenderingContext2D => {
   const quiet = () => {};
+  const saved: number[] = [];
+  const space = { pixels };
   const ctx: CanvasRenderingContext2D = Schema.decodeSync(Schema.Any)({
     canvas: { width: height, height, getContext: () => ctx },
     lineWidth: 1,
-    save: quiet,
-    restore: quiet,
+    save: () => saved.push(space.pixels),
+    restore: () => {
+      space.pixels = saved.pop() ?? pixels;
+    },
+    scale: (x: number) => {
+      space.pixels *= x;
+    },
     translate: quiet,
     resetTransform: quiet,
     setTransform: quiet,
@@ -223,8 +236,11 @@ const strokedContext = (widths: number[], pixels = 1, height = 100): CanvasRende
     fill: quiet,
     clip: quiet,
     drawImage: quiet,
-    getTransform: () => ({ a: pixels, b: 0, c: 0, d: pixels, e: 0, f: 0 }),
-    stroke: () => widths.push(ctx.lineWidth),
+    getTransform: () => ({ a: space.pixels, b: 0, c: 0, d: space.pixels, e: 0, f: 0 }),
+    stroke: () => {
+      widths.push(ctx.lineWidth);
+      drawn.push(space.pixels);
+    },
   });
   return ctx;
 };
@@ -245,7 +261,11 @@ const inkLoaded = (spec: RivePropSpec) =>
 const strokeWidths = (
   spec: RivePropSpec,
   rig: LoadedRig,
-  pose: { readonly timelines: []; readonly numbers?: Record<string, number> },
+  pose: {
+    readonly timelines: [];
+    readonly numbers?: Record<string, number>;
+    readonly size?: number;
+  },
   pixels = 1,
 ) => {
   const widths: number[] = [];
@@ -488,6 +508,52 @@ describe('the Rive engine', () => {
         expect(scales.map((v) => Math.round(v * 1e6) / 1e6)).toEqual([0.01, 0.04]);
         expect(strokeWidths(spec, rig, { timelines: [], numbers: { ink: 1 } }, 4)).toEqual([
           ...INK_AT_REST,
+        ]);
+        yield* Scope.close(scope, Exit.void);
+      }).pipe(Effect.provide(RiveRuntimePainted)),
+  );
+
+  it.effect(
+    'a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does',
+    () =>
+      Effect.gen(function* () {
+        const scales: number[] = [];
+        // Half the ink from 0.02 of the frame's height a unit.
+        const spec: RivePropSpec = {
+          ...INK_RIG,
+          ink: (scale) => {
+            scales.push(scale);
+            return 1 - 0.5 * Number(scale >= 0.02);
+          },
+        };
+        const { rig, scope } = yield* inkLoaded(spec);
+        // At 1.5 px a unit the shot is 0.015: a figure's ink as cut, and its hand's at 1.23 and 2
+        // times the hand rig too, though sized they stand 0.018 and 0.03 of the frame a unit.
+        const shot = [1, 1.23, 2].map((size) =>
+          strokeWidths(spec, rig, { timelines: [], size }, 1.5),
+        );
+        expect(shot).toEqual([[...INK_AT_REST], [...INK_AT_REST], [...INK_AT_REST]]);
+        expect(scales.map((v) => Math.round(v * 1e6) / 1e6)).toEqual([0.015, 0.015, 0.015]);
+        // At 4 px a unit the shot is 0.04: the figure and each hand at half the ink past its floor.
+        const close = [1, 1.23, 2].map((size) =>
+          strokeWidths(spec, rig, { timelines: [], size }, 4),
+        );
+        expect(close).toEqual([
+          [2.5, 8, 2],
+          [2.5, 8, 2],
+          [2.5, 8, 2],
+        ]);
+        // Each is drawn at its size: every stroke made at 4 px a unit times it.
+        const drawnAt = [1, 1.23, 2].map((size) => {
+          const drawn: number[] = [];
+          const ctx = strokedContext([], 4, 100, drawn);
+          expect(drawRig(ctx, spec, rig, { timelines: [], size })).toBeUndefined();
+          return drawn;
+        });
+        expect(drawnAt).toEqual([
+          [4, 4, 4],
+          [4.92, 4.92, 4.92],
+          [8, 8, 8],
         ]);
         yield* Scope.close(scope, Exit.void);
       }).pipe(Effect.provide(RiveRuntimePainted)),
