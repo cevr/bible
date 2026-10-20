@@ -11,12 +11,15 @@
  * Each link (a row, a tab, the back link) pushes its path, and the
  * browser's Back pops it, so every way back to a list mounts it anew, as on
  * the web. The same tree renders on the server (`server.tsx`) and hydrates
- * in the browser (`page.tsx`).
+ * in the browser (`page.tsx`). Each screen's view is named by its path
+ * (`screen:<path>`), so the test can tell the screen the app shows from the
+ * address, which a navigation changes first: the router shows the new
+ * screen in a transition, as One's does.
  */
 
 import { RegistryProvider } from '@effect/atom-react';
 import { useLinkTo } from 'one';
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, startTransition, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import Hymns from '../../app/(tabs)/(hymns)/index';
@@ -40,7 +43,7 @@ function Screen({ path }: { readonly path: string }) {
   const list = lists[listOf(path)];
   if (path === list.path) {
     return (
-      <View style={styles.window}>
+      <View nativeID={`screen:${path}`} style={styles.window}>
         <Text role="heading" aria-level={1} style={styles.title}>
           {list.title}
         </Text>
@@ -49,7 +52,7 @@ function Screen({ path }: { readonly path: string }) {
     );
   }
   return (
-    <View style={styles.window}>
+    <View nativeID={`screen:${path}`} style={styles.window}>
       <Go href={list.path} label={`‹ ${list.title}`} />
       <Text role="heading" aria-level={1} style={styles.title}>
         {`Hymn ${path.split('/').at(-1)}`}
@@ -63,9 +66,9 @@ export function App({ path: initial }: { readonly path: string }) {
   useEffect(() => {
     const open = (href: string) => {
       history.pushState({}, '', href);
-      setPath(href);
+      startTransition(() => setPath(href));
     };
-    const popped = () => setPath(location.pathname);
+    const popped = () => startTransition(() => setPath(location.pathname));
     opening.add(open);
     addEventListener('popstate', popped);
     return () => {

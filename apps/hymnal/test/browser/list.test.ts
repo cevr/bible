@@ -235,7 +235,7 @@ const open = async ({
   /** Waits for the hymn at `path` opened from `list`. */
   const opened = (list: ListName, label: string) => {
     const want = `${list === 'hymns' ? '/hymns' : '/search'}/${label.split(',')[0]}`;
-    return page.waitForURL((url) => url.pathname === want, { timeout: 2000 });
+    return page.waitForFunction((path) => window.hymnal.on(path), want, { timeout: 2000 });
   };
 
   /**
@@ -382,7 +382,7 @@ const paths = {
         : { top: (await app.place()).top, label: (await app.middleRow()).label };
     if (when === 'later') await app.tab(other);
     await app.page.waitForFunction(
-      (path) => location.pathname === path && window.hymnal.place() !== undefined,
+      (path) => window.hymnal.on(path) && window.hymnal.place() !== undefined,
       lists[other].path,
     );
     return { top, first: await app.comeBack(list, label, () => app.tab(list)) };
@@ -565,6 +565,39 @@ describe('a list comes back where the reader left it', () => {
   });
 });
 
+describe('a list come back', () => {
+  for (const list of ['hymns', 'search'] as const) {
+    it.concurrent(`the ${list} list, moved to its top as it is drawn back deep, stays at its top, each way back`, async () => {
+      await using app = await open({ path: lists[list].path });
+      const other = list === 'hymns' ? 'search' : 'hymns';
+      const seen: Array<unknown> = [];
+      for (const way of ['back', 'header', 'tab'] as const) {
+        await app.scrollTo(20_000);
+        await app.settle(150);
+        if (way === 'tab') {
+          await app.tab(other);
+          await app.page.waitForFunction(
+            (path) => window.hymnal.on(path) && window.hymnal.place() !== undefined,
+            lists[other].path,
+          );
+        } else await app.press(list, 'later', 20_000);
+        const early = app.page.evaluate(() => window.hymnal.early());
+        await (way === 'back'
+          ? app.page.goBack()
+          : way === 'header'
+            ? app.page.getByText(`‹ ${lists[list].title}`, { exact: true }).click()
+            : app.tab(list));
+        const restored = await early;
+        await app.settle(150);
+        seen.push({ way, restored, top: (await app.place()).top, jumps: await app.jumps() });
+      }
+      expect(seen).toEqual(
+        ['back', 'header', 'tab'].map((way) => ({ way, restored: 20_000, top: 0, jumps: [] })),
+      );
+    });
+  }
+});
+
 describe('a list loaded cold hydrates the server’s list', () => {
   /**
    * On a page of its own in a window of `height`, loads the list cold once
@@ -650,11 +683,9 @@ describe('the search field', () => {
     await app.scrollTo(Math.round(max * 0.6));
     await app.settle(150);
     await app.tab('hymns');
-    await app.page.waitForFunction(() => location.pathname === '/');
+    await app.page.waitForFunction(() => window.hymnal.on('/'));
     await app.tab('search');
-    await app.page.waitForFunction(
-      () => location.pathname === '/search' && window.hymnal.showing(),
-    );
+    await app.page.waitForFunction(() => window.hymnal.on('/search') && window.hymnal.showing());
     await app.settle(150);
     expect(await typed(app, 'lord')).toEqual({ focused: 'searchbox', text: 'lord' });
   });

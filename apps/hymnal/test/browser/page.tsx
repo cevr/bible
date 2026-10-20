@@ -50,6 +50,8 @@ export interface Hymnal {
   readonly scroll: (top: number) => number;
   /** Each time the list moved by itself after the reader last scrolled it. */
   readonly jumps: Array<Jump>;
+  /** Whether the app shows the screen at `path` (the address changes before it). */
+  readonly on: (path: string) => boolean;
   /** Whether a list is shown with a row fully on screen. */
   readonly showing: () => boolean;
   /** The fully shown row nearest the list's middle. */
@@ -71,6 +73,12 @@ export interface Hymnal {
    * scroll's event and its end: the list then knows that offset, not `top`.
    */
   readonly away: (top: number) => Promise<number>;
+  /**
+   * Moves the list to its top as soon as it comes back: in the microtask
+   * after the change to the page that drew it at an offset, as a reader's
+   * move at once would. Answers that offset when it has moved it.
+   */
+  readonly early: () => Promise<number>;
   /**
    * Leaves the list in one task, as a reader who scrolls and presses at
    * once: scrolls it to `top`, then clicks the fully shown row nearest its
@@ -210,6 +218,7 @@ window.hymnal = {
     return node.scrollTop;
   },
   jumps,
+  on: (path) => document.getElementById(`screen:${path}`) !== null,
   showing: () => {
     const node = scroller();
     return node !== undefined && shown(node).length > 0;
@@ -234,7 +243,7 @@ window.hymnal = {
     new Promise<First>((done) => {
       let empty = 0;
       const look = () => {
-        const node = location.pathname === path ? scroller() : undefined;
+        const node = window.hymnal.on(path) ? scroller() : undefined;
         if (node === undefined || rows(node).length === 0) {
           if (node !== undefined) empty += 1;
           requestAnimationFrame(look);
@@ -247,6 +256,19 @@ window.hymnal = {
         });
       };
       requestAnimationFrame(look);
+    }),
+  early: () =>
+    new Promise<number>((done) => {
+      const observer = new MutationObserver(() => {
+        const node = scroller();
+        if (node === undefined || node.scrollTop <= 0) return;
+        observer.disconnect();
+        const at = node.scrollTop;
+        node.scrollTop = 0;
+        left = { node, top: node.scrollTop };
+        done(at);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     }),
   away: (top) => {
     const node = scroller();
