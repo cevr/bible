@@ -48,6 +48,12 @@ export interface Hymnal {
    * so it must be told of it. Set at the event; a page loads with it false.
    */
   eventBeforeHydration: boolean;
+  /**
+   * Waits for that event: answers once a trusted scroll event has reached
+   * the list's scroller before hydration, and fails when none has within a
+   * second.
+   */
+  readonly heard: () => Promise<void>;
   /** Hydrates the page now (with `?hold`; without it, it hydrated as it loaded). */
   readonly hydrate: () => void;
   /** The list's scroll offset now, and the most it can scroll; none while no list is shown. */
@@ -183,6 +189,9 @@ document.addEventListener(
 /** Whether `hydrate()` has been called. */
 let hydrating = false;
 
+/** What `heard()` does when the event comes, while it waits. */
+let onHeard: (() => void) | undefined;
+
 // Apart from the jump listener above, so what it sees stays as it was. The
 // browser's own event alone counts: the list's `told()` dispatches an untrusted
 // one after hydration.
@@ -191,6 +200,7 @@ document.addEventListener(
   (event) => {
     if (hydrating || !event.isTrusted || event.target !== scroller()) return;
     window.hymnal.eventBeforeHydration = true;
+    onHeard?.();
   },
   true,
 );
@@ -213,6 +223,20 @@ window.hymnal = {
   errors,
   hydrated: false,
   eventBeforeHydration: false,
+  heard: () =>
+    new Promise<void>((done, fail) => {
+      const late = setTimeout(() => {
+        onHeard = undefined;
+        fail(new Error('no scroll event on the list before hydration within a second'));
+      }, 1000);
+      const heard = () => {
+        onHeard = undefined;
+        clearTimeout(late);
+        done();
+      };
+      if (window.hymnal.eventBeforeHydration) heard();
+      else onHeard = heard;
+    }),
   hydrate: () => {
     if (hydrating) return;
     hydrating = true;

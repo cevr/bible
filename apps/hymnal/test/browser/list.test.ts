@@ -613,6 +613,14 @@ describe('a list loaded cold hydrates the server’s list', () => {
       if (index > 0) await app.load();
       const { max } = await app.place();
       const before = await app.scroll(Math.round(max * c.before));
+      // Hydration waits for the scroll's own event, so the list cannot see it and must be told of
+      // it. Every case scrolls before hydration, so a load with no event is a miss, named below.
+      const waited = await app.page
+        .evaluate(() => window.hymnal.heard())
+        .then(
+          () => 'heard',
+          (error: Error) => error.message,
+        );
       await app.page.evaluate(() => window.hymnal.hydrate());
       await app.hydrated();
       await app.settle(150);
@@ -623,6 +631,7 @@ describe('a list loaded cold hydrates the server’s list', () => {
       const seen = {
         ...c,
         eventBeforeHydration: await app.page.evaluate(() => window.hymnal.eventBeforeHydration),
+        waited,
         errors: await app.errors(),
         kept,
         blankBefore,
