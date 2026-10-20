@@ -1,5 +1,5 @@
-// In Its Order: the screenplay of The Path of the Just, episode 01, the
-// series' opener (Tier One, the milk). The owner kept its draft
+// In Its Order: the screenplay of The Path of the Just, episode 01 of 44,
+// the series' opener (Tier One, the milk). The owner kept its draft
 // (`apps/animations/series/theology/scripts/01-in-its-order.md`: "Keep it:
 // go on to the concept and the Board"), so this file is the film's script
 // and the source of what is said; the draft is not edited for it. The
@@ -61,8 +61,8 @@
 //   teal day. "What are milk and meat?"
 // - `stones`: six stones set in a row on parchment, peach. "Which truths are
 //   the milk?"
-// - `math`: the slate of sums combining into one great sum, peach to dawn.
-//   "Do we leave the milk behind?"
+// - `math`: the slate of sums combining into one great sum, peach to dawn
+//   (episodes 07 and 10 reuse the slate). "Do we leave the milk behind?"
 // - `priest`: the veil with gold light behind it, dawn gold. "So what is the
 //   meat?"
 // - `name`: the set table under the teal landing sky. "How does anyone
