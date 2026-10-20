@@ -832,7 +832,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-9.md F1
 - **Wrong:** The reach check left out a test file that imports its runner under another name (`import { test as scenario } from /* runner */ 'bun:test'`), so no script had to reach it.
 - **Cause:** The reader took a file named as a test for one only when a regex found a runner import or a line that calls `describe`, `it` or `test`, and a comment or an alias hid both.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace or in none`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace or in none, and not a link`
 
 ### reach-refuses-folder-moves
 
@@ -963,3 +963,93 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check took `bun test src` as a run of every test file in `src` in a workspace whose `bunfig.toml` sets `[loader] ".ts" = "text"`, which makes bun read each file as text and run no case.
 - **Cause:** The bunfig reader checked the keys of `[test]` alone, and not the other tables, which change how bun reads a file.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no bun test run whose bunfig may narrow it or change how bun reads a file, and by one whose bunfig does neither`
+
+### reach-refuses-shadowed-calls
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Allowed config call names can bind to arbitrary functions"
+- **Source:** p6-guardloop/review-16.md F1
+- **Wrong:** The reach check read a config that declares `const Number = defineConfig.constructor` and then calls `Number('process.exit(0)')()` through it, as a config that takes its tests.
+- **Cause:** The reader allowed a call by the name `Number` without asking what the name is bound to: a config's own `const` can shadow it.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-trusts-loaded-code
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Preloads and execution hooks can remove all credited cases"
+- **Source:** p6-guardloop/review-16.md F2
+- **Wrong:** A preload that replaces a test file's source by an `onLoad` hook, a reporter that drops every case, or a global setup that exits early, makes a credited file run no case.
+- **Cause:** The reach check reads which files a runner takes and loads as tests; what the code a run loads does is the repo's, as a test file's own code is.
+- **Guard:** none: the check reads selection, not the behaviour of the repo's code; a preload, a reporter or a setup module that hides its tests is a defect of that code, as a test that asserts nothing is, and reading it would mean running it. The trust is said in `packages/scripts/src/test-budget/reach.ts`'s header.
+
+### reach-refuses-tsconfig-overrides
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "TypeScript path mappings bypass trusted Playwright imports"
+- **Source:** p6-guardloop/review-16.md F3
+- **Wrong:** The reach check took `playwright test --tsconfig other.json`, and a config that sets `tsconfig`, as runs it reads, though another tsconfig may map `@playwright/test` to a module whose `defineConfig` adds a `testIgnore`.
+- **Cause:** The flag and setting allow-lists asked whether a flag narrows which files run, and not whether it changes how the config's imports resolve. The toolchain's own resolution of a module (the tsconfig the repo keeps) stays trusted, as the code it resolves to is.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+
+### reach-refuses-shell-expansions
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Shell expansion and redirection change the arguments being credited"
+- **Source:** p6-guardloop/review-16.md F4
+- **Wrong:** The reach check credited every file a glob names in `bun test --conditions ./src/guard/*.test.ts`, though the shell expands the glob and bun takes the first file as the condition's value, and credited `other/report.log.test.ts` to `bun test src > report.log`.
+- **Cause:** The script reader took a word as its text, not as the shell expands it, and took a redirection's target for a filter.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose words the shell expands or redirects`
+
+### reach-refuses-line-filters
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Playwright positionals can select a line while appearing to select every file"
+- **Source:** p6-guardloop/review-16.md F5
+- **Wrong:** The reach check credited every spec to `playwright test --pass-with-no-tests '.*|:999999'`, though playwright reads the trailing number as a line and runs no case.
+- **Cause:** The reader took a filter as a regex of the file alone, and did not read playwright's `parseLocationArg`.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+
+### reach-reads-test-dir
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Playwright directory values still produce incorrect discovery"
+- **Source:** p6-guardloop/review-16.md F6
+- **Wrong:** The reach check read `testDir: '/elsewhere'` as a folder under the config's, and `testDir: ''` as a set `testDir`, which turned git's ignore rules off though playwright turns them on.
+- **Cause:** The reader joined the value to the config's folder and asked whether the key is set, where playwright resolves an absolute path as it is and reads an empty one as none (`pathResolve`).
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-reads-disk
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Discovery lacks filesystem metadata that can exclude tracked specs"
+- **Source:** p6-guardloop/review-16.md F7
+- **Wrong:** The reach check credited a spec that is a symbolic link, which playwright's walk skips, and read only the `.gitignore` files git lists, though playwright reads an untracked, ignored one too.
+- **Cause:** The reader's inputs came from git's file list, which carries no entry type and leaves ignored files out.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link`
+
+### reach-reads-selection-not-cases
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Empty and conditional-only files count as executed tests"
+- **Source:** p6-guardloop/review-16.md F8
+- **Wrong:** A comment-only test file, a loop over an empty array, and `test.each([])` are credited as reached, though each registers no case.
+- **Cause:** The reach check proves that a runner takes a file, not that the file registers a case; whether it does is what the file's code does when run.
+- **Guard:** none: a reached file with no case is a weak test, not an unreached one; the test strength checks (`film/tests-keep-their-strength`, the test budget's strength check) are where an empty test belongs, and proving a file registers a case means running it.
+
+### judged-findings-name-their-store
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Findings remain attached to a previous store after its location changes"
+- **Source:** p6-guardloop/review-16.md F9
+- **Wrong:** The judged plugin reported a run's findings after `settings.judged.store` named another store, though the new store kept no such answer.
+- **Cause:** The findings file named the checkout, the model, the rules, the files and the day, and not the store its answers came from.
+- **Guard:** code: `packages/scripts/lint/judged.test.ts` `reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, a run of another store, or a run past the store's age`
