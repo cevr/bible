@@ -9,6 +9,8 @@ import type { JSX } from '@solidjs/web';
 import { MARK_4_27, type Series, UNITS, type Verse } from '../content.ts';
 import { CHANNEL } from '../site.ts';
 import { EMBLEMS, FIELD, MARK, NIGHT } from './art.ts';
+import { PRIVACY_PATH } from '../pages.ts';
+import { SignUp } from './mail.tsx';
 import { FOOTER_NAV_ID, NAV, SUBSCRIBE } from './nav.ts';
 
 export const seriesHref = (series: Series) => `/series/${series.slug}`;
@@ -123,7 +125,8 @@ export const Dusk = () => <div class="dusk" aria-hidden="true" />;
 
 /**
  * The close, at night: the mark, Mark 4:27 (the sower sleeps and rises, and
- * the seed grows), and the one thing to do while the first films are made.
+ * the seed grows), and the two ways to hear of each new film: the YouTube
+ * channel, and the email list.
  */
 export const NightClose = () => (
   <section class="night" aria-labelledby="night-title">
@@ -149,6 +152,7 @@ export const NightClose = () => (
       <a class="button button-night" href={SUBSCRIBE.href}>
         <span class="button-label">{SUBSCRIBE.label}</span>
       </a>
+      <SignUp />
     </div>
   </section>
 );
@@ -169,6 +173,9 @@ export const Footer = () => (
         </For>
         <li>
           <a href={CHANNEL.url}>YouTube</a>
+        </li>
+        <li>
+          <a href={PRIVACY_PATH}>Privacy</a>
         </li>
       </ul>
     </nav>

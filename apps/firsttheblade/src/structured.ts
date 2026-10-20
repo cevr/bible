@@ -66,7 +66,12 @@ const creativeSeries = (page: Page, series: Series) => {
   };
 };
 
-const PAGE_TYPE = { Home: 'WebPage', About: 'AboutPage', Series: 'CollectionPage' } as const;
+const PAGE_TYPE = {
+  Home: 'WebPage',
+  About: 'AboutPage',
+  Series: 'CollectionPage',
+  Privacy: 'WebPage',
+} as const;
 
 const trail = (page: Page, name: string) => ({
   '@type': 'BreadcrumbList',
@@ -129,6 +134,20 @@ export const graphOf = (page: Page) =>
           crumbs,
         ];
       },
+      Privacy: () => {
+        const crumbs = trail(page, 'Privacy');
+        return [
+          organization,
+          website,
+          webPage(page, PAGE_TYPE.Privacy, {
+            publisher: ref(ORGANIZATION),
+            breadcrumb: ref(crumbs['@id']),
+          }),
+          crumbs,
+        ];
+      },
+      Notice: () => [],
+      Leave: () => [],
       NotFound: () => [],
     }),
   );

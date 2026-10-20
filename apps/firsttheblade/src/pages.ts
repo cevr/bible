@@ -2,15 +2,23 @@
  * The site's pages as data: where each is served, the file the prerender
  * writes for it, and what its head says (title, description, the card a link
  * to it shows). The prerender draws each one (`./views.tsx`); the sitemap
- * lists every page but the not-found one.
+ * lists every listed page: not the not-found page, nor the email list's
+ * notices, which only its routes send people to (`./mail/paths.ts`).
  */
 import { MARK_4_28, SERIES, type Series } from './content.ts';
+import { MAIL_PAGES } from './mail/paths.ts';
 import { CHANNEL, ORIGIN } from './site.ts';
+
+/** The email list's pages that tell how a step went, each by its key in `MAIL_PAGES`. */
+export type NoticeId = Exclude<keyof typeof MAIL_PAGES, 'leave'>;
 
 export type PageView =
   | { readonly _tag: 'Home' }
   | { readonly _tag: 'About' }
   | { readonly _tag: 'Series'; readonly series: Series }
+  | { readonly _tag: 'Privacy' }
+  | { readonly _tag: 'Notice'; readonly notice: NoticeId }
+  | { readonly _tag: 'Leave' }
   | { readonly _tag: 'NotFound' };
 
 export interface Page {
@@ -44,6 +52,45 @@ const seriesPage = (series: Series): Page => ({
   view: { _tag: 'Series', series },
 });
 
+/** Each notice's title, which is also its heading. */
+export const NOTICE_TITLES: Readonly<Record<NoticeId, string>> = {
+  check: 'Check your inbox',
+  confirmed: 'You are on the list',
+  expired: 'This link has run out',
+  address: 'Check your email address',
+  busy: 'Too many tries',
+  left: 'You have left the list',
+  badLink: 'This link is not valid',
+};
+
+const HOME_CARD = {
+  image: '/og/home.jpg',
+  imageAlt: `${CHANNEL.name}: “${MARK_4_28.text}” ${MARK_4_28.ref}.`,
+} as const;
+
+/** A page of the email list's, served only where its routes send people. */
+const listPage = (path: string, name: string, view: PageView): Page => ({
+  path,
+  file: `${path.slice(1)}.html`,
+  title: title(name),
+  description: DESCRIPTION,
+  ...HOME_CARD,
+  listed: false,
+  view,
+});
+
+const NOTICES: ReadonlyArray<NoticeId> = [
+  'check',
+  'confirmed',
+  'expired',
+  'address',
+  'busy',
+  'left',
+  'badLink',
+];
+
+export const PRIVACY_PATH = '/privacy';
+
 export const PAGES: ReadonlyArray<Page> = [
   {
     path: '/',
@@ -66,6 +113,19 @@ export const PAGES: ReadonlyArray<Page> = [
     view: { _tag: 'About' },
   },
   ...SERIES.map(seriesPage),
+  {
+    path: PRIVACY_PATH,
+    file: 'privacy.html',
+    title: title('Privacy'),
+    description: `What ${CHANNEL.name}'s email list keeps, why, and how to leave it.`,
+    ...HOME_CARD,
+    listed: true,
+    view: { _tag: 'Privacy' },
+  },
+  ...NOTICES.map((notice) =>
+    listPage(MAIL_PAGES[notice], NOTICE_TITLES[notice], { _tag: 'Notice', notice }),
+  ),
+  listPage(MAIL_PAGES.leave, 'Leave the list', { _tag: 'Leave' }),
   {
     path: '/404',
     file: '404.html',

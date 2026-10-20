@@ -1,7 +1,8 @@
 /**
  * Where the list lives on the site, in one place: the Worker's routes
- * (`./routes.ts`) answer at these paths, and the prerender writes the pages
- * the routes send people to (`../pages.ts`).
+ * (`./routes.ts`) answer at these paths and read these fields, and the
+ * prerender writes the pages the routes send people to (`../pages.ts`) and
+ * the form that posts to them (`../ui/mail.tsx`).
  */
 
 /** The routes the Worker answers before it looks for a file. */
@@ -32,4 +33,11 @@ export const MAIL_PAGES = {
   left: '/unsubscribe/done',
   /** A leave link whose token does not read. */
   badLink: '/unsubscribe/invalid',
+} as const;
+
+/** The sign-up form's fields. */
+export const SIGNUP_FIELDS = {
+  email: 'email',
+  /** The honeypot: a field no person sees, which a bot that fills every field fills. */
+  honeypot: 'website',
 } as const;

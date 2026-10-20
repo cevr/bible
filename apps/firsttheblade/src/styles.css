@@ -975,6 +975,76 @@ a {
   gap: var(--space-4);
 }
 
+/* ── The email list ───────────────────────────────────────────────────── */
+
+/* A form's button drawn as the pill: the browser's own button look taken
+   off, its outline put back by night. */
+button.button {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.button-night {
+  border: var(--border-outline) solid var(--color-night-accent);
+}
+
+.signup {
+  max-width: 34rem;
+  margin: var(--space-close-title) auto 0;
+  scroll-margin-top: var(--space-8);
+}
+.signup-label {
+  display: block;
+  font-size: var(--size-quote);
+  line-height: var(--line-quote);
+}
+.signup-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+.signup-field {
+  flex: 1 1 16rem;
+  min-width: 0;
+  min-height: var(--size-target);
+  padding: 0 var(--space-6);
+  border: var(--border-outline) solid var(--color-night-soft);
+  border-radius: var(--radius-pill);
+  background: var(--color-night);
+  color: var(--color-night-ink);
+  font: inherit;
+  font-size: var(--size-control);
+}
+.signup-field::placeholder {
+  color: var(--color-night-soft);
+  opacity: 1;
+}
+.night-words .signup .button-night {
+  margin-top: 0;
+}
+/* The honeypot: out of sight and out of reach, for people and for readers. */
+.signup-trap {
+  position: absolute;
+  left: -100vw;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.signup-fine {
+  margin-top: var(--space-4);
+  font-size: var(--size-fine);
+  line-height: var(--line-quote);
+  color: var(--color-night-soft);
+}
+.signup-fine a {
+  color: var(--color-night-ink);
+}
+.lost form {
+  display: contents;
+}
+
 /* ── Not found ────────────────────────────────────────────────────────── */
 
 .lost {

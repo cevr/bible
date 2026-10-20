@@ -13,9 +13,8 @@ import { layerOf } from './films.ts';
 import { List } from './list.ts';
 import { layerTest, TEST_ADMIN_TOKEN } from './local.ts';
 import { Mailbox, MailRefused, MailUnavailable } from './mailer.ts';
-import { MAIL_PAGES } from './paths.ts';
+import { MAIL_PAGES, SIGNUP_FIELDS } from './paths.ts';
 import { Queued } from './queue.ts';
-import { HONEYPOT } from './routes.ts';
 import { SIGNUPS } from './throttle.ts';
 
 const ORIGIN = 'https://firsttheblade.test';
@@ -166,7 +165,10 @@ describe('signing up', () => {
 
   test('a filled honeypot is answered the same and nothing is kept or sent', () =>
     Effect.gen(function* () {
-      const response = yield* signUp({ email: ANN, [HONEYPOT]: 'https://spam.example' });
+      const response = yield* signUp({
+        email: ANN,
+        [SIGNUP_FIELDS.honeypot]: 'https://spam.example',
+      });
       expect(header(response, 'location')).toBe(MAIL_PAGES.check);
       expect(yield* letters).toHaveLength(0);
       const list = yield* List;
@@ -404,7 +406,7 @@ describe('the routes', () => {
     Effect.gen(function* () {
       yield* joined(ANN);
       yield* signUp({ email: 'nope' });
-      yield* signUp({ email: ANN, [HONEYPOT]: 'x' });
+      yield* signUp({ email: ANN, [SIGNUP_FIELDS.honeypot]: 'x' });
       yield* admin(`{"film":"${FILM}"}`);
       yield* deliver(yield* (yield* Queued).deliveries);
       const sent = yield* letters;

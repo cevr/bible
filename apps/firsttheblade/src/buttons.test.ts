@@ -28,18 +28,19 @@ describe('the buttons', () => {
       expect(ruleOf(supported, '  .pill')).toContain(TRIM);
     }));
 
-  test('every button wraps its words in a trimmed label', () =>
+  test('every button, on a link or in a form, wraps its words in a trimmed label', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const files = yield* fs.readDirectory(import.meta.dir, { recursive: true });
       let seen = 0;
       for (const file of files.filter((name) => name.endsWith('.tsx'))) {
         const source = yield* read(file);
-        for (const [, first = ''] of source.matchAll(/<a class="button[^"]*"[^>]*>\s*([^\n]*)/g)) {
+        const buttons = source.matchAll(/<(?:a|button) class="button[^"]*"[^>]*>\s*([^\n]*)/g);
+        for (const [, first = ''] of buttons) {
           seen += 1;
           expect(first).toStartWith('<span class="button-label">');
         }
       }
-      expect(seen).toBeGreaterThanOrEqual(3);
+      expect(seen).toBeGreaterThanOrEqual(5);
     }));
 });

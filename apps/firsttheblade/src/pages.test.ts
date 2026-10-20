@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 
 import { MARK_4_28, SERIES } from './content.ts';
 import { robots, sitemap, webManifest } from './meta.ts';
-import { absolute, PAGES } from './pages.ts';
+import { MAIL_PAGES } from './mail/paths.ts';
+import { absolute, PAGES, PRIVACY_PATH } from './pages.ts';
 import { ORIGIN, SERVED_FROM } from './site.ts';
 
 describe('the pages', () => {
@@ -18,6 +19,18 @@ describe('the pages', () => {
       expect(page?.file).toBe(`series/${series.slug}.html`);
       expect(page?.image).toBe(`/og/${series.id}.jpg`);
     }
+  });
+
+  test('every page the email list sends people to is written, and none is listed', () => {
+    for (const path of Object.values(MAIL_PAGES)) {
+      const page = PAGES.find((candidate) => candidate.path === path);
+      expect(page?.file).toBe(`${path.slice(1)}.html`);
+      expect(page?.listed).toBe(false);
+    }
+  });
+
+  test('the privacy page is listed', () => {
+    expect(PAGES.find((page) => page.path === PRIVACY_PATH)?.listed).toBe(true);
   });
 
   test('absolute URLs start at the canonical origin, over HTTPS', () => {

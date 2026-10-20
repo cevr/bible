@@ -29,7 +29,7 @@ import { confirmLetter } from './letters.ts';
 import { type ConfirmClaim, type FilmCounts, List } from './list.ts';
 import { logMail, warnMail } from './log.ts';
 import { Mailer } from './mailer.ts';
-import { MAIL_PAGES, MAIL_ROUTES } from './paths.ts';
+import { MAIL_PAGES, MAIL_ROUTES, SIGNUP_FIELDS } from './paths.ts';
 import { BATCH, FilmQueue, type QueueError } from './queue.ts';
 import type { SqlError } from './sql.ts';
 import { Throttle } from './throttle.ts';
@@ -51,9 +51,6 @@ export type MailServices =
   | AdminToken
   | Films
   | Crypto.Crypto;
-
-/** The honeypot: a field no person sees, which a bot that fills every field fills. */
-export const HONEYPOT = 'website';
 
 /** The one-click body a mail app posts (RFC 8058). */
 const ONE_CLICK = 'List-Unsubscribe=One-Click';
@@ -106,11 +103,11 @@ const subscribe = Effect.fn('Mail.subscribe')(function* (
     return yield* page(request, MAIL_PAGES.busy, 429);
   }
   const form = yield* formOf(request);
-  if (field(form, HONEYPOT) !== '') {
+  if (field(form, SIGNUP_FIELDS.honeypot) !== '') {
     yield* warnMail('subscribe.honeypot');
     return see(MAIL_PAGES.check);
   }
-  const address = addressOf(field(form, 'email'));
+  const address = addressOf(field(form, SIGNUP_FIELDS.email));
   if (Option.isNone(address)) {
     yield* logMail('subscribe.invalid');
     return see(MAIL_PAGES.address);

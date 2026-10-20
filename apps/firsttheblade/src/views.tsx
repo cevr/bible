@@ -15,6 +15,7 @@ import type { Page, PageView } from './pages.ts';
 import { CHANNEL } from './site.ts';
 import { EMBLEMS, MARK } from './ui/art.ts';
 import { Header } from './ui/header.tsx';
+import { Leave, Notice } from './ui/mail.tsx';
 import {
   Cards,
   Dusk,
@@ -245,6 +246,74 @@ const SeriesPage = (props: SeriesProps) => {
   );
 };
 
+interface PrivacySection {
+  readonly id: string;
+  readonly title: string;
+  readonly band: 'section' | 'section-band';
+  readonly words: ReadonlyArray<string>;
+}
+
+/** What the email list keeps, why, how to leave it, and who sees it. */
+const PRIVACY: ReadonlyArray<PrivacySection> = [
+  {
+    id: 'kept',
+    title: 'What we keep',
+    band: 'section',
+    words: [
+      'If you join the email list, we keep your email address, whether you have confirmed it, when you signed up, confirmed or left, and which films we have emailed you.',
+      'That is all. We ask for no name, and the emails carry no tracking: we do not know whether you open them or which links you follow.',
+    ],
+  },
+  {
+    id: 'why',
+    title: 'Why',
+    band: 'section-band',
+    words: ['Only to send you one email when each new film is out.'],
+  },
+  {
+    id: 'leave',
+    title: 'How to leave',
+    band: 'section',
+    words: [
+      'Every email has a link at its foot to leave the list, and most mail apps show an unsubscribe button beside it. One press, and we send you no more.',
+      'Once you leave, your address is kept only as one that has left, so that no film is sent to it.',
+    ],
+  },
+  {
+    id: 'shared',
+    title: 'Who sees it',
+    band: 'section-band',
+    words: [
+      'No one else. We do not sell, rent or share the list. It is kept on Cloudflare, which carries the emails for us.',
+      'To stop abuse, the sign-up counts how many tries come from one connection in a minute. We do not keep that connection’s address.',
+    ],
+  },
+];
+
+const Privacy = () => (
+  <main id="main">
+    <PageField>
+      <div class="strip">
+        <h1>Privacy</h1>
+      </div>
+    </PageField>
+    <For each={PRIVACY}>
+      {(section) => (
+        <section class={section.band} aria-labelledby={`${section.id}-title`}>
+          <div class="wrap split">
+            <h2 id={`${section.id}-title`}>{section.title}</h2>
+            <div class="reading">
+              <For each={section.words}>{(words) => <p>{words}</p>}</For>
+            </div>
+          </div>
+        </section>
+      )}
+    </For>
+    <Dusk />
+    <NightClose />
+  </main>
+);
+
 const NotFound = () => (
   <main id="main">
     <section class="section-band">
@@ -268,6 +337,19 @@ const body = Match.type<PageView>().pipe(
     Home: () => <Home />,
     About: () => <About />,
     Series: (view) => <SeriesPage series={view.series} />,
+    Privacy: () => <Privacy />,
+    Notice: (view) => (
+      <main id="main">
+        <Notice notice={view.notice} />
+        <Dusk />
+      </main>
+    ),
+    Leave: () => (
+      <main id="main">
+        <Leave />
+        <Dusk />
+      </main>
+    ),
     NotFound: () => <NotFound />,
   }),
 );
