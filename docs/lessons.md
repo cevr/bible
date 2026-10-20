@@ -1343,3 +1343,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** `film/test-git-config` reported `ChildProcess.make('tar', ['-c', 'archive.entry=fixture'])`, where `archive.entry=fixture` is a file name.
 - **Cause:** The rule read every array's `-c` as git's, with no sign the array was git's arguments.
 - **Guard:** code: `packages/film/lint/fixtures/test-git-config.ts` `make('tar', ['-c', 'archive.entry=fixture']);`
+
+### gate-runs-timed-checks-alone
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The contrast check's browser runs in the checks, beside a cold build"
+- **Source:** p6-testspeed/findings.md F5
+- **Wrong:** A cold gate failed in firsttheblade's contrast check: its screenshots missed their 30 s limit, at the checks' lowered priority beside every cold typecheck and build and Selah's native build.
+- **Cause:** The checks phase was laid for work with no time limit, and a package's own `gate` script, which waits on a browser, was taken as one.
+- **Guard:** code: `packages/scripts/src/gate.test.ts` `a package's own gate is Selah's native gate alone: a check with a time limit is its gate:timed, run with the tests`
