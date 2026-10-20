@@ -1,7 +1,7 @@
 # @bible/hymnal-app
 
-The hymnal app (One). This README covers how the app reads the hymns, and
-where the hymn recordings live and how they got there.
+The hymnal app (One). This README covers how the app reads the hymns, how it
+plays their recordings, and where the recordings live and how they got there.
 
 ## The reader
 
@@ -38,6 +38,38 @@ under its number, and the refrain written out each time it is sung.
   and drives it in Playwright's Chromium: Back, a tab switch and a press at
   offsets across the whole list come back to the pixel, and a row is a real
   link. It needs Chromium installed once (`bunx playwright install chromium`).
+
+## The player
+
+A hymn page plays the hymn's 1985 recording from `audioUrl(n)`: a Play or
+Pause button in the accent, a bar to seek, and the time played and the
+length. The recording plays on when the reader leaves the hymn, and a bar
+above the tabs shows the hymn playing (its number, title and Play or Pause);
+a press on it opens the hymn. Playing another hymn replaces the first.
+
+- `src/player/player.ts` holds the player: its states (idle, loading,
+  playing, paused, ended, failed) as an Effect atom, and the commands that
+  move it. It plays through the `Playback` service; `playback.live.ts` is
+  One's `Audio` session (AVPlayer on iOS, an `<audio>` element on the web).
+  One's `Audio` sends no status events, so the player reads the status
+  every 250 ms while a recording loads or plays.
+- A recording that cannot play says so on the page: "The recording needs a
+  connection." when the device is offline, else "The recording could not be
+  played.", with Retry beside it.
+- The app announces the hymn to the lock screen and Control Center, and
+  follows their play, pause and seek. `vite.config.ts` turns on
+  `native.app.audio.background`, so the prebuild writes the `audio`
+  background mode (iOS) and the media playback service (Android).
+- The bar above the tabs is the native tab bar's bottom accessory on iOS 26
+  and later; `src/web/WebTabBar.tsx` draws it on the web. Android and iOS
+  before 26 show no bar; the lock screen still controls the recording.
+- The seek bar is `One.iOS.Slider` on iOS (it seeks once the thumb rests for
+  300 ms, as the slider reports no release), `One.Android.Slider` on Android
+  and a range input on the web (it seeks on release).
+- The tests run the player over a device the test holds
+  (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
+  and the page's control and the bar, pressed in a document, in
+  `src/player/ui.test.tsx`.
 
 ## Recordings: R2 at hymns.cvr.im
 
