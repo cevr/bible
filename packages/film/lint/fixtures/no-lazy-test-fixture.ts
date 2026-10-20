@@ -21,5 +21,11 @@ it.effect('makes its own', () => Fx.flatMap(Fx.cached(read), (own) => own));
 
 export const helper = () => Fx.cached(read);
 
+export const piped = read.pipe(Fx.cached, Fx.runSync); // RED film/no-lazy-test-fixture
+export const pipedTtl = read.pipe(EffectModule.cachedWithTTL('1 minute')); // RED film/no-lazy-test-fixture
+
+const withinMinute = Fx.cachedWithTTL('1 minute');
+it.effect('applies a helper in its own case', () => Fx.flatten(withinMinute(read)));
+
 declare const Elsewhere: { readonly cached: (x: unknown) => unknown };
 export const notEffects = Elsewhere.cached(read);

@@ -72,7 +72,7 @@ const MESSAGES = {
     "a scope made by hand in a browser test: a step that fails before it is closed keeps its page open, and the process's next touching case dies. Open the page in the case's scope, or in Scope.fork(yield* Effect.scope) to close it early.",
   'no-lazy-test-fixture.ts:11 film/no-lazy-test-fixture':
     "a fixture the file's cases share, made on first use: the case that asks first builds it inside its time limit, and which case pays moves with their order. Build it as the file loads (const x = await Effect.runPromise(…)), or make it in each case.",
-  'test-git-config.ts:7 film/test-git-config':
+  'test-git-config.ts:10 film/test-git-config':
     "a git config written in a test file: run a test repository's git with TEST_GIT (packages/scripts/src/testing.ts) ahead of its arguments, which also turns git's automatic maintenance off, whose lock file breaks the folder's delete.",
   'touches-serial.ts:17 film/touches-serial':
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case alone: test.serial, or a runner's .serial form (it.live.serial).",

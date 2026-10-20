@@ -3823,7 +3823,8 @@ is built as the file loads (`const x = await Effect.runPromise(…)`, beside
 an `effect/noAsyncFunction` disable that says so), or in each case.
 `film/test-git-config` (`lint/test-git-config.ts`) holds every test file of
 the repo: a test repository's git takes no `-c key=value` written in the
-file; it runs with `TEST_GIT` (`packages/scripts/src/testing.ts`) ahead of
+file (in an array that starts at `'git'`, that a call is handed beside a
+`'git'` argument or by a name that says git, or that such a name holds); it runs with `TEST_GIT` (`packages/scripts/src/testing.ts`) ahead of
 its arguments, which keeps the machine's name, mail, signing, hooks and
 editor out and turns git's automatic maintenance off. Git starts that
 maintenance detached after a commit, and its `.git/objects/maintenance.lock`
