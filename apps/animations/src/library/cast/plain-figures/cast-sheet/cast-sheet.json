@@ -1,0 +1,317 @@
+{
+  "member": "plain-figures",
+  "scope": "library",
+  "who": "them",
+  "refs": [
+    {
+      "file": "plain-lead-sheet.png",
+      "why": "the plain lead's model sheet: every plain figure is this figure, its build, its head on its body with no neck, its pale cool grey paper and lilac shade, its three-mark face; a child or a baby differs by size alone"
+    },
+    {
+      "file": "plain-lead.png",
+      "why": "the plain lead as he was kept: the figure every plain figure is"
+    }
+  ],
+  "sheets": {
+    "poses": {
+      "anchor": 6,
+      "layout": "Draw the plain figures of the film's IDEA pages six times in one row, evenly spaced, each the same plain figure in its plain grey tunic with its arms in sleeves to the wrist, a child or a baby differing by size alone, left to right: one, a toddler about two thirds of a grown figure's height running toward the viewer's left, three-quarters, leaning far forward, both sleeved arms out behind; two, the same toddler sat down hard on the ground facing the viewer, legs out in front, surprised but unhurt; three, a grown plain figure in mid-hop toward the viewer's right, three-quarters, both stub legs tucked up off the ground, reaching ahead with one sleeved arm; four, a baby about half a grown figure's height sitting facing the viewer, grinning, one small white tooth showing in the one-line mouth; five, a child about three quarters of a grown figure's height standing three-quarters toward the viewer's right, one sleeved arm raised as if writing on a board at shoulder height, a stub of white chalk in the round hand; six, a grown plain figure standing at rest facing the viewer, both hands low, the height every other figure is measured against.",
+      "slots": ["left", "front", "right", "front", "right", "front"],
+      "standing": [5, 6],
+      "tries": [
+        {
+          "n": 1,
+          "file": "poses-1.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is the plain lead's model sheet: every plain figure is this figure, its build, its head on its body with no neck, its pale cool grey paper and lilac shade, its three-mark face; a child or a baby differs by size alone. Image 3 is the plain lead as he was kept: the figure every plain figure is.\n\nThe people are the plain figures of the films' IDEA pages, each exactly the plain lead as his model sheet draws him: a round head sitting right on a trapezoid tunic with no neck, two short rounded stub legs under the hem; no hair, no ears, no nose, no shoes, no clothes detail. One pale cool grey paper with a faint lilac cast for head, hands, tunic and legs (lit side #dbd6dc, shade side turned lilac-violet #b5a9d0, never a darker grey). A face of three marks: two short arched brows, two small dark oval dot eyes and a one-line mouth; feeling is in the brows' tilt, the mouth's bend and the head's tilt. Arms in sleeves of the same grey paper to the wrist, each round grey hand at the end of its sleeve, no thumbs. A child or a baby is the same figure smaller, its head a larger share of its height; nothing else changes. What they hold, and only where a pose names it: a stub of white chalk.\n\nDraw the plain figures of the film's IDEA pages six times in one row, evenly spaced, each the same plain figure in its plain grey tunic with its arms in sleeves to the wrist, a child or a baby differing by size alone, left to right: one, a toddler about two thirds of a grown figure's height running toward the viewer's left, three-quarters, leaning far forward, both sleeved arms out behind; two, the same toddler sat down hard on the ground facing the viewer, legs out in front, surprised but unhurt; three, a grown plain figure in mid-hop toward the viewer's right, three-quarters, both stub legs tucked up off the ground, reaching ahead with one sleeved arm; four, a baby about half a grown figure's height sitting facing the viewer, grinning, one small white tooth showing in the one-line mouth; five, a child about three quarters of a grown figure's height standing three-quarters toward the viewer's right, one sleeved arm raised as if writing on a board at shoulder height, a stub of white chalk in the round hand; six, a grown plain figure standing at rest facing the viewer, both hands low, the height every other figure is measured against.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "plain-lead-sheet.png",
+            "plain-lead.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "squash",
+              "views": [6]
+            },
+            {
+              "check": "height",
+              "views": [5, 6]
+            },
+            {
+              "check": "head",
+              "views": [2, 6]
+            },
+            {
+              "check": "head",
+              "views": [4, 6]
+            },
+            {
+              "check": "hand",
+              "views": [2, 6]
+            },
+            {
+              "check": "hand",
+              "views": [4, 6]
+            },
+            {
+              "check": "hand",
+              "views": [5, 6]
+            },
+            {
+              "check": "ground",
+              "views": [2]
+            },
+            {
+              "check": "ground",
+              "views": [3]
+            },
+            {
+              "check": "ground",
+              "views": [4]
+            },
+            {
+              "check": "bareArm",
+              "views": [1]
+            },
+            {
+              "check": "bareArm",
+              "views": [2]
+            },
+            {
+              "check": "bareArm",
+              "views": [3]
+            },
+            {
+              "check": "bareArm",
+              "views": [5]
+            },
+            {
+              "check": "bareArm",
+              "views": [6]
+            }
+          ],
+          "squash": -28.646616541353364,
+          "at": "2026-10-20T18:20:42.390Z"
+        },
+        {
+          "n": 2,
+          "file": "poses-2.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is the plain lead's model sheet: every plain figure is this figure, its build, its head on its body with no neck, its pale cool grey paper and lilac shade, its three-mark face; a child or a baby differs by size alone. Image 3 is the plain lead as he was kept: the figure every plain figure is.\n\nThe people are the plain figures of the films' IDEA pages, each exactly the plain lead as his model sheet draws him: a round head sitting right on a trapezoid tunic with no neck, two short rounded stub legs under the hem; no hair, no ears, no nose, no shoes, no clothes detail. One pale cool grey paper with a faint lilac cast for head, hands, tunic and legs (lit side #dbd6dc, shade side turned lilac-violet #b5a9d0, never a darker grey). A face of three marks: two short arched brows, two small dark oval dot eyes and a one-line mouth; feeling is in the brows' tilt, the mouth's bend and the head's tilt. Arms in sleeves of the same grey paper to the wrist, each round grey hand at the end of its sleeve, no thumbs. A child or a baby is the same figure smaller, its head a larger share of its height; nothing else changes. What they hold, and only where a pose names it: a stub of white chalk.\n\nDraw the plain figures of the film's IDEA pages six times in one row, evenly spaced, each the same plain figure in its plain grey tunic with its arms in sleeves to the wrist, a child or a baby differing by size alone, left to right: one, a toddler about two thirds of a grown figure's height running toward the viewer's left, three-quarters, leaning far forward, both sleeved arms out behind; two, the same toddler sat down hard on the ground facing the viewer, legs out in front, surprised but unhurt; three, a grown plain figure in mid-hop toward the viewer's right, three-quarters, both stub legs tucked up off the ground, reaching ahead with one sleeved arm; four, a baby about half a grown figure's height sitting facing the viewer, grinning, one small white tooth showing in the one-line mouth; five, a child about three quarters of a grown figure's height standing three-quarters toward the viewer's right, one sleeved arm raised as if writing on a board at shoulder height, a stub of white chalk in the round hand; six, a grown plain figure standing at rest facing the viewer, both hands low, the height every other figure is measured against.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "plain-lead-sheet.png",
+            "plain-lead.png"
+          ],
+          "underlay": false,
+          "flags": [
+            {
+              "check": "squash",
+              "views": [6]
+            },
+            {
+              "check": "height",
+              "views": [5, 6]
+            },
+            {
+              "check": "head",
+              "views": [1, 6]
+            },
+            {
+              "check": "head",
+              "views": [2, 6]
+            },
+            {
+              "check": "head",
+              "views": [3, 6]
+            },
+            {
+              "check": "head",
+              "views": [4, 6]
+            },
+            {
+              "check": "head",
+              "views": [5, 6]
+            },
+            {
+              "check": "hand",
+              "views": [2, 6]
+            },
+            {
+              "check": "hand",
+              "views": [3, 6]
+            },
+            {
+              "check": "hand",
+              "views": [4, 6]
+            },
+            {
+              "check": "ground",
+              "views": [1]
+            },
+            {
+              "check": "ground",
+              "views": [3]
+            },
+            {
+              "check": "papers",
+              "views": [1, 6]
+            },
+            {
+              "check": "papers",
+              "views": [3, 6]
+            },
+            {
+              "check": "papers",
+              "views": [5, 6]
+            },
+            {
+              "check": "bareArm",
+              "views": [1]
+            },
+            {
+              "check": "bareArm",
+              "views": [2]
+            },
+            {
+              "check": "bareArm",
+              "views": [3]
+            },
+            {
+              "check": "sleeveReach",
+              "views": [3]
+            },
+            {
+              "check": "bareArm",
+              "views": [5]
+            },
+            {
+              "check": "bareArm",
+              "views": [6]
+            }
+          ],
+          "squash": -43.22137404580151,
+          "at": "2026-10-20T18:21:06.290Z"
+        },
+        {
+          "n": 3,
+          "file": "poses-3.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is the plain lead's model sheet: every plain figure is this figure, its build, its head on its body with no neck, its pale cool grey paper and lilac shade, its three-mark face; a child or a baby differs by size alone. Image 3 is the plain lead as he was kept: the figure every plain figure is. Image 4 is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.\n\nThe people are the plain figures of the films' IDEA pages, each exactly the plain lead as his model sheet draws him: a round head sitting right on a trapezoid tunic with no neck, two short rounded stub legs under the hem; no hair, no ears, no nose, no shoes, no clothes detail. One pale cool grey paper with a faint lilac cast for head, hands, tunic and legs (lit side #dbd6dc, shade side turned lilac-violet #b5a9d0, never a darker grey). A face of three marks: two short arched brows, two small dark oval dot eyes and a one-line mouth; feeling is in the brows' tilt, the mouth's bend and the head's tilt. Arms in sleeves of the same grey paper to the wrist, each round grey hand at the end of its sleeve, no thumbs. A child or a baby is the same figure smaller, its head a larger share of its height; nothing else changes. What they hold, and only where a pose names it: a stub of white chalk.\n\nDraw the plain figures of the film's IDEA pages six times in one row, evenly spaced, each the same plain figure in its plain grey tunic with its arms in sleeves to the wrist, a child or a baby differing by size alone, left to right: one, a toddler about two thirds of a grown figure's height running toward the viewer's left, three-quarters, leaning far forward, both sleeved arms out behind; two, the same toddler sat down hard on the ground facing the viewer, legs out in front, surprised but unhurt; three, a grown plain figure in mid-hop toward the viewer's right, three-quarters, both stub legs tucked up off the ground, reaching ahead with one sleeved arm; four, a baby about half a grown figure's height sitting facing the viewer, grinning, one small white tooth showing in the one-line mouth; five, a child about three quarters of a grown figure's height standing three-quarters toward the viewer's right, one sleeved arm raised as if writing on a board at shoulder height, a stub of white chalk in the round hand; six, a grown plain figure standing at rest facing the viewer, both hands low, the height every other figure is measured against.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Every figure stands about three and a third of its own heads tall, as the underlay's figures do. Figure 5 and 6 stands as tall as the others, its soles level with theirs. Figure 2's head is as big as figure 6's: 145 pixels tall on this sheet, about a third of the figure's whole height (35 %). Figure 4's head is as big as figure 6's: 145 pixels tall on this sheet, about a third of the figure's whole height (35 %). Figure 2's round hands are as big as figure 6's: each about 53 pixels across, about a third of the head's height (0.36), as the kept concept draws them. Figure 4's round hands are as big as figure 6's: each about 53 pixels across, about a third of the head's height (0.36), as the kept concept draws them. Figure 5's round hands are as big as figure 6's: each about 53 pixels across, about a third of the head's height (0.36), as the kept concept draws them. Figure 2 stands as tall as the others, its soles level with theirs. Figure 3 stands as tall as the others, its soles level with theirs. Figure 4 stands as tall as the others, its soles level with theirs. In figure 1 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 2 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 3 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 5 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 6 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "plain-lead-sheet.png",
+            "plain-lead.png",
+            "../../../../../out/in-its-order/cast/plain-figures/underlay-poses.png"
+          ],
+          "underlay": true,
+          "retryOf": 1,
+          "flags": [
+            {
+              "check": "squash",
+              "views": [6]
+            },
+            {
+              "check": "ground",
+              "views": [3]
+            },
+            {
+              "check": "papers",
+              "views": [1, 6]
+            },
+            {
+              "check": "papers",
+              "views": [3, 6]
+            },
+            {
+              "check": "papers",
+              "views": [5, 6]
+            },
+            {
+              "check": "bareArm",
+              "views": [1]
+            },
+            {
+              "check": "bareArm",
+              "views": [2]
+            },
+            {
+              "check": "bareArm",
+              "views": [3]
+            },
+            {
+              "check": "sleeveReach",
+              "views": [3]
+            },
+            {
+              "check": "bareArm",
+              "views": [4]
+            },
+            {
+              "check": "bareArm",
+              "views": [5]
+            },
+            {
+              "check": "bareArm",
+              "views": [6]
+            }
+          ],
+          "squash": -56.951456310679596,
+          "at": "2026-10-20T18:21:30.437Z"
+        },
+        {
+          "n": 4,
+          "file": "poses-4.png",
+          "prompt": "A character model sheet for a narrated animated film, drawn in this art style: our own K1 paper-cut look made minimal, the house look, as the reference image shows it. Every figure and prop is a few flat cut-paper shapes. Every figure and prop has a thick warm dark-brown ink outline and a thin light inner edge just inside it, and is creased once by a single straight diagonal line at the light's angle, its far side a deeper hue of its own colour turned toward violet, never grey and never black. A head is ONE simple shape inside one single thick outline, and the light inner edge runs round that one outline. Garments are flat planes: no pockets, no buttons, no stitching, no seams, no cuffs, no fabric texture. Hands are plain round paper circles at the end of each arm in its sleeve, the sleeve running from the shoulder to the hand: never a hand floating free of the body, never a bare arm, no thumbs, no fingers. Faces are three marks only: two small dark ink oval eyes, short brows and a one-line mouth. One muted hue per piece. The light: a warm, soft key light from the upper left; a soft paper grain on every piece and every plane; a small soft violet contact shadow under each figure, never a darker brown; a muted, warm palette in which only the film's accents are loud. Keep it K1: no white sticker border round the figures, no felt or stitching style, no big glossy eyes, no realistic anatomy. The look is stylised, attractive, expressive and minimal.\n\nImage 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does. Image 2 is the plain lead's model sheet: every plain figure is this figure, its build, its head on its body with no neck, its pale cool grey paper and lilac shade, its three-mark face; a child or a baby differs by size alone. Image 3 is the plain lead as he was kept: the figure every plain figure is. Image 4 is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.\n\nThe people are the plain figures of the films' IDEA pages, each exactly the plain lead as his model sheet draws him: a round head sitting right on a trapezoid tunic with no neck, two short rounded stub legs under the hem; no hair, no ears, no nose, no shoes, no clothes detail. One pale cool grey paper with a faint lilac cast for head, hands, tunic and legs (lit side #dbd6dc, shade side turned lilac-violet #b5a9d0, never a darker grey). A face of three marks: two short arched brows, two small dark oval dot eyes and a one-line mouth; feeling is in the brows' tilt, the mouth's bend and the head's tilt. Arms in sleeves of the same grey paper to the wrist, each round grey hand at the end of its sleeve, no thumbs. A child or a baby is the same figure smaller, its head a larger share of its height; nothing else changes. What they hold, and only where a pose names it: a stub of white chalk.\n\nDraw the plain figures of the film's IDEA pages six times in one row, evenly spaced, each the same plain figure in its plain grey tunic with its arms in sleeves to the wrist, a child or a baby differing by size alone, left to right: one, a toddler about two thirds of a grown figure's height running toward the viewer's left, three-quarters, leaning far forward, both sleeved arms out behind; two, the same toddler sat down hard on the ground facing the viewer, legs out in front, surprised but unhurt; three, a grown plain figure in mid-hop toward the viewer's right, three-quarters, both stub legs tucked up off the ground, reaching ahead with one sleeved arm; four, a baby about half a grown figure's height sitting facing the viewer, grinning, one small white tooth showing in the one-line mouth; five, a child about three quarters of a grown figure's height standing three-quarters toward the viewer's right, one sleeved arm raised as if writing on a board at shoulder height, a stub of white chalk in the round hand; six, a grown plain figure standing at rest facing the viewer, both hands low, the height every other figure is measured against.\n\nThis is a model sheet for the animators, not a scene: a plain warm cream paper ground with a soft paper grain and no place behind, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one. Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall. One thick warm dark-brown outline runs round the whole silhouette of each figure, and the head's outline is the one line inside it: none on the nose, the ear or the hairline, and the hair, the ear and the garments meet as flat colour, never as their own outlined pieces. The hair and the beard are one brown, yet never one shape: the hair is its own shape behind the head, the face and its beard one shape in front of it, and a narrow dark band, the deep shade of that brown, nearly as dark as the outline, runs between the beard and each lock of hair beside it, as the kept concepts paint it, so the beard never runs into the hair. The key light comes from the upper left on every figure, whichever way it faces, so its lit side is always on the left and its far side turns a deeper hue of its own colour toward violet, never grey and never black. Each turn is its own drawing, never a mirror of another. Each arm is in its sleeve to the wrist, and each hand is a plain round paper circle of the skin's colour at its sleeve's end: no thumb, no fingers. The sleeve runs from the shoulder to the hand wherever the hand is, hanging at rest along the side or raised with it; a hand never floats free beside the body. No skin shows below the neck except the hands: never a bare arm, a forearm or a bare shoulder. A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride. No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.\n\nThis sheet is drawn again: Every figure stands about three and a third of its own heads tall, as the underlay's figures do. Figure 5 and 6 stands as tall as the others, its soles level with theirs. Figure 1's head is as big as figure 6's: 159 pixels tall on this sheet, a little under half of the figure's whole height (38 %). Figure 2's head is as big as figure 6's: 159 pixels tall on this sheet, a little under half of the figure's whole height (38 %). Figure 3's head is as big as figure 6's: 159 pixels tall on this sheet, a little under half of the figure's whole height (38 %). Figure 4's head is as big as figure 6's: 159 pixels tall on this sheet, a little under half of the figure's whole height (38 %). Figure 5's head is as big as figure 6's: 159 pixels tall on this sheet, a little under half of the figure's whole height (38 %). Figure 2's round hands are as big as figure 6's: each about 56 pixels across, about a third of the head's height (0.35), as the kept concept draws them. Figure 3's round hands are as big as figure 6's: each about 56 pixels across, about a third of the head's height (0.35), as the kept concept draws them. Figure 4's round hands are as big as figure 6's: each about 56 pixels across, about a third of the head's height (0.35), as the kept concept draws them. Figure 1 stands as tall as the others, its soles level with theirs. Figure 3 stands as tall as the others, its soles level with theirs. Figure 1 wears the same papers as figure 6: violet (#b9aad6) and pale pink (#e9e3e2); its shade a deeper hue toward violet, never grey. Figure 3 wears the same papers as figure 6: violet (#b9aad6) and pale pink (#e9e3e2); its shade a deeper hue toward violet, never grey. Figure 5 wears the same papers as figure 6: violet (#b9aad6) and pale pink (#e9e3e2); its shade a deeper hue toward violet, never grey. In figure 1 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 2 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 3 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 3 each hand is at the end of its arm in its sleeve, the sleeve running from the shoulder to the hand: no hand floats free beside the body. In figure 5 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder. In figure 6 no skin shows below the neck but the round hands: never a bare arm or a bare shoulder.",
+          "refs": [
+            "../../../../../docs/ref/house-look.png",
+            "plain-lead-sheet.png",
+            "plain-lead.png",
+            "../../../../../out/in-its-order/cast/plain-figures/underlay-poses.png"
+          ],
+          "underlay": true,
+          "retryOf": 2,
+          "flags": [
+            {
+              "check": "squash",
+              "views": [6]
+            },
+            {
+              "check": "ground",
+              "views": [1]
+            },
+            {
+              "check": "ground",
+              "views": [3]
+            },
+            {
+              "check": "lit",
+              "views": [1]
+            },
+            {
+              "check": "bareArm",
+              "views": [2]
+            },
+            {
+              "check": "bareArm",
+              "views": [3]
+            },
+            {
+              "check": "bareArm",
+              "views": [4]
+            },
+            {
+              "check": "bareArm",
+              "views": [5]
+            },
+            {
+              "check": "bareArm",
+              "views": [6]
+            }
+          ],
+          "squash": -50.278026905829584,
+          "at": "2026-10-20T18:23:15.406Z"
+        }
+      ]
+    }
+  }
+}
