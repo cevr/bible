@@ -16,6 +16,9 @@
     "cli.ts",
     "checkouts.ts",
     "checkouts.test.ts",
+    "lessons.test.ts",
+    "rules.test.ts",
+    "scripts.test.ts",
     "studio-harness.ts",
     "alchemy.run.ts",
     // The film package's asset module types: its pages import the UI face's woff2 files.
