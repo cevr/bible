@@ -736,6 +736,42 @@
       "set": "rbf-v3-cast-2026-10-18",
       "point": "item:lead",
       "by": "Claude (orchestrator, p6)"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792407419119,
+      "text": "RBF: pick the new lead (ask a2da36439f3)",
+      "set": "rbf-lead-candidates-2026-10-18",
+      "point": "item:lead",
+      "ask": "a2da36439f3",
+      "by": "RBF v3 painter"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792407697667,
+      "text": "RBF: pick the new lead (ask a2da36439f3): lead: 9: wavy brown hair, teal top",
+      "set": "rbf-lead-candidates-2026-10-18",
+      "point": "item:lead",
+      "ask": "a2da36439f3",
+      "by": "RBF v3 painter"
+    },
+    {
+      "_tag": "Asked",
+      "at": 1792416540160,
+      "text": "Keep candidate 9's cast sheets as RBF's lead? (ask a8fb2170353)",
+      "set": "rbf-lead-sheets-2026-10-19",
+      "point": "item:lead",
+      "ask": "a8fb2170353",
+      "by": "RBF v3 painter"
+    },
+    {
+      "_tag": "Decided",
+      "at": 1792416901651,
+      "text": "Keep candidate 9's cast sheets as RBF's lead? (ask a8fb2170353): keep: Keep all three sheets",
+      "set": "rbf-lead-sheets-2026-10-19",
+      "point": "item:lead",
+      "ask": "a8fb2170353",
+      "by": "RBF v3 painter"
     }
   ],
   "filed": [
