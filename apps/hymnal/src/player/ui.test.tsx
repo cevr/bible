@@ -410,12 +410,12 @@ const hooked = (settle: Duration.Input = Duration.seconds(2)) => {
     sought,
     value: () => scrub().value,
     change: (seconds: number) => act(() => scrub().change(seconds)),
-    /** The web's press: down, a move to `seconds`, and up. */
+    /** The web's press by pointer 1: down, a move to `seconds`, and up. */
     drag: (seconds: number) =>
       act(() => {
-        scrub().press();
+        scrub().press(1);
         scrub().move(seconds);
-        scrub().release();
+        scrub().lift(1);
       }),
     /** Wait while the bar rests past its `rest`. */
     rest: Effect.promise(() => act(() => Effect.runPromise(Effect.sleep(Duration.millis(60))))),

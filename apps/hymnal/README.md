@@ -82,15 +82,19 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   before 26 show no bar; the lock screen still controls the recording.
 - The seek bar is `One.iOS.Slider` on iOS (it seeks once the thumb rests for
   300 ms, as the slider reports no release), `One.Android.Slider` on Android
-  and a range input on the web. On the web the pointer bounds a press: it
-  opens at `pointerdown` and ends at the first `pointerup` (the drag seeks
+  and a range input on the web. On the web a press belongs to the pointer
+  that opened it with the main button: it opens at that pointer's
+  `pointerdown` and ends at the first of its `pointerup` (the drag seeks
   when it ends on another second than it began on), `pointercancel` or
-  `lostpointercapture` (the drag is dropped). The browser's `change` ends
-  nothing, as Chrome sends none for a drag that comes back to where it
-  began, and a key's step seeks at once. After a seek, each bar holds the
-  place sent until the player reaches it, or for 2 s.
+  `lostpointercapture` (the drag is dropped); another pointer, another
+  button and a key end nothing. The browser's `change` ends nothing, as
+  Chrome sends none for a drag that comes back to where it began. A key's
+  step seeks at once, inside a press or not, and a value change with no key
+  and no press open (a screen reader's) seeks at once. After a seek, each
+  bar holds the place sent until the player reaches it, or for 2 s.
 - `src/player/bar.property.test.tsx` holds the web bar to these rules over
-  seeded runs of presses, keys and playback's ticks, in Chrome's event order.
+  seeded runs of presses, keys, other pointers and buttons, a screen
+  reader's steps and playback's ticks, in Chrome's event order.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in

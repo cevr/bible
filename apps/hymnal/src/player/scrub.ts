@@ -7,10 +7,13 @@
  * `settle` if it never does, so the thumb does not jump back to the place
  * before the seek.
  *
- * The web's bar knows the press: a move inside one (`press` to `release`, or
- * to `cancel`) is a drag, and a move outside one (a key, a screen reader) is
- * a step, sent at once. iOS's and Android's sliders tell no press: each move
- * is a drag (`change`), let go once it has rested (`useCommitAtRest`).
+ * The web's bar knows the press and the pointer that made it: a move inside
+ * a press (`press` to `lift`, or to `drop`) is a drag, and only that
+ * pointer ends it. A step the reader asks for at once (a key's, `step`, or a
+ * screen reader's, a `move` with no press open) is sent at once, inside a
+ * press or not; inside one, the drag goes on from it. iOS's and Android's
+ * sliders tell no press: each move is a drag (`change`), let go once it has
+ * rested (`useCommitAtRest`).
  */
 
 import { Data, Duration, Effect, Fiber, Option } from 'effect';
@@ -30,12 +33,23 @@ export interface ScrubberProps {
 type Hand = Data.TaggedEnum<{
   /** No press: the bar draws playback, or the place it sent. */
   Free: {};
-  /** A press that has not moved the thumb yet. */
-  Pressed: {};
-  /** A drag, from the place the bar showed as it began, to where the thumb is. */
-  Moving: { readonly from: number; readonly to: number };
+  /** A press by pointer `by` that has not moved the thumb yet. */
+  Pressed: { readonly by: number };
+  /**
+   * A drag, from the place the bar showed as it began (or a key's step in
+   * it), to where the thumb is; by a pointer on the web, by none on a bar
+   * that tells no press.
+   */
+  Moving: { readonly by: Option.Option<number>; readonly from: number; readonly to: number };
 }>;
 const Hand = Data.taggedEnum<Hand>();
+
+/** The pointer that holds the hand, if one does. */
+const holder: (hand: Hand) => Option.Option<number> = Hand.$match({
+  Free: () => Option.none(),
+  Pressed: ({ by }) => Option.some(by),
+  Moving: ({ by }) => by,
+});
 
 /**
  * For a bar that tells each value as the reader drags but not the drag's
@@ -105,6 +119,7 @@ export const useScrub = (
   const drag = (to: number) =>
     become(
       Hand.Moving({
+        by: holder(now.current),
         from: Hand.$match(now.current, {
           Moving: ({ from }) => from,
           Pressed: () => shown.current,
@@ -113,6 +128,21 @@ export const useScrub = (
         to,
       }),
     );
+  /** A step sent at once; a drag under way goes on from it. */
+  const step = (to: number) => {
+    if (second(to) === second(shown.current)) return;
+    send(to);
+    const was = now.current;
+    if (Hand.$is('Moving')(was)) become(Hand.Moving({ by: was.by, from: to, to }));
+  };
+  /** Whether pointer `pointer` holds the hand. */
+  const holds = (pointer: number) => Option.contains(holder(now.current), pointer);
+  /** The hand is let go: a drag that ends on another second is sent. */
+  const letGo = () => {
+    const was = now.current;
+    become(Hand.Free());
+    if (Hand.$is('Moving')(was) && second(was.to) !== second(was.from)) send(was.to);
+  };
   return {
     value,
     max,
@@ -120,27 +150,30 @@ export const useScrub = (
     dragging: Hand.$is('Moving')(hand),
     /** What a screen reader says of the bar: where it is, of how long. */
     said: `${clock(value)} of ${clock(max)}`,
-    /** The reader presses the bar: a move from now until the press ends is a drag. */
-    press: () => {
-      if (Hand.$is('Free')(now.current)) become(Hand.Pressed());
+    /** Pointer `pointer` presses the bar: a move from now until it ends the press is a drag. */
+    press: (pointer: number) => {
+      if (Hand.$is('Free')(now.current)) become(Hand.Pressed({ by: pointer }));
     },
-    /** The bar's value moved: a drag inside a press, else a step sent at once. */
+    /** The bar's value moved with no key: a drag inside a press, else a step sent at once. */
     move: (to: number) => {
-      if (!Hand.$is('Free')(now.current)) return drag(to);
-      if (second(to) !== second(shown.current)) send(to);
+      if (Hand.$is('Free')(now.current)) step(to);
+      else drag(to);
+    },
+    /** A key stepped the bar's value: sent at once, inside a press or not. */
+    step,
+    /** Pointer `pointer` lets go: its press ends, and its drag is sent if it moved. */
+    lift: (pointer: number) => {
+      if (holds(pointer)) letGo();
+    },
+    /** Pointer `pointer`'s press is taken from the bar (a scroll, a lost capture): its drag is dropped, unsent. */
+    drop: (pointer: number) => {
+      if (holds(pointer)) become(Hand.Free());
     },
     /** The value moved on a bar that tells no press: a drag, until `release`. */
     change: drag,
-    /** The press ends: a drag that ends on another second is sent. */
+    /** The drag on a bar that tells no press has rested: sent if it moved. */
     release: () => {
-      const was = now.current;
-      if (Hand.$is('Free')(was)) return;
-      become(Hand.Free());
-      if (Hand.$is('Moving')(was) && second(was.to) !== second(was.from)) send(was.to);
-    },
-    /** The press is taken from the bar (a scroll, a lost pointer): its drag is dropped, unsent. */
-    cancel: () => {
-      if (!Hand.$is('Free')(now.current)) become(Hand.Free());
+      if (Hand.$is('Moving')(now.current)) letGo();
     },
   };
 };
