@@ -48,8 +48,10 @@ above the tabs shows the hymn playing (its number, title and Play or Pause);
 a press on it opens the hymn. Playing another hymn replaces the first.
 
 - `src/player/player.ts` holds the player: its states (idle, loading,
-  playing, paused, ended, failed) as an Effect atom, and the commands that
-  move it. It plays through the `Playback` service; `playback.live.ts` is
+  playing, buffering, paused, ended, failed) as an Effect atom, and the
+  commands that move it. A recording that loads again mid-hymn (a stall, or
+  a seek past what the device holds) buffers: the page keeps its bar, its
+  times and Pause. It plays through the `Playback` service; `playback.live.ts` is
   One's `Audio` session (AVPlayer on iOS, an `<audio>` element on the web).
   One's `Audio` sends no status events, so the player reads the status
   every 250 ms while a recording loads or plays.
@@ -65,7 +67,9 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   before 26 show no bar; the lock screen still controls the recording.
 - The seek bar is `One.iOS.Slider` on iOS (it seeks once the thumb rests for
   300 ms, as the slider reports no release), `One.Android.Slider` on Android
-  and a range input on the web (it seeks on release).
+  and a range input on the web (it seeks on the browser's `change`, the
+  drag's end; a cancelled gesture seeks nothing). After a seek, each bar
+  holds the place sent until the player reaches it, or for 2 s.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in
