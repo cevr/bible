@@ -84,6 +84,11 @@ describe('the list', () => {
       expect(Option.isNone(yield* list.signUp(ANN, 5000))).toBe(true);
       // The first link was sent before the address left, so it does not work.
       expect(yield* list.confirm(first, 5001)).toBe('invalid');
+      // No link is issued at the time the address last left, since none of those confirm.
+      const hour = Duration.toMillis(RESEND_AFTER);
+      yield* list.unsubscribe(first.subscriber, 1000 + hour);
+      expect(Option.isNone(yield* list.signUp(ANN, 1000 + hour))).toBe(true);
+      expect(Option.isSome(yield* list.signUp(ANN, 1001 + hour))).toBe(true);
     }));
 
   test('a film waits for each confirmed subscriber until it is recorded, once', () =>

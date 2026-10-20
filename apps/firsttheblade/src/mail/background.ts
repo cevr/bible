@@ -1,11 +1,12 @@
 /**
- * Work a route starts and does not wait for: the answer goes first, and the
- * work runs after it. A sign-up's answer must take the same time for every
- * address, so the work that depends on the address (the store, the confirm
- * letter) runs here (`./routes.ts`).
+ * Work a route starts and does not wait for: the answer is made without it.
+ * A sign-up's answer must take the same time for every address, so the work
+ * that depends on the address (the store, the confirm letter) runs here
+ * (`./routes.ts`).
  *
- * - On Cloudflare the work is registered with the request's `waitUntil`
- *   (`../worker/mail.ts`), which keeps the Worker alive until it settles.
+ * - On Cloudflare the work starts at once, beside the answer, and is
+ *   registered with the request's `waitUntil` (`../worker/mail.ts`), which
+ *   keeps the Worker alive until it settles.
  * - `layerInline` runs it in place, before the answer: the preview's, where
  *   no one times an answer.
  * - `layerHeld` keeps each work until `Held.settle` runs it: the tests', so
@@ -14,7 +15,7 @@
 import { Context, Effect, Layer, Ref } from 'effect';
 
 export interface BackgroundService {
-  /** Starts `work` after the answer. The work's own failures are its to log. */
+  /** Starts `work` and returns without waiting for it. The work's own failures are its to log. */
   readonly run: <R>(work: Effect.Effect<void, never, R>) => Effect.Effect<void, never, R>;
 }
 

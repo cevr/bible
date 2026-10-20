@@ -5,9 +5,9 @@
  * - `POST /subscribe`: the sign-up form, with no script. A sign-up from a
  *   place that has made too many this minute is refused (429). A filled
  *   honeypot, a new address, a pending one and a confirmed one all answer
- *   the same 303 to the check page, and the address is put on the list only
- *   after the answer (`./background.ts`), so neither the page nor the time it
- *   takes tells who is on the list; only a new or pending address (at most
+ *   the same 303 to the check page, and the answer does not wait for the
+ *   work on the address (`./background.ts`), so neither the page nor the
+ *   time it takes tells who is on the list; only a new or pending address (at most
  *   once an hour) is sent a confirm letter.
  * - `GET /subscribe/confirm?token=`: confirms, 303 to the confirmed page; a
  *   link that ran out or was replaced goes to a page that signs up again.
@@ -20,7 +20,18 @@
  * Every answer is a redirect, a page or a short text, and the logs name
  * ids, counts and codes, never an address or a token.
  */
-import { Clock, Context, Crypto, Duration, Effect, Option, Redacted, Schema } from 'effect';
+import {
+  Cause,
+  Clock,
+  Context,
+  Crypto,
+  Duration,
+  Effect,
+  Exit,
+  Option,
+  Redacted,
+  Schema,
+} from 'effect';
 import { Headers, type HttpServerRequest, HttpServerResponse, UrlParams } from 'effect/http';
 
 import { Assets, pageRequest } from '../worker/assets.ts';
@@ -90,31 +101,41 @@ const field = (form: UrlParams.UrlParams, name: string) =>
 const placeOf = (request: HttpServerRequest.HttpServerRequest) =>
   Option.getOrElse(Headers.get(request.headers, 'cf-connecting-ip'), () => 'unknown');
 
+/** What a cause names in a log line: its error's `field`, or `defect` for a throw or an interrupt. */
+const reasonOf = <E>(cause: Cause.Cause<E>, field: (error: E) => string) =>
+  Option.match(Cause.findErrorOption(cause), { onNone: () => 'defect', onSome: field });
+
 /**
- * What a sign-up does after its answer: the address goes on the list, and
- * its confirm letter is sent when one may go. A failure is logged and
- * changes no answer; the claim of a letter that could not be sent is given
- * back, so a second try sends one.
+ * What a sign-up does beside its answer, which does not wait for it: the
+ * address goes on the list, and its confirm letter is sent when one may go.
+ * Its time is read here, when it runs. Every failure, a defect too, is
+ * logged and changes no answer; a letter that could not be made or sent
+ * gives its claim back, so a second try sends one.
  */
 const signUpAfter = Effect.fn('Mail.signUpAfter')(
-  function* (address: Address, origin: string, now: number) {
+  function* (address: Address, origin: string) {
     const list = yield* List;
-    const claim = yield* list.signUp(address, now);
+    const claim = yield* list.signUp(address, yield* Clock.currentTimeMillis);
     if (Option.isNone(claim)) return yield* logMail('subscribe.quiet');
+    const subscriber = claim.value.subscriber;
     const tokens = yield* Tokens;
     const mailer = yield* Mailer;
-    const token = yield* tokens.sign({ _tag: 'Confirm', ...claim.value });
-    yield* mailer.send(confirmLetter(address, origin, token)).pipe(
-      Effect.andThen(logMail('subscribe.mailed', { subscriber: claim.value.subscriber })),
-      Effect.catch((failure) =>
-        warnMail('subscribe.unsent', {
-          subscriber: claim.value.subscriber,
-          code: failure.code,
-        }).pipe(Effect.andThen(list.release(claim.value))),
-      ),
+    const sent = yield* Effect.exit(
+      Effect.gen(function* () {
+        const token = yield* tokens.sign({ _tag: 'Confirm', ...claim.value });
+        yield* mailer.send(confirmLetter(address, origin, token));
+      }),
     );
+    if (Exit.isSuccess(sent)) return yield* logMail('subscribe.mailed', { subscriber });
+    yield* warnMail('subscribe.unsent', {
+      subscriber,
+      reason: reasonOf(sent.cause, (failure) => failure.code),
+    });
+    yield* list.release(claim.value);
   },
-  Effect.catch((failure) => warnMail('subscribe.failed', { reason: failure._tag })),
+  Effect.catchCause((cause) =>
+    warnMail('subscribe.failed', { reason: reasonOf(cause, (failure) => failure._tag) }),
+  ),
 );
 
 const subscribe = Effect.fn('Mail.subscribe')(function* (
@@ -136,8 +157,7 @@ const subscribe = Effect.fn('Mail.subscribe')(function* (
     return see(MAIL_PAGES.address);
   }
   const background = yield* Background;
-  const now = yield* Clock.currentTimeMillis;
-  yield* background.run(signUpAfter(address.value, originOf(request), now));
+  yield* background.run(signUpAfter(address.value, originOf(request)));
   return see(MAIL_PAGES.check);
 });
 

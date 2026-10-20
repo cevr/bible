@@ -41,7 +41,8 @@ export interface ListService {
    * Puts an address on the list as pending (or back to pending, after it
    * left), and claims its confirm email when one may go now: none for an
    * address already confirmed, nor within `RESEND_AFTER` of the last, even
-   * one sent before the address left.
+   * one sent before the address left, nor at or before the time it last left
+   * (a link issued then would never confirm).
    */
   readonly signUp: (
     address: Address,
@@ -111,6 +112,7 @@ const CLAIM = statement(
   'list.claim',
   `UPDATE subscribers SET confirm_sent_at = ?
    WHERE address = ? AND status = 'pending' AND (confirm_sent_at IS NULL OR confirm_sent_at <= ?)
+     AND (unsubscribed_at IS NULL OR unsubscribed_at < ?)
    RETURNING id`,
 );
 
@@ -213,6 +215,7 @@ export const layer = Layer.effect(
         now,
         address,
         now - Duration.toMillis(RESEND_AFTER),
+        now,
       ]);
       return Option.map(Option.fromNullishOr(claimed[0]), (row) => ({
         subscriber: row.id,

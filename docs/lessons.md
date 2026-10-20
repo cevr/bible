@@ -1503,3 +1503,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** Joining again after leaving cleared `confirm_sent_at`, so leave and sign-up in turn sent a confirm letter each time, past the hour between them.
 - **Cause:** One column held two meanings, the newest link and the start of the hour, and the rejoin cleared it for the first.
 - **Guard:** code: `apps/firsttheblade/src/mail/list.test.ts` `leaving and joining again does not start the hour between confirm letters again`
+
+### film-letter-made-before-its-claim
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Signing failure permanently blocks an unsent film"
+- **Source:** ftb-mail/review-2.md F1
+- **Wrong:** The delivery claimed a film's send and then signed the letter's token, so a signing defect left the send claimed with no letter sent, and every retry passed the subscriber over.
+- **Cause:** At-most-once was taken from the claim, and work that can fail stood between the claim and the send.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a film letter that cannot be made claims nothing, and the next try sends it`
+
+### background-work-catches-every-cause
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Background defects bypass logging and claim cleanup"
+- **Source:** ftb-mail/review-2.md F2
+- **Wrong:** The sign-up's work after the answer caught typed failures only, so a defect left no log line and kept the confirm letter's claim for the hour.
+- **Cause:** Work no caller awaits has no one to surface a defect but itself.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a confirm letter that cannot be made is logged, and the next try sends it`
+
+### deferred-work-reads-its-own-time
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A delayed sign-up can issue an unusable newest link"
+- **Source:** ftb-mail/review-2.md F3
+- **Wrong:** The sign-up read its issue time in the request and claimed with it later, so a leave between the two made the newest link one that never confirms, and it used up the hour.
+- **Cause:** A time taken before work was moved out of the request kept its old place.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a sign-up whose work runs after the address leaves sends a link that confirms`
+
+### background-test-starts-work-at-once
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The ordering test proves behavior its fake supplies"
+- **Source:** ftb-mail/review-2.md F4
+- **Wrong:** The test that the sign-up answers before its work held the work until it was settled, while Alchemy's `waitUntil` starts it at once, and the doc said the work runs after the answer.
+- **Cause:** The test double was built for the order wanted, not the one the host gives.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a sign-up is answered while its letter is still being sent`

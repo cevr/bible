@@ -1,6 +1,6 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Duration, Effect, Layer, Logger, Option } from 'effect';
+import { Context, Deferred, Duration, Effect, Layer, Logger, Option, Scope } from 'effect';
 import { TestClock } from 'effect/testing';
 import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
@@ -8,16 +8,17 @@ import { SERIES, type Series } from '../content.ts';
 import { Assets } from '../worker/assets.ts';
 import { CACHE, respond } from '../worker/respond.ts';
 import { Address } from './address.ts';
-import { Held } from './background.ts';
+import { Background, Held } from './background.ts';
 import { deliver } from './deliver.ts';
 import { layerOf } from './films.ts';
 import { List } from './list.ts';
 import { layerTest, TEST_ADMIN_TOKEN } from './local.ts';
-import { Mailbox, MailRefused, MailUnavailable } from './mailer.ts';
+import { Mailbox, Mailer, MailRefused, MailUnavailable } from './mailer.ts';
 import { MAIL_PAGES, SIGNUP_FIELDS } from './paths.ts';
 import { Queued } from './queue.ts';
 import { SqlError } from './sql.ts';
 import { SIGNUPS } from './throttle.ts';
+import { Tokens } from './tokens.ts';
 
 const ORIGIN = 'https://firsttheblade.test';
 const ANN = 'Ann@Example.com';
@@ -171,6 +172,58 @@ describe('signing up', () => {
       const sent = yield* letters;
       expect(sent).toHaveLength(2);
       expect(sent[1]?.to).toBe(Address.make('ben@example.com'));
+    }));
+
+  test('a sign-up is answered while its letter is still being sent', () =>
+    Effect.gen(function* () {
+      // As on Cloudflare, the work starts at once, and the answer does not wait for it.
+      const scope = yield* Scope.Scope;
+      const eager = Background.of({ run: (work) => Effect.asVoid(Effect.forkIn(work, scope)) });
+      const asked = yield* Deferred.make<boolean>();
+      const stuck = Mailer.of({
+        send: () => Deferred.succeed(asked, true).pipe(Effect.andThen(Effect.never)),
+      });
+      const response = yield* postSignUp({ email: ANN }).pipe(
+        Effect.provideService(Background, eager),
+        Effect.provideService(Mailer, stuck),
+      );
+      expect(header(response, 'location')).toBe(MAIL_PAGES.check);
+      expect(yield* Deferred.await(asked)).toBe(true);
+    }).pipe(Effect.scoped));
+
+  test('a confirm letter that cannot be made is logged, and the next try sends it', () =>
+    Effect.gen(function* () {
+      const tokens = yield* Tokens;
+      const broken = Tokens.of({ ...tokens, sign: () => Effect.die('no signature') });
+      const response = yield* signUp({ email: ANN }).pipe(Effect.provideService(Tokens, broken));
+      expect(header(response, 'location')).toBe(MAIL_PAGES.check);
+      expect(yield* letters).toHaveLength(0);
+      const unsent = (yield* Heard).lines().filter((line) => line.includes('subscribe.unsent'));
+      expect(unsent).toHaveLength(1);
+      expect(unsent[0]).toContain('reason=defect');
+      yield* signUp({ email: ANN });
+      expect(yield* letters).toHaveLength(1);
+    }));
+
+  test('a sign-up whose work runs after the address leaves sends a link that confirms', () =>
+    Effect.gen(function* () {
+      yield* joined(ANN);
+      yield* admin(`{"film":"${FILM}"}`);
+      yield* deliver(yield* (yield* Queued).deliveries);
+      const film = (yield* letters).find((letter) => letter.subject.startsWith('A new'));
+      const leave = `/unsubscribe?token=${encodeURIComponent(tokenIn(film?.text ?? ''))}`;
+      yield* TestClock.adjust(Duration.hours(1));
+      yield* postSignUp({ email: ANN });
+      yield* TestClock.adjust(Duration.millis(1));
+      yield* call(leave, { method: 'POST' });
+      yield* TestClock.adjust(Duration.millis(1));
+      yield* (yield* Held).settle;
+      const letter = (yield* letters).at(-1);
+      expect(letter?.subject).toStartWith('Confirm');
+      const confirmed = yield* call(
+        `/subscribe/confirm?token=${encodeURIComponent(tokenIn(letter?.text ?? ''))}`,
+      );
+      expect(header(confirmed, 'location')).toBe(MAIL_PAGES.confirmed);
     }));
 
   test('a second sign-up within the hour sends nothing more, and one after it sends again', () =>
@@ -385,6 +438,25 @@ describe('sending a film', () => {
         waiting: 0,
         unsure: 0,
       });
+    }));
+
+  test('a film letter that cannot be made claims nothing, and the next try sends it', () =>
+    Effect.gen(function* () {
+      yield* joined(ANN);
+      yield* admin(`{"film":"${FILM}"}`);
+      const deliveries = yield* (yield* Queued).deliveries;
+      const tokens = yield* Tokens;
+      const broken = Tokens.of({ ...tokens, sign: () => Effect.die('no signature') });
+      const failed = yield* Effect.exit(
+        deliver(deliveries).pipe(Effect.provideService(Tokens, broken)),
+      );
+      expect(failed._tag).toBe('Failure');
+      const list = yield* List;
+      expect(yield* list.counts(FILM)).toMatchObject({ waiting: 1, unsure: 0 });
+      yield* deliver(deliveries);
+      const films = (yield* letters).filter((letter) => letter.subject.startsWith('A new'));
+      expect(films).toHaveLength(1);
+      expect(yield* list.counts(FILM)).toMatchObject({ sent: 1, unsure: 0 });
     }));
 
   test('a letter sent whose outcome could not be kept is never sent again', () =>

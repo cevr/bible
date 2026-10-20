@@ -34,13 +34,19 @@ export const deliver = Effect.fn('Mail.deliver')(function* (deliveries: Readonly
       continue;
     }
     const to = yield* list.recipient(film.value.ref, delivery.subscriber);
-    const now = yield* Clock.currentTimeMillis;
-    if (Option.isNone(to) || !(yield* list.claimSend(film.value.ref, delivery.subscriber, now))) {
+    if (Option.isNone(to)) {
       tally.passed += 1;
       continue;
     }
+    // The letter is made before the claim, so nothing but the send itself
+    // stands between a claim and the letter going.
     const token = yield* tokens.sign({ _tag: 'Unsubscribe', subscriber: delivery.subscriber });
     const letter = filmLetter(to.value, delivery.origin, film.value, token);
+    const now = yield* Clock.currentTimeMillis;
+    if (!(yield* list.claimSend(film.value.ref, delivery.subscriber, now))) {
+      tally.passed += 1;
+      continue;
+    }
     const outcome = yield* mailer.send(letter).pipe(
       Effect.as('sent' as const),
       Effect.catchTag('MailRefused', (refusal) =>
