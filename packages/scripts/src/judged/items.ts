@@ -5,12 +5,11 @@
 // (`packages/scripts/lint/judged.ts`) takes every item of a file it lints
 // and reports the answers kept for them. Both read a source through `parse`
 // (oxc-parser), so an item's text, and with it its cache key, is the same in
-// both. An item's key is its text with the whitespace a formatter moves
-// folded: in code each run of it is one space, and none beside a mark that
-// is not a letter, a digit or `_`; in a comment and in prose each run is one
-// space; a literal's text (a string, a template's text, a regular
-// expression, JSX text) is kept as written, so two items whose words differ
-// never share a key. This module runs in Node (oxlint's plugin host) and in Bun, so it
+// both. An item's key is what a formatter does not change: code by its
+// parsed form (`parsedOf`: each node's type and fields, not where it stands
+// or how a literal is spelled) and its comments by their words, and a
+// comment or prose by its words with each run of whitespace one space; so two
+// items that parse or read differently never share a key. This module runs in Node (oxlint's plugin host) and in Bun, so it
 // imports nothing of either.
 //
 //   comments       each comment block (a block comment, or a run of line
@@ -44,8 +43,8 @@ export type Selector = (typeof SELECTORS)[number];
 
 /**
  * One item a judged rule reads: its first and last lines (1-based), its
- * offset, its words, and its key: its words with the whitespace a formatter
- * moves folded.
+ * offset, its words, and its key: what of its words a formatter does not
+ * change.
  */
 export interface Item {
   readonly line: number;
@@ -200,93 +199,64 @@ const walk = (node: Node, visit: (node: Node) => boolean) => {
   for (const child of childrenOf(node)) walk(child, visit);
 };
 
-/** A span of a source a key reads apart from its code: a literal (its text as written) or a comment (its words). */
-interface Span {
-  readonly start: number;
-  readonly end: number;
-  readonly words: Option.Option<string>;
-}
-
-/** Whether `node` is a literal whose text is its meaning: a string, a regular expression, a template's text or JSX text. */
-const isLiteralText = (source: Source, node: Node) => {
-  if (node.type === 'TemplateElement' || node.type === 'JSXText') return true;
-  if (node.type !== 'Literal') return false;
-  const first = source.text[node.start];
-  return first === '"' || first === "'" || first === '/';
-};
-
-const SPANS = new WeakMap<Source, ReadonlyArray<Span>>();
-
-/** The comments and literal texts of `source`, in order (none of them overlaps another). */
-const spansOf = (source: Source): ReadonlyArray<Span> => {
-  const known = SPANS.get(source);
-  if (known) return known;
-  const spans: Array<Span> = source.comments.map((comment) => ({
-    start: comment.start,
-    end: comment.end,
-    words: Option.some(foldProse(wordsOf(comment.type, comment.value))),
-  }));
-  walk(source.program, (node) => {
-    if (!isLiteralText(source, node)) return true;
-    spans.push({ start: node.start, end: node.end, words: Option.none() });
-    return false;
-  });
-  spans.sort((a, b) => a.start - b.start);
-  SPANS.set(source, spans);
-  return spans;
-};
-
 /** Prose as its key reads it: each run of whitespace one space, none at the edges. */
 const foldProse = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-/** Code as its key reads it: each run of whitespace one space, none beside a mark that is not a letter, a digit or `_`, none at the edges. */
-const foldCode = (text: string) => foldProse(text).replace(/ ?([^\p{L}\p{N}_ ]) ?/gu, '$1');
+/** A string as a parsed form writes it: quoted, its quotes and backslashes escaped. */
+const quoted = (text: string) => `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+
+/** What a node's parsed form leaves out: where it stands, and a literal's spelling (its value stays). */
+const PLACE = new Set(['type', 'start', 'end', 'range', 'loc', 'raw', 'parent']);
+
+const PARSED = new WeakMap<object, string>();
 
 /**
- * The source from `start` to `end` as its key reads it: its code folded,
- * each comment its words (its markers and a JSDoc line's `*` gone) as prose,
- * each literal's text as written; a span the range cuts, its part as prose.
+ * A parsed value's form: a node's type and every field the parser gives it
+ * but where it stands and a literal's spelling, its children's forms in
+ * order. Two programs whose forms match parse the same, so they differ in
+ * whitespace, quote marks or a number's spelling alone.
  */
-const keyOfRange = (source: Source, start: number, end: number) => {
-  const spans = spansOf(source);
-  let low = 0;
-  let high = spans.length;
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if ((spans[mid]?.end ?? 0) <= start) low = mid + 1;
-    else high = mid;
-  }
-  let key = '';
-  let at = start;
-  for (const span of spans.slice(low)) {
-    if (span.start >= end) break;
-    const from = Math.max(span.start, at);
-    const to = Math.min(span.end, end);
-    const whole = from === span.start && to === span.end;
-    const text = source.text.slice(from, to);
-    const read = Option.match(span.words, {
-      onNone: () => text,
-      onSome: (words) => {
-        if (whole) return `/*${words}*/`;
-        return foldProse(text);
-      },
-    });
-    key += foldCode(source.text.slice(at, from)) + read;
-    at = to;
-  }
-  return key + foldCode(source.text.slice(at, end));
+// oxlint-disable-next-line effect/noUnknownParameters -- a parser's fields, whatever their kind, walked whole
+const parsedOf = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(parsedOf).join(',')}]`;
+  if (Predicate.isString(value)) return quoted(value);
+  if (!Predicate.isObject(value)) return String(value);
+  const known = PARSED.get(value);
+  if (known) return known;
+  const type = String(Reflect.get(value, 'type') ?? '');
+  const fields = Object.keys(value)
+    .filter((key) => !PLACE.has(key))
+    .map((key) => `${key}:${parsedOf(Reflect.get(value, key))}`);
+  const parsed = `${type}{${fields.join(',')}}`;
+  PARSED.set(value, parsed);
+  return parsed;
 };
 
-/** The code from `start` to `end`, cut to its first `CODE_LINES` lines with the rest counted, and its key. */
-const capped = (source: Source, start: number, end: number) => {
-  const lines = source.text.slice(start, end).split('\n');
-  if (lines.length <= CODE_LINES)
-    return { text: source.text.slice(start, end), key: keyOfRange(source, start, end) };
-  const cut = start + lines.slice(0, CODE_LINES).join('\n').length;
-  const rest = `\n[… ${lines.length - CODE_LINES} more lines]`;
+/**
+ * The key of `node`, read from `from` (the comment above it, when an item
+ * shows one): the words of each comment from `from` to the node's end (their
+ * markers and a JSDoc line's `*` gone, as prose), then the node's parsed
+ * form. So
+ * re-indenting, re-wrapping or re-spacing it changes no key, and any edit a
+ * parser sees changes it.
+ */
+const keyOfNode = (source: Source, node: Node, from = node.start) =>
+  [
+    ...source.comments
+      .filter((comment) => comment.start >= from && comment.end <= node.end)
+      .map((comment) => `/*${foldProse(wordsOf(comment.type, comment.value))}*/`),
+    parsedOf(node),
+  ].join('\n');
+
+/** `node`'s source, cut to its first `CODE_LINES` lines with the rest counted, and its key (of the node whole). */
+const capped = (source: Source, node: Node) => {
+  const text = source.text.slice(node.start, node.end);
+  const lines = text.split('\n');
+  const key = keyOfNode(source, node);
+  if (lines.length <= CODE_LINES) return { text, key };
   return {
-    text: `${source.text.slice(start, cut)}${rest}`,
-    key: `${keyOfRange(source, start, cut)}${rest}`,
+    text: `${lines.slice(0, CODE_LINES).join('\n')}\n[… ${lines.length - CODE_LINES} more lines]`,
+    key,
   };
 };
 
@@ -316,7 +286,7 @@ const commentedCode = (source: Source): ReadonlyArray<Item> => {
       if (lineOf(first) !== block.end + 1) return [];
       return Option.toArray(
         Option.map(nodeAt(source.program, first), (node) => {
-          const code = capped(source, node.start, node.end);
+          const code = capped(source, node);
           return {
             line: block.line,
             end: lineOf(node.end),
@@ -360,13 +330,11 @@ const testCases = (source: Source): ReadonlyArray<Item> => {
   const imports = statements
     .map((statement) => source.text.slice(statement.start, statement.end))
     .join('\n');
-  const importsKey = statements
-    .map((statement) => keyOfRange(source, statement.start, statement.end))
-    .join('\n');
+  const importsKey = statements.map((statement) => keyOfNode(source, statement)).join('\n');
   const items: Array<Item> = [];
   walk(source.program, (node) => {
     if (!isCase(node)) return true;
-    const test = capped(source, node.start, node.end);
+    const test = capped(source, node);
     items.push({
       line: lineOf(node.start),
       end: lineOf(node.end),
@@ -426,7 +394,7 @@ const functions = (source: Source): ReadonlyArray<Item> => {
       end,
       start: node.start,
       text: source.text.slice(startOf(first), node.end),
-      key: keyOfRange(source, startOf(first), node.end),
+      key: keyOfNode(source, node, startOf(first)),
     });
     return false;
   });

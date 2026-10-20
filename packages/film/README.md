@@ -3883,12 +3883,12 @@ items or about 60,000 estimated input tokens, a part the model still refuses
 as too long asked again in halves. The store (`settings.judged.cache`, under
 the repo's ignored tmp folder) is keyed by content: a hash of the words the
 model reads for the rule (subject, instructions, criteria), the model, and
-the item's key: its text with the whitespace a formatter moves folded (in
-code each run one space and none beside a mark, in a comment or prose each
-run one space) and each literal's text (a string, a template's text, a
-pattern, JSX text) as written (`packages/scripts/src/judged/items.ts`). So a
-rerun asks only for an item or rule words it has not seen, an edit to a
-rule's words or to a literal asks again, a threshold or a message changes no
+the item's key: what of it a formatter does not change, code by its parsed
+form (each node's type and fields, not where it stands or how a literal is
+spelt) and comments and prose by their words, each run of whitespace one
+space (`packages/scripts/src/judged/items.ts`). So a rerun asks only for an
+item or rule words it has not seen, an edit a parser sees or to a rule's
+words asks again, a threshold or a message changes no
 answer, and a moved, copied or re-indented item keeps its answer; the store
 keeps the answers of the working tree's items alone, and drops the rest. The plugin (`packages/scripts/lint/judged.ts`) hashes
 each item of the file it lints the same way and reports the kept answer at
@@ -3905,10 +3905,12 @@ limit or an answer that misses items passes, and prints
 (git, the lint config, a defect) is `rule=* reason=error` with
 `detail=<tag>`, a store that does not decode is read as empty with one
 `[judged] store unread` line, and answers the store cannot keep are asked
-again next run. Two runs keep their answers under one lock file that names
-the run holding it, taken from another run only when that run is gone or
-has held it ten minutes, and write the store whole through a temporary
-file, removed if the write fails, so neither loses the other's answers. The key goes only to
+again next run. Two runs keep their answers under one lock, SQLite's write
+lock on a file beside the store (`.cache.json.lock`, never removed), held
+from the read to the write: the kernel lets it go when its run ends, so a
+run that dies leaves none to take. The store is written whole through a
+temporary file, removed if the write fails, so neither run loses the
+other's answers. The key goes only to
 TypeSafe's own host, and the runner reads no `.env` file (`bun
 --no-env-file`): none in a checkout sets its key or a proxy. A rule stays at
 `warn` until its labelled corpus shows the precision a gate needs; `bun run

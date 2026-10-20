@@ -25,27 +25,32 @@ const keys = (
 ) => itemsOf(selector, parse(file, lines.join('\n'))).map((item) => item.key);
 
 describe('the judged keys', () => {
-  it.effect('fold the whitespace a formatter moves: an indent, a wrap, a space beside a mark', () =>
-    Effect.sync(() => {
-      const kept = keys('functions', 'src/a.ts', [
-        '/** Joins the two. */',
-        'const join = (a: string, b: string) => {',
-        '  return [a, b].join("-");',
-        '};',
-      ]);
-      expect(
-        keys('functions', 'src/a.ts', [
-          '  /**',
-          '   * Joins the two.',
-          '   */',
-          '  const join = ( a: string,',
-          '      b: string ) => { return [ a,b ].join( "-" ); };',
-        ]),
-      ).toEqual(kept);
-      expect(keys('comments', 'src/b.ts', ['// One line,', '// then another.'])).toEqual(
-        keys('comments', 'src/b.ts', ['    // One line, then', '    // another.']),
-      );
-    }),
+  it.effect(
+    'fold what a formatter changes: an indent, a wrap, a space, a quote mark, a number spelt',
+    () =>
+      Effect.sync(() => {
+        const kept = keys('functions', 'src/a.ts', [
+          '/** Joins the two. */',
+          'const join = (a: string, b: string) => {',
+          '  return [a, b].join("-");',
+          '};',
+        ]);
+        expect(
+          keys('functions', 'src/a.ts', [
+            '  /**',
+            '   * Joins the two.',
+            '   */',
+            '  const join = ( a: string,',
+            '      b: string ) => { return [ a,b ].join( "-" ); };',
+          ]),
+        ).toEqual(kept);
+        expect(keys('functions', 'src/a.ts', ["const f = () => 'a b' + 0x10;"])).toEqual(
+          keys('functions', 'src/a.ts', ['const f = () => "a b" + 16;']),
+        );
+        expect(keys('comments', 'src/b.ts', ['// One line,', '// then another.'])).toEqual(
+          keys('comments', 'src/b.ts', ['    // One line, then', '    // another.']),
+        );
+      }),
   );
 
   it.effect(
@@ -66,6 +71,16 @@ describe('the judged keys', () => {
             'const f = (x: string) => /a\\d/.test(x);',
           ],
           ['src/a.tsx', 'const f = () => <p>a - b</p>;', 'const f = () => <p>a-b</p>;'],
+          [
+            'src/a.ts',
+            'function f(a: number, b: number) { return a + ++b; }',
+            'function f(a: number, b: number) { return a++ + b; }',
+          ],
+          [
+            'src/a.ts',
+            'function f(a: number) { return a; }',
+            'function f(a: number) { return\na; }',
+          ],
         ];
         for (const [file, one, other] of pairs)
           expect(keys('functions', file, [one])).not.toEqual(keys('functions', file, [other]));

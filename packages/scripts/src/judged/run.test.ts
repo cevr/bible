@@ -1,5 +1,6 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Console, DateTime, Deferred, Effect, Fiber, FileSystem, Layer, Path } from 'effect';
+import { Database } from 'bun:sqlite';
+import { Console, Deferred, Effect, Fiber, FileSystem, Layer, Path, Ref } from 'effect';
 import { DecisionModel } from 'effect/ai';
 import { describe, expect, it } from 'effect-bun-test';
 import { TestClock } from 'effect/testing';
@@ -426,102 +427,82 @@ describe("a judged rule's store", () => {
     }).pipe(withFs),
   );
 
-  /** A lock file at `cacheFile`'s, written `ago` minutes back, held by `holder`. */
-  const lockOf = (cacheFile: string, holder: string, ago: number) =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
-      yield* fs.writeFileString(`${cacheFile}.lock`, `${holder}\n`);
-      const at = DateTime.toDateUtc(DateTime.subtract(yield* DateTime.now, { minutes: ago }));
-      yield* fs.utimes(`${cacheFile}.lock`, at, at);
-    });
+  /** The store's lock file beside `cacheFile`. */
+  const lockOf = (cacheFile: string) => cacheFile.replace(/cache\.json$/, '.cache.json.lock');
 
-  it.live('takes a lock whose run is gone, at any age', () =>
+  /** SQLite's write lock on the store's lock file, held for the scope, as another run would hold it. */
+  const holding = (cacheFile: string) =>
+    Effect.acquireRelease(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        yield* fs.makeDirectory(path.dirname(cacheFile), { recursive: true });
+        const db = new Database(lockOf(cacheFile), { create: true });
+        db.exec('PRAGMA journal_mode = MEMORY');
+        db.exec('BEGIN IMMEDIATE');
+        return db;
+      }),
+      (db) => Effect.sync(() => db.close()),
+    );
+
+  it.effect('waits for a run that holds the lock, and writes nothing while it does', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const { cacheFile } = yield* judging;
-      yield* lockOf(cacheFile, '99999999 7', 0);
+      const written = yield* Effect.scoped(
+        Effect.gen(function* () {
+          yield* holding(cacheFile);
+          const done = yield* Ref.make(false);
+          const waiting = yield* Effect.forkChild(
+            Effect.exit(keepAnswers(cacheFile, new Map([['a', answer]]), new Set())).pipe(
+              Effect.ensuring(Ref.set(done, true)),
+            ),
+          );
+          // Each try is one synchronous call, then a sleep on the test clock.
+          for (let tick = 0; tick < 200 && !(yield* Ref.get(done)); tick++)
+            yield* TestClock.adjust('25 millis');
+          return yield* Fiber.join(waiting);
+        }),
+      );
+      expect(written._tag).toBe('Failure');
+      expect(yield* fs.exists(cacheFile)).toBe(false);
       yield* keepAnswers(cacheFile, new Map([['a', answer]]), new Set());
       expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
-      expect(yield* fs.exists(`${cacheFile}.lock`)).toBe(false);
     }).pipe(withFs),
   );
 
-  /** The real file system with `hooks` in place of its own members, over Bun's services. */
-  const hooked = (hooks: (fs: FileSystem.FileSystem) => Partial<FileSystem.FileSystem>) =>
-    Layer.effect(
-      FileSystem.FileSystem,
-      Effect.map(FileSystem.FileSystem, (fs) => FileSystem.makeNoop({ ...fs, ...hooks(fs) })),
-    ).pipe(Layer.provideMerge(BunServices.layer));
+  it.live('takes the lock of a run that let it go: the file stays, the lock does not', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const { cacheFile } = yield* judging;
+      yield* Effect.scoped(holding(cacheFile));
+      yield* keepAnswers(cacheFile, new Map([['a', answer]]), new Set());
+      expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
+      expect(yield* fs.exists(lockOf(cacheFile))).toBe(true);
+    }).pipe(withFs),
+  );
 
   /** The real file system, but writing the store's partial file first does `before` to that path. */
   const writingPartial = (
     before: (fs: FileSystem.FileSystem, partial: string) => Effect.Effect<void, unknown>,
   ) =>
-    hooked((fs) => ({
-      writeFileString: (file, data, options) =>
-        Effect.flatMap(
-          Effect.orDie(Effect.when(before(fs, file), Effect.succeed(file.endsWith('.partial')))),
-          () => fs.writeFileString(file, data, options),
-        ),
-    }));
-
-  it.live(
-    'waits for a live run however long it writes, short of 10 minutes, and takes a hung one',
-    () => {
-      const tried = Deferred.makeUnsafe<boolean>();
-      const reading = hooked((fs) => ({
-        readFileString: (file, encoding) =>
-          Effect.andThen(
-            Effect.when(Deferred.succeed(tried, true), Effect.succeed(file.endsWith('.lock'))),
-            fs.readFileString(file, encoding),
-          ),
-      }));
-      return Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const { cacheFile } = yield* judging;
-        const lock = `${cacheFile}.lock`;
-        yield* lockOf(cacheFile, `${process.pid} 7`, 5);
-        const waiting = yield* Effect.forkChild(
-          keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
-        );
-        yield* Deferred.await(tried);
-        expect(yield* fs.readFileString(lock)).toBe(`${process.pid} 7\n`);
-        expect(yield* fs.exists(cacheFile)).toBe(false);
-        yield* fs.remove(lock);
-        yield* Fiber.join(waiting);
-        expect([...(yield* readCache(cacheFile)).keys()]).toEqual(['a']);
-        yield* lockOf(cacheFile, `${process.pid} 7`, 11);
-        yield* keepAnswers(cacheFile, new Map([['b', answer]]), new Set());
-        expect([...(yield* readCache(cacheFile)).keys()].sort()).toEqual(['a', 'b']);
-      }).pipe(Effect.scoped, Effect.provide(reading));
-    },
-  );
-
-  it.live('writes nothing, and leaves the lock, when another run took the lock meanwhile', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const { cacheFile } = yield* judging;
-      const written = yield* Effect.exit(
-        keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
-      );
-      expect(written._tag).toBe('Failure');
-      expect(yield* fs.exists(cacheFile)).toBe(false);
-      expect(yield* fs.readFileString(`${cacheFile}.lock`)).toBe('another run\n');
-      expect(yield* fs.readDirectory(path.dirname(cacheFile))).toEqual(['cache.json.lock']);
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        writingPartial((fs, partial) =>
-          fs.writeFileString(partial.replace(/\.\d+\.partial$/, '.lock'), 'another run\n'),
-        ),
+    Layer.effect(
+      FileSystem.FileSystem,
+      Effect.map(FileSystem.FileSystem, (fs) =>
+        FileSystem.makeNoop({
+          ...fs,
+          writeFileString: (file, data, options) =>
+            Effect.flatMap(
+              Effect.orDie(
+                Effect.when(before(fs, file), Effect.succeed(file.endsWith('.partial'))),
+              ),
+              () => fs.writeFileString(file, data, options),
+            ),
+        }),
       ),
-    ),
-  );
+    ).pipe(Layer.provideMerge(BunServices.layer));
 
-  it.live('leaves no partial file and no lock when the write fails part way', () =>
+  it.live('leaves no partial file when the write fails part way, and lets the lock go', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -530,7 +511,8 @@ describe("a judged rule's store", () => {
         keepAnswers(cacheFile, new Map([['a', answer]]), new Set()),
       );
       expect(written._tag).toBe('Failure');
-      expect(yield* fs.readDirectory(path.dirname(cacheFile))).toEqual([]);
+      expect(yield* fs.readDirectory(path.dirname(cacheFile))).toEqual(['.cache.json.lock']);
+      yield* Effect.scoped(holding(cacheFile));
     }).pipe(
       Effect.scoped,
       Effect.provide(
