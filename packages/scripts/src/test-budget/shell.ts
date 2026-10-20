@@ -41,16 +41,28 @@ const unquoted = (word: string) =>
     return String(bare);
   });
 
+/** A word's bare characters: its quoted strings and escaped characters gone. */
+const bareOf = (word: string) => word.replace(/'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]/g, '');
+
+/**
+ * A bare character the shell expands a word by: a glob (`*`, `?`, `[`),
+ * which it turns into the names of the files it matches, a brace (`{a,b}`),
+ * which it turns into more words, or a tilde, which it turns into a home.
+ */
+const EXPANDS = /[*?[\]{}~]/;
+
 /**
  * A script as the shell reads it: its commands, each its words, and the
- * separators between them, in order. A word that opens with a bare `#`
- * starts a comment: the shell reads nothing more of its line, separators in
- * it included.
+ * separators between them, in order, and whether a word holds a bare
+ * character the shell expands it by (`EXPANDS`). A word that opens with a
+ * bare `#` starts a comment: the shell reads nothing more of its line,
+ * separators in it included.
  */
 const readOf = (script: string) => {
   const commands: Array<Array<string>> = [[]];
   const separators: Array<string> = [];
   let comment = false;
+  let expands = false;
   for (const [, separator, word = ''] of script.matchAll(TOKEN)) {
     if (separator === '\n') comment = false;
     if (comment) continue;
@@ -58,9 +70,12 @@ const readOf = (script: string) => {
       separators.push(separator);
       commands.push([]);
     } else if (word.startsWith('#')) comment = true;
-    else if (!JOIN.test(word)) commands[commands.length - 1]?.push(unquoted(word));
+    else if (!JOIN.test(word)) {
+      expands ||= EXPANDS.test(bareOf(word));
+      commands[commands.length - 1]?.push(unquoted(word));
+    }
   }
-  return { commands, separators };
+  return { commands, separators, expands };
 };
 
 /** A script's commands, each its words from its program on: the variables it sets, bare or through `env`, gone. */
@@ -119,13 +134,22 @@ const SHELL_CHANGES = new Set([
  * show, and `exit 0 && bun test` passes with no test run. A script that
  * holds a `$` or a backtick anywhere changes them too: an expansion
  * (`bun test src $EXTRA`) may hand a program words its text does not show.
+ * So does a word the shell expands (`EXPANDS`: `bun test --conditions
+ * ./src/*.test.ts` hands bun one file as a condition's value), and a `<` or
+ * `>` anywhere: a redirection (`bun test src > report.log`) takes its words
+ * from the command.
  */
-export const changesShell = (script: string) =>
-  /[$`]/.test(script) ||
-  readOf(script).commands.some((words) => {
-    const program = words[0] ?? '';
-    return program === 'env' || ASSIGNMENT.test(program) || SHELL_CHANGES.has(program);
-  });
+export const changesShell = (script: string) => {
+  const read = readOf(script);
+  return (
+    /[$`<>]/.test(script) ||
+    read.expands ||
+    read.commands.some((words) => {
+      const program = words[0] ?? '';
+      return program === 'env' || ASSIGNMENT.test(program) || SHELL_CHANGES.has(program);
+    })
+  );
+};
 
 /**
  * Whether a script's commands are joined by `&&` alone: each runs only when

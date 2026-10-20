@@ -862,7 +862,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-11.md F2
 - **Wrong:** The reach check called specs reached by `playwright test -gfast`, `-Gcase` and `--list`, and test files reached by `bun test -tfast`, though each runs some cases or none.
 - **Cause:** The reader refused a list of narrowing flags by their exact spelling, so an attached short value, an alias or a mode it did not list passed.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, shard or history`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
 
 ### reach-reads-and-chains
 

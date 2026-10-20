@@ -5,12 +5,20 @@
 // budget by running less: `test:budget` measures no workspace that leaves
 // one out, and `reach.test.ts` holds every workspace of the repo to it.
 //
+// What the check reads is which files a runner takes and loads as tests:
+// the scripts, their flags, a bunfig, a playwright config, the walk. What
+// the code a run loads does (a test file's own, a preload's, a reporter's,
+// a global setup's, the modules they import, as the toolchain resolves
+// them) is the repo's, as a test is: the reader does not read it, so a
+// file that registers no case, or a preload that ends the run, is not its.
+//
 // The reader reproduces a narrow grammar of scripts and refuses the rest: a
 // script it cannot read reaches nothing, so the check can call a file
-// unreached that runs, never the reverse. A script reaches files only when
-// its commands are joined by `&&` alone (`andChained`), none sets a variable
-// or changes the shell (`changesShell`: `BUN_OPTIONS`, `export`, `exit`, a `$`), none runs
-// in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
+// unreached that runs, never call one reached that its runner does not
+// take. A script reaches files only when its commands are joined by `&&`
+// alone (`andChained`), none sets a variable or changes the shell
+// (`changesShell`: `BUN_OPTIONS`, `export`, `exit`, a `$`, a glob the shell
+// expands, a redirection), none runs in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
 // flags that leave what runs, and how bun reads it, as it is (`BUN_FLAGS`,
 // `PLAYWRIGHT_FLAGS`; an unknown one, a narrowing one such as `--changed`,
 // `-t`, `--grep`, `--shard`, `--list`, one such as `--loader` that changes
@@ -31,7 +39,8 @@
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
 // matcher reads it (a regex as written, a glob by `globMatcher`), and by one
-// of the command's filters when it names any. The reader parses the config
+// of the command's filters when it names any (a filter that ends in a line,
+// `a.spec.ts:12`, takes none: it runs only the cases there). The reader parses the config
 // and reads the object it exports (`settingsOf`); a config it cannot read
 // (none, one that does not parse or exports anything else, one whose
 // loading may do more than build that object (`buildsOnlyItsExport`: a
@@ -41,8 +50,11 @@
 // `PLAYWRIGHT_SETTINGS` such as `projects`, `grep` or `shard`) takes none.
 // A file is one playwright's walk of `testDir` finds (`walked`): it enters
 // no `node_modules`, and where it respects git's ignore rules
-// (`respectGitIgnore: true`, or neither it nor `testDir` set) it reads each
-// `.gitignore` from `testDir` down by minimatch, as `collectFiles` does.
+// (`respectGitIgnore: true`, or neither it nor a `testDir` that is not
+// empty set) it reads each `.gitignore` from `testDir` down by minimatch, as
+// `collectFiles` does, each as it stands on disk, tracked or not
+// (`gitignoresUnder`). A test file that is a symbolic link is unreached:
+// playwright's walk takes no link, and the reader follows none.
 // Only a runner reaches a file: `bun test`, a wrapper of it the repo names
 // (`BUN_TEST_WRAPPERS`), `playwright test`; any other command (`echo
 // ./src`, a build) reaches none. A file named
@@ -53,6 +65,7 @@
 
 import { Glob, TOML } from 'bun';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
+import type * as PlatformError from 'effect/PlatformError';
 import { Minimatch, minimatch } from 'minimatch';
 import {
   type Expression,
@@ -338,9 +351,11 @@ const runsFile = (run: Run, file: string) => {
 
 /**
  * The flags of `playwright test` that leave the files and cases it runs as
- * they are. Any other (`--grep`, `-g`, `-G`, `--grep-invert`, `--project`,
- * `--shard`, `--last-failed`, `--only-changed`, `--list`, `--ui`, an
- * attached short value, one this does not know) may narrow it or run none.
+ * they are, and how it reads them. Any other (`--grep`, `-g`, `-G`,
+ * `--grep-invert`, `--project`, `--shard`, `--last-failed`,
+ * `--only-changed`, `--list`, `--ui`, an attached short value, one this
+ * does not know) may narrow it or run none, and `--tsconfig` may map the
+ * config's imports to other modules.
  */
 const PLAYWRIGHT_FLAGS: Flags = new Map([
   ['--config', true],
@@ -356,7 +371,6 @@ const PLAYWRIGHT_FLAGS: Flags = new Map([
   ['--output', true],
   ['--global-timeout', true],
   ['--trace', true],
-  ['--tsconfig', true],
   ['--browser', true],
   ['--headed', false],
   ['--forbid-only', false],
@@ -372,8 +386,8 @@ const PLAYWRIGHT_FLAGS: Flags = new Map([
 /**
  * The settings of a playwright config that leave the files and cases it
  * runs as `playwrightRun` reads them. A config that sets any other
- * (`projects`, `grep`, `grepInvert`, `shard`, one this does not know) takes
- * none.
+ * (`projects`, `grep`, `grepInvert`, `shard`, `tsconfig`, one this does not
+ * know) takes none.
  */
 const PLAYWRIGHT_SETTINGS = new Set([
   'testDir',
@@ -404,7 +418,6 @@ const PLAYWRIGHT_SETTINGS = new Set([
   'ignoreSnapshots',
   'metadata',
   'name',
-  'tsconfig',
   'build',
   'captureGitInfo',
   'failOnFlakyTests',
@@ -532,7 +545,8 @@ const boundNames = (program: Program) =>
  * template, `import()` or `import.meta`; it calls only `CONFIG_CALLS` by
  * name and playwright's `defineConfig` (`importsDefineConfig`); and every
  * other name it reads is one it binds, one of `CONFIG_VALUES`, or `process`
- * read as `process.env`. A config that can reach anything else
+ * read as `process.env`, none of those three bound by the config
+ * (`const Number = ...` makes a call of `Number` any call). A config that can reach anything else
  * (`module.exports`, `exports`, `globalThis`, `require`, `Object.assign`,
  * `Number.constructor`) can replace or change what it exports, or end the
  * run before it starts.
@@ -601,8 +615,12 @@ const buildsOnlyItsExport = (program: Program) => {
     },
   }).visit(program);
   const bound = boundNames(program);
+  const shadows = [...bound].some(
+    (name) => CONFIG_CALLS.has(name) || CONFIG_VALUES.has(name) || name === 'process',
+  );
   return (
     !runs &&
+    !shadows &&
     read
       .filter((node) => !named.has(node))
       .every(
@@ -802,6 +820,9 @@ const playwrightRun = (
   const { configs, absolute, gitignores } = workspace;
   const read = argumentsOf(words, PLAYWRIGHT_FLAGS);
   const filters = Option.match(read, { onNone: () => [], onSome: (a) => a.positionals });
+  // A filter that ends in a line (`a.spec.ts:12`, `.*:3:5`) runs only the
+  // cases there: playwright's `parseLocationArg`. The reader does not read cases.
+  const located = filters.some((filter) => /^(.*?):(\d+):?(\d+)?$/.test(filter));
   // The last `--config` or `-c` names the config; one given by a path this
   // does not read (absolute, or out of the workspace) takes none, never the
   // default config.
@@ -811,47 +832,58 @@ const playwrightRun = (
       onSome: pathOf,
     }),
   );
-  const takes = Option.flatMap(file, (at) =>
-    Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) =>
-      Option.flatMap(settingsOf(at, text), (settings) => {
-        if ([...settings.keys()].some((key) => !PLAYWRIGHT_SETTINGS.has(key))) return Option.none();
-        const folder = at.split('/').slice(0, -1);
-        const dir = Option.match(Option.fromUndefinedOr(settings.get('testDir')), {
-          onNone: () => Option.some('.'),
-          onSome: stringOf,
-        });
-        // Playwright skips what git ignores when the config says so, and by
-        // default when it sets neither `testDir` nor `respectGitIgnore`.
-        const gitPolicy = Option.match(Option.fromUndefinedOr(settings.get('respectGitIgnore')), {
-          onNone: () => Option.some(!settings.has('testDir')),
-          onSome: booleanOf,
-        });
-        return Option.flatMap(Option.all([dir, gitPolicy]), ([dir, respectsGit]) =>
-          Option.flatMap(pathOf([...folder, dir].join('/')), (root) =>
-            Option.map(
-              Option.all([
-                patternOf(settings, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
-                patternOf(settings, 'testIgnore', () => false),
-              ]),
-              ([matches, ignored]) =>
-                (path: string) => {
-                  const under = root === '' || path.startsWith(`${root}/`);
-                  const file = `${absolute}/${path}`;
-                  const named =
-                    filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
-                  return (
-                    under &&
-                    walked(root, path, respectsGit, gitignores) &&
-                    matches(file) &&
-                    !ignored(file) &&
-                    named
-                  );
-                },
+  const takes = Option.flatMap(
+    Option.filter(file, () => !located),
+    (at) =>
+      Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) =>
+        Option.flatMap(settingsOf(at, text), (settings) => {
+          if ([...settings.keys()].some((key) => !PLAYWRIGHT_SETTINGS.has(key)))
+            return Option.none();
+          const folder = at.split('/').slice(0, -1);
+          // An empty `testDir` is playwright's none (`pathResolve`): the
+          // config's folder. An absolute one is outside the workspace's paths.
+          const dir = Option.filter(
+            Option.match(Option.fromUndefinedOr(settings.get('testDir')), {
+              onNone: () => Option.some(''),
+              onSome: stringOf,
+            }),
+            (testDir) => !testDir.startsWith('/'),
+          );
+          // Playwright skips what git ignores when the config says so, and by
+          // default when it sets neither `respectGitIgnore` nor a `testDir`
+          // that is not empty.
+          const gitPolicy = Option.match(Option.fromUndefinedOr(settings.get('respectGitIgnore')), {
+            onNone: () => Option.map(dir, (testDir) => testDir === ''),
+            onSome: booleanOf,
+          });
+          return Option.flatMap(Option.all([dir, gitPolicy]), ([dir, respectsGit]) =>
+            Option.flatMap(
+              pathOf([...folder, dir, '.'].filter((part) => part !== '').join('/')),
+              (root) =>
+                Option.map(
+                  Option.all([
+                    patternOf(settings, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
+                    patternOf(settings, 'testIgnore', () => false),
+                  ]),
+                  ([matches, ignored]) =>
+                    (path: string) => {
+                      const under = root === '' || path.startsWith(`${root}/`);
+                      const file = `${absolute}/${path}`;
+                      const named =
+                        filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
+                      return (
+                        under &&
+                        walked(root, path, respectsGit, gitignores) &&
+                        matches(file) &&
+                        !ignored(file) &&
+                        named
+                      );
+                    },
+                ),
             ),
-          ),
-        );
-      }),
-    ),
+          );
+        }),
+      ),
   );
   return {
     kind: 'playwright',
@@ -967,17 +999,19 @@ interface Workspace {
  */
 const BUN_TEST_WRAPPERS = ['packages/film/src/lab/fixtures/run-suite.ts'];
 
-/** A file of the repo: its path from the root, and its text. */
+/** A file of the repo: its path from the root, its text, and whether it is a symbolic link. */
 interface Source {
   readonly file: string;
   readonly text: string;
+  readonly link: boolean;
 }
 
 /**
  * How each test file of `files` is reached: each file named as a test that
  * is not data (`isData`), with the script of the deepest workspace that holds
- * it that reaches it (`test`, `test:e2e`); none when no script does, or no
- * workspace holds it (no workspace's script runs it).
+ * it that reaches it (`test`, `test:e2e`); none when no script does, no
+ * workspace holds it (no workspace's script runs it), or it is a symbolic
+ * link (playwright's walk takes no link, and the reader follows none).
  */
 export const reachesIn = (
   workspaces: ReadonlyArray<Workspace>,
@@ -985,13 +1019,16 @@ export const reachesIn = (
 ): ReadonlyArray<{ readonly file: string; readonly by: Option.Option<string> }> =>
   files
     .filter(({ file, text }) => isTestFile(file) && !isData(file, text))
-    .map(({ file }) => ({
+    .map(({ file, link }) => ({
       file,
       by: Option.flatMap(
-        Option.fromUndefinedOr(
-          workspaces
-            .filter(({ dir }) => file.startsWith(`${dir}/`))
-            .toSorted((a, b) => b.dir.length - a.dir.length)[0],
+        Option.filter(
+          Option.fromUndefinedOr(
+            workspaces
+              .filter(({ dir }) => file.startsWith(`${dir}/`))
+              .toSorted((a, b) => b.dir.length - a.dir.length)[0],
+          ),
+          () => !link,
         ),
         (workspace) => reachOf(workspace, file.slice(workspace.dir.length + 1)),
       ),
@@ -1034,6 +1071,38 @@ const playwrightConfigs = <E, R>(
   );
 };
 
+/**
+ * The text of each `.gitignore` under the folder `dir` on disk, by its
+ * folder's path from `dir` (`''` its own), as playwright's walk finds them:
+ * tracked or not, ignored or not; it enters no `node_modules` and follows no
+ * symbolic link.
+ */
+const gitignoresUnder = Effect.fn('reach.gitignoresUnder')(function* (dir: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const found: Array<readonly [string, string]> = [];
+  const visit = (at: string): Effect.Effect<void, PlatformError.PlatformError> =>
+    Effect.flatMap(fs.readDirectory(path.join(dir, at)), (names) =>
+      Effect.forEach(
+        names,
+        (name) =>
+          Effect.gen(function* () {
+            const entry = path.join(at, name);
+            const full = path.join(dir, entry);
+            if (name === 'node_modules' || Option.isSome(yield* Effect.option(fs.readLink(full))))
+              return;
+            const { type } = yield* fs.stat(full);
+            if (type === 'Directory') return yield* visit(entry);
+            if (type === 'File' && name === '.gitignore')
+              found.push([at, yield* fs.readFileString(full)]);
+          }),
+        { discard: true },
+      ),
+    );
+  yield* visit('');
+  return Object.fromEntries(found);
+});
+
 const RootManifest = Schema.fromJsonString(
   Schema.Struct({ workspaces: Schema.optionalKey(Schema.Array(Schema.String)) }),
 );
@@ -1067,16 +1136,10 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
         const configs = yield* playwrightConfigs(dir, scripts, (file) =>
           Effect.option(read(path.join(dir, file))),
         );
-        const gitignores = Object.fromEntries(
-          yield* Effect.forEach(
-            files.filter((file) => file.startsWith(`${dir}/`) && file.endsWith('/.gitignore')),
-            (file) =>
-              Effect.map(read(file), (text) => [
-                path.dirname(file.slice(dir.length + 1)).replace(/^\.$/, ''),
-                text,
-              ]),
-          ),
-        );
+        // Only playwright reads a `.gitignore`: a workspace with no config reads none.
+        let gitignores: Readonly<Record<string, string>> = {};
+        if (Object.keys(configs).length > 0)
+          gitignores = yield* gitignoresUnder(path.join(root, dir));
         const bunfig = Option.getOrElse(
           yield* Effect.option(read(path.join(dir, 'bunfig.toml'))),
           () => '',
@@ -1098,7 +1161,12 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
   );
   const tests = yield* Effect.forEach(
     files.filter(isTestFile),
-    (file) => Effect.map(read(file), (text): Source => ({ file, text })),
+    (file) =>
+      Effect.gen(function* () {
+        const link = Option.isSome(yield* Effect.option(fs.readLink(path.join(root, file))));
+        const text = yield* read(file);
+        return { file, text, link } satisfies Source;
+      }),
     { concurrency: 16 },
   );
   return { workspaces, tests };
