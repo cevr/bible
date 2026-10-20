@@ -11,9 +11,13 @@
 // file or a folder by its path from the workspace; any other filter takes
 // each test file whose path holds it; `--path-ignore-patterns` takes none
 // its globs match. `bun run <script>` runs that script of the workspace.
-// A by-hand script's other commands (a wrapper of `bun test`, playwright)
-// reach a file only by naming it, or a folder that holds it, by its path.
-// A file named as a test that registers none (`holdsTests`) needs no script.
+// `playwright test` takes a file as its config sets it (`playwrightRun`):
+// under the config's `testDir`, matched by its `testMatch`, and by one of
+// the command's filters when it names any; a config the reader cannot read
+// (none, a `testDir` or `testMatch` that is not a literal, `projects`) takes
+// none. A by-hand script's other commands (a wrapper of `bun test`) reach a
+// file only by naming it, or a folder that holds it, by its path. A file
+// named as a test that registers none (`holdsTests`) needs no script.
 
 import { Glob } from 'bun';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
@@ -72,16 +76,22 @@ const subcommandAt = (words: ReadonlyArray<string>) => {
   return at;
 };
 
-/** What a command runs: the words that name files, and the globs it leaves out. */
-interface Run {
-  /** Whether the command is `bun test`, which takes every test file when it names none. */
-  readonly bunTest: boolean;
-  readonly filters: ReadonlyArray<string>;
-  readonly ignores: ReadonlyArray<string>;
-}
+/**
+ * What a command runs: the words that name files and the globs it leaves
+ * out (`bun test`, which takes every test file when it names none, or
+ * another command, which takes what it names by path), or the files
+ * playwright's config takes.
+ */
+type Run =
+  | {
+      readonly kind: 'bunTest' | 'named';
+      readonly filters: ReadonlyArray<string>;
+      readonly ignores: ReadonlyArray<string>;
+    }
+  | { readonly kind: 'playwright'; readonly takes: (file: string) => boolean };
 
 /** A command's arguments read as `bun test` reads them: its filters, and its ignore patterns. */
-const runOf = (bunTest: boolean, words: ReadonlyArray<string>): Run => {
+const runOf = (kind: 'bunTest' | 'named', words: ReadonlyArray<string>): Run => {
   const filters: Array<string> = [];
   const ignores: Array<string> = [];
   for (let at = 0; at < words.length; at++) {
@@ -101,7 +111,7 @@ const runOf = (bunTest: boolean, words: ReadonlyArray<string>): Run => {
     );
     if (name === '--path-ignore-patterns') ignores.push(...Option.toArray(value));
   }
-  return { bunTest, filters, ignores };
+  return { kind, filters, ignores };
 };
 
 /** A path filter's path from the workspace, `./src/` as `src`; none for one outside it. */
@@ -118,37 +128,169 @@ const pathOf = (filter: string): Option.Option<string> => {
 /** Whether a command takes `file` (its path from the workspace, `/` between its parts). */
 const runsFile = (run: Run, file: string) => {
   if (file.split('/').includes('node_modules')) return false;
+  if (run.kind === 'playwright') return run.takes(file);
   if (run.ignores.some((pattern) => new Glob(pattern).match(file))) return false;
   const named = isTestFile(file);
-  if (run.bunTest && run.filters.length === 0) return named;
+  const bunTest = run.kind === 'bunTest';
+  if (bunTest && run.filters.length === 0) return named;
   return run.filters.some((filter) => {
-    const asPath = Option.liftPredicate(filter, (f) => !run.bunTest || f.startsWith('./'));
+    const asPath = Option.liftPredicate(filter, (f) => !bunTest || f.startsWith('./'));
     return Option.match(Option.flatMap(asPath, pathOf), {
-      onNone: () => run.bunTest && named && file.includes(filter),
-      onSome: (at) => file === at || (named && file.startsWith(`${at}/`)),
+      onNone: () => bunTest && named && file.includes(filter),
+      // `./` is the workspace itself: every file named as a test under it.
+      onSome: (at) => (at === '' && named) || file === at || (named && file.startsWith(`${at}/`)),
     });
   });
 };
 
-/** What the script `name` of a workspace's `scripts` runs, the scripts it runs with `bun run` followed. */
+/** The flags of `playwright test` that take the next word as their value. */
+const PLAYWRIGHT_VALUED = new Set([
+  '--config',
+  '-c',
+  '--project',
+  '--grep',
+  '-g',
+  '--grep-invert',
+  '--workers',
+  '-j',
+  '--reporter',
+  '--timeout',
+  '--retries',
+  '--repeat-each',
+  '--max-failures',
+  '--output',
+  '--shard',
+  '--global-timeout',
+  '--trace',
+  '--tsconfig',
+]);
+
+/** The names playwright looks for its config under, in the folder it runs in, when no `--config` names one. */
+const PLAYWRIGHT_CONFIGS = ['ts', 'js', 'mts', 'mjs', 'cts', 'cjs'].map(
+  (ext) => `playwright.config.${ext}`,
+);
+
+/** Playwright's own `testMatch` when its config sets none: `**\/*.@(spec|test).?(c|m)[jt]s?(x)`. */
+const PLAYWRIGHT_MATCH = /\.(?:spec|test)\.[cm]?[jt]sx?$/;
+
+/**
+ * A config's `key`: none when it is set to anything but a quoted string,
+ * else the string, or none inside when the config does not set it.
+ */
+const literalOf = (text: string, key: string): Option.Option<Option.Option<string>> => {
+  if (!new RegExp(`\\b${key}\\s*:`).test(text)) return Option.some(Option.none());
+  return Option.map(
+    Option.fromNullishOr(new RegExp(`\\b${key}\\s*:\\s*(['"])([^'"\n]*)\\1`).exec(text)),
+    (m) => Option.some(m[2] ?? ''),
+  );
+};
+
+/** A config's `testMatch` as a test of a path: a regex literal, a quoted glob, or playwright's own. */
+const testMatchOf = (text: string): Option.Option<(file: string) => boolean> =>
+  Option.match(
+    Option.fromNullishOr(/\btestMatch\s*:\s*\/((?:\\.|[^/\\\n])+)\/([a-z]*)/.exec(text)),
+    {
+      onSome: (regex) => {
+        const match = new RegExp(regex[1] ?? '', regex[2]);
+        return Option.some((file: string) => match.test(file));
+      },
+      onNone: () =>
+        Option.map(literalOf(text, 'testMatch'), (glob) =>
+          Option.match(glob, {
+            onNone: () => (file: string) => PLAYWRIGHT_MATCH.test(file),
+            onSome: (pattern) => {
+              const matcher = new Glob(pattern);
+              return (file: string) => matcher.match(file);
+            },
+          }),
+        ),
+    },
+  );
+
+/**
+ * The files `playwright test` takes with `words` (the command's words past
+ * `test`), its configs by their path from the workspace: those under the
+ * config's `testDir` (from the config's folder; the folder itself when it
+ * sets none) its `testMatch` takes, and one of the command's filters (each
+ * a pattern of the file's path) when it names any. None when the config is
+ * missing or sets its files in a way this does not read.
+ */
+const playwrightRun = (
+  words: ReadonlyArray<string>,
+  configs: Readonly<Record<string, string>>,
+): Run => {
+  const filters: Array<string> = [];
+  let config = Option.none<string>();
+  for (let at = 0; at < words.length; at++) {
+    const word = words[at] ?? '';
+    if (!word.startsWith('-')) {
+      filters.push(word);
+      continue;
+    }
+    const [name = '', inline] = word.split(/=(.*)/s);
+    const value = Option.fromUndefinedOr(inline).pipe(
+      Option.orElse(() => {
+        const next = words[at + 1] ?? '-';
+        if (!PLAYWRIGHT_VALUED.has(name) || next.startsWith('-')) return Option.none<string>();
+        at++;
+        return Option.some(next);
+      }),
+    );
+    if (name === '--config' || name === '-c') config = Option.flatMap(value, pathOf);
+  }
+  const file = Option.orElse(config, () =>
+    Option.fromUndefinedOr(PLAYWRIGHT_CONFIGS.find((name) => name in configs)),
+  );
+  const takes = Option.flatMap(file, (at) =>
+    Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) => {
+      if (/\bprojects\s*:/.test(text)) return Option.none();
+      const folder = at.split('/').slice(0, -1);
+      return Option.flatMap(literalOf(text, 'testDir'), (dir) =>
+        Option.flatMap(pathOf([...folder, Option.getOrElse(dir, () => '.')].join('/')), (root) =>
+          Option.map(testMatchOf(text), (matches) => (path: string) => {
+            const under = root === '' || path.startsWith(`${root}/`);
+            const named = filters.length === 0 || filters.some((f) => new RegExp(f).test(path));
+            return under && matches(path) && named;
+          }),
+        ),
+      );
+    }),
+  );
+  return {
+    kind: 'playwright',
+    takes: Option.getOrElse(takes, () => () => false),
+  };
+};
+
+/** A command's words from its program on, a package runner (`bunx`, `npx`) before it gone. */
+const programWords = (words: ReadonlyArray<string>) => {
+  if (words[0] === 'bunx' || words[0] === 'npx') return words.slice(1);
+  return words;
+};
+
+/** What the script `name` of a workspace runs, the scripts it runs with `bun run` followed. */
 const runsOf = (
-  scripts: Readonly<Record<string, string>>,
+  workspace: Pick<Workspace, 'scripts' | 'configs'>,
   name: string,
   seen: ReadonlySet<string> = new Set(),
 ): ReadonlyArray<Run> => {
+  const { scripts, configs } = workspace;
   if (seen.has(name)) return [];
   const script = Option.fromUndefinedOr(scripts[name]);
   if (Option.isNone(script)) return [];
   const within = new Set([...seen, name]);
-  return commandsOf(script.value).flatMap((words): ReadonlyArray<Run> => {
-    if (words[0] !== 'bun') return [runOf(false, words.slice(1))];
+  return commandsOf(script.value).flatMap((command): ReadonlyArray<Run> => {
+    const words = programWords(command);
+    if (words[0] === 'playwright' && words[1] === 'test')
+      return [playwrightRun(words.slice(2), configs)];
+    if (words[0] !== 'bun') return [runOf('named', words.slice(1))];
     const at = subcommandAt(words);
     const sub = words[at] ?? '';
     const next = words[at + 1] ?? '';
     if (sub === 'run' && Option.isSome(Option.fromUndefinedOr(scripts[next])))
-      return runsOf(scripts, next, within);
-    if (sub === 'test') return [runOf(true, words.slice(at + 1))];
-    return [runOf(false, words.slice(at))];
+      return runsOf(workspace, next, within);
+    if (sub === 'test') return [runOf('bunTest', words.slice(at + 1))];
+    return [runOf('named', words.slice(at))];
   });
 };
 
@@ -157,23 +299,21 @@ const runsOf = (
  * workspace): `test` when the gate's runs it, else the first `test:*` run by
  * hand that names it; none when no script does.
  */
-const reachOf = (
-  scripts: Readonly<Record<string, string>>,
-  file: string,
-): Option.Option<string> => {
-  if (runsOf(scripts, 'test').some((run) => run.bunTest && runsFile(run, file)))
+const reachOf = (workspace: Workspace, file: string): Option.Option<string> => {
+  if (runsOf(workspace, 'test').some((run) => run.kind === 'bunTest' && runsFile(run, file)))
     return Option.some('test');
   return Option.fromUndefinedOr(
-    Object.keys(scripts)
+    Object.keys(workspace.scripts)
       .filter((name) => name.startsWith('test:'))
-      .find((name) => runsOf(scripts, name).some((run) => runsFile(run, file))),
+      .find((name) => runsOf(workspace, name).some((run) => runsFile(run, file))),
   );
 };
 
-/** A workspace: its folder from the repo root, and its package scripts. */
+/** A workspace: its folder from the repo root, its package scripts, and its playwright configs' texts by their paths from it. */
 interface Workspace {
   readonly dir: string;
   readonly scripts: Readonly<Record<string, string>>;
+  readonly configs: Readonly<Record<string, string>>;
 }
 
 /** A file of the repo: its path from the root, and its text. */
@@ -198,8 +338,48 @@ export const reachesIn = (
         .filter(({ dir }) => file.startsWith(`${dir}/`))
         .toSorted((a, b) => b.dir.length - a.dir.length)
         .slice(0, 1)
-        .map(({ dir, scripts }) => ({ file, by: reachOf(scripts, file.slice(dir.length + 1)) })),
+        .map((workspace) => ({
+          file,
+          by: reachOf(workspace, file.slice(workspace.dir.length + 1)),
+        })),
     );
+
+/**
+ * The texts of the playwright configs a workspace's scripts can read, by
+ * their paths from it: each a `playwright test` names by `--config`, and
+ * playwright's own names in the workspace's folder, those `read` finds.
+ */
+const playwrightConfigs = <E, R>(
+  dir: string,
+  scripts: Readonly<Record<string, string>>,
+  read: (file: string) => Effect.Effect<Option.Option<string>, E, R>,
+) => {
+  const named = Object.values(scripts).flatMap((script) =>
+    commandsOf(script)
+      .map(programWords)
+      .filter((words) => words[0] === 'playwright')
+      .flatMap((words) =>
+        words.flatMap((word, at) => {
+          const [name = '', inline] = word.split(/=(.*)/s);
+          if (name !== '--config' && name !== '-c') return [];
+          return Option.toArray(
+            Option.flatMap(
+              Option.orElse(Option.fromUndefinedOr(inline), () =>
+                Option.fromUndefinedOr(words[at + 1]),
+              ),
+              pathOf,
+            ),
+          );
+        }),
+      ),
+  );
+  return Effect.map(
+    Effect.forEach([...new Set([...named, ...PLAYWRIGHT_CONFIGS])], (file) =>
+      Effect.map(read(file), (text) => Option.map(text, (t) => [file, t] as const)),
+    ),
+    (found) => Object.fromEntries(found.flatMap(Option.toArray)),
+  );
+};
 
 const RootManifest = Schema.fromJsonString(
   Schema.Struct({ workspaces: Schema.optionalKey(Schema.Array(Schema.String)) }),
@@ -225,10 +405,17 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
   const workspaces = yield* Effect.forEach(
     files.filter((file) => named.some((glob) => glob.match(file))),
     (manifest) =>
-      Effect.map(
-        Effect.flatMap(read(manifest), Schema.decodeEffect(Manifest)),
-        ({ scripts = {} }): Workspace => ({ dir: path.dirname(manifest), scripts }),
-      ),
+      Effect.gen(function* () {
+        const { scripts = {} } = yield* Effect.flatMap(
+          read(manifest),
+          Schema.decodeEffect(Manifest),
+        );
+        const dir = path.dirname(manifest);
+        const configs = yield* playwrightConfigs(dir, scripts, (file) =>
+          Effect.option(read(path.join(dir, file))),
+        );
+        return { dir, scripts, configs } satisfies Workspace;
+      }),
     { concurrency: 16 },
   );
   const tests = yield* Effect.forEach(
