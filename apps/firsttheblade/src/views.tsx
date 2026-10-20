@@ -12,7 +12,7 @@ import { Match } from 'effect';
 
 import { MARK_4_27, MARK_4_28, SERIES, type Series, type Verse } from './content.ts';
 import type { Page, PageView } from './pages.ts';
-import { CHANNEL } from './site.ts';
+import { CHANNEL, CONTACT } from './site.ts';
 import { EMBLEMS, MARK } from './ui/art.ts';
 import { Header } from './ui/header.tsx';
 import { Confirm, Leave, Notice } from './ui/mail.tsx';
@@ -251,9 +251,11 @@ interface PrivacySection {
   readonly title: string;
   readonly band: 'section' | 'section-band';
   readonly words: ReadonlyArray<string>;
+  /** An email address the section ends with, as a link that writes to it. */
+  readonly address?: string;
 }
 
-/** What the email list keeps, why, how to leave it, and who sees it. */
+/** What the email list keeps, why, how to leave it, who sees it, and where to write. */
 const PRIVACY: ReadonlyArray<PrivacySection> = [
   {
     id: 'kept',
@@ -289,6 +291,13 @@ const PRIVACY: ReadonlyArray<PrivacySection> = [
       'To stop abuse, the sign-up counts how many tries come from one connection in a minute. We do not keep that connection’s address.',
     ],
   },
+  {
+    id: 'contact',
+    title: 'Write to us',
+    band: 'section',
+    words: ['For any question about the list or your address, write to us.'],
+    address: CONTACT,
+  },
 ];
 
 const Privacy = () => (
@@ -305,6 +314,13 @@ const Privacy = () => (
             <h2 id={`${section.id}-title`}>{section.title}</h2>
             <div class="reading">
               <For each={section.words}>{(words) => <p>{words}</p>}</For>
+              <Show when={section.address}>
+                {(address) => (
+                  <p>
+                    <a href={`mailto:${address()}`}>{address()}</a>
+                  </p>
+                )}
+              </Show>
             </div>
           </div>
         </section>

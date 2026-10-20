@@ -18,6 +18,12 @@ export const SERVED_FROM: ServedFrom = 'custom-domain';
 /** The registered name the custom domain serves. */
 export const DOMAIN = 'firsttheblade.com';
 
+/**
+ * The address people write to. Cloudflare Email Routing forwards it to the
+ * owner's inbox (`./worker/domain.ts`); the privacy page names it.
+ */
+export const CONTACT = `hello@${DOMAIN}`;
+
 /** The other registered names: each, and its `www`, redirects to `DOMAIN`. */
 export const REDIRECTED_DOMAINS = ['firsttheblade.org', 'firsttheblade.net'] as const;
 

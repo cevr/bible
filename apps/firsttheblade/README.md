@@ -81,19 +81,33 @@ template editor and no analytics.
 - **Where it lives:** the list is D1 (`migrations/`, applied on deploy), the
   emails go through Cloudflare Email Sending from `films@firsttheblade.com`,
   and the Worker binds both with the Queue and a Rate Limit (`src/worker/mail.ts`).
+  The stack owns the sending domain (`src/worker/domain.ts`): it onboards
+  firsttheblade.com to Email Sending, with its DNS records, and turns
+  message previews off. Email Sending has no open or click tracking to turn
+  off, and the letters carry none. Every stage takes the domain as it is and
+  never deletes it, since prod and a throwaway stage send from it alike.
+- **Contact:** `hello@firsttheblade.com` (`CONTACT` in `src/site.ts`, named on
+  the privacy page) is forwarded to the owner's inbox by Cloudflare Email
+  Routing, which the prod stack sets up: Email Routing on the zone, the
+  inbox as a destination, and one rule.
   The routes are `src/mail/routes.ts`; the logs name ids and counts only
   (`[mail] <action> key=value`), never an address or a token.
 
-Two secrets sign the links and guard the send route. They live in
+Two secrets sign the links and guard the send route, and prod needs the
+inbox the contact address is forwarded to. They live in
 `apps/firsttheblade/.env` (gitignored), which `bun run deploy` and
-`bun run mail:send` both read; the deploy binds them to the Worker as secrets:
+`bun run mail:send` both read; the deploy binds the secrets to the Worker:
 
 ```bash
 MAIL_TOKEN_KEY=<openssl rand -hex 32>
 MAIL_ADMIN_TOKEN=<openssl rand -hex 32>
+MAIL_FORWARD_TO=<the owner's inbox, prod only>
 ```
 
-Changing `MAIL_TOKEN_KEY` breaks every link already sent. Under
+Changing `MAIL_TOKEN_KEY` breaks every link already sent. The first prod
+deploy adds `MAIL_FORWARD_TO` as an Email Routing destination, and
+Cloudflare sends it a verification email: nothing is forwarded until the
+owner opens its link. Under
 `bun run preview` the list runs in memory: each email is written to
 `tmp/outbox/<n>.txt` instead of being sent, so a sign-up can be confirmed and
 left from a laptop.
