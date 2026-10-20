@@ -699,7 +699,9 @@ describe('a list loaded cold hydrates the server’s list', () => {
         jumps: await app.jumps(),
       };
       // The case the load names: the scroll before hydration, its event too, so the list must be told of it.
+      // The wait must end on that event: a load whose wait ran out is a miss, even if the event came.
       const clean =
+        waited === 'heard' &&
         seen.eventBeforeHydration &&
         seen.errors.length === 0 &&
         kept === 0 &&
