@@ -99,6 +99,14 @@ export interface Hymnal {
    * at and the row.
    */
   readonly leave: (top: number, tab?: string) => { readonly top: number; readonly label: string };
+  /**
+   * Whether the list the last `leave` left is out of the page, and no
+   * scroll event, the browser's or a dispatched one, reached its scroller
+   * while it was in the page after `leave` scrolled it: the list never heard
+   * of that scroll, as with a press at once. False when the list heard of
+   * it, as after a pause, or is still in the page.
+   */
+  readonly leftBeforeScrollEvent: () => boolean;
 }
 
 declare global {
@@ -164,6 +172,9 @@ let left: { readonly node: HTMLElement; readonly top: number } | undefined;
 
 /** When the reader last turned a wheel: the scrolls it makes are his. */
 let wheeled = -Infinity;
+
+/** The scroller the last `leave` left, and whether a scroll event reached it in the page since. */
+let departure: { readonly node: HTMLElement; heard: boolean } | undefined;
 
 addEventListener('wheel', () => void (wheeled = performance.now()), {
   capture: true,
@@ -347,6 +358,13 @@ window.hymnal = {
   leave: (top, tab) => {
     const node = scroller();
     if (node === undefined) throw new Error('the list is not shown');
+    // Listening from before the scroll, so its event is heard whenever it comes; one that comes
+    // once the scroller is out of the page reaches no list.
+    const heard = { node, heard: false };
+    departure = heard;
+    node.addEventListener('scroll', () => {
+      if (node.isConnected) heard.heard = true;
+    });
     node.scrollTop = top;
     left = { node, top: node.scrollTop };
     const { row } = middleOf(node);
@@ -360,6 +378,8 @@ window.hymnal = {
     target.click();
     return { top: left.top, label: row.getAttribute('aria-label') ?? '' };
   },
+  leftBeforeScrollEvent: () =>
+    departure !== undefined && !departure.node.isConnected && !departure.heard,
 };
 
 if (!new URLSearchParams(location.search).has('hold')) window.hymnal.hydrate();

@@ -466,6 +466,12 @@ interface Seen extends Visit {
   readonly jumps: ReadonlyArray<unknown>;
   /** After the move: pixels of rows on screen left blank, where the list is, where it should be. */
   readonly after: { readonly blank: number; readonly top: number; readonly goal: number };
+  /**
+   * A press at once alone: whether its list left the page before any scroll
+   * event reached it after the reader's last scroll, so the list never heard
+   * of that scroll, as the label says.
+   */
+  readonly leftBeforeScrollEvent?: boolean;
 }
 
 /**
@@ -473,7 +479,8 @@ interface Seen extends Visit {
  * offset (so a visit is the case its values name, whatever the way it
  * leaves), did not come back within one row, did not draw the reader's row
  * in the first frame with every row on screen, saw the list move by itself,
- * or after the move left rows blank or the list elsewhere.
+ * or after the move left rows blank or the list elsewhere; and the presses
+ * at once whose list heard of the reader's last scroll before it left.
  */
 const missed = (visits: ReadonlyArray<Seen>) =>
   visits.filter(
@@ -485,7 +492,8 @@ const missed = (visits: ReadonlyArray<Seen>) =>
       v.first.empty > 0 ||
       v.jumps.length > 0 ||
       v.after.blank > 0 ||
-      Math.abs(v.after.top - v.after.goal) > 1,
+      Math.abs(v.after.top - v.after.goal) > 1 ||
+      (v.press === 'now' && v.leftBeforeScrollEvent !== true),
   );
 
 /**
@@ -506,9 +514,17 @@ const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
     await app.scrollTo(target);
     if (v.press === 'later') await app.settle(150);
     const { top: left, first } = await paths[v.way](app, list, v.press, target);
+    const label =
+      v.press === 'now'
+        ? {
+            leftBeforeScrollEvent: await app.page.evaluate(() =>
+              window.hymnal.leftBeforeScrollEvent(),
+            ),
+          }
+        : {};
     const { top: found } = await app.place();
     const after = await moves[v.move](app);
-    seen.push({ ...v, target, left, found, first, jumps: await app.jumps(), after });
+    seen.push({ ...v, target, left, found, first, jumps: await app.jumps(), after, ...label });
   }
   return { seed, hydration, misses: missed(seen) };
 };
