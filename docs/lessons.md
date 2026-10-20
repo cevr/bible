@@ -763,3 +763,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** A judged run that crossed UTC midnight wrote its findings file under the day after the one it marked its answers seen, so the file outlived those answers by a day.
 - **Cause:** The runner read the clock again after `judge` for the findings file's day; `judge` had read it before it asked.
 - **Guard:** code: `packages/scripts/src/judged/run.test.ts` `answers the day it marked its answers seen: a run that crosses midnight answers the day it began`
+
+### judged-seen-day-monotonic
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Delayed runs can move renewal dates backward and leave stale findings"
+- **Source:** p6-guardloop/review-5.md F1
+- **Wrong:** A judged run that began a day before another and ended after it marked the answers both read seen on its own, earlier day, so the store could drop an answer a day before the later run's findings file expired.
+- **Cause:** The store set an answer's seen day to the run's day, whatever day the answer already held.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `never marks an answer seen on a day before the one a later run marked it: a run that ends last keeps the later day`
+
+### reach-reads-extglobs
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check accepts tests excluded by Playwright extglobs"
+- **Source:** p6-guardloop/review-5.md F2
+- **Wrong:** The reach check called reached a spec that a `testIgnore` extglob (`*.@(spec|test).ts`) leaves out.
+- **Cause:** The reader matched a glob with Bun's `Glob`, which reads no extglobs; playwright reads a glob with the minimatch it bundles, dot files taken.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read by a glob as playwright reads one, with the minimatch playwright bundles`
