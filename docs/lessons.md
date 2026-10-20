@@ -843,3 +843,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check called every test file of a workspace reached by `cd src/test-budget && bun test`, which runs only the files under that folder.
 - **Cause:** The reader read each command of a script on its own, every path from the workspace's folder, and lost the folder a `cd` moved the script to.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that runs in another folder than its workspace`
+
+### reach-refuses-forwarded-words
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Forwarded script arguments disappear from the reach check"
+- **Source:** p6-guardloop/review-11.md F1
+- **Wrong:** The reach check called every test file reached by `bun run suite ./src` (with `suite: "bun test"`), which runs only the files under `src`.
+- **Cause:** The reader followed `bun run` to the script it names and dropped the words after the name, which bun hands to that script's last command.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that hands a script it runs more words`
+
+### reach-allows-known-flags
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Filtered and listing-only runs still count as reaching tests"
+- **Source:** p6-guardloop/review-11.md F2
+- **Wrong:** The reach check called specs reached by `playwright test -gfast`, `-Gcase` and `--list`, and test files reached by `bun test -tfast`, though each runs some cases or none.
+- **Cause:** The reader refused a list of narrowing flags by their exact spelling, so an attached short value, an alias or a mode it did not list passed.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, shard or history`
+
+### reach-reads-and-chains
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Conditional commands count as tests even when they never execute"
+- **Source:** p6-guardloop/review-11.md F3
+- **Wrong:** The reach check called every test file reached by `true || bun test`, which passes and runs no test.
+- **Cause:** The shell reader dropped the separators between commands, so the reader counted a command that `||`, `;`, `&` or `|` may skip, or whose failure they hide.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but &&`
