@@ -1,14 +1,14 @@
 # 02 · The Oracles of God
 
 Series: From Milk to Meat · Tier One (Milk) · 2 of 13
-Promise: the viewer knows where the Bible came from, why it is the one rule every other voice is measured by, and three plain habits for letting it explain itself, so they can check every later film against it.
+Promise: the viewer knows where the Bible came from, why it is the one rule every other voice is measured by, and one plain habit for letting it explain itself (the next film, 02b, gives the Bible's own dictionary), so they can check every later film against it.
 Prerequisites: 01 (the milk is "the first principles of the oracles of God").
-Length: about 6:10 (665 spoken words: 4:17 at 155 wpm, 4:39 with the marked breaths and holds, 4:24–4:48 at 165–150 wpm; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
+Length: about 5:25 (573 spoken words: 3:42 at 155 wpm, 4:02 with the marked breaths and holds, 3:48–4:09 at 165–150 wpm with them; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits). Recounted 2026-10-19 after `plain` and `figure` moved to 02b.
 Status: draft for the owner. Every KJV line printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15; every paraphrase source printed by the corpus search (sources.md). Frame: scripture.md (Principle III). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header
 
-The order: the cold open in Berea (`cold`: they checked the apostle against the Book, and the Bible calls them noble; why?), the title, what an oracle is (`oracles`: a word God has spoken; how it reached the page), the one measuring rule (`rule`: everything else is measured by the word, never set beside it), the problem in one dose (`guess`: "it's too hard, I need an expert", and what that does), the three habits (`plain`, `figure`, `gather`), the centre the habits find (`emmaus`), who can understand (`simple`), and the landing back in Berea.
+The order: the cold open in Berea (`cold`: they checked the apostle against the Book, and the Bible calls them noble; why?), the title, what an oracle is (`oracles`: a word God has spoken; how it reached the page), the one measuring rule (`rule`: everything else is measured by the word, never set beside it), the problem in one dose (`guess`: "it's too hard, I need an expert", and what that does; it hands off to 02b in one line), the one habit (`gather`), the centre the habit finds (`emmaus`), who can understand (`simple`), and the landing back in Berea.
 
 Motifs:
 
@@ -21,13 +21,51 @@ Tent poles, act light, chapter question:
 
 - `cold`: the Bereans bent over the scrolls by lamplight, peach. "Why check the preacher?"
 - `rule`: the gold rod held up against a crowd of voices, parchment. "What do we do with every other voice?"
-- `plain`: three habit cards in a row, peach to dawn. "Isn't the Bible too hard?"
+- `guess`: the expert's balloon covering the book, parchment. "Isn't the Bible too hard?"
 - `emmaus`: two disciples and Jesus on the road at sunset, the scroll's threads running to him, sunset gold. "What is it all about?"
 - `name`: the scroll table again under the teal landing light. "Can I understand it?"
 
-Registers: STORY for `cold`, `oracles` (Sinai, Peter), `emmaus`, `name`; IDEA for `rule`, `guess`, `plain`, `figure`, `gather`, `simple`.
+Registers: STORY for `cold`, `oracles` (Sinai, Peter), `emmaus`, `name`; IDEA for `rule`, `guess`, `gather`, `simple`.
 
-Quoted Scripture: 8 passages, 110 of 665 spoken words (16.5 %; recounted 2026-10-15 after the round-1 review; sources.md's verifier table holds the earlier count). One quotation per beat.
+Quoted Scripture: 7 passages, 97 of 573 spoken words (16.9 %; recounted 2026-10-19 after `figure`, with John 1:29, moved to 02b; sources.md's verifier table holds the earlier count). One quotation per beat.
+
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| Paul and Silas (casting.md #8, #21) | Bible figures, Paul main in his beat, Silas supporting | shared | listed, not drawn (P2, P3) | `cold`, `name` | coming in at a door, dust on their hems (three-quarter); Paul speaking with an open hand at the sleeve's end (front), smiling (front, close), standing beside the table (profile); travel cloaks |
+| The Bereans (casting.md #22), the older woman among them | crowd from the story crowd kit, one featured face | shared | the crowd kit (casting.md 2.6) | `cold`, `name`, `thesis` | carrying scroll cases (back, three-quarter), bent over scrolls at a long table, a finger along a line (three-quarter); the older woman looking up and nodding (front, close); varied heights and headcloths, no group marker |
+| Moses (casting.md #2) | Bible figure, minor | shared | listed, not drawn (P1) | `oracles` | small on the mountain's slope holding two blank tablets, then a clay lamp (three-quarter, far) |
+| Jesus Christ (`christ`, casting.md #1) | Bible figure, the locked figure in the court canon height band, never short | shared | yes: `src/library/cast/christ` | `figure`, `emmaus` | walking the Jordan's bank (profile, three-quarter); walking with two travellers, unrolling a small scroll as he walks (three-quarter), gold threads settling round his shoulders (front); white robe, gold sash |
+| John the Baptist (casting.md #15) | Bible figure, supporting | shared | listed, not drawn (P3) | `figure` | standing in the water, turning and pointing (three-quarter, front); rough cloak |
+| Cleopas and his companion (casting.md #23) | Bible figures, supporting | shared | listed, not drawn (P3) | `emmaus` | walking with downcast faces (three-quarter), one a woman; one face beginning to burn with recognition (front, close) |
+| The IDEA voices: the scholar, the council table, the majority, the feeler | minor and crowd (casting.md 2.2: the scholar is §5's official body with a mortarboard; the table and the majority from the crowd kit) | shared | §5's official and the crowd kit | `rule` | flat paper, each under a speech balloon; no robes or emblems of any church |
+| The frowning reader and the tall teacher | plain lead (2.3) and §5's official body (casting.md 2.2) | series (the reader); shared (the official) | the plain lead's sheet exists | `guess` | the reader frowning at an open book, scratching the head (three-quarter), pushing a balloon aside (front); the teacher leaning in over the reader's shoulder (profile) |
+| The writer, the farmer reading, the child on a parent's knee, the cartoon figure | plain figures (2.3; casting.md 2.2) | series | the plain lead's sheet exists | `oracles`, `plain`, `simple` | flat paper: a writer at a page with the Spirit's streamers round the sleeve; a figure peeling back a page; a farmer in work clothes, flour on the apron, reading by a page's light (three-quarter), a palm opening beside the book; a child on a parent's knee with a scroll |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The synagogue at Berea: a small room, a long table, a high window, the door to the road | film | `cold`, `title`, `name`, `thesis`, `end` | peach lamplight; the landing teal to yellow; sunrise |
+| The mountain in cloud, the people far below (Sinai; T03's and 03b's `sinai` from afar) | series | `oracles` | dawn |
+| The Jordan at noon: reeds, a clay bank | shared | `figure` | noon |
+| A night street of mud-brick houses, a doorframe marked scarlet (the Passover) | shared | `figure` | night |
+| The road to Emmaus at sunset between low hills | shared | `emmaus` | sunset, the film's deepest light |
+| The parchment page | series | `oracles`, `rule`, `guess`, `plain`, `gather`, `emmaus` (its close), `simple` | peach |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The clay lamp | film | `title`, `oracles`, `simple`, `name` |
+| The gold measuring rod (02b brings it back) | series | `rule`, `guess`, `name` |
+| The gold threads and their knot | series (02b's dictionary and 06b's `one` use gold threads) | `gather`, `emmaus` |
+| The three cards, turned over in turn | film | `plain`, `figure`, `gather` |
+| The cup of milk from 01, by a modern open book | series | `name` |
+| A small lamb | shared (06's) | `figure` |
+
+New to the library: the Berea synagogue; Paul and Silas; the Bereans' older woman; Cleopas and his companion; John at the Jordan; the measuring rod.
 
 ## Beats
 
@@ -63,39 +101,20 @@ Quoted Scripture: 8 passages, 110 of 665 spoken words (16.5 %; recounted 2026-10
 - 4SP 413.2 (Ellen G. White, 1884 = GC 595.1; frame) — "The opinions of learned men, the deductions of science, the creeds or decisions of ecclesiastical councils … the voice of the majority,—not one or all of these should be regarded as evidence for or against any point of religious faith. Before accepting any doctrine or precept, we should demand a plain “Thus saith the Lord” in its support." → `clever` to `plain`
 - FP1889 148.1 (frame) — "the Holy Scriptures … are the only infallible rule of faith and practice" → `measured`
 
-### `guess` · IDEA · ~22 s
+### `guess` · IDEA · ~28 s
 
-**say:** {hard}But isn't the Bible hard to understand? {/} {expert}Don't we need an expert to tell us what it means? {/} {depend}Suppose we depend on a teacher to explain it. {/} {guesses}And suppose he {*}guesses. {/} {then}Then his guess has become our {*}Bible. {//} {must}So the Bible has to explain {*}itself.
+**say:** {hard}But isn't the Bible hard to understand? {/} {expert}Don't we need an expert to tell us what it means? {/} {depend}Suppose we depend on a teacher to explain it. {/} {guesses}And suppose he {*}guesses. {/} {then}Then his guess has become our {*}Bible. {//} {must}So the Bible has to explain {*}itself. {/} {next}How it does that is the next {*}film. {/} {start}But one habit can start {*}today.
 **cite:** William Miller, Rules of Interpretation, V (Signs of the Times, May 15, 1840, 25)
-**picture:** IDEA: a grey figure frowns at an open book and scratches their head (`hard`). On `expert` a tall teacher figure leans in over their shoulder and starts talking; his speech balloon grows and grows until it covers the book entirely (`then`): the reader is now reading the balloon. The gold rod from `rule` lies unused at the edge of the page. On `must` the reader pushes the balloon aside and the book is visible again.
+**picture:** IDEA: a grey figure frowns at an open book and scratches their head (`hard`). On `expert` a tall teacher figure leans in over their shoulder and starts talking; his speech balloon grows and grows until it covers the book entirely (`then`): the reader is now reading the balloon. The gold rod from `rule` lies unused at the edge of the page. On `must` the reader pushes the balloon aside and the book is visible again. On `next` a small closed cut-paper book with a gold ribbon (the dictionary, the next film's motif) is set at the page's edge.
 **paraphrase sources (not spoken):**
 
 - HST May 15, 1840, page 25.42 (William Miller's rules, as printed) — "Scripture must be its own expositor, since it is a rule of itself. If I depend on a teacher to expound it to me, and he should guess at its meaning … then his guessing, desire, creed, or wisdom is my rule, not the Bible." → `depend` to `must`
 
-### `plain` · IDEA · ~23 s
-
-**say:** {how}So how does the Bible explain itself? {/} {three}With three simple habits. {/} {one}Read it as it {*}reads. {/} {mean}Its words mean what they plainly {*}say, {unless}unless the Bible itself shows you a symbol. {/} {secret}There is no secret meaning hidden under the words, {key}and the book needs no special {*}key.
-**cite:** Ellen G. White, The Great Controversy, 598–599; William Miller, Rules of Interpretation, XI (Miller's Works, vol. 1, 22)
-**picture:** IDEA: three blank cards drop into a row, numbered by count only (no text, CRAFT rule 1); the first turns over to show an open book drawn plainly with a sun over it. On `secret` a small cartoon figure tries to peel the page back to look underneath it and finds only the back of the page; on `key` a fancy ornate key is held up and the book, already open, needs none.
-**paraphrase sources (not spoken):**
-
-- GC 598.3 (Ellen G. White) — "teach that the Scriptures have a mystical, a secret, spiritual meaning not apparent in the language employed. These men are false teachers. … The language of the Bible should be explained according to its obvious meaning, unless a symbol or figure is employed." → `mean`, `unless`, `secret`
-- MWV1 22.3 (William Miller) — "If it makes good sense as it stands, and does no violence to the simple laws of nature, then it must be understood literally, if not, figuratively." → `mean`, `unless`
-
-### `figure` · STORY · ~27 s
-
-**say:** {two}When the Bible uses a symbol, look for its meaning on another {*}page. {/} {jordan}When John the Baptist saw Jesus at the river, he said, {lamb}“Behold the Lamb of God, which taketh away the sin of the world.” {/} {what}So what is a lamb {*}for? {/} {passover}Exodus has already told you. {/} {blood}Its blood went on the doorposts, {pass}and death passed {*}over.
-**cite:** John 1:29; Exodus 12:13; 1 Corinthians 2:13; Ellen G. White, Education, 190
-**picture:** STORY: the second card turns over and pushes through into the Jordan at noon, reeds and a clay bank; John (grey, rough cloak) stands in the water, and on `lamb` turns and points; Jesus (white robe, gold sash) walks along the bank, a face at a third of the frame. On `what` a small lamb crosses the bank between them. On `passover` cut to a night street of mud-brick houses, a doorframe marked scarlet (`blood`); on `pass` a cool shadow moves down the street and passes the marked door by. Pull back to the cards.
-**paraphrase sources (not spoken):**
-
-- Ed 190.2 (Ellen G. White) — "The Bible is its own expositor. Scripture is to be compared with scripture. The student should learn to view the word as a whole, and to see the relation of its parts." → `two`
-
 ### `gather` · IDEA · ~20 s
 
-**say:** {three}And gather everything the Bible says on a {*}subject. {/} {every}Let every word count, {fit}and let every one {*}fit. {/} {no}If your reading fits them all without a contradiction, {trust}it is one you can {*}trust. {/} {one}If even one text will not fit, {again}look {*}again.
+**say:** {three}Gather everything the Bible says on a {*}subject. {/} {every}Let every word count, {fit}and let every one {*}fit. {/} {no}If your reading fits them all without a contradiction, {trust}it is one you can {*}trust. {/} {one}If even one text will not fit, {again}look {*}again.
 **cite:** William Miller, Rules of Interpretation, I, IV (Miller's Works, vol. 1, 20)
-**picture:** IDEA: the third card turns over. Many small open books on the parchment, each with one gold line lit; on `every` a thread runs from each lit line to the centre, and on `fit` the threads tie into one firm knot. On `one` one thread is left loose and the knot slackens; on `again` a hand follows the loose thread back to its page, turns a page, and the thread ties in.
+**picture:** IDEA: one blank card drops onto the page and turns over (no text, CRAFT rule 1). Many small open books on the parchment, each with one gold line lit; on `every` a thread runs from each lit line to the centre, and on `fit` the threads tie into one firm knot. On `one` one thread is left loose and the knot slackens; on `again` a hand follows the loose thread back to its page, turns a page, and the thread ties in.
 **paraphrase sources (not spoken):**
 
 - MWV1 20.2 (William Miller) — "Every word must have its proper bearing on the subject presented in the Bible." → `every`
@@ -138,7 +157,7 @@ Quoted Scripture: 8 passages, 110 of 665 spoken words (16.5 %; recounted 2026-10
 **picture:** STORY: credits roll up a torn strip at the left over the synagogue at sunrise, its door lit and the road running from it, nothing breathing, then the frame holds clear for the end screens.
 **credits:**
 
-- Scripture (KJV): Acts 17:2–3, 10–12 · Hebrews 5:12 · Acts 7:38 · 2 Peter 1:20–21 · Numbers 12:6–8 · Isaiah 8:20 · John 1:29 · Exodus 12:13 · 1 Corinthians 2:13 · Luke 24:13–27 · John 5:39 · Psalm 119:105, 130 · 2 Timothy 3:15 · John 7:17; 17:17 · 1 Thessalonians 5:21
+- Scripture (KJV): Acts 17:2–3, 10–12 · Hebrews 5:12 · Acts 7:38 · 2 Peter 1:20–21 · Numbers 12:6–8 · Isaiah 8:20 · Luke 24:13–27 · John 5:39 · Psalm 119:105, 130 · 2 Timothy 3:15 · John 7:17; 17:17 · 1 Thessalonians 5:21
 - William Miller, Rules of Interpretation (Signs of the Times, May 15, 1840, 25; Miller's Works, vol. 1, 20–23)
 - Uriah Smith, Replies to Elder Canright's Attacks on Seventh-day Adventists (1887), 75 (credit title as printed; see note)
 - Fundamental Principles (1889), III
@@ -148,5 +167,5 @@ Quoted Scripture: 8 passages, 110 of 665 spoken words (16.5 %; recounted 2026-10
 
 - Credits naming: two credit titles carry the word "Seventh-day Adventists" (Smith's 1887 book and the 1889 Fundamental Principles). The rule allows credits to name works; the owner may prefer to drop those two lines and keep only Miller and Ellen White, which carry the same thoughts (4SP 413.2 for the rule; Miller for the habits). `rule` and `oracles` survive either way: `oracles` would then rest "face to face, visions and dreams" on Numbers 12:6–8 ("in a vision … in a dream … mouth to mouth", fetched) and 2 Peter 1:21 alone.
 - "Councils" in `rule` is generic; the picture shows no church's dress or emblem.
-- Miller is paraphrased five times here and never named; his rules are the film's spine, as the bible skill's hermeneutic asks.
+- Miller is paraphrased four times here and never named; his rules are the film's spine, as the bible skill's hermeneutic asks.
 - Frame check (scripture.md): one Bible as the single rule (shown, `rule`); "a plain Thus saith the Lord" (said, `rule`); holy men moved by the Spirit (said, `oracles`); nothing narrates the Bible's formation as later editors' work; no vision set beside Scripture.

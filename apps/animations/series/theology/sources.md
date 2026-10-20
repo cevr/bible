@@ -46,6 +46,58 @@ Searches — pioneer: rules of interpretation scripture must be its own exposito
 Used (credits): Miller's rules — MWV1 20.2 (I), 20.6 (III), 20.8 (IV), 22.3 (XI), 22.8 (XIV, "though they may not understand Hebrew or Greek"); rule V in full at HST May 15, 1840, page 25.42 (MWV1 20.10 is cut off mid-sentence in the corpus; MWM 70.6 and SLWM 49.2 carry it whole) · RCASDA 75.4 (Uriah Smith, 1887; frame) · FP1889 148.1 (frame) · 4SP 413.2 = GC 595.1 (frame) · GC 598.3 · Ed 190.2 ("The Bible is its own expositor") · AA 231.2 (the Bereans "compared scripture with scripture").
 Found, not used: AWLF 13.4 (1847, visions "given to lead us to God, and his written word"; frame; belongs with the gift of prophecy, later series); 7LtMs, Lt 2c, 1892, par. 13 (Ps 119:130 and the unlearned); ST June 26, 1901, par. 8 (Bereans).
 
+## 02b · As It Reads
+
+Gathered 2026-10-19 for `scripts/02b-as-it-reads.md`. Every KJV line in the script was printed by `bible verse` that day; every pioneer line below was printed by `bible egw lookup` (or `bible egw search`) that day and is copied verbatim. The excerpts the script paraphrases are in `quotes-02b.jsonl`, and the frame's verifier passes all 15 (`python3 .claude/skills/film/frame/verify-quotes.py apps/animations/series/theology/quotes-02b.jsonl`: 15 EXACT, 0 failing; rerun after the review, 2026-10-19).
+
+Searches (scope: query; lexical index, no vector index on the laptop):
+
+- pioneer: spiritualizing system makes the Bible mean anything (0) · spiritualize away the plain meaning of the scriptures (0) · private interpretation (8) · the Bible is its own interpreter (8) · spiritualizers (8, all later biography) · spiritualizing (8) · Hebrew poetry parallelism the second member (0)
+- egw: who is my neighbor the Jews heathen Samaritans · willing to justify himself who is my neighbor · neighbor does not mean merely one of the church or faith · spiritualizing the Scriptures (3) · written in different ages by men who differed widely in rank · take the Bible as it reads · explain the Bible according to its obvious meaning (0) · Carry the word of God to every man's door, urge its plain statements upon every man's conscience · the Bible is its own expositor
+- all: Hebrew parallelism (5, none by a pioneer of the frame's period)
+
+Lookups: MWV1 20.1, 21.1–21.8, 22.1–22.7 · GC 598.3, 599.1, 674.1–674.4, 675.1, v.4, vi.1–vi.2 · GC88 598.3, 599.1, 683.3, c.4, d.1–d.3 · Ed 190.2 · LDE 286.2 · BR-ASI9 229.3 · 4T 499.1–499.2 · ARSH February 26, 1857, page 134.24–134.28 · ARSH November 7, 1865, page 182.27 · HST November 1, 1840, page 117.3 · RH July 10, 1883, par. 13 · ChS 144.2 · COL 376.1–376.2 · DA 497.1–497.2, 498.1–498.3, 503.4–503.5 · MWV1 20.2–20.10 (to number the rules).
+
+Used (credits), each with the words the script stays inside:
+
+- **MWV1 21.4–21.5** (William Miller, rule VIII) — "Figures always have a figurative meaning, and are used much in prophecy, to represent future things, times and events; such as mountains, meaning governments; beasts, meaning kingdoms." / "Waters, meaning people." → `waters`, `figure`
+- **MWV1 22.3** (Miller, rule XI) — "If it makes good sense as it stands, and does no violence to the simple laws of nature, then it must be understood literally, if not, figuratively." → `two`
+- **MWV1 21.8** (Miller, rule X) — "Figures sometimes have two or more different significations, as day is used in a figurative sense to represent three different periods of time." → `figure` (why the meaning is tried in the passage, `again`)
+- **MWV1 22.5** (Miller, rule XII) — "To learn the true meaning of figures, trace your figurative word through your Bible, and where you find it explained, put it on your figure, and if it makes good sense you need look no further, if not, look again." → `figure`
+- **MWV1 22.6** (Miller, rule XIII) — "If you find every word of the prophecy (after the figures are understood) is literally fulfilled, then you may know that your history is the true event." → `figure`
+- **GC 598.3** (Ellen G. White; the 1888 text, GC88 598.3, is the same with Mark 12:24 in brackets) — "teach that the Scriptures have a mystical, a secret, spiritual meaning not apparent in the language employed. These men are false teachers. It was to such a class that Jesus declared: “Ye know not the Scriptures, neither the power of God.” Mark 12:24. The language of the Bible should be explained according to its obvious meaning, unless a symbol or figure is employed. … If men would but take the Bible as it reads, if there were no false teachers to mislead and confuse their minds, a work would be accomplished that would make angels glad and that would bring into the fold of Christ thousands upon thousands who are now wandering in error." → `two` (the last clause carries `starts`, "Much error starts there")
+- **GC88 d.1–d.2** (Ellen G. White, The Great Controversy, 1888, introduction; the same in GC vi.1–vi.2) — "Written in different ages, by men who differed widely in rank and occupation" / "And the truths thus revealed unite to form a perfect whole, adapted to meet the wants of men in all the circumstances and experiences of life." → `across`
+- **4T 499.1** (Ellen G. White) — "When you search the Scriptures with an earnest desire to learn the truth, God will breathe His Spirit into your heart and impress your mind with the light of His word. The Bible is its own interpreter, one passage explaining another." → `across`, `waters`, `child`, `spirit`
+- **DA 497.2** (Ellen G. White) — "He required the answer from the questioner himself. “What is written in the law?” He said; “how readest thou?”" → `cold`
+- **DA 498.2** (Ellen G. White) — "Repentance was demanded; but instead of repenting, he tried to justify himself." → `cold`
+- **DA 498.3** (Ellen G. White; the same in COL 376.1) — "Among the Jews this question caused endless dispute." → `cold`
+- **DA 503.4** (Ellen G. White) — "The lawyer would not, even now, take the name Samaritan upon his lips, and he made answer, “He that showed mercy on him.”" → `name` ("The teacher will not say Samaritan")
+- **DA 503.5** (Ellen G. White; the same in COL 376.2) — "Christ has shown that our neighbor does not mean merely one of the church or faith to which we belong. It has no reference to race, color, or class distinction. Our neighbor is every person who needs our help." → `name`
+
+Found, not used:
+
+- GC 674.4 (the original of LDE 286.2) — "A fear of making the future inheritance seem too material has led many to spiritualize away the very truths which lead us to look upon it as our home." Belongs to 37 (All Things New).
+- BR-ASI9 229.3 (unsigned note) — "To spiritualize our Lord's return is to pervert the obvious meaning of His promise, “I will come again,”" Belongs to 34; the byline is not printed.
+- RH July 10, 1883, par. 13 (the original of ChS 144.2, 5T 388.2) — "A great work can be done by presenting to the people the Bible just as it reads. … Admonish them to take the Bible as it is". The film's title phrase; about the press, so not paraphrased.
+- GC 599.1 — "the docility and submission of a child is the true spirit of the learner." A second witness for `child`; left out to keep one source a thought.
+- GC88 c.4 — "He has given dreams and visions, symbols and figures; and those to whom the truth was thus revealed, have themselves embodied the thought in human language." Fits `across`; GC88 d.1–d.2 carry it.
+- MWV1 21.2, 21.7 — figures repeated "in different figures, and parables" (rule VI); "Parables are used as comparisons to illustrate subjects, and must be explained in the same way as figures by the subject and Bible" (rule IX).
+- MWV1 22.1 (rule X, its second paragraph) — "If you put on the right construction it will harmonize with the Bible and make good sense, otherwise it will not."
+- ARSH February 26, 1857, page 134.24 — "What I understand to be private interpretation, is that we should not consult men’s private opinions relative to any point of truth given us in the Scriptures." The corpus files the volume under Uriah Smith as editor; the article's byline is not printed, so it is not credited (frame rule: writers come from the byline).
+- ARSH November 7, 1865, page 182.27 (unsigned) — "We believe the Bible should be its own interpreter, and should be taken in its most plain and literal sense, when it can be done without destroying the harmony of its several parts."
+- HST November 1, 1840, page 117.3 (a conference report) — "The Bible is its own interpreter, independent of human commentaries; spiritual things are compared with spiritual; and the Old Testament is paraphrased in the New." It reads 1 Cor 2:13 as the film does; a movement's conference record, so not in the credits.
+- GC88 683.3 — "adopting indefinite and spiritualizing methods of exposition, in place of those principles of literal interpretation which are an essential feature of the Protestant faith." Church history (names Miller and two professors); left out.
+
+Not found:
+
+- A pioneer passage of the frame's period on Hebrew parallelism. The corpus has it only in later works (HBS 38.4; Froom, CFF1 37.1, 155.4). `rain` reads Deut 32:2's own two lines and claims nothing more about Hebrew poetry.
+- A pioneer passage saying in so many words that spiritual readings are without number. `endless` is the film's reasoning from Prov 30:5–6; GC 598.3 is the nearest ("involved in doubt and darkness").
+- A pioneer passage calling the Bible's self-definitions a "dictionary". The word is the owner's; the thought is MWV1 22.5 and 4T 499.1.
+
+Correction to `as-it-reads.md`: its "MWV1 21.6" for "mountains, meaning governments; beasts, meaning kingdoms" is the rule's list of texts; the words are MWV1 21.4, and "Waters, meaning people" is MWV1 21.5.
+
+Rule numbers: the corpus prints Miller's rules without their numerals. The local corpus also drops rule VII ("Visions are always mentioned as such"), so a count from MWV1 20.2 (I) runs one short. The numbers below follow the printed edition (egwwritings.org, Miller's Works vol. 1, read 1320.115: rule VIII is "Figures always have a figurative meaning"), checked 2026-10-19: VIII figures (21.4–21.5), IX parables (21.7), X two or more significations (21.8–22.1), XI literal or figurative (22.3), XII trace the figure (22.5), XIII the history (22.6). An earlier draft said IX for 21.4–21.5; corrected.
+
 ## 03 · God Is Love
 
 Searches — egw: Nature and revelation alike testify of God's love · Satan led men to conceive of God as a being whose chief attribute is stern justice · Jesus came to live among men to reveal the infinite love of God · the things of nature thorn … · It is the darkness of misapprehension of God … · The Father loves us, not because of the great propitiation … · prodigal father ran fell on his neck · Love is of quick sight …. pioneer: God is love the law is love character of God · the Lord passed by before him and proclaimed … · Satan misrepresented the character of God (0 hits).
