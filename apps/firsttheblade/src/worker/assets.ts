@@ -9,7 +9,7 @@
  * serves `index.html`, and a path that names no file answers 404.
  */
 import { Context, Effect, FileSystem, Layer, Option, Path } from 'effect';
-import { type HttpServerRequest, HttpServerResponse, Mime } from 'effect/http';
+import { HttpServerRequest, HttpServerResponse, Mime } from 'effect/http';
 
 export interface AssetsService {
   readonly serve: (
@@ -18,6 +18,10 @@ export interface AssetsService {
 }
 
 export class Assets extends Context.Service<Assets, AssetsService>()('firsttheblade/Assets') {}
+
+/** A request for the page at `path`, on the host `request` came to: how a route answers with a page the prerender wrote. */
+export const pageRequest = (request: HttpServerRequest.HttpServerRequest, path: string) =>
+  HttpServerRequest.fromWeb(new Request(new URL(path, request.originalUrl)));
 
 /** A path whose last segment has an extension names a file, whatever its type. */
 const FILE = /\.[^/.]+$/;

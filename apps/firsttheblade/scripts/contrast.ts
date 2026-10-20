@@ -25,6 +25,7 @@ import { Array as Arr, Data, Effect, Layer, Option, Order } from 'effect';
 import { HttpServer, HttpServerRequest } from 'effect/http';
 
 import { PAGES } from '../src/pages.ts';
+import { layerPreview } from '../src/mail/local.ts';
 import { layerDirectory } from '../src/worker/assets.ts';
 import { respond } from '../src/worker/respond.ts';
 
@@ -495,6 +496,7 @@ const app = Effect.gen(function* () {
 
 const Preview = HttpServer.serve(app).pipe(
   Layer.provide(layerDirectory('dist')),
+  Layer.provide(layerPreview('tmp/outbox')),
   Layer.provideMerge(BunHttpServer.layer({ port: 0, hostname: '127.0.0.1' })),
   Layer.provide(BunServices.layer),
 );

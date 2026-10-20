@@ -1,7 +1,10 @@
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option } from 'effect';
 import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
+import { layerSite } from '../mail/films.ts';
+import { layerTest } from '../mail/local.ts';
 import { Assets } from './assets.ts';
 import { CACHE, CONTENT_SECURITY_POLICY, respond, withCharset } from './respond.ts';
 
@@ -37,7 +40,9 @@ const get = (path: string, method = 'GET') =>
 const header = (response: HttpServerResponse.HttpServerResponse, name: string) =>
   Option.getOrElse(Headers.get(response.headers, name), () => '');
 
-const test = it.effect.layer(AssetsTest);
+const test = it.effect.layer(
+  Layer.mergeAll(AssetsTest, layerTest(layerSite)).pipe(Layer.provide(BunServices.layer)),
+);
 
 describe('the Worker policy', () => {
   test('serves a page that is never kept without asking again', () =>
@@ -87,6 +92,13 @@ describe('the Worker policy', () => {
         expect(header(response, 'x-frame-options')).toBe('DENY');
         expect(header(response, 'strict-transport-security')).toBe('max-age=31536000');
       }
+    }));
+
+  test('the content policy lets a form post to this site and nowhere else', () =>
+    Effect.sync(() => {
+      const directives = CONTENT_SECURITY_POLICY.split('; ');
+      expect(directives).toContain("form-action 'self'");
+      expect(directives.filter((directive) => directive.startsWith('form-action'))).toHaveLength(1);
     }));
 
   test('a text file says it is UTF-8, and a picture is left as it is', () =>

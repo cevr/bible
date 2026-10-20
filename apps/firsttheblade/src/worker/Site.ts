@@ -10,15 +10,47 @@
  * and each of `REDIRECTED_DOMAINS` (with its `www`) to it, and turns its
  * `workers.dev` host off. Any other stage is a throwaway copy on a
  * generated `workers.dev` name and never touches the domain.
+ *
+ * The email list's routes run in the same Worker, over D1, Email Sending, a
+ * Queue and a Rate Limit (`./mail.ts`). Its two secrets, `MAIL_TOKEN_KEY` (the
+ * key its links are signed with) and `MAIL_ADMIN_TOKEN` (what `bun run
+ * mail:send` must show), are read from the deployer's environment and bound
+ * as Worker secrets; they are never in the repository. The Worker is also the
+ * queue's consumer: each batch of a film's send is delivered here
+ * (`../mail/deliver.ts`).
  */
+import type { RuntimeContext } from 'alchemy';
 import { Stage } from 'alchemy/Stage';
 import * as Cloudflare from 'alchemy/Cloudflare';
-import { Effect, Option } from 'effect';
+import { Config, Effect, Layer, Option, Schema, Stream } from 'effect';
 import { HttpServerRequest } from 'effect/http';
+
+import { deliver } from '../mail/deliver.ts';
+import { warnMail } from '../mail/log.ts';
+import { Delivery } from '../mail/queue.ts';
+import type { MailServices } from '../mail/routes.ts';
 
 import { DOMAIN, REDIRECTED_DOMAINS, SERVED_FROM, type ServedFrom, WORKER_NAME } from '../site.ts';
 import { Assets } from './assets.ts';
+import {
+  DELIVERY,
+  layerCloudflare,
+  MailBindings,
+  MailDatabase,
+  MailQueue,
+  MailSender,
+  SignupLimit,
+} from './mail.ts';
 import { respond } from './respond.ts';
+
+const readDelivery = Schema.decodeUnknownOption(Delivery);
+
+/** The Worker's answer to a request: the policy, over the site's services. */
+const serve = (services: Layer.Layer<MailServices, never, RuntimeContext>) =>
+  Effect.gen(function* () {
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    return yield* respond(request);
+  }).pipe(Effect.provide(services));
 
 const ASSETS = {
   directory: 'dist',
@@ -63,11 +95,32 @@ export default class Site extends Cloudflare.Worker<Site>()(
       serve: (request) =>
         Cloudflare.fromCloudflareFetcher(env['ASSETS']).fetch(request).pipe(Effect.orDie),
     });
+    const queue = yield* MailQueue;
+    const mail = layerCloudflare({
+      db: yield* Cloudflare.D1.QueryDatabase(MailDatabase),
+      email: yield* Cloudflare.Email.Send(MailSender),
+      queue: yield* Cloudflare.Queues.WriteQueue(queue),
+      limit: yield* SignupLimit,
+      tokenKey: yield* Config.Redacted('MAIL_TOKEN_KEY'),
+      adminToken: yield* Config.Redacted('MAIL_ADMIN_TOKEN'),
+    });
+
+    // A batch fails only when a letter could not be sent now; the queue
+    // then tries the whole batch again, and what was sent is passed over.
+    yield* Cloudflare.Queues.consumeQueueMessages(queue, DELIVERY, (messages) =>
+      Effect.gen(function* () {
+        const deliveries = [];
+        for (const message of yield* Stream.runCollect(messages)) {
+          const delivery = readDelivery(message.body);
+          if (Option.isSome(delivery)) deliveries.push(delivery.value);
+          else yield* warnMail('film.unreadable', { message: message.id });
+        }
+        yield* deliver(deliveries);
+      }).pipe(Effect.provide(mail)),
+    );
+
     return {
-      fetch: Effect.gen(function* () {
-        const request = yield* HttpServerRequest.HttpServerRequest;
-        return yield* respond(request).pipe(Effect.provideService(Assets, assets));
-      }),
+      fetch: serve(Layer.merge(Layer.succeed(Assets, assets), mail)),
     };
-  }),
+  }).pipe(Effect.provide(MailBindings)),
 ) {}

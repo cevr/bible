@@ -1,7 +1,10 @@
 /**
- * The Worker's whole policy, over the site's files (`./assets.ts`):
+ * The Worker's whole policy, over the email list's routes
+ * (`../mail/routes.ts`) and the site's files (`./assets.ts`):
  *
- * - only GET and HEAD are answered; any other method is 405;
+ * - the list's routes answer first, each with the methods it takes, and
+ *   none of their answers is kept (`no-store`);
+ * - a file is answered to GET and HEAD only; any other method is 405;
  * - a path that names no file answers with the not-found page, as 404;
  * - every response says how long to keep it: fingerprinted files under
  *   `/assets/` for a year, pages not at all without asking again, and the
@@ -12,19 +15,22 @@
  *   every file the prerender writes is.
  */
 import { Effect, Option } from 'effect';
-import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { Headers, type HttpServerRequest, HttpServerResponse } from 'effect/http';
 
-import { Assets } from './assets.ts';
+import { mailRoute } from '../mail/routes.ts';
+import { Assets, pageRequest } from './assets.ts';
 
 export const CACHE = {
   immutable: 'public, max-age=31536000, immutable',
   page: 'public, max-age=0, must-revalidate',
   day: 'public, max-age=86400',
+  never: 'no-store',
 } as const;
 
 /**
  * The content policy: everything from this origin and nothing else. The
- * pages carry no inline script or style, so neither is allowed.
+ * pages carry no inline script or style, so neither is allowed, and a form
+ * posts only to this site (the sign-up and the leave button).
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -36,7 +42,7 @@ export const CONTENT_SECURITY_POLICY = [
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",
-  "form-action 'none'",
+  "form-action 'self'",
   "frame-ancestors 'none'",
 ].join('; ');
 
@@ -82,10 +88,14 @@ export const withCharset = (contentType: string) => {
   return `${contentType}; charset=utf-8`;
 };
 
-const finish = (pathname: string, response: HttpServerResponse.HttpServerResponse) =>
+const finish = (
+  pathname: string,
+  response: HttpServerResponse.HttpServerResponse,
+  cache = cacheControl(pathname, response),
+) =>
   response.pipe(
     HttpServerResponse.setHeaders(SECURITY_HEADERS),
-    HttpServerResponse.setHeader('cache-control', cacheControl(pathname, response)),
+    HttpServerResponse.setHeader('cache-control', cache),
     (finished) =>
       Option.match(Headers.get(finished.headers, 'content-type'), {
         onNone: () => finished,
@@ -93,14 +103,12 @@ const finish = (pathname: string, response: HttpServerResponse.HttpServerRespons
       }),
   );
 
-/** The request a host's static files answer with the not-found page. */
-const notFoundRequest = (request: HttpServerRequest.HttpServerRequest) =>
-  HttpServerRequest.fromWeb(new Request(new URL(NOT_FOUND_PATH, request.originalUrl)));
-
 export const respond = Effect.fn('Site.respond')(function* (
   request: HttpServerRequest.HttpServerRequest,
 ) {
   const pathname = pathnameOf(request);
+  const route = mailRoute(request, pathname);
+  if (Option.isSome(route)) return finish(pathname, yield* route.value, CACHE.never);
   if (!ALLOWED_METHODS.has(request.method)) {
     return finish(
       pathname,
@@ -113,6 +121,6 @@ export const respond = Effect.fn('Site.respond')(function* (
   const assets = yield* Assets;
   const response = yield* assets.serve(request);
   if (response.status !== 404 && pathname !== NOT_FOUND_PATH) return finish(pathname, response);
-  const page = yield* assets.serve(notFoundRequest(request));
+  const page = yield* assets.serve(pageRequest(request, NOT_FOUND_PATH));
   return finish(NOT_FOUND_PATH, HttpServerResponse.setStatus(page, 404));
 });
