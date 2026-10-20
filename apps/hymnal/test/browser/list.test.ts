@@ -489,7 +489,19 @@ const moves = {
   (app: Session) => Promise<{ blank: number; top: number; goal: number }>
 >;
 
-interface Seen extends Visit {
+/**
+ * How the reader pressed: after a pause, or at once, with whether its list
+ * left the page before any scroll event reached it after the reader's last
+ * scroll, so the list never heard of that scroll, as the label says, and
+ * which try this was.
+ */
+type Pressed =
+  | { readonly press: 'later' }
+  | { readonly press: 'now'; readonly leftBeforeScrollEvent: boolean; readonly tries: number };
+
+export type Seen = Omit<Visit, 'press'> & Pressed & Found;
+
+interface Found {
   /** Where the visit's share puts the list: `round(max × share)`. */
   readonly target: number;
   /** Where the reader left the list. */
@@ -502,14 +514,6 @@ interface Seen extends Visit {
   readonly jumps: ReadonlyArray<unknown>;
   /** After the move: pixels of rows on screen left blank, where the list is, where it should be. */
   readonly after: { readonly blank: number; readonly top: number; readonly goal: number };
-  /**
-   * A press at once alone: whether its list left the page before any scroll
-   * event reached it after the reader's last scroll, so the list never heard
-   * of that scroll, as the label says.
-   */
-  readonly leftBeforeScrollEvent?: boolean;
-  /** A press at once alone: which try this was. */
-  readonly tries?: number;
 }
 
 /**
@@ -530,7 +534,7 @@ const wrong = (v: Seen) =>
   Math.abs(v.after.top - v.after.goal) > 1;
 
 /** Whether a visit is the press its label says: a press at once whose list never heard of the last scroll. */
-const labelled = (v: Seen) => v.press !== 'now' || v.leftBeforeScrollEvent === true;
+const labelled = (v: Seen) => v.press === 'later' || v.leftBeforeScrollEvent;
 
 /** The visits that went wrong, and the presses at once that were not one. */
 const missed = (visits: ReadonlyArray<Seen>) => visits.filter((v) => wrong(v) || !labelled(v));
@@ -570,26 +574,27 @@ const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
       await app.scrollTo(target);
       if (v.press === 'later') await app.settle(150);
       const { top: left, first } = await paths[v.way](app, list, v.press, target);
-      const label =
+      const pressed: Pressed =
         v.press === 'now'
           ? {
+              press: 'now',
               leftBeforeScrollEvent: await app.page.evaluate(() =>
                 window.hymnal.leftBeforeScrollEvent(),
               ),
               tries: attempt,
             }
-          : {};
+          : { press: 'later' };
       const { top: found } = await app.place();
       const after = await moves[v.move](app);
       const s: Seen = {
         ...v,
+        ...pressed,
         target,
         left,
         found,
         first,
         jumps: await app.jumps(),
         after,
-        ...label,
       };
       if (v.press === 'now') atOnce.tries += 1;
       // Only the label makes a try again: a try that went wrong is a miss, whatever its label.
