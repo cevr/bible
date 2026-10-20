@@ -42,6 +42,12 @@ export interface Hymnal {
   readonly errors: Array<string>;
   /** Whether the page has hydrated. */
   hydrated: boolean;
+  /**
+   * Whether a trusted scroll event reached the list's scroller while
+   * `hydrate()` had not yet been called: a scroll the list cannot have seen,
+   * so it must be told of it. Set at the event; a page loads with it false.
+   */
+  eventBeforeHydration: boolean;
   /** Hydrates the page now (with `?hold`; without it, it hydrated as it loaded). */
   readonly hydrate: () => void;
   /** The list's scroll offset now, and the most it can scroll; none while no list is shown. */
@@ -174,6 +180,21 @@ document.addEventListener(
   true,
 );
 
+/** Whether `hydrate()` has been called. */
+let hydrating = false;
+
+// Apart from the jump listener above, so what it sees stays as it was. The
+// browser's own event alone counts: the list's `told()` dispatches an untrusted
+// one after hydration.
+document.addEventListener(
+  'scroll',
+  (event) => {
+    if (hydrating || !event.isTrusted || event.target !== scroller()) return;
+    window.hymnal.eventBeforeHydration = true;
+  },
+  true,
+);
+
 const report = console.error.bind(console);
 console.error = (...args: Array<unknown>) => {
   const said = args.map(String).join(' ');
@@ -188,11 +209,10 @@ function Hydrated() {
   return null;
 }
 
-let hydrating = false;
-
 window.hymnal = {
   errors,
   hydrated: false,
+  eventBeforeHydration: false,
   hydrate: () => {
     if (hydrating) return;
     hydrating = true;

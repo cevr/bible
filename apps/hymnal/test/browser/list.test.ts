@@ -602,8 +602,9 @@ describe('a list loaded cold hydrates the server’s list', () => {
   /**
    * On a page of its own in a window of `height`, loads the list cold once
    * for each case: the reader scrolls the server's list to the case's share
-   * before hydration, and to its share after it. Answers the loads that
-   * reported a hydration error, lost or moved a scroll, or left rows blank.
+   * before hydration, and to its share after it. Answers the loads whose
+   * scroll's event did not come before hydration, and those that reported a
+   * hydration error, lost or moved a scroll, or left rows blank.
    */
   const loads = async (list: ListName, height: number, cases: ReadonlyArray<Cold>) => {
     await using app = await open({ path: lists[list].path, height, hold: true });
@@ -621,6 +622,7 @@ describe('a list loaded cold hydrates the server’s list', () => {
       await app.settle(150);
       const seen = {
         ...c,
+        eventBeforeHydration: await app.page.evaluate(() => window.hymnal.eventBeforeHydration),
         errors: await app.errors(),
         kept,
         blankBefore,
@@ -628,7 +630,9 @@ describe('a list loaded cold hydrates the server’s list', () => {
         blankAfter: await app.blank(),
         jumps: await app.jumps(),
       };
+      // The case the load names: the scroll before hydration, its event too, so the list must be told of it.
       const clean =
+        seen.eventBeforeHydration &&
         seen.errors.length === 0 &&
         kept === 0 &&
         blankBefore === 0 &&
