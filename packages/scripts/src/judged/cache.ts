@@ -98,14 +98,15 @@ interface Keeping {
 /**
  * The answers `kept` hold once a run keeps `keeping`: each answer of `fresh`
  * whose key `kept` lacks added, each key of `read` and `fresh` marked seen on
- * `day`, and every answer last seen more than `MAX_AGE_DAYS` before it
- * dropped. A key `kept` holds keeps its answer: the first kept is the store's.
+ * `day` unless a later run marked it seen on a later day, and every answer
+ * last seen more than `MAX_AGE_DAYS` before it dropped. A key `kept` holds
+ * keeps its answer: the first kept is the store's.
  */
 const keptAfter = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) => {
   const after = new Map(kept);
   for (const key of [...keeping.read, ...keeping.fresh.keys()])
     Option.map(Option.fromUndefinedOr(after.get(key)), (answer) =>
-      after.set(key, { ...answer, seen: keeping.day }),
+      after.set(key, { ...answer, seen: Math.max(answer.seen, keeping.day) }),
     );
   for (const [key, answer] of keeping.fresh)
     if (!kept.has(key)) after.set(key, { ...answer, seen: keeping.day });
@@ -116,13 +117,13 @@ const keptAfter = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) => {
 
 /**
  * Whether keeping `keeping` changes `kept`: a fresh answer, a read answer
- * not yet seen on its day, or an answer past its age. A run that changes
+ * last seen before its day, or an answer past its age. A run that changes
  * nothing writes nothing.
  */
 export const changes = (kept: ReadonlyMap<string, Answer>, keeping: Keeping) =>
   keeping.fresh.size > 0 ||
   [...keeping.read].some((key) =>
-    Option.exists(Option.fromUndefinedOr(kept.get(key)), (answer) => answer.seen !== keeping.day),
+    Option.exists(Option.fromUndefinedOr(kept.get(key)), (answer) => answer.seen < keeping.day),
   ) ||
   [...kept.values()].some((answer) => keeping.day - answer.seen > MAX_AGE_DAYS);
 

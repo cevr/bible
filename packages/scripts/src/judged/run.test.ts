@@ -811,6 +811,36 @@ describe("a judged rule's store", () => {
       }).pipe(withFs),
   );
 
+  it.effect(
+    'never marks an answer seen on a day before the one a later run marked it: a run that ends last keeps the later day',
+    () =>
+      Effect.gen(function* () {
+        const { storeFile } = yield* judging;
+        const store = Effect.map(readCache(storeFile), (kept) =>
+          [...kept].map(([key, { seen }]) => `${key}@${seen}`),
+        );
+        yield* keepAnswers(storeFile, { fresh: new Map([['a', answer]]), read: new Set(), day: 0 });
+        // A run that began on day 1 ends first; one that began on day 0 ends after it.
+        yield* keepAnswers(storeFile, { fresh: new Map(), read: new Set(['a']), day: 1 });
+        yield* keepAnswers(storeFile, {
+          fresh: new Map([['a', answer]]),
+          read: new Set(['a']),
+          day: 0,
+        });
+        expect(yield* store).toEqual(['a@1']);
+        // The answer lives for its age from day 1: no run of day 1 + MAX_AGE_DAYS drops it.
+        yield* keepAnswers(storeFile, { fresh: new Map(), read: new Set(), day: 1 + MAX_AGE_DAYS });
+        expect(yield* store).toEqual(['a@1']);
+        expect(
+          changes(new Map([['a', { ...answer, seen: 1 }]]), {
+            fresh: new Map(),
+            read: new Set(['a']),
+            day: 0,
+          }),
+        ).toBe(false);
+      }).pipe(withFs),
+  );
+
   it.effect('writes nothing for a run that read only answers seen that day, and asked none', () =>
     Effect.sync(() => {
       const kept = new Map<string, Answer>([['a', { ...answer, seen: 7 }]]);
