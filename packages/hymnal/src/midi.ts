@@ -38,11 +38,21 @@ export interface KeySignature {
   readonly minor: boolean;
 }
 
+/** A `set_tempo` event: from `tick` on, a quarter note lasts `microsPerQuarter` microseconds. */
+export interface Tempo {
+  readonly tick: number;
+  readonly microsPerQuarter: number;
+}
+
 export interface Midi {
   readonly ticksPerBeat: number;
   readonly tracks: readonly Track[];
   readonly timeSignatures: readonly TimeSignature[];
   readonly keySignatures: readonly KeySignature[];
+  /** Every tempo event of every track, by tick; at one tick, in the file's track order. */
+  readonly tempos: readonly Tempo[];
+  /** The tick of the file's last event: the latest track end. */
+  readonly lastTick: number;
 }
 
 class Malformed {
@@ -116,6 +126,7 @@ class TrackReader {
     private readonly reader: Reader,
     private readonly meters: TimeSignature[],
     private readonly keys: KeySignature[],
+    private readonly tempos: Tempo[],
   ) {}
 
   /** A meta event; false at the end of the track. */
@@ -135,6 +146,12 @@ class TrackReader {
         tick: this.tick,
         fifths: ((data[0] ?? 0) << 24) >> 24,
         minor: data[1] === 1,
+      });
+    }
+    if (type === 0x51 && data.length >= 3) {
+      this.tempos.push({
+        tick: this.tick,
+        microsPerQuarter: ((data[0] ?? 0) << 16) | ((data[1] ?? 0) << 8) | (data[2] ?? 0),
       });
     }
     return type !== 0x2f;
@@ -178,17 +195,19 @@ class TrackReader {
   }
 }
 
+/** A track and the tick of its last event. */
 const readTrack = (
   reader: Reader,
   end: number,
   meters: TimeSignature[],
   keys: KeySignature[],
-): Track => {
-  const track = new TrackReader(reader, meters, keys);
+  tempos: Tempo[],
+) => {
+  const track = new TrackReader(reader, meters, keys, tempos);
   while (reader.offset < end && track.event()) {}
   reader.offset = end;
   const notes = track.notes.sort((a, b) => a.start - b.start || a.key - b.key);
-  return { name: track.name, notes, program: track.program };
+  return { track: { name: track.name, notes, program: track.program }, lastTick: track.tick };
 };
 
 const read = (bytes: Uint8Array): Midi => {
@@ -204,11 +223,16 @@ const read = (bytes: Uint8Array): Midi => {
   const tracks: Track[] = [];
   const timeSignatures: TimeSignature[] = [];
   const keySignatures: KeySignature[] = [];
+  const tempos: Tempo[] = [];
+  let lastTick = 0;
   while (tracks.length < count && !reader.done) {
     const id = reader.ascii(4);
     const end = reader.u32() + reader.offset;
-    if (id === 'MTrk') tracks.push(readTrack(reader, end, timeSignatures, keySignatures));
-    else reader.offset = end;
+    if (id === 'MTrk') {
+      const read = readTrack(reader, end, timeSignatures, keySignatures, tempos);
+      tracks.push(read.track);
+      lastTick = Math.max(lastTick, read.lastTick);
+    } else reader.offset = end;
   }
   const byTick = <A extends { readonly tick: number }>(xs: A[]) =>
     xs.sort((a, b) => a.tick - b.tick);
@@ -217,6 +241,8 @@ const read = (bytes: Uint8Array): Midi => {
     tracks,
     timeSignatures: byTick(timeSignatures),
     keySignatures: byTick(keySignatures),
+    tempos: byTick(tempos),
+    lastTick,
   };
 };
 
@@ -229,3 +255,29 @@ export const parse = (bytes: Uint8Array): Effect.Effect<Midi, MidiParseError> =>
         ? MidiParseError.make({ offset: error.offset, reason: error.reason })
         : MidiParseError.make({ offset: -1, reason: String(error) }),
   });
+
+/** A file with no tempo event plays at 120 quarter notes a minute. */
+const DEFAULT_TEMPO = 500_000;
+
+/**
+ * Ticks to seconds through the file's tempo map, as a player reads it: each
+ * tempo event takes effect at its tick, and of two at one tick the later in
+ * the file wins.
+ */
+export const secondsAt =
+  (midi: Midi) =>
+  (tick: number): number => {
+    let seconds = 0;
+    let from = 0;
+    let tempo = DEFAULT_TEMPO;
+    for (const change of midi.tempos) {
+      if (change.tick > tick) break;
+      seconds += ((change.tick - from) * tempo) / 1e6 / midi.ticksPerBeat;
+      from = change.tick;
+      tempo = change.microsPerQuarter;
+    }
+    return seconds + ((tick - from) * tempo) / 1e6 / midi.ticksPerBeat;
+  };
+
+/** How long the file plays, in seconds: to its last event. */
+export const secondsOf = (midi: Midi): number => secondsAt(midi)(midi.lastTick);

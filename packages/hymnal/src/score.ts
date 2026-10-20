@@ -40,7 +40,7 @@ export interface Score {
 
 const KEYBOARDS = [5, 4];
 
-const harmonyTracks = (midi: Midi): readonly Track[] => {
+export const harmonyTracks = (midi: Midi): readonly Track[] => {
   const sounding = midi.tracks.filter((track) => track.notes.length > 0);
   for (const program of KEYBOARDS) {
     const tracks = sounding.filter((track) => track.program === program);
@@ -55,7 +55,7 @@ const harmonyTracks = (midi: Midi): readonly Track[] => {
  * are one onset, as a unison part doubles each note a tick or two apart;
  * of two equal keys there, the shorter is the tune's (the other voice holds).
  */
-const topVoice = (notes: readonly Note[], slack: number): Note[] => {
+export const topVoice = (notes: readonly Note[], slack: number): Note[] => {
   const onsets: number[][] = [];
   for (const tick of [...new Set(notes.map((note) => note.start))].sort((a, b) => a - b)) {
     const last = onsets.at(-1);
@@ -77,7 +77,7 @@ const topVoice = (notes: readonly Note[], slack: number): Note[] => {
   return melody;
 };
 
-const melodyOf = (midi: Midi, harmony: readonly Track[]): Note[] => {
+export const melodyOf = (midi: Midi, harmony: readonly Track[]): Note[] => {
   const first = midi.tracks.find((track) => track.notes.length > 0);
   const own = first !== undefined && !harmony.includes(first) ? first : harmony[0];
   return own === undefined ? [] : topVoice(own.notes, midi.ticksPerBeat / 16);

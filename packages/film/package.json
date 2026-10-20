@@ -20,7 +20,8 @@
     "./stand-in": "./src/canvas/fixtures/stand-in.ts",
     "./rive": "./src/canvas/rive.ts",
     "./style": "./src/style/index.ts",
-    "./style/build": "./src/style/build.ts"
+    "./style/build": "./src/style/build.ts",
+    "./measure": "./src/measure.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

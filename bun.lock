@@ -236,8 +236,10 @@
       },
       "devDependencies": {
         "@bible/core": "workspace:*",
+        "@bible/film": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "effect-bun-test": "catalog:",
+        "node-av": "6.1.1",
       },
     },
     "packages/scripts": {

@@ -1,0 +1,35 @@
+--- a/clients/sfizz_render.cpp	2026-10-20 13:48:18
++++ b/clients/sfizz_render.cpp	2026-10-20 13:48:18
+@@ -180,10 +180,10 @@
+     drwav outputFile;
+     drwav_data_format outputFormat {};
+     outputFormat.container = drwav_container_riff;
+-    outputFormat.format = DR_WAVE_FORMAT_PCM;
++    outputFormat.format = DR_WAVE_FORMAT_IEEE_FLOAT;
+     outputFormat.channels = 2;
+     outputFormat.sampleRate = sampleRate;
+-    outputFormat.bitsPerSample = 16;
++    outputFormat.bitsPerSample = 32;
+ 
+ #if !defined(_WIN32)
+     drwav_bool32 outputFileOk = drwav_init_file_write(&outputFile, outputPath.c_str(), &outputFormat, nullptr);
+@@ -210,8 +210,7 @@
+             fmidi_player_tick(midiPlayer.get(), increment);
+         synth.renderBlock(audioBuffer);
+         sfz::writeInterleaved(audioBuffer.getConstSpan(0), audioBuffer.getConstSpan(1), absl::MakeSpan(interleavedBuffer));
+-        drwav_f32_to_s16(interleavedPcm.data(), interleavedBuffer.data(), 2 * blockSize);
+-        numFramesWritten += drwav_write_pcm_frames(&outputFile, blockSize, interleavedPcm.data());
++        numFramesWritten += drwav_write_pcm_frames(&outputFile, blockSize, interleavedBuffer.data());
+         writeLogLine();
+     }
+ 
+@@ -220,8 +219,7 @@
+         while (averagePower > 1e-12f) {
+             synth.renderBlock(audioBuffer);
+             sfz::writeInterleaved(audioBuffer.getConstSpan(0), audioBuffer.getConstSpan(1), absl::MakeSpan(interleavedBuffer));
+-            drwav_f32_to_s16(interleavedPcm.data(), interleavedBuffer.data(), 2 * blockSize);
+-            numFramesWritten += drwav_write_pcm_frames(&outputFile, blockSize, interleavedPcm.data());
++            numFramesWritten += drwav_write_pcm_frames(&outputFile, blockSize, interleavedBuffer.data());
+             writeLogLine();
+             averagePower = sfz::meanSquared<float>(interleavedBuffer);
+         }

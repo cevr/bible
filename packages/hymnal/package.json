@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./chord": "./src/chord.ts",
-    "./hymn": "./src/hymn.ts"
+    "./hymn": "./src/hymn.ts",
+    "./recordings": "./src/recordings.ts",
+    "./recording-manifest": "./src/recording-manifest.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -16,6 +18,7 @@
     "census": "bun scripts/census.ts",
     "compile": "bun scripts/compile.ts",
     "golden": "bun scripts/golden.ts",
+    "render": "bun scripts/render/render.ts",
     "split": "bun scripts/split.ts"
   },
   "dependencies": {
@@ -25,7 +28,9 @@
   },
   "devDependencies": {
     "@bible/core": "workspace:*",
+    "@bible/film": "workspace:*",
     "@effect/platform-bun": "catalog:",
-    "effect-bun-test": "catalog:"
+    "effect-bun-test": "catalog:",
+    "node-av": "6.1.1"
   }
 }
