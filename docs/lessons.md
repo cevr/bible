@@ -1103,3 +1103,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check credited `src/.hidden/a.test.ts` and `a.test.mtsx` to `bun test`, though bun's scan enters no folder whose name starts with `.` and reads no `.mtsx` (measured on bun 1.4.3).
 - **Cause:** The reader used the repo's inventory of test names for bun's scan, which is narrower.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
+
+### reach-refuses-ignore-globs
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Bun directory globs still credit files the runner excludes"
+- **Source:** p6-guardloop/review-19.md F1
+- **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='**/guard/'`, though bun's scan skips the folder (measured on bun 1.4.3), and so for `**/gu*/`, `**/[g]uard/`, `**/{guard}/` and `src/**/`.
+- **Cause:** The reader matched a glob with its own glob code against a folder's path with no closing `/`, where bun's scan matches folders by rules the reader does not reproduce.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no run that names an ignore glob`
+
+### reach-refuses-mapped-filters
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Playwright filters ignore source maps in the reach check"
+- **Source:** p6-guardloop/review-19.md F2
+- **Wrong:** The reach check credited `e2e/a.spec.js` with an inline source map that names `original.ts` to `playwright test a.spec.js`, though playwright filters a mapped file by the sources its map names and leaves it out.
+- **Cause:** The reader matched a positional filter against the file's own path alone.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
