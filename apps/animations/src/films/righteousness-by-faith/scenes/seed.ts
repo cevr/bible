@@ -336,8 +336,8 @@ export const seed = drawing({
       return [x, y + L.bob * Math.sin(breathing)];
     };
     const hand = (p: Pt) =>
-      at(ctx, { x: p[0], y: p[1], scale: L.handScale }, () =>
-        f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]] }),
+      at(ctx, { x: p[0], y: p[1] }, () =>
+        f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
       );
 
     // ── the dry leaves, blown off the page one after another

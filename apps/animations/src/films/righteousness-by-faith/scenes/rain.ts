@@ -167,9 +167,9 @@ export const rain = drawing({
         {
           x: FARMER_AT[0] + p[0] * FARMER_SCALE,
           y: FARMER_AT[1] + p[1] * FARMER_SCALE,
-          scale: FARMER_SCALE * HAND,
+          scale: FARMER_SCALE,
         },
-        () => f.rive('farmerHand', { timelines: [['boil', boilTime(f.boil)]] }),
+        () => f.rive('farmerHand', { timelines: [['boil', boilTime(f.boil)]], size: HAND }),
       );
 
     multiplane(

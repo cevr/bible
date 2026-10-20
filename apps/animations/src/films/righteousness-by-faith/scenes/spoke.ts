@@ -350,8 +350,8 @@ const pose = (f: SpokeFrame, gaze: Pt, lean: number) => {
 const hand = (f: SpokeFrame, side: Pt, lean: number) => {
   const [x, y] = onHim(side, lean);
   const bob = L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-  at(f.ctx, { x, y: y + bob, scale: L.handScale }, () =>
-    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]] }),
+  at(f.ctx, { x, y: y + bob }, () =>
+    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
   );
 };
 

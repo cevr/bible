@@ -406,8 +406,8 @@ const readingOf = (icon: Icon): Pt =>
 const restingHand = (f: WithinFrame, side: Pt) => {
   const [x, y] = onHim(side, 0);
   const bob = L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-  at(f.ctx, { x, y: y + bob, scale: L.handScale }, () =>
-    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]] }),
+  at(f.ctx, { x, y: y + bob }, () =>
+    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
   );
 };
 
@@ -641,8 +641,8 @@ interface Standing {
 /** One of Christ's circle hands at `p` (from His feet, His units), as He stands at `place`. */
 const christHand = (f: WithinFrame, place: Standing, p: Pt) => {
   const { x, y, scale } = place;
-  at(f.ctx, { x: x + p[0] * scale, y: y + p[1] * scale, scale: CHRIST_HAND * scale }, () =>
-    f.rive('christHand', { timelines: [['boil', boilTime(f.boil)]] }),
+  at(f.ctx, { x: x + p[0] * scale, y: y + p[1] * scale, scale }, () =>
+    f.rive('christHand', { timelines: [['boil', boilTime(f.boil)]], size: CHRIST_HAND }),
   );
 };
 
@@ -1514,8 +1514,8 @@ const fastPose = (f: WithinFrame) => {
 const handOn = (f: WithinFrame, side: Pt, lean: number, off: Pt) => {
   const [x, y] = onHim(side, lean);
   const bob = L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-  at(f.ctx, { x: x + off[0], y: y + off[1] + bob, scale: L.handScale }, () =>
-    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]] }),
+  at(f.ctx, { x: x + off[0], y: y + off[1] + bob }, () =>
+    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
   );
 };
 

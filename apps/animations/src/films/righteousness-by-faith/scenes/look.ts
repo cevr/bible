@@ -391,8 +391,8 @@ const bobOf = (f: LookFrame) =>
 
 /** One of his hands at `p` on the page. */
 const handAt = (f: LookFrame, p: Pt) =>
-  at(f.ctx, { x: p[0], y: p[1], scale: L.handScale }, () =>
-    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]] }),
+  at(f.ctx, { x: p[0], y: p[1] }, () =>
+    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
   );
 
 /**

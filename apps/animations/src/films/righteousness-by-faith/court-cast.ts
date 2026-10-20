@@ -89,7 +89,7 @@ export interface CourtFrame {
     name: 'christ' | 'christFront',
     pose: { timelines: Timelines<'breath' | 'boil'>; numbers: ChristNumbers },
   ): void;
-  rive(name: HandRig, pose: { timelines: Timelines<'boil'> }): void;
+  rive(name: HandRig, pose: { timelines: Timelines<'boil'>; size: number }): void;
 }
 type Timelines<T extends string> = ReadonlyArray<readonly [T, number]>;
 type LeadNumbers = Record<keyof typeof LEAD_KNOBS, number>;
@@ -328,10 +328,13 @@ export const seal = (ctx: CanvasRenderingContext2D, s: SealPose) => {
   ctx.restore();
 };
 
-/** A circle hand of `rig` at `p`, `scale` times its size. */
-const handAt = (f: CourtFrame, rig: HandRig, p: Pt, scale = 1) =>
-  at(f.ctx, { x: p[0], y: p[1], scale }, () =>
-    f.rive(rig, { timelines: [['boil', boilTime(f.boil)]] }),
+/**
+ * A circle hand of `rig` at `p`, drawn `size` times the hand rig: its size is
+ * the pose's, so the hand reads the shot its figure stands in.
+ */
+const handAt = (f: CourtFrame, rig: HandRig, p: Pt, size: number) =>
+  at(f.ctx, { x: p[0], y: p[1] }, () =>
+    f.rive(rig, { timelines: [['boil', boilTime(f.boil)]], size }),
   );
 
 /** A figure's own timelines on this frame: its breath, offset so no two breathe as one, and its boil. */

@@ -645,8 +645,11 @@ export const word = drawing({
       ...PINNED.map((p) => f.keys(p.cues.push, PRESS)),
     );
     const hand = (p: Pt, squash: number) =>
-      at(ctx, { x: p[0], y: p[1], scale: HAND_SCALE * (1 - SQUASH * squash) }, () =>
-        f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]] }),
+      at(ctx, { x: p[0], y: p[1] }, () =>
+        f.rive('leadHand', {
+          timelines: [['boil', boilTime(f.boil)]],
+          size: HAND_SCALE * (1 - SQUASH * squash),
+        }),
       );
 
     // ── the fig leaves: each drifting down to its pin as his hand comes to meet it, pinned round
