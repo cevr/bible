@@ -18,7 +18,8 @@
     "sim": "bun scripts/sim.ts",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
-    "audio:copy": "bun infra/audio/copy.ts"
+    "audio:copy": "bun infra/audio/copy.ts",
+    "audio:upload": "bun infra/audio/upload.ts"
   },
   "dependencies": {
     "@bible/hymnal": "workspace:*",

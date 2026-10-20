@@ -12,7 +12,7 @@
 import { Schema } from 'effect';
 
 /** One hymn of the set: its file, its hashes and what its checks measured. */
-const ManifestHymn = Schema.Struct({
+export const ManifestHymn = Schema.Struct({
   hymn: Schema.Int,
   /** The key inside the set (`recordingKey`). */
   key: Schema.String,
@@ -28,6 +28,7 @@ const ManifestHymn = Schema.Struct({
   /** Every check of the hymn's record passed. */
   passed: Schema.Boolean,
 });
+export type ManifestHymn = typeof ManifestHymn.Type;
 
 export const RecordingManifest = Schema.Struct({
   set: Schema.String,
