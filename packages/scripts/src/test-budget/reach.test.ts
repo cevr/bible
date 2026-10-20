@@ -390,6 +390,8 @@ describe("a workspace's test files", () => {
           'BUN_OPTIONS=-tfast bun test',
           'env BUN_OPTIONS=-tfast bun test',
           'bun run build && CI=1 bun test',
+          'exit 0 && bun test',
+          'return 0 && bun test',
           'export BUN_OPTIONS=-ttie && bun test',
           'source ./env.sh && bun test',
           'alias bun=true && bun test',
@@ -528,7 +530,8 @@ describe("a workspace's test files", () => {
           for (const text of [
             `export default { ${ignore} };`,
             // A setting in a comment, or of another object, sets nothing.
-            `// testIgnore: '**/b.test.ts'\nconst other = { testIgnore: '**/b.test.ts' };\nexport default defineConfig({ ${ignore} });`,
+            `import { defineConfig } from '@playwright/test';\n// testIgnore: '**/b.test.ts'\nconst other = { testIgnore: '**/b.test.ts' };\nexport default defineConfig({ ${ignore} });`,
+            `import { devices, defineConfig } from 'playwright/test';\nexport default defineConfig({ ${ignore} });`,
           ])
             expect(reaches(scripts, files, config(text))).toEqual([
               'test/browser/a.spec.ts: none',
@@ -554,6 +557,23 @@ describe("a workspace's test files", () => {
           config("const key = 'testDir';\nexport default { [key]: 'elsewhere' };"),
           config("const config = { testDir: '.' };\nexport default config;"),
           config("export default defineConfig(base, { testDir: '.' });"),
+          // A defineConfig that may not be playwright's may set anything.
+          config("export default defineConfig({ testDir: '.' });"),
+          config(
+            "function defineConfig(c) { return { ...c, testIgnore: '**/b.test.ts' }; }\nexport default defineConfig({ testDir: '.' });",
+          ),
+          config(
+            "import { defineConfig } from './helpers';\nexport default defineConfig({ testDir: '.' });",
+          ),
+          config(
+            "import { devices as defineConfig } from '@playwright/test';\nexport default defineConfig({ testDir: '.' });",
+          ),
+          config(
+            "import { defineConfig as define } from '@playwright/test';\nexport default define({ testDir: '.' });",
+          ),
+          config(
+            "import { defineConfig } from '@playwright/test';\nconst { wrap: defineConfig2 } = helpers;\nexport default defineConfig({ testDir: '.' });",
+          ),
           config('export default { testDir: '),
           {},
         ])

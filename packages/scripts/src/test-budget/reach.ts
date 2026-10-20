@@ -51,7 +51,7 @@
 import { Glob, TOML } from 'bun';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { Minimatch, minimatch } from 'minimatch';
-import { type Expression, type ObjectExpression, parseSync } from 'oxc-parser';
+import { type Expression, type ObjectExpression, type Program, parseSync } from 'oxc-parser';
 import { gateFiles } from '../guard/files.ts';
 import { andChained, changesShell, commandsOf } from './shell.ts';
 
@@ -409,11 +409,78 @@ const globMatcher = (pattern: string) => {
   return (file: string) => minimatch(file, glob, { nocase: true, dot: true });
 };
 
+/** The modules playwright's `defineConfig` is imported from. */
+const PLAYWRIGHT_MODULES = ['@playwright/test', 'playwright/test'];
+
+/** A top-level statement of a module. */
+type TopLevel = Program['body'][number];
+
+/** What an import or a declaration binds `defineConfig` to: playwright's, or anything else. */
+type Binding = 'playwright' | 'other';
+
+/** What each specifier of an import that names `defineConfig` binds it to. */
+const importedBindings = (
+  node: Extract<TopLevel, { type: 'ImportDeclaration' }>,
+): ReadonlyArray<Binding> =>
+  node.specifiers
+    .filter((specifier) => specifier.local.name === 'defineConfig')
+    .map((specifier): Binding => {
+      if (specifier.type !== 'ImportSpecifier' || !PLAYWRIGHT_MODULES.includes(node.source.value))
+        return 'other';
+      const { imported } = specifier;
+      if (imported.type === 'Identifier' && imported.name === 'defineConfig') return 'playwright';
+      if (imported.type === 'Literal' && imported.value === 'defineConfig') return 'playwright';
+      return 'other';
+    });
+
+/** The declaration a statement makes, an exported one's included; none for one that declares nothing. */
+const declarationOf = (node: TopLevel): Option.Option<TopLevel | Expression> => {
+  if (node.type === 'ExportNamedDeclaration') return Option.fromNullOr(node.declaration);
+  if (node.type === 'ExportDefaultDeclaration') return Option.some(node.declaration);
+  return Option.some(node);
+};
+
+/** Whether a declaration can bind `defineConfig`: by that name, with no name, or by a pattern that could hold any name. */
+const bindsDefineConfig = (declared: TopLevel | Expression) => {
+  if (declared.type === 'FunctionDeclaration' || declared.type === 'ClassDeclaration')
+    return Option.match(Option.fromNullOr(declared.id), {
+      onNone: () => false,
+      onSome: (id) => id.name === 'defineConfig',
+    });
+  if (declared.type !== 'VariableDeclaration') return false;
+  return declared.declarations.some(
+    ({ id }) => id.type !== 'Identifier' || id.name === 'defineConfig',
+  );
+};
+
+/**
+ * Whether a config's `defineConfig` is playwright's, which hands back the
+ * one object it is given: the module's one binding of that name is an
+ * import of `defineConfig` from playwright (`PLAYWRIGHT_MODULES`), and no
+ * other top-level statement can bind it (a function, a class, a variable,
+ * a pattern that could hold any name).
+ */
+const importsDefineConfig = (program: Program) => {
+  const bindings = program.body.flatMap((node): ReadonlyArray<Binding> => {
+    if (node.type === 'ImportDeclaration') return importedBindings(node);
+    return Option.match(declarationOf(node), {
+      onNone: () => [],
+      onSome: (declared): ReadonlyArray<Binding> => {
+        if (bindsDefineConfig(declared)) return ['other'];
+        return [];
+      },
+    });
+  });
+  return bindings.length === 1 && bindings[0] === 'playwright';
+};
+
 /**
  * The settings a config's default export sets, each by its key: the object
- * it exports, as written or passed alone to `defineConfig`. None when the
- * config does not parse, exports anything else, or sets a key the reader
- * cannot name (a spread, a computed key), which could set any setting.
+ * it exports, as written or passed alone to playwright's `defineConfig`
+ * (`importsDefineConfig`). None when the config does not parse, exports
+ * anything else, calls a `defineConfig` that may not be playwright's, or
+ * sets a key the reader cannot name (a spread, a computed key), which could
+ * set any setting.
  */
 const settingsOf = (file: string, text: string): Option.Option<ReadonlyMap<string, Expression>> => {
   const parsed = parseSync(file, text);
@@ -431,7 +498,8 @@ const settingsOf = (file: string, text: string): Option.Option<ReadonlyMap<strin
       node.type === 'CallExpression' &&
       node.callee.type === 'Identifier' &&
       node.callee.name === 'defineConfig' &&
-      node.arguments.length === 1
+      node.arguments.length === 1 &&
+      importsDefineConfig(parsed.program)
     )
       Option.map(Option.fromUndefinedOr(node.arguments[0]), (argument) => {
         if (argument.type === 'ObjectExpression') object = Option.some(argument);

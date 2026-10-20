@@ -69,10 +69,15 @@ export const commandsOf = (script: string): ReadonlyArray<ReadonlyArray<string>>
 
 /**
  * The shell's own commands that change what the commands after them run
- * with: their variables, their options, their folder, or the program a name
- * runs.
+ * with (their variables, their options, their folder, the program a name
+ * runs), or whether they run at all (`exit`, `return`).
  */
 const SHELL_CHANGES = new Set([
+  'exit',
+  'return',
+  'logout',
+  'break',
+  'continue',
   'export',
   'readonly',
   'declare',
@@ -107,9 +112,10 @@ const SHELL_CHANGES = new Set([
 /**
  * Whether a command of a script sets a variable, bare or through `env`
  * (`CI=1 bun test`, `env BUN_OPTIONS=-t bun test`), or is one of the shell's
- * own that changes what later commands run with (`SHELL_CHANGES`: `export
- * BUN_OPTIONS=-t`): a variable such as `BUN_OPTIONS` or `NODE_OPTIONS`
- * hands a program flags its words do not show.
+ * own that changes what later commands run with, or ends the script
+ * (`SHELL_CHANGES`: `export BUN_OPTIONS=-t`, `exit 0`): a variable such as
+ * `BUN_OPTIONS` or `NODE_OPTIONS` hands a program flags its words do not
+ * show, and `exit 0 && bun test` passes with no test run.
  */
 export const changesShell = (script: string) =>
   readOf(script).commands.some((words) => {
