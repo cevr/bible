@@ -41,6 +41,12 @@ export type Player = Data.TaggedEnum<{
   Idle: {};
   Loading: { readonly track: Track };
   Playing: { readonly track: Track; readonly at: number; readonly length: Option.Option<number> };
+  /** Playing, but the device waits on the network mid-recording (a stall, or a seek past what it holds). */
+  Buffering: {
+    readonly track: Track;
+    readonly at: number;
+    readonly length: Option.Option<number>;
+  };
   Paused: { readonly track: Track; readonly at: number; readonly length: Option.Option<number> };
   Ended: { readonly track: Track; readonly length: Option.Option<number> };
   /** The recording could not play; `offline` when the device has no connection. */
@@ -106,16 +112,28 @@ export const trackOf: (player: Player) => Option.Option<Track> = Player.$match({
   Idle: () => Option.none(),
   Loading: ({ track }) => Option.some(track),
   Playing: ({ track }) => Option.some(track),
+  Buffering: ({ track }) => Option.some(track),
   Paused: ({ track }) => Option.some(track),
   Ended: ({ track }) => Option.some(track),
   Failed: ({ track }) => Option.some(track),
 });
 
-/** Whether the player is waiting on the device: it loads or plays. */
+/** Whether the player is waiting on the device: it loads, plays or buffers. */
 export const isMoving = (player: Player) =>
-  Player.$is('Loading')(player) || Player.$is('Playing')(player);
+  Player.$is('Loading')(player) || Player.$is('Playing')(player) || Player.$is('Buffering')(player);
 
 const seconds = (ms: number) => ms / 1000;
+
+/** The length a player shows, if it shows one. */
+const lengthIn: (player: Player) => Option.Option<number> = Player.$match({
+  Idle: () => Option.none(),
+  Loading: () => Option.none(),
+  Playing: ({ length }) => length,
+  Buffering: ({ length }) => length,
+  Paused: ({ length }) => length,
+  Ended: ({ length }) => length,
+  Failed: () => Option.none(),
+});
 
 const lengthOf = (status: Status) =>
   Option.fromNullishOr(status.durationMs).pipe(
@@ -124,17 +142,37 @@ const lengthOf = (status: Status) =>
   );
 
 /**
- * The player showing `track` at the device's `status`. A failed recording
- * says whether the device was `offline` when it failed.
+ * The player showing `track` at the device's `status`, where it `was` before.
+ * A failed recording says whether the device was `offline` when it failed.
+ * A device that loads again once `track` has played keeps its place, its
+ * length and its button: a playing hymn buffers, a paused one stays paused.
  */
-export const fromStatus = (track: Track, status: Status, offline: boolean): Player => {
+export const fromStatus = (
+  track: Track,
+  status: Status,
+  offline: boolean,
+  was: Player = Player.Idle(),
+): Player => {
   const at = seconds(status.positionMs);
-  const length = lengthOf(status);
+  const held = Option.filter(trackOf(was), (it) => it.number === track.number);
+  const length = Option.orElse(lengthOf(status), () => Option.flatMap(held, () => lengthIn(was)));
   switch (status.state) {
     case 'idle':
       return Player.Idle();
     case 'loading':
-      return Player.Loading({ track });
+      return Option.match(held, {
+        onNone: () => Player.Loading({ track }),
+        onSome: () =>
+          Player.$match(was, {
+            Playing: () => Player.Buffering({ track, at, length }),
+            Buffering: () => Player.Buffering({ track, at, length }),
+            Paused: () => Player.Paused({ track, at, length }),
+            Idle: () => Player.Loading({ track }),
+            Loading: () => Player.Loading({ track }),
+            Ended: () => Player.Loading({ track }),
+            Failed: () => Player.Loading({ track }),
+          }),
+      });
     case 'playing':
       return Player.Playing({ track, at, length });
     case 'paused':
@@ -159,7 +197,9 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         const failed = (track: Track) =>
           Effect.map(device.online, (online) => Player.Failed({ track, offline: !online }));
         const settle = (track: Track, status: Status) =>
-          Effect.map(device.online, (online) => fromStatus(track, status, !online));
+          Effect.map(device.online, (online) =>
+            fromStatus(track, status, !online, get.registry.get(state)),
+          );
         /** The device's status, shown; a status the device cannot read is a failure. */
         const read = (track: Track) =>
           device.status.pipe(

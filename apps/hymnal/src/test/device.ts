@@ -2,8 +2,9 @@
  * A device's playback the test holds: One's `Audio` session as a phone has
  * it, with no sound. A recording loads when played; the test moves it on
  * (`device.now`), turns the connection off and on (`device.online`), and
- * presses the lock screen's buttons (`device.press`). What the player asked
- * is kept: each URL played and each announcement.
+ * presses the lock screen's buttons (`device.press`), and holds a seek back
+ * until it moves the playback itself (`device.lagging`). What the player
+ * asked is kept: each URL played, each place sought and each announcement.
  */
 
 import { Effect, Layer, Match, Queue, Stream } from 'effect';
@@ -23,6 +24,10 @@ export const fakeDevice = () => {
     now: { state: 'idle', positionMs: 0 } satisfies Status as Status,
     online: true,
     played: new Array<string>(),
+    /** Each place sought, in milliseconds. */
+    sought: new Array<number>(),
+    /** While true, `seek` adds its place to `sought` and leaves `now` as it is. */
+    lagging: false,
     announced: new Array<Announcement>(),
     /** The lock screen's play, pause or seek: the session moves to `next`, then tells the app. */
     press: (kind: Remote, next: Status) => {
@@ -63,7 +68,14 @@ export const fakeDevice = () => {
           ),
         }),
       ),
-      seek: (positionMs) => Effect.suspend(() => at({ ...device.now, positionMs })),
+      seek: (positionMs) =>
+        Effect.suspend(() => {
+          device.sought.push(positionMs);
+          return Match.value(device.lagging).pipe(
+            Match.when(true, () => Effect.succeed(device.now)),
+            Match.orElse(() => at({ ...device.now, positionMs })),
+          );
+        }),
       status: Effect.sync(() => device.now),
       online: Effect.sync(() => device.online),
       announce: (announcement) => Effect.sync(() => void device.announced.push(announcement)),

@@ -29,6 +29,7 @@ const caption: (player: Player) => string = Player.$match({
   Idle: () => 'Recording',
   Loading: () => 'Loading the recording…',
   Playing: () => 'Playing',
+  Buffering: () => 'Loading the recording…',
   Paused: () => 'Paused',
   Ended: () => 'Played to the end',
   Failed: ({ offline }) =>
@@ -55,6 +56,7 @@ function Control({ player, track }: { readonly player: HymnPlayer; readonly trac
         Idle: () => <></>,
         Loading: () => <></>,
         Playing: ({ at, length }) => <Position at={at} length={length} onSeek={seek} />,
+        Buffering: ({ at, length }) => <Position at={at} length={length} onSeek={seek} />,
         Paused: ({ at, length }) => <Position at={at} length={length} onSeek={seek} />,
         Ended: ({ length }) => (
           <Position at={Option.getOrElse(length, () => 0)} length={length} onSeek={seek} />

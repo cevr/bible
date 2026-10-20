@@ -16,7 +16,10 @@ import { Command, Player, playerOn } from './player';
 const morning = { number: 100, title: 'Great Is Thy Faithfulness' };
 const praise = { number: 1, title: 'Praise to the Lord' };
 
-/** The app with a player over a fresh device, its commands and lock-screen follower running. */
+/**
+ * The app with a player over a fresh device, its commands and lock-screen
+ * follower running; its registry, and the reads it runs, end with the test's `using`.
+ */
 const open = () => {
   const { device, layer } = fakeDevice();
   const player = playerOn(layer, Duration.millis(1));
@@ -38,13 +41,14 @@ const open = () => {
     device,
     until,
     send: (command: Command) => registry.set(player.send, command),
+    [Symbol.dispose]: () => registry.dispose(),
   };
 };
 
 describe('the player', () => {
   it.live('loads hymn 100 from its recording at audioUrl, then plays it', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.send(Command.Start({ track: morning }));
       expect(yield* app.until(Player.$is('Loading'))).toEqual(Player.Loading({ track: morning }));
       expect(app.device.played).toEqual(['https://hymns.cvr.im/audio/sdah/100.mp3']);
@@ -62,7 +66,7 @@ describe('the player', () => {
 
   it.live('pauses, seeks while paused, and plays on', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.send(Command.Start({ track: morning }));
       app.device.now = { state: 'playing', positionMs: 60_000, durationMs: 151_000 };
       yield* app.until(Player.$is('Playing'));
@@ -85,9 +89,38 @@ describe('the player', () => {
     }),
   );
 
+  it.live('keeps its place, length and Pause while the device loads again mid-recording', () =>
+    Effect.gen(function* () {
+      using app = open();
+      app.send(Command.Start({ track: morning }));
+      app.device.now = { state: 'playing', positionMs: 60_000, durationMs: 151_000 };
+      yield* app.until(Player.$is('Playing'));
+
+      // A stall, or a seek past what the device holds: One says `loading`, its length unread.
+      app.device.now = { state: 'loading', positionMs: 61_000 };
+      expect(yield* app.until(Player.$is('Buffering'))).toEqual(
+        Player.Buffering({ track: morning, at: 61, length: Option.some(151) }),
+      );
+
+      app.send(Command.Pause());
+      expect(yield* app.until(Player.$is('Paused'))).toEqual(
+        Player.Paused({ track: morning, at: 61, length: Option.some(151) }),
+      );
+
+      // A seek while paused that the device must load for stays paused, at its new place.
+      app.device.lagging = true;
+      app.send(Command.Seek({ seconds: 120 }));
+      app.device.now = { state: 'loading', positionMs: 120_000 };
+      app.send(Command.Follow());
+      expect(
+        yield* app.until((player) => Player.$is('Paused')(player) && player.at === 120),
+      ).toEqual(Player.Paused({ track: morning, at: 120, length: Option.some(151) }));
+    }),
+  );
+
   it.live('ends at the end of the recording, and plays again from the start', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.send(Command.Start({ track: morning }));
       app.device.now = { state: 'playing', positionMs: 150_000, durationMs: 151_000 };
       yield* app.until(Player.$is('Playing'));
@@ -106,7 +139,7 @@ describe('the player', () => {
 
   it.live('fails with the connection off, saying so, and plays on Retry once it is back', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.device.online = false;
       app.send(Command.Start({ track: morning }));
       expect(yield* app.until(Player.$is('Failed'))).toEqual(
@@ -124,7 +157,7 @@ describe('the player', () => {
 
   it.live('fails, not offline, when the recording breaks off with the connection on', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.send(Command.Start({ track: morning }));
       app.device.now = { state: 'playing', positionMs: 30_000, durationMs: 151_000 };
       yield* app.until(Player.$is('Playing'));
@@ -138,7 +171,7 @@ describe('the player', () => {
 
   it.live('starting a second hymn replaces the first', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.send(Command.Start({ track: morning }));
       app.device.now = { state: 'playing', positionMs: 40_000, durationMs: 151_000 };
       yield* app.until(Player.$is('Playing'));
@@ -155,7 +188,7 @@ describe('the player', () => {
 
   it.live('shows a pause and a play made on the lock screen', () =>
     Effect.gen(function* () {
-      const app = open();
+      using app = open();
       app.send(Command.Start({ track: morning }));
       app.device.now = { state: 'playing', positionMs: 10_000, durationMs: 151_000 };
       yield* app.until(Player.$is('Playing'));

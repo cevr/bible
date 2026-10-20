@@ -1,6 +1,6 @@
 /**
  * The player's one button for a hymn, as the player stands: Play when it
- * holds another hymn or none, Pause while it plays, Play while paused, Play
+ * holds another hymn or none, Pause while it plays or buffers, Play while paused, Play
  * again once ended and Retry once failed; a spinner while it loads. A
  * native button (a `UIButton` on iOS) in the accent.
  */
@@ -38,6 +38,7 @@ export function Toggle({
       <ActivityIndicator color={accent} accessibilityLabel={`Loading hymn ${track.number}`} />
     ),
     Playing: () => button('Pause', `Pause hymn ${track.number}`, Command.Pause()),
+    Buffering: () => button('Pause', `Pause hymn ${track.number}`, Command.Pause()),
     Paused: () => button('Play', `Play hymn ${track.number}`, Command.Resume()),
     Ended: () => button('Play again', `Play hymn ${track.number} again`, Command.Resume()),
     Failed: () => button('Retry', `Retry hymn ${track.number}`, Command.Start({ track })),
