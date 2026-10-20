@@ -28,6 +28,14 @@ export interface Seen {
   readonly height: number;
 }
 
+/** The first frame that draws a list come back. */
+export interface First {
+  readonly drawn: boolean;
+  readonly blank: number;
+  /** Frames before it that drew the scroller with no row. */
+  readonly empty: number;
+}
+
 /** What the test drives the page through. */
 export interface Hymnal {
   /** What hydration reported: each recoverable error, and each console error about hydration. */
@@ -49,12 +57,21 @@ export interface Hymnal {
   /** How many pixels of the list's shown part, where it has rows, show no row. */
   readonly blank: () => number;
   /**
-   * Answers, in the first frame that draws the list at `path`, whether the
-   * row named `label` is fully on screen.
+   * Answers, in the first frame that draws the list at `path` with rows,
+   * whether the row named `label` is fully on screen, and how many pixels of
+   * rows on screen are blank; and how many frames before it drew the list's
+   * scroller with no row.
    */
-  readonly watch: (path: string, label: string) => Promise<boolean>;
+  readonly watch: (path: string, label: string) => Promise<First>;
   /** The last `watch` asked for. */
-  watching?: Promise<boolean>;
+  watching?: Promise<First>;
+  /**
+   * Leaves the list in one task, as a reader who scrolls and presses at
+   * once: scrolls it a few pixels, then clicks the fully shown row nearest
+   * its middle, or the tab bar's link named `tab`. Answers the offset it
+   * left at and the row.
+   */
+  readonly leave: (tab?: string) => { readonly top: number; readonly label: string };
 }
 
 declare global {
@@ -81,6 +98,35 @@ const shown = (node: HTMLElement) => {
   return rows(node)
     .map((row) => ({ row, box: row.getBoundingClientRect() }))
     .filter(({ box }) => box.top >= view.top - 0.5 && box.bottom <= view.bottom + 0.5);
+};
+
+/** The fully shown row nearest the list's middle. */
+const middleOf = (node: HTMLElement) => {
+  const seen = shown(node);
+  const found = seen[Math.floor(seen.length / 2)];
+  if (!found) throw new Error('no row on screen');
+  return found;
+};
+
+/** How many pixels of the list's shown part, where it has rows, show no row. */
+const blankOf = (node: HTMLElement) => {
+  const view = node.getBoundingClientRect();
+  const top = view.top;
+  // The rows end where the content ends: past the last row the list is rightly empty.
+  const bottom = Math.min(view.bottom, view.top + node.scrollHeight - node.scrollTop);
+  const covered = rows(node)
+    .map((row) => row.getBoundingClientRect())
+    .map((box) => [Math.max(top, box.top), Math.min(bottom, box.bottom)] as const)
+    .filter(([from, to]) => to > from)
+    .toSorted(([a], [b]) => a - b);
+  let reached = top;
+  let gaps = 0;
+  for (const [from, to] of covered) {
+    if (from > reached) gaps += from - reached;
+    reached = Math.max(reached, to);
+  }
+  if (bottom > reached) gaps += bottom - reached;
+  return Math.round(gaps);
 };
 
 const errors: Array<string> = [];
@@ -165,9 +211,7 @@ window.hymnal = {
   middle: () => {
     const node = scroller();
     if (node === undefined) throw new Error('the list is not shown');
-    const seen = shown(node);
-    const { row, box } = seen[Math.floor(seen.length / 2)] ?? {};
-    if (!row || !box) throw new Error('no row on screen');
+    const { row, box } = middleOf(node);
     return {
       label: row.getAttribute('aria-label') ?? '',
       x: box.left + box.width / 2,
@@ -178,36 +222,42 @@ window.hymnal = {
   blank: () => {
     const node = scroller();
     if (node === undefined) throw new Error('the list is not shown');
-    const view = node.getBoundingClientRect();
-    const top = view.top;
-    // The rows end where the content ends: past the last row the list is rightly empty.
-    const bottom = Math.min(view.bottom, view.top + node.scrollHeight - node.scrollTop);
-    const covered = rows(node)
-      .map((row) => row.getBoundingClientRect())
-      .map((box) => [Math.max(top, box.top), Math.min(bottom, box.bottom)] as const)
-      .filter(([from, to]) => to > from)
-      .toSorted(([a], [b]) => a - b);
-    let reached = top;
-    let gaps = 0;
-    for (const [from, to] of covered) {
-      if (from > reached) gaps += from - reached;
-      reached = Math.max(reached, to);
-    }
-    if (bottom > reached) gaps += bottom - reached;
-    return Math.round(gaps);
+    return blankOf(node);
   },
   watch: (path, label) =>
-    new Promise<boolean>((done) => {
+    new Promise<First>((done) => {
+      let empty = 0;
       const look = () => {
         const node = location.pathname === path ? scroller() : undefined;
         if (node === undefined || rows(node).length === 0) {
+          if (node !== undefined) empty += 1;
           requestAnimationFrame(look);
           return;
         }
-        done(shown(node).some(({ row }) => row.getAttribute('aria-label') === label));
+        done({
+          drawn: shown(node).some(({ row }) => row.getAttribute('aria-label') === label),
+          blank: blankOf(node),
+          empty,
+        });
       };
       requestAnimationFrame(look);
     }),
+  leave: (tab) => {
+    const node = scroller();
+    if (node === undefined) throw new Error('the list is not shown');
+    node.scrollTop += node.scrollTop > 8 ? -8 : 8;
+    left = { node, top: node.scrollTop };
+    const { row } = middleOf(node);
+    const target =
+      tab === undefined
+        ? row
+        : [...document.querySelectorAll<HTMLElement>('[role="navigation"] a')].find(
+            (link) => link.textContent === tab,
+          );
+    if (target === undefined) throw new Error(`no link to ${tab}`);
+    target.click();
+    return { top: left.top, label: row.getAttribute('aria-label') ?? '' };
+  },
 };
 
 if (!new URLSearchParams(location.search).has('hold')) window.hymnal.hydrate();

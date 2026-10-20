@@ -16,7 +16,7 @@
 
 import { RegistryProvider } from '@effect/atom-react';
 import { useLinkTo } from 'one';
-import { useEffect, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import Hymns from '../../app/(tabs)/(hymns)/index';
@@ -73,18 +73,21 @@ export function App({ path: initial }: { readonly path: string }) {
       removeEventListener('popstate', popped);
     };
   }, []);
+  // Strict, as One's root renders the app.
   return (
-    <RegistryProvider>
-      <View style={styles.window}>
-        <View style={styles.content}>
-          <Screen key={path} path={path} />
+    <StrictMode>
+      <RegistryProvider>
+        <View style={styles.window}>
+          <View style={styles.content}>
+            <Screen key={path} path={path} />
+          </View>
+          <View role="navigation" style={styles.bar}>
+            <Go href={lists.hymns.path} label={lists.hymns.title} />
+            <Go href={lists.search.path} label={lists.search.title} />
+          </View>
         </View>
-        <View role="navigation" style={styles.bar}>
-          <Go href={lists.hymns.path} label={lists.hymns.title} />
-          <Go href={lists.search.path} label={lists.search.title} />
-        </View>
-      </View>
-    </RegistryProvider>
+      </RegistryProvider>
+    </StrictMode>
   );
 }
 

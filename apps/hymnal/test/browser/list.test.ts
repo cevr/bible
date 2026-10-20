@@ -17,7 +17,14 @@
  * - after a return, the list never moves by itself once the reader scrolls,
  *   and it draws every row on screen after a move straight to the top, a
  *   fling to the top, or a search with no result cleared again;
- * - a press right after a scroll saves the true offset.
+ * - a press right after a scroll saves the true offset;
+ * - the search field keeps the reader's focus and his keys through
+ *   hydration and a return, and lets go of them when he drags the list
+ *   with a finger.
+ * The visits and the cold loads are drawn from the property's whole domain
+ * by a seeded sampler (`visits.ts`): every pair of values it names meets in
+ * each run, and the seed, printed with every miss, decides the rest
+ * (`HYMNAL_LIST_SEED=<seed>` runs a run's cases again).
  * A row is a real link: Enter opens it inside the app, and a Cmd- or
  * Ctrl-click leaves it to the browser, which opens the hymn in a new tab.
  *
@@ -33,20 +40,28 @@ import { chromium, type Browser, type BrowserContext, type Page } from '@playwri
 import type { BunPlugin } from 'bun';
 
 import { readWords } from '../../vite/words';
+import type { First } from './page';
 import { type ListName, lists } from './routes';
 import { render } from './server';
+import {
+  type Cold,
+  type Move,
+  type Press,
+  type Visit,
+  type Way,
+  coldDomain,
+  coldsOf,
+  heights,
+  uncovered,
+  visitDomain,
+  visitsOf,
+} from './visits';
 
 /** A row's height at the web's text size. */
 const rowHeight = 44;
 
-/** Window heights, in CSS pixels: a small phone's to a tall Mac window's. */
-const heights = [320, 568, 874, 1400];
-
 /** A window of `height`: a phone's width, or a Mac window's when it is tall. */
 const windowOf = (height: number) => ({ width: height > 1000 ? 1024 : 402, height });
-
-/** The offsets sampled, by share of the list's height: its first rows to its very end. */
-const shares = [0.005, 0.1, 0.33, 0.6, 0.85, 1];
 
 /** The bundler boundaries, as `src/test/setup.ts` sets them for the other tests. */
 const boundaries: BunPlugin = {
@@ -188,14 +203,30 @@ const open = async ({
     return page.evaluate(() => window.hymnal.middle());
   };
 
-  /** Presses the row nearest the list's middle, as a pointer does; answers the row. */
-  const press = async (list: ListName) => {
+  /** Waits for the hymn at `path` opened from `list`. */
+  const opened = (list: ListName, label: string) => {
+    const want = `${list === 'hymns' ? '/hymns' : '/search'}/${label.split(',')[0]}`;
+    return page.waitForURL((url) => url.pathname === want, { timeout: 2000 });
+  };
+
+  /**
+   * Presses the row nearest the list's middle: as a pointer does, or `now`,
+   * in the same task as a last small scroll. Answers the row and where he
+   * left the list.
+   */
+  const press = async (list: ListName, when: Press) => {
+    if (when === 'now') {
+      // A row he can press is drawn.
+      await middleRow();
+      const left = await page.evaluate(() => window.hymnal.leave());
+      await opened(list, left.label);
+      return left;
+    }
     const row = await middleRow();
+    const { top } = await place();
     await page.mouse.click(row.x, row.y);
-    const prefix = list === 'hymns' ? '/hymns' : '/search';
-    const want = `${prefix}/${row.label.split(',')[0]}`;
-    await page.waitForURL((url) => url.pathname === want, { timeout: 2000 });
-    return row;
+    await opened(list, row.label);
+    return { top, label: row.label };
   };
 
   /** Clicks the tab bar's link to `list`. */
@@ -203,8 +234,9 @@ const open = async ({
     page.getByRole('navigation').getByText(lists[list].title, { exact: true }).click();
 
   /**
-   * Does `go`, which shows `list`; answers whether the row named `label`
-   * was fully on screen in the first frame that drew the list.
+   * Does `go`, which shows `list`; answers the first frame that drew the
+   * list: whether the row named `label` was fully on screen, its blank
+   * pixels, and the frames before it with no row.
    */
   const comeBack = async (list: ListName, label: string, go: () => Promise<unknown>) => {
     await page.evaluate(
@@ -214,14 +246,20 @@ const open = async ({
       [lists[list].path, label] as const,
     );
     await go();
-    const drawn = await page.evaluate(() => window.hymnal.watching);
+    const first = await page.evaluate(() => window.hymnal.watching);
     await shown();
-    return drawn === true;
+    if (first === undefined) throw new Error('no frame drew the list');
+    return first;
   };
 
-  await page.goto(`${server.url.href.replace(/\/$/, '')}${path}${hold ? '?hold' : ''}`);
-  if (!hold) await hydrated();
-  await shown();
+  /** Loads the page cold at `path`, as the browser does a new address. */
+  const load = async () => {
+    await page.goto(`${server.url.href.replace(/\/$/, '')}${path}${hold ? '?hold' : ''}`);
+    if (!hold) await hydrated();
+    await shown();
+  };
+
+  await load();
   return {
     page,
     context,
@@ -238,6 +276,7 @@ const open = async ({
     press,
     tab,
     comeBack,
+    load,
     [Symbol.asyncDispose]: () => context.close(),
   };
 };
@@ -252,7 +291,13 @@ beforeAll(async () => {
     fetch: (request) => {
       const { pathname } = new URL(request.url);
       return pathname === '/page.js'
-        ? new Response(script, { headers: { 'content-type': 'text/javascript' } })
+        ? new Response(script, {
+            // Each page loads it again on every cold load: the browser keeps it.
+            headers: {
+              'content-type': 'text/javascript',
+              'cache-control': 'max-age=3600, immutable',
+            },
+          })
         : new Response(render(pathname), { headers: { 'content-type': 'text/html' } });
     },
   });
@@ -263,42 +308,67 @@ afterAll(async () => {
   await server?.stop(true);
 });
 
-/** The ways back to a list after the reader leaves it, and how he leaves it for each. */
+/** This run's seed: `HYMNAL_LIST_SEED=<seed>` runs its cases again. */
+const seed = ((given) =>
+  given !== undefined && given !== '' ? Number(given) >>> 0 : Math.floor(Math.random() * 2 ** 32))(
+  process.env['HYMNAL_LIST_SEED'],
+);
+
+/**
+ * The ways back to a list after the reader leaves it, and how he leaves it
+ * for each: `when` he presses or clicks after his scroll. Each answers where
+ * he left the list, and the first frame of the list come back.
+ */
 const paths = {
   /** He opens a hymn from a row, then presses the browser's Back. */
-  back: async (app: Session, list: ListName, label: string) => {
-    await app.press(list);
-    return app.comeBack(list, label, () => app.page.goBack());
+  back: async (app: Session, list: ListName, when: Press) => {
+    const { top, label } = await app.press(list, when);
+    return { top, first: await app.comeBack(list, label, () => app.page.goBack()) };
   },
   /** He opens a hymn from a row, then follows the header's back link to the list. */
-  header: async (app: Session, list: ListName, label: string) => {
-    await app.press(list);
-    return app.comeBack(list, label, () =>
+  header: async (app: Session, list: ListName, when: Press) => {
+    const { top, label } = await app.press(list, when);
+    const first = await app.comeBack(list, label, () =>
       app.page.getByText(`‹ ${lists[list].title}`, { exact: true }).click(),
     );
+    return { top, first };
   },
   /** He switches to the other list's tab, then back to this one's. */
-  tab: async (app: Session, list: ListName, label: string) => {
-    await app.tab(list === 'hymns' ? 'search' : 'hymns');
+  tab: async (app: Session, list: ListName, when: Press) => {
+    const other = list === 'hymns' ? 'search' : 'hymns';
+    const { top, label } =
+      when === 'now'
+        ? await app
+            .middleRow()
+            .then(() =>
+              app.page.evaluate((title) => window.hymnal.leave(title), lists[other].title),
+            )
+        : { top: (await app.place()).top, label: (await app.middleRow()).label };
+    if (when === 'later') await app.tab(other);
     await app.page.waitForFunction(
       (path) => location.pathname === path && window.hymnal.place() !== undefined,
-      lists[list === 'hymns' ? 'search' : 'hymns'].path,
+      lists[other].path,
     );
-    return app.comeBack(list, label, () => app.tab(list));
+    return { top, first: await app.comeBack(list, label, () => app.tab(list)) };
   },
-} as const;
+} as const satisfies Record<
+  Way,
+  (app: Session, list: ListName, when: Press) => Promise<{ top: number; first: First }>
+>;
 
-type Way = keyof typeof paths;
-
-/** What the reader does after the list is back; answers how many pixels of rows on screen were blank. */
+/**
+ * What the reader does after the list is back. Each answers how many
+ * pixels of rows on screen stayed blank after it, where the list is then,
+ * and where the move should have taken it.
+ */
 const moves = {
   /** He moves it straight to the top, in one step (the scroll bar, a key). */
   top: async (app: Session) => {
     await app.scroll(0);
     await app.settle(100);
-    return app.blank();
+    return { blank: await app.blank(), top: (await app.place()).top, goal: 0 };
   },
-  /** He flings it to the top: a burst of wheel turns, the last ones small. */
+  /** He flings it to the top: a burst of wheel turns, the last ones small, past the list's top. */
   fling: async (app: Session) => {
     const { top } = await app.place();
     const row = await app.middleRow();
@@ -314,17 +384,22 @@ const moves = {
     ];
     for (const turn of turns) await app.page.mouse.wheel(0, -turn);
     await app.settle(150);
-    return app.blank();
+    return { blank: await app.blank(), top: (await app.place()).top, goal: 0 };
   },
-  /** He searches for what no hymn has, then clears the search (the Search list only). */
+  /**
+   * He searches for what no hymn has, then clears the search (the Search
+   * list only): the list he left at its top, as the empty search put it,
+   * stays there.
+   */
   nothing: async (app: Session) => {
     const field = app.page.getByRole('searchbox');
     await field.fill('zzqxj');
     await app.page.getByText('No hymn matches', { exact: false }).waitFor();
+    await app.scroll(0);
     await field.fill('');
     await app.page.waitForFunction(() => window.hymnal.showing());
     await app.settle(150);
-    return app.blank();
+    return { blank: await app.blank(), top: (await app.place()).top, goal: 0 };
   },
   /** He scrolls on: up halfway to the top, then down to the very end. */
   onward: async (app: Session) => {
@@ -334,90 +409,88 @@ const moves = {
       await app.settle(0);
     }
     await app.settle(150);
-    return app.blank();
+    const now = await app.place();
+    return { blank: await app.blank(), top: now.top, goal: now.max };
   },
-} as const;
+} as const satisfies Record<
+  Move,
+  (app: Session) => Promise<{ blank: number; top: number; goal: number }>
+>;
 
-type Move = keyof typeof moves;
-
-/** The moves each list's visits take in turn. */
-const movesOf: Record<ListName, ReadonlyArray<Move>> = {
-  hymns: ['top', 'fling', 'onward'],
-  search: ['top', 'fling', 'nothing', 'onward'],
-};
-
-interface Visit {
-  readonly height: number;
-  readonly share: number;
+interface Seen extends Visit {
   /** Where the reader left the list. */
   readonly left: number;
   /** Where the list was when it was shown again. */
   readonly found: number;
-  /** Whether the row the reader left was on screen in the first frame of the list shown again. */
-  readonly drawn: boolean;
+  /** The first frame of the list shown again. */
+  readonly first: First;
   /** Times the list moved by itself: as he scrolled to leave it, and after it came back. */
   readonly jumps: ReadonlyArray<unknown>;
-  readonly move: Move;
-  /** Pixels of rows on screen left blank after the move. */
-  readonly blank: number;
+  /** After the move: pixels of rows on screen left blank, where the list is, where it should be. */
+  readonly after: { readonly blank: number; readonly top: number; readonly goal: number };
 }
 
 /**
  * The visits that did not come back within one row, did not draw the
- * reader's row at once, saw the list move by itself, or left rows blank.
+ * reader's row in the first frame with every row on screen, saw the list
+ * move by itself, or after the move left rows blank or the list elsewhere.
  */
-const missed = (visits: ReadonlyArray<Visit>) =>
+const missed = (visits: ReadonlyArray<Seen>) =>
   visits.filter(
-    (v) => Math.abs(v.found - v.left) > rowHeight || !v.drawn || v.jumps.length > 0 || v.blank > 0,
+    (v) =>
+      Math.abs(v.found - v.left) > rowHeight ||
+      !v.first.drawn ||
+      v.first.blank > 0 ||
+      v.first.empty > 0 ||
+      v.jumps.length > 0 ||
+      v.after.blank > 0 ||
+      Math.abs(v.after.top - v.after.goal) > 1,
   );
 
 /**
- * On a page of its own, cold-loaded at `list`, visits the shares of the
- * list's height at `part` (their indexes in `shares`) in turn: at a window height that turns with the visit and
- * the case (`turn`), so every height meets every share and every way back,
- * the reader scrolls there and leaves the list (pressing a row 150 ms after
- * his scroll on even visits, at once on odd ones); he comes back the `way`
- * the case names, then makes the visit's move.
+ * On a page of its own, cold-loaded at `list`, makes each visit in turn: in
+ * a window of the visit's height, the reader scrolls to its share of the
+ * list's height and leaves the list (pressing or clicking after a pause, or
+ * in the same task as a last small scroll); he comes back the visit's way,
+ * then makes its move.
  */
-const visit = async (list: ListName, way: Way, turn: number, part: ReadonlyArray<number>) => {
+const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
   await using app = await open({ path: lists[list].path });
   const hydration = await app.errors();
-  const visits: Array<Visit> = [];
-  for (const index of part) {
-    const share = shares[index] ?? 1;
-    const height = heights[(index + turn) % heights.length] ?? 874;
-    await app.resize(height);
+  const seen: Array<Seen> = [];
+  for (const v of visits) {
+    await app.resize(v.height);
     const { max } = await app.place();
-    const left = await app.scrollTo(Math.round(max * share));
-    await app.settle(index % 2 === 0 ? 150 : 0);
-    const row = await app.middleRow();
-    const drawn = await paths[way](app, list, row.label);
+    await app.scrollTo(Math.round(max * v.share));
+    if (v.press === 'later') await app.settle(150);
+    const { top: left, first } = await paths[v.way](app, list, v.press);
     const { top: found } = await app.place();
-    const move = movesOf[list][index % movesOf[list].length] ?? 'top';
-    const blank = await moves[move](app);
-    visits.push({ height, share, left, found, drawn, jumps: await app.jumps(), move, blank });
+    const after = await moves[v.move](app);
+    seen.push({ ...v, left, found, first, jumps: await app.jumps(), after });
   }
-  return { hydration, misses: missed(visits) };
+  return { seed, hydration, misses: missed(seen) };
 };
 
+/** `cases` in groups of `size`, in turn. */
+const groups = <T>(cases: ReadonlyArray<T>, size: number): Array<ReadonlyArray<T>> =>
+  Array.from({ length: Math.ceil(cases.length / size) }, (_, i) =>
+    cases.slice(i * size, (i + 1) * size),
+  );
+
 describe('a list comes back where the reader left it', () => {
-  for (const [turn, [list, way]] of (
-    [
-      ['hymns', 'back'],
-      ['hymns', 'header'],
-      ['hymns', 'tab'],
-      ['search', 'back'],
-      ['search', 'header'],
-      ['search', 'tab'],
-    ] as const
-  ).entries()) {
-    // Each case's visits in two pages at once, the first shares and the last.
-    for (const part of [
-      [0, 1, 2],
-      [3, 4, 5],
-    ]) {
-      it.concurrent(`the ${list} list, by ${way}, at shares ${part.map((index) => shares[index]).join(', ')} of its height`, async () => {
-        expect(await visit(list, way, turn, part)).toEqual({ hydration: [], misses: [] });
+  it('in visits and cold loads that meet every pair of values their domains name', () => {
+    const missing = (['hymns', 'search'] as const).flatMap((list) => [
+      ...uncovered(visitDomain(list), visitsOf(list, seed)).map((pair) => `${list} visit ${pair}`),
+      ...uncovered(coldDomain, coldsOf(list, seed)).map((pair) => `${list} cold ${pair}`),
+    ]);
+    expect({ seed, missing }).toEqual({ seed, missing: [] });
+  });
+
+  for (const list of ['hymns', 'search'] as const) {
+    // A list's visits in pages of four at once.
+    for (const [page, part] of groups(visitsOf(list, seed), 4).entries()) {
+      it.concurrent(`the ${list} list, visits ${page * 4 + 1} to ${page * 4 + part.length}`, async () => {
+        expect(await visit(list, part)).toEqual({ seed, hydration: [], misses: [] });
       });
     }
   }
@@ -433,8 +506,7 @@ describe('a list comes back where the reader left it', () => {
     const { max } = await app.place();
     const left = await app.scrollTo(max);
     await app.settle(150);
-    const row = await app.middleRow();
-    await app.press('search');
+    const row = await app.press('search', 'later');
     // Taller than the 13 results: the list comes back at its top.
     await app.resize(874);
     await app.comeBack('search', row.label, () => app.page.goBack());
@@ -452,28 +524,56 @@ describe('a list comes back where the reader left it', () => {
 });
 
 describe('a list loaded cold hydrates the server’s list', () => {
+  /**
+   * On a page of its own in a window of `height`, loads the list cold once
+   * for each case: the reader scrolls the server's list to the case's share
+   * before hydration, and to its share after it. Answers the loads that
+   * reported a hydration error, lost or moved a scroll, or left rows blank.
+   */
+  const loads = async (list: ListName, height: number, cases: ReadonlyArray<Cold>) => {
+    await using app = await open({ path: lists[list].path, height, hold: true });
+    const misses: Array<unknown> = [];
+    for (const [index, c] of cases.entries()) {
+      if (index > 0) await app.load();
+      const { max } = await app.place();
+      const before = await app.scroll(Math.round(max * c.before));
+      await app.page.evaluate(() => window.hymnal.hydrate());
+      await app.hydrated();
+      await app.settle(150);
+      const kept = (await app.place()).top - before;
+      const blankBefore = await app.blank();
+      const after = await app.scroll(Math.round(max * c.after));
+      await app.settle(150);
+      const seen = {
+        ...c,
+        errors: await app.errors(),
+        kept,
+        blankBefore,
+        moved: (await app.place()).top - after,
+        blankAfter: await app.blank(),
+        jumps: await app.jumps(),
+      };
+      const clean =
+        seen.errors.length === 0 &&
+        kept === 0 &&
+        blankBefore === 0 &&
+        seen.moved === 0 &&
+        seen.blankAfter === 0 &&
+        seen.jumps.length === 0;
+      if (!clean) misses.push(seen);
+    }
+    return { seed, misses };
+  };
+
   for (const list of ['hymns', 'search'] as const) {
-    for (const [index, height] of heights.entries()) {
-      it.concurrent(`the ${list} list, ${height} px high, keeps a scroll made before and after hydration`, async () => {
-        await using app = await open({ path: lists[list].path, height, hold: true });
-        const { max } = await app.place();
-        const before = await app.scroll(Math.round(max * (shares[index + 1] ?? 1)));
-        await app.page.evaluate(() => window.hymnal.hydrate());
-        await app.hydrated();
-        await app.settle(150);
-        const kept = (await app.place()).top;
-        const blankBefore = await app.blank();
-        const after = await app.scroll(Math.round(max * (shares[index + 2] ?? 0)));
-        await app.settle(150);
-        expect({
-          errors: await app.errors(),
-          kept: kept - before,
-          blankBefore,
-          moved: (await app.place()).top - after,
-          blankAfter: await app.blank(),
-          jumps: await app.jumps(),
-        }).toEqual({ errors: [], kept: 0, blankBefore: 0, moved: 0, blankAfter: 0, jumps: [] });
-      });
+    for (const height of heights) {
+      // A window height's loads in two pages at once.
+      const cases = coldsOf(list, seed).filter((c) => c.height === height);
+      for (const [page, part] of groups(cases, Math.ceil(cases.length / 2)).entries()) {
+        it.concurrent(`the ${list} list, ${height} px high, keeps a scroll made before and after hydration, page ${page + 1}`, async () => {
+          expect(await loads(list, height, part)).toEqual({ seed, misses: [] });
+        });
+      }
     }
   }
 });
