@@ -12,6 +12,38 @@
 
 Every Scripture line was printed by `bible verse` (2026-10-10/11, checked again 2026-10-15) and is quoted word for word, without the KJV's italic brackets. Where only part of a verse is quoted, the words are continuous and the caption shows only those words. The story is retold in my own words from a public-domain book, and it is told openly as a picture ("Picture a mother…"), the way the book itself supposes the case, never as something that happened. The book and its author are credited in the description and not named in speech. The Say column carries the delivery marks (`{*}` stress, `{/}` breath, `{//}` hold).
 
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | 1, 7, 9, 10, 12, 15, 17–19 | none (filmed) |
+| The mother (casting.md 2.3, the Abbott family) | period figure, generated Illustration B-roll (casting.md §4 item 7, in item 11's style), no rig | film | listed in casting.md 2.3, not drawn | 3, 4, 5, 8 | pale at a window, getting over an illness (three-quarter), 3; leading the girl out into the garden (back, three-quarter), 4; kneeling to the girl's height, a hand on her hair (profile), 8; period dress, sleeves; labeled "Illustration" |
+| The girl, Mary (casting.md 2.3, the Abbott family; not casting.md's Mary #11) | period figure, generated Illustration B-roll (casting.md §4 item 7), no rig | film | listed in casting.md 2.3, not drawn | 3–6, 8, 13, 14 | playing on the front step, 3; led out into the garden, 4; her face, afraid of the medicine (front, close), 5; alone on the step as the carriage shrinks (back), 6; looking up at her kneeling mother (profile), 8; carrying her small chair to the doorstep (three-quarter), 13; sitting on the chair, waving a handkerchief (front), 14; period dress, sleeves |
+| The husband (casting.md 2.3, the Abbott family) | period figure, generated Illustration B-roll (casting.md §4 item 7), no rig | film | listed in casting.md 2.3, not drawn | 6, 14 (in the chaise as it goes, far) | in the chaise at the reins, far (back); period dress |
+| The recurring cast | not used: the cast stays out of the period retelling (casting.md §4 item 7) | shared | yes: ensemble.md | none | none |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's desk: seated, the toy horse-and-carriage or the small wooden chair, the open Bible (filmed) | series | 1, 7, 9, 10, 12, 15, 17–19 | the shoot's own light |
+| A period street with a horse and chaise (Illustration) | film | 2 | not set by the script |
+| The family's house: the window, the gate, the front step, the garden (Illustration) | film | 3–6, 8, 13, 14, 19 | not set by the script |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The small wooden chair (the hook object; a toy horse-and-carriage is the Set row's other choice), and the girl's little chair it answers | film | 1, 13, 14, 19 |
+| The open Bible | series | 19 |
+| The horse and chaise | film | 2, 3, 6, 14 |
+| The empty branch where no nest is | film | 4 |
+| The medicine bottle | film | 5 |
+| The toy house and the slipping sand | film | 9 |
+| The handkerchief | film | 14 |
+
+New to the library: the period mother, girl and husband as Illustration figures (film); the period house and street (film).
+
 ## Script
 
 | #   | Say                                                                                                                                                                                                                                         | Picture                                                                                                                                              | Source note                                                                                                                            |

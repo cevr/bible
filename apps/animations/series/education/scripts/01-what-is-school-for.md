@@ -12,6 +12,37 @@
 
 Every Scripture line below was printed by `bible verse` on 2026-10-10, printed again on 2026-10-15, and is copied word for word. The KJV's italic-supply brackets are dropped in speech and captions. Each quotation is a continuous run of its verse, and its source note says where it starts and stops. Pioneers are paraphrased and unnamed in speech. Their sources are listed in the right-hand column and in the description.
 
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | 1, 3 (his hand), 6, 8, 10–12 | none (filmed) |
+| The hands in the garden soil | plain figure (character-design 2.3), a cut-paper insert (ensemble.md open choice 6) | series | the plain lead's sheet exists | 9 | close on two hands at the sleeves' ends pressing into garden soil (three-quarter, from above); sleeves |
+| The child reading, and the child praying | plain figure at a child's height (character-design 2.3: about 0.7 of the lead, the head a larger share), a cut-paper insert | shared (the plain child of every series) | the plain lead's sheet exists; the child's height is not drawn yet | 9 | seated with an open book, reading (three-quarter); kneeling with hands together, eyes closed (profile); sleeves |
+| The recurring cast | background only (ensemble.md), never a lead, never named in speech | shared | yes: ensemble.md | 9 (optional, behind the child) | their sheets as they stand |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's desk: seated, the open Bible within reach, the framed slate or report card (filmed) | series | 1, 3, 6, 8, 10–12 | the shoot's own light |
+| A campus gate (generated or filmed B-roll, a place) | series | 2 | not set by the script |
+| A garden bed, close on the soil | series (the country series can reuse it) | 9 | not set by the script |
+| A room where the child reads and prays (the script names no room) | series | 9 | not set by the script |
+| A sunrise | shared | 9 | dawn |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The old report card (the hook object; a framed old school slate is the Set row's other choice) | film | 1, 2, 12 |
+| The open Bible at Genesis 1 | series | 3, 12 |
+| The office lanyard | film | 2 |
+| The portrait under fogged glass, wiped half clear (the script does not say whose face) | film | 5 |
+| The child's open book | series | 9 |
+
+New to the library: the plain child at a child's height, reading and kneeling (shared); the close on the plain figure's hands in soil (series); the garden bed and the child's room (series); the portrait under fogged glass (film).
+
 ## Script
 
 | #   | Say (on camera unless noted)                                                                                                     | Picture                                                                                                                      | Source note                                                                                                                                                                                                                                       |

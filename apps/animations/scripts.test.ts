@@ -8,12 +8,6 @@ import { BunServices } from '@effect/platform-bun';
 import { Effect, FileSystem } from 'effect';
 
 const BEFORE_THE_RULE = [
-  'series/country/scripts/01-adams-schoolroom.md',
-  'series/education/scripts/01-what-is-school-for.md',
-  'series/education/scripts/17-did-jesus-go-to-school.md',
-  'series/education/scripts/19-daniels-education.md',
-  'series/education/scripts/44-should-kids-compete-for-grades.md',
-  'series/education/scripts/52-three-ways-to-make-a-child-obey.md',
   'series/health/scripts/01-the-lord-that-healeth-thee.md',
   'series/health/scripts/06-the-breath-he-gave.md',
   'series/health/scripts/20-rest-a-while.md',

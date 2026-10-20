@@ -44,6 +44,52 @@ Frame (god-christ): the Father is never pictured with a face or body. In `teache
 
 Quoted Scripture: 7 passages, 97 of 589 spoken words (16%; the girl's question is not Scripture and is not counted). Five are continuous runs from inside a verse: Gen 2:15 from "to dress"; Job 12:7 with its opening "But" dropped, to "thee"; Luke 3:38 from "Adam"; Gen 2:9 from "the tree of life"; Gen 3:23 with its opening "Therefore" dropped, to "ground". One quotation per beat at most; `book`'s naming (Gen 2:19), `teacher`'s allusion to Gen 3:8, `trees`' "eat freely" and `lost`'s "whoever comes to Jesus" (John 6:35) are paraphrase, not quotation.
 
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The mother | plain lead (character-design 2.3; casting.md 2.5, the series' plain family) | series (the plain family, one design through all 19 films) | the plain lead's sheet exists | `cold`, `home` | seated at the kitchen table beside the girl (three-quarter); pressing a seed into a pot with the girl (three-quarter, close on the hands); at the table at dawn with an open Bible (profile); walking in a park with the baby in her arms (three-quarter); the plain lead's own paper and cut, no dress colour or mark of its own, sleeves |
+| The girl | plain figure, the child (2.3: the same figure at about 0.7 of the lead's height, the head a larger share) | series | the plain lead's sheet exists | `cold`, `home`, `seedling` | at the table setting her pencil down and lifting her chin (front, three-quarter); her nose to a leaf (profile, close); carrying a small watering can in both hand circles (three-quarter); taking the seedling in both hands, looking down at it, then up (front); chin dropping into a smile (front, close); sleeves |
+| The son | plain figure, the youth (2.3, told apart by height only) | series | the plain lead's sheet exists | `cold`, `seedling` | standing at the window with a lit phone in his hand (back, three-quarter); turning from the window and lowering the phone (three-quarter); sleeves |
+| The baby | plain figure, the smallest (2.3, by height) | series | the plain lead's sheet exists | `cold`, `home` | on the floor reaching up with both hand circles (three-quarter); in the mother's arms pointing (front); sleeves |
+| The grandmother | plain figure, the second adult (2.3: the oat paper, as RBF's grandmother) | series (the plain grandmother of the hills, through the series) | the plain lead's sheet exists | `seedling` | coming in at the door, smiling (front); pressing the seedling into the girl's hands (three-quarter, close on the hands); the plain cut, no hair style, stoop or dress colour of her own, sleeves |
+| The recurring cast | background only (ensemble.md), optional | shared | yes: ensemble.md | `seedling` (one may pass on the stair through the open door) | their sheets as they stand |
+| The figures in the lit windows | crowd from the crowd kit (casting.md Part B), far plane | shared | the crowd kit | `cold` (`walls`) | small figures in the far windows, each at its own task (front, profile), at a quarter size |
+| Adam and Eve (casting.md #5, #6) | Bible figures | shared | listed, not drawn (P2) | `garden`, `book`, `work`, `teacher`, `trees`, `lost` | garment state 1, the robe of light, with sleeves to the wrist: Adam standing up in the clearing and looking around (front, three-quarter); crouching nose to nose with a ram (profile, close); both pruning a vine and lifting a laden branch (three-quarter); Eve laughing as a vine springs back (front); close on their hands with earth on them; walking beside the light on the path, faces turned to it (three-quarter, profile); Eve looking up at the second tree (front, close). Garment state 3, the coats of skins: walking out of the gate, then turning the first furrow with a digging stick (three-quarter, back) |
+| The Father (casting.md #4) | asset, not a rig: a definite human form in gold-white haze, no face | shared | listed, not drawn (owner-decided 2026-10-13) | `teacher`, `trees` (`word`) | coming along the garden path at evening, the form half seen in the light (three-quarter, profile); standing on the path behind Eve (back). The picture lines say "no figure"; casting.md §4 item 14 restages them to the veiled form, and this sheet follows casting.md |
+| The parable figure who reaches for the fruit | parable figure in story cloth (casting.md 2.5: a linen tunic, a walnut mantle) | shared | listed, not drawn | `lost` (`bread`) | small in the land below, reaching up and finding the fruit in reach (three-quarter); one gesture, the reach; sleeves |
+| Eden's creatures: a lion cub, a sheep, a ram, a heron, a small fox | creatures | shared (with Eden) | 03b's lion and bird only | `book` | walking in a slow line through the trees (profile); the ram face to face with Adam (profile); the heron turning its head to camera (front) |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The city flat's kitchen, third floor: the table, the lamp, the sill, the window on brick and lit windows, the door to the stair | series (the plain family's flat; the window shows hills by 19) | `cold`, `title`, `home`, `seedling`, `thesis` | cool blue dusk with the lamp's yellow; the landing teal to yellow, hills faint at dusk |
+| Eden, the one set (T03's garden; 03b, 04b and 06b see it) | shared | `title` (out of the soil), `garden`, `book`, `work`, `teacher`, `trees`, `lost` | peach morning; mid-morning; noon gold and shadow (`trees`); warm teal evening (`teacher`); dusk (`lost`) |
+| The land outside the garden, its homes lit one by one, and the wall of light with the branch over it | film | `lost` | dusk, gold on the column of light |
+| The parchment page: the garden as a pop-up book; the schoolroom with two trees in its yard | series | `school`, `trees` (`every`), `teacher` (`luke`) | peach |
+| A city park on a Sabbath afternoon, with a pond | series | `home` (`walk`) | afternoon |
+| The city building at dusk, the family's window lit (the cast's shared city building) | shared | `thesis`, `end` | dusk |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The tired potted plant on the sill, and the seed pot beside it | series (the seedling motif) | `cold`, `title`, `home` |
+| The grandmother's seedling, its roots in a twist of newspaper | series (it grows through the series, planted in 19) | `seedling`, `thesis` |
+| The girl's pencil and homework | film | `cold`, `seedling` |
+| The son's phone | film | `cold`, `seedling` |
+| The two trees: the tree of life glowing gold, the tree of knowledge in hard white light, the ring of light at its trunk | shared (with Eden) | `trees`, `lost` |
+| The leaf-roofed shelter on the book's page | film | `school` |
+| Words in light that settle on the animals | film | `book` |
+| The sundial of shadow on a stone | film | `work` |
+| A pruning tool and a digging stick (Adam's identity props, casting.md) | shared | `work`, `lost` |
+| The scroll of the family line from "Adam … of God" | film | `teacher` (`luke`) |
+| A small watering can; an open Bible on the table | series | `home` |
+| A duck on the pond | film | `home` (`walk`) |
+
+New to the library: the plain family's five (the mother on the lead's sheet, the girl, the son, the baby, the grandmother) as one series design; the flat's kitchen and its window; Adam and Eve's robe of light and coats of skins in work poses; the Father walking on the path; Eden's creatures beyond 03b's two; the city park.
+
 ## Beats
 
 ### `cold` · the household · ~32 s

@@ -12,6 +12,52 @@
 
 The Scripture lines were printed by `bible verse "daniel 1"` and `bible verse "1 samuel 2:30"` on 2026-10-10, and checked again on 2026-10-15. They are quoted word for word without the KJV's italic brackets. Where only part of a verse is quoted, the quoted words are continuous and the caption shows only those words. Pioneers are paraphrased and unnamed in speech. The Say column carries the delivery marks (`{*}` stress, `{/}` breath, `{//}` hold).
 
+## Cast
+
+| Figure | Kind | Scope | In the library? | Beats | The sheet must show |
+| --- | --- | --- | --- | --- | --- |
+| The speaker (the owner, on camera) | on camera, not drawn | series | n/a | 1, 5, 9, 11, 13, 17, 19, 22, 23 | none (filmed) |
+| Daniel (casting.md #30, §1.3 entry) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | 3, 7, 14, 19 | a youth among the line of captives (three-quarter, not picked out), 3; as a boy at his mother's knee over a scroll by lamplight (three-quarter), 7; one of four bright faces against a row of tired ones (front), 14; standing with the three before the throne (three-quarter), 19; indigo over linen (casting.md) |
+| Hananiah, Mishael and Azariah (casting.md #31) | Bible figures, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | 3, 14, 19 | always as "the four" with Daniel: among the captives, 3; three of the four bright faces (front), 14; standing before the throne (three-quarter), 19; four heights; their cloth as casting.md gives it (indigo, olive and camel over linen, Daniel in indigo) |
+| Daniel's mother (casting.md #36) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | 7 | seated, teaching a boy from a scroll across her knee and his, by lamplight (three-quarter); the olive mantle; drawn apart from Mary and the boy in E17: a different mantle and a different room (casting.md); labeled "Illustration" |
+| Nebuchadnezzar (casting.md #32) | Bible figure, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | 15, 19 (the throne) | on the throne, leaning forward (three-quarter); royal purple, a brass crown that does not glow; a person, not a menace (casting.md) |
+| Babylon's court and captives (casting.md #33) | Bible-era crowd, generated Illustration B-roll (casting.md §4 item 11), no rig | shared | listed in casting.md (P4), not drawn | 3, 14 | the temple vessels carried off and a line of young captives (three-quarter, walking), 3; a row of tired faces beside the four (front), 14; never a caricature of Babylonians (casting.md) |
+| The child reading at the kitchen table | plain figure at a child's height (character-design 2.3), a cut-paper insert (ensemble.md open choice 6) | shared (the plain child of every series) | the plain lead's sheet exists; the child's height is not drawn yet | 21 | seated at a table with an open book, reading (three-quarter); sleeves |
+| The official at the council's head (character-design §5's official) | minor (casting.md 2.3, the council chamber), a cut-paper insert | shared | the §5 minor set (designed in character-design §5) | 21 | standing or seated at the head of a council table (three-quarter); the long dark coat, warm brows; sleeves |
+| The council | crowd from the crowd kit (character-design §5; casting.md 2.3: 1 official + 5) | shared | the crowd kit | 21 | seated along a council table, turning toward the head (three-quarter, back); no two alike; sleeves |
+| The recurring cast | background only (ensemble.md), never a lead, never named in speech | shared | yes: ensemble.md | 21 (optional, behind the child at the kitchen table) | their sheets as they stand |
+
+Settings:
+
+| Set | Scope | Beats | Light |
+| --- | --- | --- | --- |
+| The speaker's desk: seated, the clay tablet or the bowl of lentils, the open Bible at Daniel 1 (filmed) | series | 1, 5, 9, 11, 13, 17, 19, 22, 23 | the shoot's own light |
+| Babylon and the Ishtar Gate (Illustration) | shared (H33's Babylon) | 1, 2, 20 | not set by the script |
+| Jerusalem humbled: the temple vessels carried off (Illustration) | shared | 3 | not set by the script |
+| Jerusalem's empty palace hall and a ruined wall (Illustration) | shared | 6 | not set by the script |
+| Daniel's home at night (Illustration) | shared (draw it apart from E17's Nazareth room) | 7 | lamplight |
+| Babylon's school and the king's table: cuneiform tablets, a banquet table (Illustration) | shared (H33's palace table) | 8 | not set by the script |
+| Babylon's throne room (Illustration; casting.md Prototype 3) | shared (H33's throne room) | 15, 19 | not set by the script |
+| Babylon's walls under a Persian banner (Illustration) | shared | 20 | not set by the script |
+| A kitchen table (cut-paper; theology 02b's plain kitchen if it holds a table) | shared | 21 | not set by the script |
+| A modern courtroom or council chamber (cut-paper) | shared | 21 | not set by the script |
+
+Props:
+
+| Prop | Scope | Beats |
+| --- | --- | --- |
+| The bowl of lentils (the hook object; a clay tablet replica is the Set row's other choice) and the cup of water | shared (H33's pulse and water) | 12, 23 |
+| The open Bible at Daniel 1 | series | 23 |
+| The temple vessels | shared | 3 |
+| The tablets with cuneiform | shared | 8 |
+| The name tag being swapped | shared (H33's name cards) | 8 |
+| The banquet table | shared | 8 |
+| The scroll | shared | 7 |
+| The Persian banner | shared | 20 |
+| The child's open book | series | 21 |
+
+New to the library: the plain child at a kitchen table (shared); §5's official's sheet, unless an earlier script draws it first (shared); the council chamber (shared); Babylon's walls under a Persian banner and Jerusalem's empty hall (shared, Illustration).
+
 ## Script
 
 | #   | Say                                                                                                                                                                                                                | Picture                                                                                          | Source note                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
