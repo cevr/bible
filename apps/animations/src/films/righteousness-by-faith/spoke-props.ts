@@ -709,9 +709,9 @@ export const ICON_BOX = {
   blade: { dx: 38, up: 145, tall: 290, wide: 120 },
 } as const;
 
-/** The open hand of faith: the lead's own hand circle, in his lilac paper (`PAPERS.lead`), drawn as big as the row's other icons. */
+/** The open hand of faith: the lead's own hand circle, in his skin (`PAPERS.leadHand`), drawn as big as the row's other icons. */
 const HAND_R = ICON_BOX.faith.up;
-const HAND_PAPER: Paper = { color: PAPERS.lead.color, shade: PAPERS.lead.shade };
+const HAND_PAPER: Paper = { color: PAPERS.leadHand.color, shade: PAPERS.leadHand.shade };
 
 /** The hand circle standing on its foot at (`x`, `y`), `scale` times its size, creased once at the light's angle. */
 export const handCircle = (ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) => {

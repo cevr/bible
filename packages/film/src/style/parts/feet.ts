@@ -4,14 +4,17 @@
 // the near one on screen left, each lit down one edge so its sole stays dark.
 // Sandals are Christ's: each bare foot cut from its corners under the hem,
 // the toes out, the near one on screen left, a strap across a foot as colour
-// on it, and a dark sole under each. How they are cut is the house's
-// (`rig/draw.ts`, `rig/shapes.ts`). Pure.
+// on it, and a dark sole under each. Trousers are RBF's lead's: each leg
+// traced from under the hem to its shoe, each shoe traced under it, cut in
+// one outline, so a line runs round the legs and the shoes and down the gap
+// between the legs, and none where a shoe meets its leg. How they are cut is
+// the house's (`rig/draw.ts`, `rig/shapes.ts`). Pure.
 
 import { Match, Schema } from 'effect';
 import { decoder } from '../decode.ts';
 import { HexColour, Paper, Tones } from '../paper.ts';
 import { SHOE_POINTS } from '../rig/shapes.ts';
-import { Corners, Length, oneRadiusOrEach } from './measure.ts';
+import { Corners, Length, Outline, oneRadiusOrEach } from './measure.ts';
 
 /** Stub legs: each one's middle either side of the figure's, its half-width (its foot's radius), their paper. */
 const StubLegsPart = Schema.TaggedStruct('StubLegs', {
@@ -75,8 +78,26 @@ const SandalsPart = Schema.TaggedStruct('Sandals', {
 });
 export type Sandals = typeof SandalsPart.Type;
 
+/** One traced piece of a leg: its outline, units from the figure's origin, and the colour laid on it. */
+const TracedPiece = Schema.Struct({
+  outline: Outline,
+  /** Colour laid on it, clipped to it: the shade under the hem, the light down a leg. */
+  tones: Schema.optionalKey(Tones),
+});
+
+/** Trousers: their cloth, each leg traced from under the hem, and each shoe traced under its leg. */
+const TrousersPart = Schema.TaggedStruct('Trousers', {
+  paper: Paper,
+  /** The near leg, on screen left; the far leg, on screen right; each from under the hem to its shoe. */
+  near: TracedPiece,
+  far: TracedPiece,
+  /** The shoes' leather, and each shoe under its leg, the near one on screen left. */
+  shoes: Schema.Struct({ paper: Paper, near: TracedPiece, far: TracedPiece }),
+});
+export type Trousers = typeof TrousersPart.Type;
+
 /** Feet, of any kind. */
-export type Feet = StubLegs | Shoes | Sandals;
+export type Feet = StubLegs | Shoes | Sandals | Trousers;
 
 /** Stub legs, checked; an ink on them is refused by InteriorInk. */
 const decodeStubLegs = decoder(StubLegsPart, { fields: { ink: 'InteriorInk' } });
@@ -87,11 +108,15 @@ const decodeShoes = decoder(ShoesPart, { fields: { ink: 'InteriorInk' } });
 /** Sandals, checked; an ink on them is refused by InteriorInk. */
 const decodeSandals = decoder(SandalsPart, { fields: { ink: 'InteriorInk' } });
 
+/** Trousers, checked; an ink on them is refused by InteriorInk. */
+const decodeTrousers = decoder(TrousersPart, { fields: { ink: 'InteriorInk' } });
+
 /** Feet's fields as a figure is given them: each kind's own, still to check. */
 type FeetFields =
   | typeof StubLegsPart.Encoded
   | typeof ShoesPart.Encoded
-  | typeof SandalsPart.Encoded;
+  | typeof SandalsPart.Encoded
+  | typeof TrousersPart.Encoded;
 
 /** Feet, checked as their kind. */
 export const decodeFeet = (input: FeetFields, part: string): Feet =>
@@ -101,6 +126,7 @@ export const decodeFeet = (input: FeetFields, part: string): Feet =>
       StubLegs: (legs) => decodeStubLegs(legs, part),
       Shoes: (shoes) => decodeShoes(shoes, part),
       Sandals: (sandals) => decodeSandals(sandals, part),
+      Trousers: (trousers) => decodeTrousers(trousers, part),
     }),
   );
 
@@ -115,3 +141,7 @@ export const Shoes = (o: Omit<Shoes, '_tag'>): Shoes =>
 /** Sandals (Christ's). */
 export const Sandals = (o: Omit<Sandals, '_tag'>): Sandals =>
   decodeSandals({ _tag: 'Sandals', ...o }, 'Sandals');
+
+/** Trousers and the shoes under them (RBF's lead's). */
+export const Trousers = (o: Omit<Trousers, '_tag'>): Trousers =>
+  decodeTrousers({ _tag: 'Trousers', ...o }, 'Trousers');

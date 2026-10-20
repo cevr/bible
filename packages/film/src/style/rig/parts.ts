@@ -690,12 +690,39 @@ const toneOf = (fig: Figure, key: string, tone: Tone, i: number): Element => {
 // ─── silhouettes ─────────────────────────────────────────────────────────────
 
 /** One part of a silhouette, or a piece: its key, its outline, its paint and its boil. */
-interface Part {
+export interface Part {
   readonly key: string;
   readonly pts: ReadonlyArray<Pt>;
   readonly look: PieceLook;
   readonly boil?: number;
+  /** The joints it turns on, outermost first, each about its point by its number: its points are where it is traced, so each joint turns it about a point in the same frame. */
+  readonly frames?: ReadonlyArray<Frame>;
 }
+
+/** A joint a part turns on: about `at`, units in the part's frame, by the view model's number `knob` (radians), its node named `name`. */
+interface Frame {
+  readonly at: Pt;
+  readonly knob: string;
+  readonly name: string;
+}
+
+/**
+ * `part`'s `inner` in its joints (`frames`, outermost first): a node at
+ * each joint's point turned by its number, the point taken off again inside
+ * it, so a part traced in the figure's frame turns about each joint in turn.
+ * A paper and its ink are each made in their own nodes (`role`), bound to the
+ * same numbers, so the paper and its line turn as one; each node is named for
+ * its part, so two parts on one joint (a forearm and its upper sleeve, both
+ * on the shoulder) each have their own.
+ */
+const framed = (fig: Figure, part: Part, role: string, inner: Element): Element =>
+  (part.frames ?? []).reduceRight<Element>((held, f) => {
+    const name = `${part.key}${f.name}${role}`;
+    return el('Node', { x: f.at[0], y: f.at[1], name, id: fig.idOf(name) }, [
+      fig.bind(f.knob, KEY.rotation),
+      el('Node', { x: -f.at[0], y: -f.at[1], name: `${name}At` }, [held]),
+    ]);
+  }, inner);
 
 const isPart = (layer: Part | Element): layer is Part => 'pts' in layer;
 
@@ -711,22 +738,31 @@ const isPart = (layer: Part | Element): layer is Part => 'pts' in layer;
  * (the head), so it runs only where nothing lies over that part's edge,
  * round the silhouette: a part laid over it (an ear, hair, a beard) is
  * composed of a paper with no rim (`unrimmed`, InnerRim), for its rim would
- * draw a light border inside the outline. A rig declares the parts and gets
- * one outline.
+ * draw a light border inside the outline. A part that turns on joints
+ * (`frames`, an arm bent at its elbow) lays its paper and its outline in its
+ * joints' nodes: a path finds the shape it draws in through every node above
+ * it, so the one line still runs round the whole however the joints turn. A
+ * line laid `behind` a drawable is drawn just behind it, wherever it stands
+ * in the rig (a head's line behind its garment, so the garment's neck covers
+ * it at the chin). A rig declares the parts and gets one outline.
  */
 export const silhouette = (
   fig: Figure,
   key: string,
   layers: ReadonlyArray<Part | Element>,
-  opts: { readonly ink?: keyof typeof INK; readonly shadow?: number } = {},
+  opts: {
+    readonly ink?: keyof typeof INK;
+    readonly shadow?: number;
+    readonly behind?: string;
+  } = {},
 ): Element => {
   const parts = layers.filter(isPart);
-  const drawn = layers.map((l) => (isPart(l) ? paperOf(fig, l, true) : l));
+  const drawn = layers.map((l) => (isPart(l) ? framed(fig, l, 'Paper', paperOf(fig, l, true)) : l));
   const name = `${key}Ink`;
   const paths = parts.map((p) => {
     const at = `${name}${p.key}`;
     if ((p.boil ?? 0.9) > 0) fig.echo(at, p.key, p.pts.length);
-    return smoothPath(fig, at, p.pts);
+    return framed(fig, p, `${key}Ink`, smoothPath(fig, at, p.pts));
   });
   const d = fig.direction;
   const weight = opts.ink ?? 'outer';
@@ -744,9 +780,25 @@ export const silhouette = (
       { thickness: silhouetteInk(d, weight), join: 'round', cap: 'round', name: 'Ink' },
       [solid(inkOf(d)), ...fig.inkBind(silhouetteInk(d, weight), 0)],
     ),
+    ...(opts.behind === undefined ? [] : [behindOf(fig, name, opts.behind)]),
   ]);
   return el('Node', { name: key, id: fig.idOf(key) }, [...drawn, ink]);
 };
+
+/** The rule that draws the drawable `name` just behind the drawable `target`. */
+const behindOf = (fig: Figure, name: string, target: string): Element =>
+  el(
+    'DrawRules',
+    { drawTargetId: fig.idOf(`${name}:at`), name: 'Rules', id: fig.idOf(`${name}:rules`) },
+    [
+      el('DrawTarget', {
+        drawableId: fig.idOf(target),
+        placementValue: 'after',
+        name: 'At',
+        id: fig.idOf(`${name}:at`),
+      }),
+    ],
+  );
 
 /**
  * The cast shadows of the piece `key` over the surfaces of its figure: one

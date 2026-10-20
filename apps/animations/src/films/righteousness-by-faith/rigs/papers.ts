@@ -29,7 +29,6 @@ const TURN = {
   wideRobe: { at: 0.55, soft: 0.5, toward: 0.2 },
   hand: { at: 0.75, soft: 0.06 },
   sheet: { at: 0.64, crescent: 0.45 },
-  leadHead: { at: 0.648, soft: 0.037, toward: 0.464 },
   shoe: { at: 0.4, soft: 0.04, toward: -0.7 },
   whiteRobe: { at: 0.82, soft: 0.02, toward: 0.2 },
   christFace: { at: 0.65, soft: 0.04, toward: 0.3 },
@@ -41,16 +40,28 @@ const TURN = {
 
 /** The figures' papers, by what each is, each checked as the module loads (`papers`). */
 export const PAPERS = papers({
-  /** The plain lead's one paper: head, tunic, legs and hands, a lilac white as cold-34 paints him in the room, his shade a clear violet, his rim near white. */
-  lead: { color: '#ece7fa', shade: '#c9bcf2', light: '#fffffb', crease: TURN.sheet, rim: RIM },
-  /** The lead's head: his paper, its shade cut straight across the far side as cold-34 cuts it (27° off upright). */
-  leadHead: {
-    color: '#ece7fa',
-    shade: '#c9bcf2',
-    light: '#fffffb',
-    crease: TURN.leadHead,
-    rim: RIM,
-  },
+  /** The lead's skin, as his sheet paints it: a warm peach, flat; his face lit down its near cheek, laid on it as a tone (`lead-rig.ts`). */
+  leadSkin: { color: '#f7b378', light: '#fac790' },
+  /** His ears: his skin, flat, with no rim (they are cut inside his head's outline). */
+  leadEar: { color: '#f7b378', light: '#f7b378' },
+  /** His hair, as his sheet paints it: a mid brown, flat; its dark and its light laid on it as tones. */
+  leadHair: { color: '#613f2a', light: '#613f2a' },
+  /** The shade his chin lays on his neck, as his sheet paints it: his skin turned toward rose and down. */
+  leadNeckShade: { color: '#b37245', light: '#b37245' },
+  /** His top, as his sheet paints it: a grey teal, flat; the shade across it laid on it as a tone. */
+  leadTop: { color: '#6e8684', light: '#8ca49a' },
+  /** His near sleeve, in the light: the top's teal, a little warmer; its lit edge and its crease laid on it as tones. */
+  leadSleeve: { color: '#708885', light: '#9bb2a5' },
+  /** His far sleeve, turned from the light: the top's shade, flat. */
+  leadFarSleeve: { color: '#556e70', light: '#556e70' },
+  /** His trousers, as his sheet paints them: a khaki, flat; his near leg's light laid on it as a tone. */
+  leadTrousers: { color: '#b89568', light: '#ddbc8b' },
+  /** The waist band under his top's hem: a dark brown. */
+  leadWaist: { color: '#725a3b', light: '#725a3b' },
+  /** His shoes: a dark brown leather; the light on their toes laid on them as tones. */
+  leadShoe: { color: '#594438', light: '#856855' },
+  /** His hands: his skin, shaded as a hand is, only at its far edge, toward rose. */
+  leadHand: { color: '#f6b278', shade: '#e3976a', light: '#f9d3a3', crease: TURN.hand, rim: 3.5 },
   /** The white tunic the lead is given (`court.back`). */
   robe: { ...rampedPaper('#fcfbfc'), crease: TURN.sheet, rim: RIM },
   /** Skin, as cold-34 paints the prosecutor's face: warm peach, its shade rosier and barely darker. */

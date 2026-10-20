@@ -420,8 +420,8 @@ export const cold = drawing({
       6 * f.at('amaze') * (1 - startle) -
       8 * startle * (1 - f.at('ponder')) +
       6 * f.at('ponder') * (1 - f.at('wonder'));
-    // Bowed, his marks slide down the round: he looks down.
-    ln.faceY = 28 * bow;
+    // Bowed, he looks down at the floor before him.
+    ln.gazeY += 280 * bow;
     ln.tilt = 0.06 * bow - 0.1 * startle * (1 - f.at('ponder'));
     ln.lean = -0.03 * startle * (1 - f.at('ponder'));
     // The seal floats down and presses over the stain.

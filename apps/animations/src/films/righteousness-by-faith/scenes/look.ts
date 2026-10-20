@@ -95,7 +95,7 @@ import {
 } from '../look-props.ts';
 import { GOLD_GLOW, PAGE, cast, shafts } from '../page-set.ts';
 import { type OpenSeedPose, glow as shine, openSeed } from '../props.ts';
-import { LEAD, LEAD_KNOBS } from '../rigs/lead-rig.ts';
+import { LEAD, LEAD_ARMS, LEAD_KNOBS, reachHands } from '../rigs/lead-rig.ts';
 import {
   ICON_BOX,
   ICON_LINE,
@@ -112,7 +112,7 @@ import { LAST_FRAME, onHim, word } from './word.ts';
 
 const L = LAST_FRAME;
 
-/** His breath's period and its offset, as word, seed and spoke breathe him (`living`), and his hands' bob with it. */
+/** His breath's period and its offset, as word, seed and spoke breathe him (`living`). */
 const BREATH = { period: 4, offset: 2.1 } as const;
 
 /** His head's tip as spoke leaves him, lifted (spoke's), and how far it sways. */
@@ -147,8 +147,11 @@ const DIM = { alpha: 0.55, reach: 0.95 } as const;
 
 // ─── his hand and the seed in it ─────────────────────────────────────────────
 
-/** His shoulders, from his feet, that his hands swing from (word's). */
-const SHOULDER = { far: [-45, -222], near: [45, -222] } as const satisfies Record<string, Pt>;
+/** His shoulders, from his feet, that his hands swing from (his rig's). */
+const SHOULDER = {
+  far: LEAD_ARMS.left.shoulder,
+  near: LEAD_ARMS.right.shoulder,
+} as const satisfies Record<string, Pt>;
 
 /** Where his near hand holds the open hand up beside him (`look.where`): out from his chest, under his chin, from his feet. */
 const PALM: Pt = [100, -209];
@@ -385,10 +388,6 @@ const readingAt = (p: Pt, reach = READ): Pt => {
 const readingOf = (icon: Icon): Pt =>
   readingAt(fromFeet([icon.at[0] + icon.box.dx, icon.at[1] - icon.box.up]));
 
-/** How far his hands bob with his breath now, Board pixels. */
-const bobOf = (f: LookFrame) =>
-  L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-
 /** One of his hands at `p` on the page. */
 const handAt = (f: LookFrame, p: Pt) =>
   at(f.ctx, { x: p[0], y: p[1] }, () =>
@@ -399,21 +398,20 @@ const handAt = (f: LookFrame, p: Pt) =>
  * Where his hands stand now: the near one raised to hold the open hand, the
  * far one holding up the merits and coming down again; each held still once
  * raised; both at rest once the scene has `closing` come back to the row.
+ * His arms are reached to them (`reachHands`), so it sets his arms' numbers.
  */
 const handsOf = (f: LookFrame, closing: number) => {
-  const bob = bobOf(f);
-  const rest = (side: Pt): Pt => {
-    const [x, y] = onHim(side, 0);
-    return [x, y + bob];
-  };
+  const rest = (side: Pt): Pt => onHim(side, 0);
   const raise = f.at('raise') * (1 - closing);
   const reached = reachAbout(onHim(SHOULDER.near, 0), rest(L.hands.near), onHim(PALM, 0), raise);
-  const near: Pt = [reached[0], reached[1] - bob * clamp(raise)];
+  const near: Pt = reached;
   const farShoulder = onHim(SHOULDER.far, 0);
   const lifted = reachAbout(farShoulder, rest(L.hands.far), onHim(RAISED, 0), f.at('offer'));
-  const raised: Pt = [lifted[0], lifted[1] - bob * clamp(f.at('offer'))];
+  const raised: Pt = lifted;
   const far = reachAbout(farShoulder, raised, rest(L.hands.far), f.at('lower'));
-  return { near, far };
+  // His arms reach for them, each hand at its sleeve's end.
+  const arms = reachHands(LN, fromFeet(far), fromFeet(near));
+  return { near: onHim(arms.right, 0), far: onHim(arms.left, 0) };
 };
 
 /** His face on each beat, his eyes on `gaze` (from his feet), his head lifted as spoke leaves it and coming level as he takes the open hand; glad again, lifted, as the scene `closing` comes back to the row. */
@@ -432,7 +430,6 @@ const pose = (f: LookFrame, gaze: Pt, closing: number) => {
   LN.lean = 0;
   LN.tilt = lerp(LIFT, 0, f.at('wonder') * (1 - closing)) + SWAY * Math.sin(f.t * 0.7);
   LN.nod = 0;
-  LN.faceY = 0;
 };
 
 // ─── the row, and the open hand coming home ──────────────────────────────────

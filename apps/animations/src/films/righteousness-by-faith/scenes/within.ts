@@ -62,7 +62,7 @@ import {
 } from '../page-set.ts';
 import { type OpenSeedPose, openSeed, glow as shine } from '../props.ts';
 import { CHRIST_KNOBS } from '../rigs/christ-rig.ts';
-import { LEAD, LEAD_KNOBS, TUNIC } from '../rigs/lead-rig.ts';
+import { LEAD, LEAD_KNOBS, TUNIC, reachHands } from '../rigs/lead-rig.ts';
 import { ICON_BOX, ON_HAND, ROW, bladeIcon, clothIcon, faithIcon } from '../spoke-props.ts';
 import {
   BAND,
@@ -103,7 +103,7 @@ import { LAST_FRAME, onHim, word } from './word.ts';
 
 const L = LAST_FRAME;
 
-/** His breath's period and its offset, as word, seed, spoke and look breathe him (`living`), and his hands' bob with it. */
+/** His breath's period and its offset, as word, seed, spoke and look breathe him (`living`). */
 const BREATH = { period: 4, offset: 2.1 } as const;
 
 /** His head's tip as spoke and look leave him, lifted, and how far it sways. */
@@ -167,8 +167,8 @@ const AT_CHEST: Pt = [-10, -150];
 const RECEIVING: Expression = { ...EASE, browY: -1.7, browTilt: 0.14, eyes: 1.08, mouth: 0.5 };
 /** "into their mind,": up at us again, warmed. */
 const WARMED: Expression = { ...EASE, browY: -1.9, browTilt: 0.06, eyes: 1.1, mouth: 1.2 };
-/** How far his head bows as he looks down at his chest: units, and his marks' slide down the round. */
-const BOW = { nod: 6, faceY: 14 } as const;
+/** How far his head bows as he looks down at his chest, units, and how far his eyes drop with it, units of gaze. */
+const BOW = { nod: 6, down: 140 } as const;
 /** His head's shake on "No.": how far it rocks, radians, and his eyes with it, units; how many times. */
 const SHAKE = { tilt: 0.06, gaze: 45, times: 2 } as const;
 
@@ -402,13 +402,20 @@ const readingAt = (p: Pt): Pt => {
 const readingOf = (icon: Icon): Pt =>
   readingAt(fromFeet([icon.at[0] + icon.box.dx, icon.at[1] - icon.box.up]));
 
-/** One of his hands floating at its rest beside him (`side`, from his feet), bobbing with his breath. */
-const restingHand = (f: WithinFrame, side: Pt) => {
-  const [x, y] = onHim(side, 0);
-  const bob = L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-  at(f.ctx, { x, y: y + bob }, () =>
+/** One of his hands at `p` on the page. */
+const handAt = (f: WithinFrame, p: Pt) =>
+  at(f.ctx, { x: p[0], y: p[1] }, () =>
     f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
   );
+
+/**
+ * His hands toward `far` and `near` (from his feet, upright on the page):
+ * his arms reached to them (`reachHands`, which sets his arms' numbers), so
+ * each lies at its sleeve's end. Answers where each lies, from his feet.
+ */
+const reached = (far: Pt, near: Pt) => {
+  const arms = reachHands(LN, far, near);
+  return [arms.left, arms.right] as const;
 };
 
 /** His face on the row: reading the blade, glad on "power", his head lifted as spoke and look leave it. */
@@ -423,7 +430,6 @@ const rowPose = (f: WithinFrame) => {
   LN.lean = 0;
   LN.tilt = LIFT + SWAY * Math.sin(f.t * 0.7);
   LN.nod = 0;
-  LN.faceY = 0;
   LN.stain = PLAIN;
 };
 
@@ -431,6 +437,7 @@ const rowPose = (f: WithinFrame) => {
 const him = (f: WithinFrame, under: () => void, over: () => void) => {
   const { ctx } = f;
   const [fx, fy] = L.lead;
+  const hands = reached(L.hands.far, L.hands.near);
   cast(ctx, fx - 46, fx + 46, fy, LEAD.height, 0.6);
   contact(ctx, fx, fy + 2, 95);
   under();
@@ -438,8 +445,7 @@ const him = (f: WithinFrame, under: () => void, over: () => void) => {
     f.rive('lead', { timelines: living(f, BREATH.period, BREATH.offset), numbers: LN }),
   );
   over();
-  restingHand(f, L.hands.far);
-  restingHand(f, L.hands.near);
+  for (const p of hands) handAt(f, onHim(p, 0));
 };
 
 /**
@@ -1019,7 +1025,7 @@ const lawPose = (f: WithinFrame) => {
   LN.lean = 0;
   LN.tilt = LIFT + SWAY * Math.sin(f.t * 0.7) + SHAKE.tilt * shake;
   LN.nod = BOW.nod * receive;
-  LN.faceY = BOW.faceY * receive;
+  LN.gazeY += BOW.down * receive;
   LN.stain = PLAIN;
 };
 
@@ -1442,8 +1448,8 @@ const roomShot = (f: WithinFrame) => {
 
 /** His strain at its top (`we`): how far he leans into it and tips his head with it, radians; how far and how fast he trembles. */
 const STRAIN = { lean: 0.17, tilt: 0.08, tremble: 0.014, rate: 9 } as const;
-/** His hands pressing down at his hem as he strains (the man's on his bed), from his feet. */
-const PRESSING = { far: [-80, -66], near: [88, -62] } as const;
+/** His hands pressing down as he strains (the man's on his bed), his arms straight and out from his sides, from his feet. */
+const PRESSING = { far: [-65, -149], near: [69, -150] } as const;
 /** Where he looks, from his feet: down at his feet in the page; ahead, the way he strains to go; up ahead as he steps on (within.arose). */
 const AT_FEET: Pt = [24, -40];
 const AHEAD: Pt = [190, -300];
@@ -1506,18 +1512,12 @@ const fastPose = (f: WithinFrame) => {
   LN.tilt = STRAIN.tilt * up + LIFT * warm + SWAY * Math.sin(f.t * 0.7);
   const bowed = 1 - Math.max(up, warm);
   LN.nod = BOW.nod * bowed;
-  LN.faceY = BOW.faceY * bowed;
+  LN.gazeY += BOW.down * bowed;
   LN.stain = PLAIN;
 };
 
-/** One of his hands at `side` (from his feet), turned with his lean, his feet moved `off`, bobbing with his breath. */
-const handOn = (f: WithinFrame, side: Pt, lean: number, off: Pt) => {
-  const [x, y] = onHim(side, lean);
-  const bob = L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-  at(f.ctx, { x: x + off[0], y: y + off[1] + bob }, () =>
-    f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
-  );
-};
+/** `side` (from his feet) turned with his lean `lean`, still from his feet. */
+const leanedOn = (side: Pt, lean: number): Pt => fromFeet(onHim(side, lean));
 
 /**
  * Him on the page, his feet held in it and freed: his shadows; him, stepping
@@ -1529,18 +1529,21 @@ const heldFast = (f: WithinFrame) => {
   const [fx, fy] = L.lead;
   const off = stepNow(f);
   const x = fx + off[0];
+  const up = strainNow(f);
+  const swing = STEP.swing * Math.sin(Math.PI * f.at('step'));
+  const far = toward(L.hands.far, PRESSING.far, up);
+  const near = toward(L.hands.near, PRESSING.near, up);
+  const hands = reached(
+    leanedOn([far[0] - swing, far[1]], LN.lean),
+    leanedOn([near[0] + swing, near[1]], LN.lean),
+  );
   cast(ctx, x - 46, x + 46, fy, LEAD.height, 0.6);
   contact(ctx, x, fy + 2, 95 * (1 + off[1] / (4 * STEP.hop)));
   at(ctx, { x, y: fy + off[1] }, () =>
     f.rive('lead', { timelines: living(f, BREATH.period, BREATH.offset), numbers: LN }),
   );
   hold(ctx, L.lead, f.at('tear'), f.hand('hold'));
-  const up = strainNow(f);
-  const swing = STEP.swing * Math.sin(Math.PI * f.at('step'));
-  const far = toward(L.hands.far, PRESSING.far, up);
-  const near = toward(L.hands.near, PRESSING.near, up);
-  handOn(f, [far[0] - swing, far[1]], LN.lean, off);
-  handOn(f, [near[0] + swing, near[1]], LN.lean, off);
+  for (const p of hands) handAt(f, onHim([p[0] + off[0], p[1] + off[1]], 0));
 };
 
 /**

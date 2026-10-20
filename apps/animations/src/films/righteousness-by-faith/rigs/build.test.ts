@@ -95,7 +95,7 @@ describe("RBF's figures", () => {
         const held = yield* unlocked(LEDGER, locked);
         expect(held.broken).toEqual([]);
         expect(held.overridden.map((o) => [o.item, o.override.frees])).toEqual([
-          ['lead', 'a4521ec387f984bfe910d8c3b060a0c9179f8cde1a71de5c8fa346c59ef830a6'],
+          ['lead', '55c5cc12ed69f14fef1899ab4f76e574b2fc8dcdd1b440aee09518ac7318a724'],
           ['judge', 'aa08efaef4ab8786975f2daaa68e7897a00dc9ea4be4162709356f6cba689c98'],
           ['prosecutor', '55449cb8729ff73d146a092fd13abf9b9add389ac3b1db60653b072527a760ee'],
         ]);

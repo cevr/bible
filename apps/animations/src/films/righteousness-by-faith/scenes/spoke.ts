@@ -46,7 +46,7 @@ import { contact } from '../court-set.ts';
 import { piece } from '../kit.ts';
 import { GOLD_GLOW, PAGE, cast, shafts } from '../page-set.ts';
 import { type OpenSeedPose, glow as shine, openSeed } from '../props.ts';
-import { LEAD, LEAD_KNOBS } from '../rigs/lead-rig.ts';
+import { LEAD, LEAD_KNOBS, reachHands } from '../rigs/lead-rig.ts';
 import {
   ICON_BOX,
   ROW,
@@ -76,7 +76,7 @@ import { LAST_FRAME, onHim, word } from './word.ts';
 
 const L = LAST_FRAME;
 
-/** His breath's period and its offset, as word and seed breathe him (`living`), and his hands' bob with it. */
+/** His breath's period and its offset, as word and seed breathe him (`living`). */
 const BREATH = { period: 4, offset: 2.1 } as const;
 
 /**
@@ -343,17 +343,24 @@ const pose = (f: SpokeFrame, gaze: Pt, lean: number) => {
   LN.lean = lean;
   LN.tilt = lerp(TIP, LIFT, f.at('ask')) + 0.012 * Math.sin(f.t * 0.7);
   LN.nod = 0;
-  LN.faceY = 0;
 };
 
-/** One of his hands floating at its rest beside him, turned with his lean, bobbing with his breath. */
-const hand = (f: SpokeFrame, side: Pt, lean: number) => {
-  const [x, y] = onHim(side, lean);
-  const bob = L.bob * Math.sin((f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period));
-  at(f.ctx, { x, y: y + bob }, () =>
+/**
+ * His hands at their rest beside him, turned with his lean: his arms
+ * reached to them (`reachHands`, which sets his arms' numbers), so each
+ * lies at its sleeve's end. Answers where each lies on the page.
+ */
+const handsAt = (lean: number) => {
+  const rest = (side: Pt): Pt => fromFeet(onHim(side, lean));
+  const arms = reachHands(LN, rest(L.hands.far), rest(L.hands.near));
+  return [onHim(arms.left, 0), onHim(arms.right, 0)] as const;
+};
+
+/** One of his hands at `p` on the page. */
+const hand = (f: SpokeFrame, p: Pt) =>
+  at(f.ctx, { x: p[0], y: p[1] }, () =>
     f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
   );
-};
 
 /** The shadow the floating seed lays on the page, down and right of it, at `alpha`. */
 const seedShadow = (ctx: CanvasRenderingContext2D, alpha: number) => {
@@ -384,6 +391,7 @@ const onPage = (f: SpokeFrame, cam: Camera, lean: number, under: () => void, ove
     shadow: 0,
   });
   shafts(ctx, w, h);
+  const hands = handsAt(lean);
   camera(ctx, cam, w, h, () => {
     cast(ctx, fx - 46, fx + 46, fy, LEAD.height, 0.6);
     contact(ctx, fx, fy + 2, 95);
@@ -392,8 +400,7 @@ const onPage = (f: SpokeFrame, cam: Camera, lean: number, under: () => void, ove
       f.rive('lead', { timelines: living(f, BREATH.period, BREATH.offset), numbers: LN }),
     );
     over();
-    hand(f, L.hands.far, lean);
-    hand(f, L.hands.near, lean);
+    for (const p of hands) hand(f, p);
   });
 };
 

@@ -46,6 +46,12 @@ const TracedHeadPart = Schema.TaggedStruct('TracedHead', {
   paper: Paper,
   /** Colour on its skin, clipped to it: the shade its hair lays on the brow, a blush. */
   tones: Schema.optionalKey(Tones),
+  /**
+   * Its chin, where the concept draws no line under it: `open`, the head's
+   * ink runs behind its garment, so the garment's neck meets the chin by the
+   * shade laid on it and no line (the RBF lead's).
+   */
+  chin: Schema.optionalKey(Schema.Literal('open')),
 });
 export type TracedHead = typeof TracedHeadPart.Type;
 

@@ -25,6 +25,7 @@ import { LIGHT } from '../light.ts';
 import { blade, figLeaf, glow } from '../props.ts';
 import { HAND_OUT } from '../rigs/hand-rig.ts';
 import { JUDGE_KNOBS } from '../rigs/judge-rig.ts';
+import { LEAD_ARMS } from '../rigs/lead-rig.ts';
 
 // ─── the faces ───────────────────────────────────────────────────────────────
 
@@ -78,14 +79,17 @@ const CHRIST_GAZE = {
   us: [-21, -382],
 } as const satisfies Record<string, Pt>;
 
-/** The lead's hands on the dock's rail, moved with him. */
+/** The lead's hands at his sides, moved with him. */
 const LEAD_HANDS: readonly [Pt, Pt] = [
   [HANDS.lead[0][0] + LEAD_DX, HANDS.lead[0][1]],
   [HANDS.lead[1][0] + LEAD_DX, HANDS.lead[1][1]],
 ];
 /** His near hand lifted open before him, the seed on it (`takes`), and his shoulder it swings from. */
 const LEAD_OPEN: Pt = [338, 556];
-const LEAD_SHOULDER: Pt = [318, 500];
+const LEAD_SHOULDER: Pt = [
+  LEAD_AT[0] + LEAD_ARMS.right.shoulder[0],
+  LEAD_AT[1] + LEAD_ARMS.right.shoulder[1],
+];
 
 /** Christ's near hand held out to the lead with the seed, and to us (`you`), and the shoulder it swings from. */
 const CHRIST_OFFER: Pt = [384, 560];

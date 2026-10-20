@@ -61,7 +61,7 @@ import {
   tabletsAt,
 } from '../page-set.ts';
 import { LIFT } from '../palette.ts';
-import { LEAD, LEAD_KNOBS } from '../rigs/lead-rig.ts';
+import { LEAD, LEAD_ARMS, LEAD_HAND_SIZE, LEAD_KNOBS, reachHands } from '../rigs/lead-rig.ts';
 import { TITLE } from '../script.ts';
 import { title } from './title.ts';
 
@@ -190,19 +190,17 @@ const PEACH: Light = { ...raisedLight('#fffaf4', '#f9ecec'), vignette: 0.1 };
 /** Where he stands on the page, his feet, in the Board's pixels at his own size (word.all's, scaled to him). */
 const LEAD_AT: Pt = [500, 820];
 
-/** His hands' size against the hand rig's: court-cast's for him (0.34 of his head across), which it keeps to itself. */
-const HAND_SCALE = 1.08;
+/** His hands' size against the hand rig's: his sheet's. */
+const HAND_SCALE = LEAD_HAND_SIZE;
 
 /** A pair of places on him, from his feet: on his far side (the page's left) and his near side. */
 interface Sides {
   readonly far: Pt;
   readonly near: Pt;
 }
-/** Where his hands float at rest beside him (word.all), and the shoulders they swing from. */
-const HAND_REST: Sides = { far: [-85, -108], near: [95, -105] };
-const SHOULDER: Sides = { far: [-45, -222], near: [45, -222] };
-/** How far his hands bob with his breath, Board pixels. */
-const BOB = 2;
+/** Where his hands hang at rest at his sleeves' ends, and the shoulders they swing from (his rig's). */
+const HAND_REST: Sides = { far: LEAD_ARMS.left.rest, near: LEAD_ARMS.right.rest };
+const SHOULDER: Sides = { far: LEAD_ARMS.left.shoulder, near: LEAD_ARMS.right.shoulder };
 
 /** Where he looks, from his feet. */
 interface Gazes {
@@ -287,6 +285,10 @@ const FOLD_POINTS = 64;
 
 /** The tablets (scratch: their size, stone and lines rewritten each frame). */
 const TABS: TabletsPose = tabletsAt(TABLETS_AT[0], TABLETS_AT[1]);
+
+/** A point on the page as units from his feet, upright, and back. */
+export const fromLead = (p: Pt): Pt => [p[0] - LEAD_AT[0], p[1] - LEAD_AT[1]];
+export const onLead = (p: Pt): Pt => [LEAD_AT[0] + p[0], LEAD_AT[1] + p[1]];
 
 /** `p`, from his feet, turned with him as he leans `lean`: where it is on the page. */
 export const onHim = (p: Pt, lean: number): Pt => {
@@ -403,8 +405,8 @@ const FALLEN: ReadonlyArray<Place> = [
 
 /**
  * The page as this scene's last frame leaves it, where `seed` opens: the
- * sheet and its light; where he stands, his hands' rests, their bob and
- * their size; his last look (`LEVEL`, his eyes on us); where the tablets
+ * sheet and its light; where he stands, his hands' rests and their
+ * size; his last look (`LEVEL`, his eyes on us); where the tablets
  * stand; and where each leaf lies, dry and flat.
  */
 export const LAST_FRAME = {
@@ -412,7 +414,6 @@ export const LAST_FRAME = {
   light: PEACH,
   lead: LEAD_AT,
   hands: HAND_REST,
-  bob: BOB,
   handScale: HAND_SCALE,
   face: LEVEL,
   tablets: TABLETS_AT,
@@ -602,7 +603,8 @@ export const word = drawing({
     const lean = 0.17 * leaning - 0.04 * up;
     LN.lean = lean;
     LN.nod = 7 * looking + 4 * leaning - 6 * up + 3 * busy;
-    LN.faceY = 12 * looking + 10 * f.at('straighten') * (1 - f.at('lookUp')) - 10 * up + 14 * busy;
+    LN.gazeY +=
+      120 * looking + 100 * f.at('straighten') * (1 - f.at('lookUp')) - 100 * up + 140 * busy;
     LN.tilt =
       0.08 * f.at('wonder') * (1 - f.at('down')) +
       0.07 * leaning +
@@ -614,14 +616,9 @@ export const word = drawing({
     SEAL.x = sx;
     SEAL.y = sy;
 
-    // His hands, floating beside him, bobbing with his breath (a 4 s breath, half a turn on, as
-    // `living(f, 4, 2.1)` breathes him).
-    const bob = BOB * Math.sin(f.t * (Math.PI / 2) + 3.3);
-    const restOf = (side: Pt): Pt => {
-      const [x, y] = onHim(side, lean);
-      return [x, y + bob];
-    };
-    const far = reachAbout(
+    // His hands at rest at his sides, turned with him; they breathe with his sleeves.
+    const restOf = (side: Pt): Pt => onHim(side, lean);
+    let far = reachAbout(
       onHim(SHOULDER.far, lean),
       restOf(HAND_REST.far),
       onHim([-40, -150], lean),
@@ -640,6 +637,10 @@ export const word = drawing({
       near = reachAbout(nearShoulder, near, middle, f.at(p.cues.pin));
     }
     near = reachAbout(nearShoulder, near, restOf(HAND_REST.near), f.at('home'));
+    // His arms reach for them, each hand at its sleeve's end.
+    const reached = reachHands(LN, fromLead(far), fromLead(near));
+    far = onLead(reached.left);
+    near = onLead(reached.right);
     const pressing = Math.max(
       f.keys('press', PRESS),
       ...PINNED.map((p) => f.keys(p.cues.push, PRESS)),

@@ -15,11 +15,11 @@ import {
   isSeated,
 } from '../figure.ts';
 import { type Paper, looked, paper } from '../paper.ts';
-import { ARM_SIDES, type Arm, type ArmSide } from '../parts/arm.ts';
+import { ARM_SIDES, type AnyArm, type Arm, type ArmSide, type JointedArm } from '../parts/arm.ts';
 import type { Beard } from '../parts/beard.ts';
 import { type Garment, tonesOn } from '../parts/body.ts';
 import type { Ear } from '../parts/ear.ts';
-import type { Feet, Sandals, Shoes, StubLegs } from '../parts/feet.ts';
+import type { Feet, Sandals, Shoes, StubLegs, Trousers } from '../parts/feet.ts';
 import type { Hair } from '../parts/hair.ts';
 import type { Headcloth } from '../parts/headcloth.ts';
 import type { RoundHead, TracedHead } from '../parts/head.ts';
@@ -30,6 +30,7 @@ import type { Seated, Standing } from '../parts/stance.ts';
 import type { GivenRobe, Stain } from '../parts/states.ts';
 import {
   type Figure,
+  type Part,
   type PieceLook,
   type Pt,
   artboard,
@@ -309,7 +310,8 @@ const shoutsOf = (rig: Figure, f: Parts) =>
  * (carried off the body's middle, and canted where the concept cants it):
  * it turns about the neck (`tilt`) and sinks toward the body (`nod`); what
  * is cut inside its outline (`cutOf`), its open mouth and its face kit lie
- * over its paper, and one ink line runs round them all (`silhouette`). Its
+ * over its paper, and one ink line runs round them all (`silhouette`), drawn
+ * behind the garment where its chin is open (`TracedHead.chin`). Its
  * papers stack by one rule, keyed on a beard. A bearded head's mouth is
  * drawn in its beard, so its open mouth and its face kit lie over every
  * part cut from it, the kit made first (its ids start with the face's), and
@@ -334,6 +336,7 @@ const tracedHeadOf = (rig: Figure, f: Parts, head: TracedHead) => {
               face === undefined
                 ? [...cutOf(f), ...shoutsOf(rig, f), kitOf(rig, f.face), headPaperOf(head)]
                 : [...shoutsOf(rig, f), face, ...tuckedUnder([...cutOf(f), headPaperOf(head)])],
+              head.chin === 'open' ? { behind: garmentBack(f) } : {},
             ),
           ],
         ),
@@ -348,6 +351,14 @@ const headOf = (rig: Figure, f: Parts) =>
 
 /** What a garment's piece is named, and its side's node after it. */
 const garmentKey = (g: Garment) => (g._tag === 'Tunic' ? 'tunic' : 'robe');
+
+/** The garment's backmost drawable: its cut's line when its arms or trousers cut it in one outline (`sleevedOf`), else its piece. */
+const garmentBack = (f: Parts) => {
+  const key = garmentKey(f.body);
+  return ARM_SIDES.some((side) => f.arms[side] !== undefined) || hemOver(f) !== undefined
+    ? `${key}CutInk`
+    : key;
+};
 
 /** The band on `side` of the bands' middle (-1 screen left), clockwise. */
 const bandOutline = (b: Bands, side: -1 | 1): Pt[] => {
@@ -388,17 +399,41 @@ const sleeveOf = (rig: Figure, side: ArmSide, arm: Arm, key: string, look: Piece
     ]),
   ]);
 
-/** The sleeves a cut lays: each named for its side and `key` (`farSleeve`), in its arm's `look`. */
+/** The sleeves a cut lays: each named for its side and `key` (`farSleeve`, a forearm's `farSleeveFore`), in its arm's `look` for that sleeve. */
 interface Sleeves {
   readonly key: string;
-  readonly look: (arm: Arm) => PieceLook;
+  readonly look: (arm: AnyArm, sleeve: 'upper' | 'forearm') => PieceLook;
 }
 
 /**
- * The paper `key` cut to `outline` in `look`: with arms, each arm's
- * sleeve behind it, the near one first, cut in one outline with it
- * (`silhouette`), so a sleeve grows out of the paper with no line where it
- * leaves it. The sleeves are made before the paper.
+ * A jointed arm's sleeves as parts of its garment's cut, front first: its
+ * forearm in the joints of its shoulder and its elbow, then its upper
+ * sleeve in its shoulder's (`Part.frames`), each joint turned by its side's
+ * number (`nearArm`, `nearElbow`).
+ */
+const jointedOf = (side: ArmSide, arm: JointedArm, key: string, sleeves: Sleeves): Part[] => {
+  const shoulder = { at: arm.pivot, knob: `${side}Arm`, name: `${key}Arm` };
+  const elbow = { at: arm.elbow, knob: `${side}Elbow`, name: `${key}Elbow` };
+  return [
+    {
+      key: `${key}Fore`,
+      pts: arm.forearm,
+      look: sleeves.look(arm, 'forearm'),
+      frames: [shoulder, elbow],
+    },
+    { key, pts: arm.outline, look: sleeves.look(arm, 'upper'), frames: [shoulder] },
+  ];
+};
+
+/**
+ * The paper `key` cut to `outline` in `look`, with its arms cut in one
+ * outline with it (`silhouette`), so no line runs where a sleeve meets it:
+ * each jointed arm on it, front first, and what lies on the paper under
+ * the arms (`under`, the stain); each arm that swings whole behind it, the
+ * near one first, so a sleeve grows out of the paper with no line where it
+ * leaves it. The sleeves are made before the paper. Over trousers its line
+ * lies behind theirs (`hemOver`), so the trousers' paper covers it under
+ * the hem and no line runs where the paper meets them.
  */
 const sleevedOf = (
   rig: Figure,
@@ -407,27 +442,71 @@ const sleevedOf = (
   outline: ReadonlyArray<Pt>,
   look: PieceLook,
   sleeves: Sleeves,
+  under: ReadonlyArray<Element> = [],
 ): Element => {
-  const arms = ARM_SIDES.flatMap((side) => {
+  const sided = ARM_SIDES.flatMap((side) => {
     const arm = f.arms[side];
-    return arm === undefined
-      ? []
-      : [sleeveOf(rig, side, arm, `${side}${sleeves.key}`, sleeves.look(arm))];
+    return arm === undefined ? [] : [{ side, arm, key: `${side}${sleeves.key}` }];
   });
-  return arms.length === 0
+  const front = sided.flatMap(({ side, arm, key: at }) =>
+    arm._tag === 'JointedArm' ? jointedOf(side, arm, at, sleeves) : [],
+  );
+  const behind = sided.flatMap(({ side, arm, key: at }) =>
+    arm._tag === 'Arm' ? [sleeveOf(rig, side, arm, at, sleeves.look(arm, 'upper'))] : [],
+  );
+  const hem = hemOver(f);
+  return front.length === 0 && behind.length === 0 && under.length === 0 && hem === undefined
     ? piece(rig, key, outline, look)
-    : silhouette(rig, `${key}Cut`, [{ key, pts: outline, look }, ...arms]);
+    : silhouette(
+        rig,
+        `${key}Cut`,
+        [...front, ...under, { key, pts: outline, look }, ...behind],
+        hem === undefined ? {} : { behind: hem },
+      );
 };
+
+/** The trousers' piece, and the line `silhouette` names after it. */
+const TROUSERS = 'legs';
+const TROUSERS_INK = `${TROUSERS}Ink`;
+
+/**
+ * What a garment's line lies behind where trousers come out under its hem:
+ * the trousers' line (`trousersOf`), so their paper covers the garment's
+ * line under the hem, as a sheet draws a top's hem straight onto the
+ * trousers with no line between; nothing over other feet, or none.
+ */
+const hemOver = (f: Parts) =>
+  'feet' in f && f.feet?._tag === 'Trousers' ? TROUSERS_INK : undefined;
+
+/** Whether `f` has an arm bent at its elbow: its arms lie on its garment, and the stain under them. */
+const jointed = (f: Parts) => ARM_SIDES.some((side) => f.arms[side]?._tag === 'JointedArm');
+
+/** A sleeve's colour, by its arm and which sleeve it is: the upper sleeve's, or a jointed arm's forearm's. */
+const sleeveTones = (arm: AnyArm, sleeve: 'upper' | 'forearm') =>
+  (sleeve === 'forearm' && arm._tag === 'JointedArm' ? arm.forearmTones : arm.tones) ?? [];
 
 /**
  * A garment's own paper, the colour laid on it, and its arms behind it,
  * each sleeve in its own paper and the colour laid on that (`sleevedOf`).
  */
-const garmentOf = (rig: Figure, f: Parts, outline: ReadonlyArray<Pt>): Element =>
-  sleevedOf(rig, f, garmentKey(f.body), outline, looked(f.body.paper, { tones: tonesOn(f.body) }), {
-    key: 'Sleeve',
-    look: (arm) => looked(arm.paper, { tones: arm.tones ?? [] }),
-  });
+const garmentOf = (
+  rig: Figure,
+  f: Parts,
+  outline: ReadonlyArray<Pt>,
+  under: ReadonlyArray<Element> = [],
+): Element =>
+  sleevedOf(
+    rig,
+    f,
+    garmentKey(f.body),
+    outline,
+    looked(f.body.paper, { tones: tonesOn(f.body) }),
+    {
+      key: 'Sleeve',
+      look: (arm, sleeve) => looked(arm.paper, { tones: sleeveTones(arm, sleeve) }),
+    },
+    under,
+  );
 
 /** The skin among `tones` (each marked `skin`), in their order: what a given robe lays again over its paper. */
 const skinIn = <T extends { readonly skin?: true }>(tones: ReadonlyArray<T>): ReadonlyArray<T> =>
@@ -458,7 +537,7 @@ const robeOf = (rig: Figure, f: Parts, robe: GivenRobe, outline: ReadonlyArray<P
     rig.bind('robe', KEY.opacity),
     sleevedOf(rig, f, 'robePaper', outline, look, {
       key: 'RobeSleeve',
-      look: (arm) => looked(robe.paper, { tones: skinIn(arm.tones ?? []) }),
+      look: (arm, sleeve) => looked(robe.paper, { tones: skinIn(sleeveTones(arm, sleeve)) }),
     }),
   ]);
 };
@@ -467,8 +546,10 @@ const robeOf = (rig: Figure, f: Parts, robe: GivenRobe, outline: ReadonlyArray<P
  * What lies on a garment's side, front first: what lies on it with no line
  * of its own (`over`, made before the body), the given robe and its
  * sleeves, the stain (made before the head), and the garment's own paper
- * with its arms. The given robe and the garment's paper are made here,
- * inside the side's node.
+ * with its arms; with an arm bent at its elbow, the stain lies in the
+ * garment's cut under the arms on it, so a hand brought to the chest
+ * brings its sleeve over the stain. The given robe and the garment's paper
+ * are made here, inside the side's node.
  */
 const clothOf = (
   rig: Figure,
@@ -477,12 +558,10 @@ const clothOf = (
   stain: ReadonlyArray<Element>,
 ): Element[] => {
   const outline = garmentOutline(f.body);
-  return [
-    ...over,
-    ...(f.states.robe === undefined ? [] : [robeOf(rig, f, f.states.robe, outline)]),
-    ...stain,
-    garmentOf(rig, f, outline),
-  ];
+  const robe = f.states.robe === undefined ? [] : [robeOf(rig, f, f.states.robe, outline)];
+  return jointed(f)
+    ? [...over, ...robe, garmentOf(rig, f, outline, stain)]
+    : [...over, ...robe, ...stain, garmentOf(rig, f, outline)];
 };
 
 /** One stub leg about `x`: straight down from under the hem at `hem`, its foot a half circle. */
@@ -561,6 +640,38 @@ const sandalsOf = (rig: Figure, s: Sandals) =>
     ),
   );
 
+/**
+ * Trousers and the shoes under them, cut in one outline (`silhouette`):
+ * each shoe in front of its leg, so no line runs where a shoe meets its
+ * leg, and the line runs down the gap between the legs; each crawls as a
+ * small piece.
+ */
+const trousersOf = (rig: Figure, t: Trousers) =>
+  silhouette(rig, TROUSERS, [
+    ...(
+      [
+        ['shoeL', t.shoes.near],
+        ['shoeR', t.shoes.far],
+      ] as const
+    ).map(([key, shoe]) => ({
+      key,
+      pts: shoe.outline,
+      look: looked(t.shoes.paper, { tones: shoe.tones ?? [] }),
+      boil: SMALL_BOIL,
+    })),
+    ...(
+      [
+        ['legL', t.near],
+        ['legR', t.far],
+      ] as const
+    ).map(([key, leg]) => ({
+      key,
+      pts: leg.outline,
+      look: looked(t.paper, { tones: leg.tones ?? [] }),
+      boil: SMALL_BOIL,
+    })),
+  ]);
+
 /** A figure's feet under the hem at `hem`. */
 const feetOf = (rig: Figure, feet: Feet, hem: number) => {
   switch (feet._tag) {
@@ -570,6 +681,8 @@ const feetOf = (rig: Figure, feet: Feet, hem: number) => {
       return legsOf(rig, feet, hem);
     case 'Sandals':
       return sandalsOf(rig, feet);
+    case 'Trousers':
+      return [trousersOf(rig, feet)];
   }
 };
 

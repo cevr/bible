@@ -4,11 +4,11 @@ import { DIRECTION } from './house.ts';
 import { figure, isComposed } from './figure.ts';
 import { overridesIn } from './override.ts';
 import { paper } from './paper.ts';
-import { ARM_SIDES, Arm, armHand } from './parts/arm.ts';
+import { ARM_SIDES, Arm, JointedArm, armHand, armReach } from './parts/arm.ts';
 import { Beard } from './parts/beard.ts';
 import { Robe, Tunic } from './parts/body.ts';
 import { Ear } from './parts/ear.ts';
-import { Sandals, Shoes, StubLegs } from './parts/feet.ts';
+import { Sandals, Shoes, StubLegs, Trousers } from './parts/feet.ts';
 import { Hair } from './parts/hair.ts';
 import { Hands } from './parts/hands.ts';
 import { Headcloth } from './parts/headcloth.ts';
@@ -1716,5 +1716,183 @@ describe('a lock', () => {
     );
     const noted = { ...LOCK, note: 'kept' };
     expect(() => figure({ ...leadOf([]), lock: noted })).toThrow(/lock refused: /);
+  });
+});
+
+/** A far arm bent at its elbow, hanging on the cut robe: its upper sleeve from the shoulder past the elbow, its forearm from the elbow to the wrist, its hand past the forearm's end. */
+const UPPER: Pt[] = [
+  [25, -320],
+  [60, -320],
+  [70, -195],
+  [40, -190],
+];
+const FOREARM: Pt[] = [
+  [40, -210],
+  [72, -210],
+  [76, -100],
+  [44, -100],
+];
+const bent = JointedArm({
+  pivot: [40, -300],
+  rest: 0,
+  outline: UPPER,
+  elbow: [56, -200],
+  bend: 0,
+  forearm: FOREARM,
+  hand: [60, -90],
+  paper: FLAT,
+});
+/** `bent`'s fields, to make it again with one changed. */
+const bentOf = ({ _tag: _arm, ...fields }: JointedArm) => fields;
+
+/** Where `bent`'s elbow lies with its upper sleeve turned `turn` about its shoulder. */
+const elbowAt = (turn: number): Pt => {
+  const [[sx, sy], [ex, ey]] = [bent.pivot, bent.elbow];
+  const [c, s] = [Math.cos(turn), Math.sin(turn)];
+  return [sx + (ex - sx) * c - (ey - sy) * s, sy + (ex - sx) * s + (ey - sy) * c];
+};
+/** Which side of the line from `bent`'s shoulder to `target` the point `p` lies on. */
+const sideOf = (target: Pt, p: Pt) => {
+  const [sx, sy] = bent.pivot;
+  return Math.sign((target[0] - sx) * (p[1] - sy) - (target[1] - sy) * (p[0] - sx));
+};
+
+/** Trousers: two legs either side of the middle, a shoe under each. */
+const leg = (x: number): Pt[] => [
+  [x - 20, -30],
+  [x + 20, -30],
+  [x + 20, -8],
+  [x - 20, -8],
+];
+const shoe = (x: number): Pt[] => [
+  [x - 24, -10],
+  [x + 24, -10],
+  [x + 24, 0],
+  [x - 24, 0],
+];
+const trousers = Trousers({
+  paper: FLAT,
+  near: { outline: leg(-25) },
+  far: { outline: leg(25) },
+  shoes: { paper: SKIN, near: { outline: shoe(-25) }, far: { outline: shoe(25) } },
+});
+
+/** The standing figure in trousers, its traced head's chin open, its far arm bent at its elbow. */
+const openOf = (arms: { readonly far?: JointedArm } = { far: bent }) => ({
+  ...standingOf(),
+  head: Head.Traced({
+    view: 'front',
+    outline: ellipse(0, 0, 50, 60, 12),
+    y: -400,
+    neck: -330,
+    set: { x: 0 },
+    paper: SKIN,
+    chin: 'open',
+  }),
+  arms,
+  feet: trousers,
+});
+
+describe('an arm bent at its elbow, trousers, and an open chin', () => {
+  test("adds its side's two numbers, its shoulder's and its elbow's, each at its rest", () => {
+    const armed = figure({ ...standingOf(), arms: { far: bent } });
+    expect(Object.keys(armed.knobs).slice(-2)).toEqual(['farArm', 'farElbow']);
+    expectTypeOf(Rec.keys(armed.knobs)).toEqualTypeOf<
+      Array<FaceKnob | 'shout' | 'lean' | 'tilt' | 'nod' | 'farArm' | 'farElbow'>
+    >();
+    const set = figure({
+      ...standingOf(),
+      arms: { far: JointedArm({ ...bentOf(bent), rest: 0.2, bend: -0.3 }) },
+    });
+    expect([set.knobs.farArm, set.knobs.farElbow]).toEqual([0.2, -0.3]);
+  });
+
+  test("whose elbow lies outside either sleeve, or whose hand lies short of its forearm's end, is refused", () => {
+    const out = JointedArm({ ...bentOf(bent), elbow: [10, -200] });
+    expect(() => figure({ ...standingOf(), arms: { far: out } })).toThrow(
+      /arms\.far refused: [^]*its elbow \(10, -200\) lies outside its upper sleeve or its forearm: an elbow lies inside both/,
+    );
+    const short = JointedArm({ ...bentOf(bent), hand: [58, -150] });
+    expect(() => figure({ ...standingOf(), arms: { far: short } })).toThrow(
+      /arms\.far refused: [^]*a hand lies past its sleeve's end/,
+    );
+  });
+
+  test('lies on its garment, cut in one outline with it: its forearm turned by its shoulder and its elbow, its upper sleeve by its shoulder, each joint a node of its own', () => {
+    const rml = drawnOf(figure({ ...standingOf(), arms: { far: bent } }));
+    const places = placesOf(rml, ['robeCut', 'farSleeveFore', 'farSleeve', 'robe', 'robeCutInk']);
+    expect(places.every((at) => at >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((a, b) => a - b));
+    const boundTo = (node: string) =>
+      rml.match(
+        new RegExp(`name="${node}" id="[^"]+">\\s*<DataBindContext sourcePathIds="[^"-]+-([^"]+)"`),
+      )?.[1];
+    const numberOf = (knob: string) =>
+      rml.match(new RegExp(`<ViewModelPropertyNumber name="${knob}" id="([^"]+)"/>`))?.[1];
+    expect(boundTo('farSleeveForefarSleeveArmPaper')).toBe(numberOf('farArm'));
+    expect(boundTo('farSleeveForefarSleeveElbowPaper')).toBe(numberOf('farElbow'));
+    expect(boundTo('farSleevefarSleeveArmPaper')).toBe(numberOf('farArm'));
+    // Two parts on one shoulder each turn in a node of their own, so no id is given twice.
+    const nodeIds = Array.from(rml.matchAll(/<Node [^>]*\bid="([^"]+)"/g), (m) => m[1]);
+    expect(new Set(nodeIds).size).toBe(nodeIds.length);
+  });
+
+  test('reaches: its traced hand by its traced pose, a point within its reach exactly, and toward one past it as far as it reaches', () => {
+    const still = armReach(bent, bent.hand);
+    expect(still.turn).toBeCloseTo(0, 6);
+    expect(still.bend).toBeCloseTo(0, 6);
+    expect(still.hand[0]).toBeCloseTo(bent.hand[0], 6);
+    expect(still.hand[1]).toBeCloseTo(bent.hand[1], 6);
+    const near = armReach(bent, [110, -220]);
+    expect(near.hand[0]).toBeCloseTo(110, 6);
+    expect(near.hand[1]).toBeCloseTo(-220, 6);
+    expect(armHand(bent, near.turn, near.bend)).toEqual(near.hand);
+    // Past its reach it lies straight along the line to the point, its upper sleeve and forearm end to end.
+    const upper = Math.hypot(bent.elbow[0] - bent.pivot[0], bent.elbow[1] - bent.pivot[1]);
+    const fore = Math.hypot(bent.hand[0] - bent.elbow[0], bent.hand[1] - bent.elbow[1]);
+    const far = armReach(bent, [40, 200]);
+    expect(far.hand[0]).toBeCloseTo(40, 3);
+    expect(far.hand[1]).toBeCloseTo(-300 + upper + fore, 3);
+  });
+
+  test('bends with the elbow on the side of the line to the point its hand hangs on at rest, out from its rest or across the body', () => {
+    for (const target of [
+      [110, -220],
+      [-20, -250],
+      [100, -300],
+    ] as const satisfies ReadonlyArray<Pt>) {
+      const { turn } = armReach(bent, target);
+      expect(sideOf(target, elbowAt(turn))).toBe(sideOf(target, bent.hand));
+    }
+  });
+
+  test('trousers draw two legs and a shoe under each in one outline, the shoes over the legs', () => {
+    const rml = drawnOf(figure(openOf()));
+    const places = placesOf(rml, ['legs', 'shoeL', 'shoeR', 'legL', 'legR', 'legsInk']);
+    expect(places.every((at) => at >= 0)).toBe(true);
+    expect(places).toEqual(places.toSorted((a, b) => a - b));
+  });
+
+  test("an open chin draws its head's line just behind its garment's line, with arms or without; a closed chin draws no rule", () => {
+    const targetOf = (rml: string) =>
+      Number(rml.match(/<DrawTarget drawableId="\d+:(\d+)" placementValue="after"/)?.[1]);
+    const armed = drawnOf(figure(openOf()));
+    expect(targetOf(armed)).toBe(idNumber(armed, 'robeCutInk'));
+    const bare = drawnOf(figure(openOf({})));
+    expect(targetOf(bare)).toBe(idNumber(bare, 'robeCutInk'));
+    expect(drawnOf(figure({ ...standingOf(), arms: { far: bent } }))).not.toContain('<DrawRules');
+  });
+
+  test("a garment over trousers draws its line just behind the trousers' line, so their paper covers it under the hem; over other feet, no rule", () => {
+    const targetsOf = (rml: string) =>
+      [...rml.matchAll(/<DrawTarget drawableId="\d+:(\d+)" placementValue="after"/g)].map((m) =>
+        Number(m[1]),
+      );
+    for (const arms of [{ far: bent }, {}]) {
+      const rml = drawnOf(figure(openOf(arms)));
+      expect(targetsOf(rml)).toContain(idNumber(rml, 'legsInk'));
+    }
+    const shod = drawnOf(figure({ ...standingOf(), arms: { far: bent } }));
+    expect(shod).not.toContain('<DrawTarget');
   });
 });

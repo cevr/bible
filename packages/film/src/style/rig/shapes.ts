@@ -57,7 +57,7 @@ export const roundedPolygon = (
 };
 
 /** A tunic's outline, in its figure's units: its corners rounded, its sides bowed out between neck and hem. */
-export const tunicOutline = (t: Tunic): Pt[] =>
+const tunicOutline = (t: Tunic): Pt[] =>
   roundedPolygon(
     [
       [-t.half.neck, t.neck],

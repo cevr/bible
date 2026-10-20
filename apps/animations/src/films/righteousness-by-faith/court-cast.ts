@@ -32,7 +32,7 @@ import { C } from './kit.ts';
 import { SEAL_GOLD, type SeedPose, noSeed, seed as seedProp } from './props.ts';
 import { CHRIST_KNOBS } from './rigs/christ-rig.ts';
 import { JUDGE_KNOBS } from './rigs/judge-rig.ts';
-import { LEAD, LEAD_KNOBS } from './rigs/lead-rig.ts';
+import { LEAD, LEAD_ARMS, LEAD_HAND_SIZE, LEAD_KNOBS, reachHands } from './rigs/lead-rig.ts';
 import { HAND_OUT_STEPS } from './rigs/hand-rig.ts';
 import { PROSECUTOR_KNOBS } from './rigs/prosecutor-rig.ts';
 import {
@@ -166,11 +166,11 @@ export interface CarriedSheet {
   shown: number;
 }
 
-/** Where the lead's hands rest on the dock's top rail, and the prosecutor's and judge's at rest. */
+/** Where the lead's hands hang at his sides, at his sleeves' ends, and the prosecutor's and judge's at rest. */
 export const HANDS = {
   lead: [
-    [212, 606],
-    [392, 606],
+    [PLACE.lead[0] + LEAD_ARMS.left.rest[0], PLACE.lead[1] + LEAD_ARMS.left.rest[1]],
+    [PLACE.lead[0] + LEAD_ARMS.right.rest[0], PLACE.lead[1] + LEAD_ARMS.right.rest[1]],
   ],
   prosecutor: [
     [632, 548],
@@ -347,9 +347,9 @@ export const living = (f: CourtFrame, period: number, offset: number) =>
 /**
  * Each figure's hands' size against the hand rig's, so each is the share of
  * its head's width the concept draws: the judge's 0.45, the prosecutor's
- * 0.44, the lead's 0.34.
+ * 0.44 (the lead's are his sheet's, `LEAD_HAND_SIZE`).
  */
-const HAND = { judge: 1.23, prosecutor: 1.14, lead: 1.08, christ: 1.08 } as const;
+const HAND = { judge: 1.23, prosecutor: 1.14, christ: 1.08 } as const;
 
 /** Christ's hand rigs by size: His own, then each held-out step. */
 const CHRIST_HANDS = [
@@ -441,6 +441,14 @@ const leadGroup = (f: CourtFrame, p: CourtPose) => {
     draw();
     ctx.restore();
   };
+  // His arms reach for where the pose puts his hands, and his hands lie at the ends of his sleeves.
+  const [left, right] = p.lead.hands;
+  const reached = reachHands(
+    p.lead.numbers,
+    [left[0] - lx, left[1] - ly],
+    [right[0] - lx, right[1] - ly],
+  );
+  const hands = [reached.left, reached.right].map(([x, y]): Pt => [lx + x, ly + y]);
   const leadFigure = () =>
     asLead(() => {
       contact(ctx, lx, ly + 2, 95);
@@ -469,7 +477,7 @@ const leadGroup = (f: CourtFrame, p: CourtPose) => {
   }
   dock(ctx);
   asLead(() => {
-    for (const h of p.lead.hands) handAt(f, 'leadHand', h, HAND.lead);
+    for (const h of hands) handAt(f, 'leadHand', h, LEAD_HAND_SIZE);
     seedProp(ctx, p.lead.seed);
   });
   if (!christ) return;

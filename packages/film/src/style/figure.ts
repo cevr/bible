@@ -24,7 +24,14 @@ import { ConceptRef } from '../core/match.ts';
 import { decoder } from './decode.ts';
 import { type Lock, decodeLock } from './lock.ts';
 import { GarmentTones } from './paper.ts';
-import { ARM_SIDES, type Arm, type ArmSide, decodeArm } from './parts/arm.ts';
+import {
+  ARM_SIDES,
+  type AnyArm,
+  type Arm,
+  type ArmSide,
+  type JointedArm,
+  decodeArm,
+} from './parts/arm.ts';
 import { type Beard, decodeBeard } from './parts/beard.ts';
 import { type Garment, decodeGarment, tonesOn } from './parts/body.ts';
 import { type Ear, decodeEar } from './parts/ear.ts';
@@ -51,8 +58,8 @@ const SeatedArt = Schema.Struct({ width: Length, height: Length, head: Point });
 
 /** A figure's arms that reach past its garment, by side: the near one, the far one, or both. */
 interface Arms {
-  readonly near?: Arm;
-  readonly far?: Arm;
+  readonly near?: AnyArm;
+  readonly far?: AnyArm;
 }
 
 /** What every figure is composed of: the concept it is drawn from, and a part in each slot. */
@@ -250,9 +257,17 @@ type StateKnob<S> = S extends Stain ? 'stain' : S extends GivenRobe ? 'robe' : n
 type StatesKnob<T> =
   T extends ReadonlyArray<infer S> ? (number extends T['length'] ? never : StateKnob<S>) : never;
 
-/** The number each arm adds, by its side (`nearArm`, `farArm`); none for a side typed as one that may be missing. */
+/**
+ * The numbers each arm adds, by its side (`nearArm`, `farArm`, and a
+ * jointed arm's `nearElbow`, `farElbow`); none for a side typed as one that
+ * may be missing, or as an arm of either kind.
+ */
 type ArmKnob<A> = {
-  readonly [Side in keyof A & ArmSide]: A[Side] extends Arm ? `${Side}Arm` : never;
+  readonly [Side in keyof A & ArmSide]: A[Side] extends JointedArm
+    ? `${Side}Arm` | `${Side}Elbow`
+    : A[Side] extends Arm
+      ? `${Side}Arm`
+      : never;
 }[keyof A & ArmSide];
 
 /**
@@ -282,7 +297,8 @@ const gazeFrom = (head: Head) => [0, head.y] as const;
  * it, so the file keeps its bytes): the face kit's (`FACE`, its gaze first,
  * its rest where the figure's face differs), the open mouth's, the
  * stance's, the head's, the states' (the stain before the given robe), the
- * arms' (each its turn at rest, the near one first). A number set again
+ * arms' (each its turn at rest and a jointed arm's bend after it, the near
+ * one first). A number set again
  * keeps its place.
  */
 const knobsOf = (f: Parts) => {
@@ -303,6 +319,7 @@ const knobsOf = (f: Parts) => {
   for (const side of ARM_SIDES) {
     const arm = f.arms[side];
     if (arm !== undefined) knobs.set(`${side}Arm`, arm.rest);
+    if (arm?._tag === 'JointedArm') knobs.set(`${side}Elbow`, arm.bend);
   }
   return Object.fromEntries(knobs);
 };
@@ -363,6 +380,21 @@ const handOn = (pivot: Pt, sleeve: ReadonlyArray<Pt>, radius: number) =>
     ),
   );
 
+/**
+ * A decode of a jointed arm's elbow: a point inside both its upper sleeve
+ * and its forearm's, so the joint stays covered however it bends.
+ */
+const elbowIn = (upper: ReadonlyArray<Pt>, forearm: ReadonlyArray<Pt>) =>
+  decoder(
+    Point.check(
+      Schema.makeFilter((elbow: Pt) =>
+        inside(elbow, upper) && inside(elbow, forearm)
+          ? true
+          : `its elbow (${elbow.join(', ')}) lies outside its upper sleeve or its forearm: an elbow lies inside both`,
+      ),
+    ),
+  );
+
 /** A head's width, units: a round head's two half-widths, a traced one's outline across. */
 const widthOf = (head: Head) => {
   if (head._tag === 'RoundHead') return 2 * head.r[0];
@@ -377,11 +409,16 @@ const widthOf = (head: Head) => {
  */
 const armsOf = (arms: Arms, body: Garment, radius: number): Arms => {
   const garment = garmentOutline(body);
-  const armOn = (arm: Arm | undefined, part: string) => {
+  const armOn = (arm: AnyArm | undefined, part: string) => {
     if (arm === undefined) return undefined;
     const checked = decodeArm(arm, part);
     pivotOn(garment, checked.outline)(checked.pivot, part);
-    handOn(checked.pivot, checked.outline, radius)(checked.hand, part);
+    if (checked._tag === 'Arm') {
+      handOn(checked.pivot, checked.outline, radius)(checked.hand, part);
+    } else {
+      elbowIn(checked.outline, checked.forearm)(checked.elbow, part);
+      handOn(checked.elbow, checked.forearm, radius)(checked.hand, part);
+    }
     return checked;
   };
   return { near: armOn(arms.near, 'arms.near'), far: armOn(arms.far, 'arms.far') };
@@ -409,8 +446,10 @@ const skinAfterCloth = decoder(
 const skinUnderRobe = (f: Pick<ComposedParts, 'body' | 'arms'>) => {
   skinAfterCloth(tonesOn(f.body), 'body');
   for (const side of ARM_SIDES) {
-    const tones = f.arms[side]?.tones;
-    if (tones !== undefined) skinAfterCloth(tones, `arms.${side}`);
+    const arm = f.arms[side];
+    if (arm?.tones !== undefined) skinAfterCloth(arm.tones, `arms.${side}`);
+    if (arm?._tag === 'JointedArm' && arm.forearmTones !== undefined)
+      skinAfterCloth(arm.forearmTones, `arms.${side}.forearm`);
   }
 };
 

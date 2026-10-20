@@ -38,15 +38,15 @@ import { PLACE, contact } from '../court-set.ts';
 import { piece } from '../kit.ts';
 import { PAGE, cast, leaf, shafts, standingTablets, tabletsAt } from '../page-set.ts';
 import { type OpenSeedPose, openSeed } from '../props.ts';
-import { LEAD, LEAD_KNOBS } from '../rigs/lead-rig.ts';
+import { LEAD, LEAD_KNOBS, reachHands } from '../rigs/lead-rig.ts';
 import { cold } from './cold.ts';
-import { LAST_FRAME, onHim, word } from './word.ts';
+import { LAST_FRAME, fromLead, onHim, onLead, word } from './word.ts';
 
 // ─── the page as word leaves it ──────────────────────────────────────────────
 
 const L = LAST_FRAME;
 
-/** His breath's period and its offset, as word breathes him (`living`), and his hands' bob with it. */
+/** His breath's period and its offset, as word breathes him (`living`). */
 const BREATH = { period: 4, offset: 2.1 } as const;
 
 /** How the gust takes the dry leaves: how far out it blows each, how far up, how far it turns it, how upright it stands it in the air. */
@@ -325,16 +325,13 @@ export const seed = drawing({
     LN.gazeY = gaze(1);
     const looking = f.at('down') * (1 - f.at('follow'));
     LN.nod = 5 * looking;
-    LN.faceY = 12 * looking;
+    LN.gazeY += 120 * looking;
     LN.lean = lean;
     LN.tilt = 0.05 * (1 - f.at('down')) + TIP * f.at('tip') + 0.012 * Math.sin(f.t * 0.7);
 
-    // His hands, floating beside him, bobbing with his breath.
-    const breathing = (f.t + BREATH.offset) * ((2 * Math.PI) / BREATH.period);
-    const restOf = (side: Pt): Pt => {
-      const [x, y] = onHim(side, lean);
-      return [x, y + L.bob * Math.sin(breathing)];
-    };
+    // His hands at rest beside him, each at its sleeve's end as his arms reach for them.
+    const restOf = (side: Pt): Pt => fromLead(onHim(side, lean));
+    const arms = reachHands(LN, restOf(L.hands.far), restOf(L.hands.near));
     const hand = (p: Pt) =>
       at(ctx, { x: p[0], y: p[1] }, () =>
         f.rive('leadHand', { timelines: [['boil', boilTime(f.boil)]], size: L.handScale }),
@@ -393,8 +390,8 @@ export const seed = drawing({
       );
       leaves();
       floating();
-      hand(restOf(L.hands.far));
-      hand(restOf(L.hands.near));
+      hand(onLead(arms.left));
+      hand(onLead(arms.right));
     });
   },
   cards: [
