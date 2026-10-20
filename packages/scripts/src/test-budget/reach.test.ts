@@ -256,6 +256,26 @@ describe("a workspace's test files", () => {
       }),
   );
 
+  it.effect('are reached by no bun test run that changes how bun reads a file', () =>
+    Effect.sync(() => {
+      const files = ['src/a.test.ts'];
+      for (const test of [
+        // A text loader reads a test file as a string: it registers no case.
+        'bun test --loader=.ts:text --pass-with-no-tests src',
+        'bun test -l .ts:text src',
+        'bun --loader .ts:text test src',
+        'bun test --define it=undefined src',
+        'bun -d describe=undefined test src',
+        'bun test --tsconfig-override other.json src',
+        'bun --env-file .env.test test src',
+      ])
+        expect([test, ...reaches({ test }, files)]).toEqual([test, 'src/a.test.ts: none']);
+      // Conditions and a preload change what a file imports or loads before it, not the file.
+      for (const test of ['bun --conditions=browser test src', 'bun test --preload ./setup.ts src'])
+        expect([test, ...reaches({ test }, files)]).toEqual([test, 'src/a.test.ts: test']);
+    }),
+  );
+
   it.effect(
     'are reached by no bun test run whose bunfig may narrow it, and by one whose bunfig does not',
     () =>
@@ -535,6 +555,8 @@ describe("a workspace's test files", () => {
             // A setting in a comment, or of another object, sets nothing.
             `import { defineConfig } from '@playwright/test';\n// testIgnore: '**/b.test.ts'\nconst other = { testIgnore: '**/b.test.ts' };\nexport default defineConfig({ ${ignore} });`,
             `import { devices, defineConfig } from 'playwright/test';\nexport default defineConfig({ ${ignore} });`,
+            // A config that reads only what it binds, the language's plain values and process.env.
+            `import { defineConfig, devices } from '@playwright/test';\nconst port = Number(process.env['P'] ?? 3187);\nexport default defineConfig({ ${ignore}, use: { ...devices['Desktop Chrome'], url: \`http://x:\${String(port)}\` } });`,
           ])
             expect(reaches(scripts, files, config(text))).toEqual([
               'test/browser/a.spec.ts: none',
@@ -578,6 +600,22 @@ describe("a workspace's test files", () => {
             "import { defineConfig } from '@playwright/test';\nconst { wrap: defineConfig2 } = helpers;\nexport default defineConfig({ testDir: '.' });",
           ),
           config('export default { testDir: '),
+          // A config that can change what it exports, or run code the reader does not follow.
+          config("export default { testDir: '.' };\nmodule.exports = { testDir: 'narrow' };"),
+          config("const set = (module.exports = { testDir: 'narrow' });\nexport default {};"),
+          config("const set = (exports.default = { testDir: 'narrow' });\nexport default {};"),
+          config('const set = Object.assign(globalThis, {});\nexport default {};'),
+          config("const set = require('./narrow');\nexport default {};"),
+          config('const set = (() => 1)();\nexport default {};'),
+          config('const set = process.exit(0);\nexport default {};'),
+          config('const set = this;\nexport default {};'),
+          config('const set = import.meta;\nexport default {};'),
+          config("const set = import('./narrow');\nexport default {};"),
+          config('let set = 1;\nexport default {};'),
+          config("import { narrow } from './helpers';\nexport default {};"),
+          config('if (true) {}\nexport default {};'),
+          config("export default { testDir: '.', use: { get x() { return 1; } } };"),
+          config("export default { testDir: '.', use: { x: delete process.env.A } };"),
           {},
         ])
           expect(reaches(scripts, files, configs).map((line) => line.endsWith(': none'))).toEqual([

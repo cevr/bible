@@ -11,9 +11,10 @@
 // its commands are joined by `&&` alone (`andChained`), none sets a variable
 // or changes the shell (`changesShell`: `BUN_OPTIONS`, `export`, `exit`, a `$`), none runs
 // in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
-// flags that leave what runs as it is (`BUN_FLAGS`, `PLAYWRIGHT_FLAGS`; an
-// unknown one, a narrowing one such as `--changed`, `-t`, `--grep`,
-// `--shard`, `--list`, or an attached short value is refused).
+// flags that leave what runs, and how bun reads it, as it is (`BUN_FLAGS`,
+// `PLAYWRIGHT_FLAGS`; an unknown one, a narrowing one such as `--changed`,
+// `-t`, `--grep`, `--shard`, `--list`, one such as `--loader` that changes
+// how a file is read, or an attached short value is refused).
 // `bun run <script>` runs that script of the workspace, read on its own,
 // and refuses words after the script's name (bun hands them on). A bun
 // command in a workspace whose `bunfig.toml` does not parse, or sets a
@@ -32,7 +33,9 @@
 // matcher reads it (a regex as written, a glob by `globMatcher`), and by one
 // of the command's filters when it names any. The reader parses the config
 // and reads the object it exports (`settingsOf`); a config it cannot read
-// (none, one that does not parse or exports anything else, a spread or a
+// (none, one that does not parse or exports anything else, one whose
+// loading may do more than build that object (`buildsOnlyItsExport`: a
+// `module.exports`, a function, a name it does not bind), a spread or a
 // computed key in it, a `testDir`, `testMatch`, `testIgnore` or
 // `respectGitIgnore` set as anything but a literal, a setting outside
 // `PLAYWRIGHT_SETTINGS` such as `projects`, `grep` or `shard`) takes none.
@@ -51,7 +54,13 @@
 import { Glob, TOML } from 'bun';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { Minimatch, minimatch } from 'minimatch';
-import { type Expression, type ObjectExpression, type Program, parseSync } from 'oxc-parser';
+import {
+  type Expression,
+  type ObjectExpression,
+  type Program,
+  Visitor,
+  parseSync,
+} from 'oxc-parser';
 import { gateFiles } from '../guard/files.ts';
 import { andChained, changesShell, commandsOf } from './shell.ts';
 
@@ -116,9 +125,14 @@ type Flags = ReadonlyMap<string, boolean>;
 
 /**
  * The flags of bun, and of `bun test`, that leave the files and cases a run
- * takes as they are. Any other (`--changed`, `--shard`, `-t`, `--only`,
- * another `--config`, an attached short value such as `-tfast`, one this
- * does not know) may narrow it.
+ * takes as they are, and how bun reads each file. Any other (`--changed`,
+ * `--shard`, `-t`, `--only`, another `--config`, an attached short value
+ * such as `-tfast`, one this does not know) may narrow it, and one that
+ * changes how bun reads a test file's own text (`--loader`, `--define`,
+ * `--tsconfig-override`, `--env-file`) may make it run no case of a file it
+ * takes (`--loader=.ts:text`). `--conditions` and `--preload` change only
+ * what the modules a file imports, or loads before it, are: code of the
+ * repo and its packages, which a file's own code is too.
  */
 const BUN_FLAGS: Flags = new Map([
   ['--timeout', true],
@@ -152,12 +166,6 @@ const BUN_FLAGS: Flags = new Map([
   ['--no-orphans', false],
   ['--smol', false],
   ['--conditions', true],
-  ['--define', true],
-  ['-d', true],
-  ['--loader', true],
-  ['-l', true],
-  ['--tsconfig-override', true],
-  ['--env-file', true],
 ]);
 
 /**
@@ -474,6 +482,103 @@ const importsDefineConfig = (program: Program) => {
   return bindings.length === 1 && bindings[0] === 'playwright';
 };
 
+/** The names of the language a config may read unbound: values that run none of the config's code. */
+const CONFIG_GLOBALS = new Set(['Number', 'String', 'Boolean', 'undefined', 'NaN', 'Infinity']);
+
+/** Whether a top-level statement of a config binds names and runs nothing else: an import from playwright, a `const` of plain names, the default export. */
+const isConfigStatement = (node: TopLevel) => {
+  if (node.type === 'ImportDeclaration') return PLAYWRIGHT_MODULES.includes(node.source.value);
+  if (node.type === 'VariableDeclaration')
+    return node.kind === 'const' && node.declarations.every(({ id }) => id.type === 'Identifier');
+  return node.type === 'ExportDefaultDeclaration';
+};
+
+/** The names a config's top-level statements bind: each import's and each `const`'s. */
+const boundNames = (program: Program) =>
+  new Set(
+    program.body.flatMap((node) => {
+      if (node.type === 'ImportDeclaration') return node.specifiers.map(({ local }) => local.name);
+      if (node.type === 'VariableDeclaration')
+        return node.declarations.flatMap(({ id }) => {
+          if (id.type === 'Identifier') return [id.name];
+          return [];
+        });
+      return [];
+    }),
+  );
+
+/**
+ * Whether loading a config does nothing but build the object it exports, so
+ * that object is the config playwright takes: its top-level statements are
+ * `isConfigStatement`s; it holds no function or class (code the reader does
+ * not follow), no assignment, `++`, `delete`, `this`, `import()` or
+ * `import.meta`; and every name it reads is one it binds, one of
+ * `CONFIG_GLOBALS`, or `process` read as `process.env`. A config that can
+ * reach anything else (`module.exports`, `exports`, `globalThis`,
+ * `require`, `Object.assign`) can replace or change what it exports.
+ */
+const buildsOnlyItsExport = (program: Program) => {
+  if (!program.body.every(isConfigStatement)) return false;
+  let runs = false;
+  const read: Array<{ readonly name: string }> = [];
+  const named = new Set<object>();
+  const env = new Set<object>();
+  const refuse = () => {
+    runs = true;
+  };
+  new Visitor({
+    FunctionDeclaration: refuse,
+    FunctionExpression: refuse,
+    ArrowFunctionExpression: refuse,
+    ClassDeclaration: refuse,
+    ClassExpression: refuse,
+    AssignmentExpression: refuse,
+    UpdateExpression: refuse,
+    ThisExpression: refuse,
+    ImportExpression: refuse,
+    MetaProperty: refuse,
+    UnaryExpression: (node) => {
+      if (node.operator === 'delete') refuse();
+    },
+    Identifier: (node) => {
+      if (node.type === 'Identifier') read.push(node);
+    },
+    Property: (node) => {
+      if (!node.computed && !node.shorthand) named.add(node.key);
+    },
+    MemberExpression: (node) => {
+      if (node.computed) return;
+      named.add(node.property);
+      if (
+        node.object.type === 'Identifier' &&
+        node.object.name === 'process' &&
+        node.property.name === 'env'
+      )
+        env.add(node.object);
+    },
+    ImportSpecifier: (node) => {
+      named.add(node.imported);
+      named.add(node.local);
+    },
+    ImportDefaultSpecifier: (node) => {
+      named.add(node.local);
+    },
+    ImportNamespaceSpecifier: (node) => {
+      named.add(node.local);
+    },
+    VariableDeclarator: (node) => {
+      named.add(node.id);
+    },
+  }).visit(program);
+  const bound = boundNames(program);
+  return (
+    !runs &&
+    read
+      .filter((node) => !named.has(node))
+      .every((node) => bound.has(node.name) || CONFIG_GLOBALS.has(node.name) || env.has(node))
+  );
+};
+
 /**
  * The settings a config's default export sets, each by its key: the object
  * it exports, as written or passed alone to playwright's `defineConfig`
@@ -484,7 +589,7 @@ const importsDefineConfig = (program: Program) => {
  */
 const settingsOf = (file: string, text: string): Option.Option<ReadonlyMap<string, Expression>> => {
   const parsed = parseSync(file, text);
-  if (parsed.errors.length > 0) return Option.none();
+  if (parsed.errors.length > 0 || !buildsOnlyItsExport(parsed.program)) return Option.none();
   const exported = parsed.program.body.flatMap((node) => {
     if (node.type !== 'ExportDefaultDeclaration') return [];
     return [node.declaration];
