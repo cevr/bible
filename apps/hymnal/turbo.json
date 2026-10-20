@@ -17,6 +17,9 @@
         "package.json"
       ],
       "outputs": ["dist/**"]
+    },
+    "test": {
+      "passThroughEnv": ["HYMNAL_LIST_SEED"]
     }
   }
 }
