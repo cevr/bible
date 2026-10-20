@@ -1,15 +1,16 @@
 // The judged rules' runner. Every item of a run the cache does not answer,
 // of every rule, goes to the model in ONE request (a classify per item, each
 // with its own rule's instructions and labels, keys c0…cN), split only past
-// `bound` items or `budget` estimated input tokens, the parts sent at once.
-// A run never fails on the model: no key, a request past its deadline, a
-// rate limit, an HTTP error or an answer that misses items skips the items it
-// could not judge, and says so on one line per rule. Nor on its cache:
+// `bound` items or `budget` estimated input tokens, the parts sent eight at
+// a time. A run never fails on the model: no key, no credits, a request past
+// its deadline, a rate limit, an HTTP error or an answer that misses items
+// skips the items it could not judge, and says so on one line per rule; a
+// failure that says the same of every part sends none of the parts after it. Nor on its cache:
 // answers it cannot keep are asked again next run. A finding is a warning, or
 // an error when its rule's severity is `error`.
 
 import type { Duration } from 'effect';
-import { Console, Effect, Option, Predicate, Result, Schema } from 'effect';
+import { Console, Effect, Option, Predicate, Ref, Result, Schema } from 'effect';
 import { type AiError, Decision, DecisionModel } from 'effect/ai';
 
 import { keepAnswers, readCache } from './cache.js';
@@ -207,44 +208,69 @@ type PartResult = Result.Result<
 >;
 
 /**
+ * The reasons a part fails for that say the same of every part: the account
+ * (no key, no credits, a rate limit) or a host that does not answer in time.
+ */
+const RUN_WIDE: ReadonlySet<SkipReason> = new Set([
+  'no-key',
+  'no-credits',
+  'rate-limit',
+  'timeout',
+]);
+
+/**
  * Asks one part; a part the model refuses as past its input limit (the
  * estimate in `tokensOf` is not the model's count) is asked again as its two
- * halves, at once, down to one question, which skips `too-big`.
+ * halves, at once, down to one question, which skips `too-big`. Once a part
+ * fails for a `RUN_WIDE` reason, `halt` holds it, and every part not yet
+ * sent skips for it unasked.
  */
 const askSplitting = (
   questions: ReadonlyArray<Question>,
   deadline: Duration.Input,
+  halt: Ref.Ref<Option.Option<SkipReason>>,
 ): Effect.Effect<ReadonlyArray<PartResult>, never, DecisionModel.DecisionModel> =>
-  Effect.flatMap(askPart(questions, deadline), (result) => {
-    if (Result.isFailure(result) && result.failure === 'too-big' && questions.length > 1) {
-      const half = Math.ceil(questions.length / 2);
-      return Effect.map(
-        Effect.forEach(
-          [questions.slice(0, half), questions.slice(half)],
-          (part) => askSplitting(part, deadline),
-          { concurrency: 2 },
-        ),
-        (halves) => halves.flat(),
-      );
-    }
-    return Effect.succeed([Result.mapError(result, (reason) => ({ reason, questions }))]);
+  Effect.flatMap(Ref.get(halt), (halted) => {
+    if (Option.isSome(halted))
+      return Effect.succeed([Result.fail({ reason: halted.value, questions })]);
+    return Effect.flatMap(askPart(questions, deadline), (result) => {
+      if (Result.isFailure(result) && result.failure === 'too-big' && questions.length > 1) {
+        const half = Math.ceil(questions.length / 2);
+        return Effect.map(
+          Effect.forEach(
+            [questions.slice(0, half), questions.slice(half)],
+            (part) => askSplitting(part, deadline, halt),
+            { concurrency: 2 },
+          ),
+          (halves) => halves.flat(),
+        );
+      }
+      const failed = Result.mapError(result, (reason) => ({ reason, questions }));
+      if (Result.isFailure(result) && RUN_WIDE.has(result.failure))
+        return Effect.as(Ref.set(halt, Option.some(result.failure)), [failed]);
+      return Effect.succeed([failed]);
+    });
   });
 
 /**
  * Asks the model each question's rule's decision of its text: one request,
  * or past `bound` questions or `budget` tokens one request a part, the parts
- * sent at once, and none for no questions. A part past the model's input
- * limit is asked in halves; a part that fails otherwise leaves its questions
- * unanswered, and the first failure's reason is the run's.
+ * sent `PARTS_AT_ONCE` at a time, and none for no questions. A part past the
+ * model's input limit is asked in halves; a part that fails otherwise leaves
+ * its questions unanswered, the parts after a `RUN_WIDE` failure go unsent,
+ * and the first failure's reason is the run's.
  */
 export const ask = Effect.fn('judged.ask')(function* (
   questions: ReadonlyArray<Question>,
   limits: Limits,
 ) {
   const parts = partsOf(questions, limits);
-  const results = yield* Effect.forEach(parts, (part) => askSplitting(part, limits.deadline), {
-    concurrency: PARTS_AT_ONCE,
-  });
+  const halt = yield* Ref.make(Option.none<SkipReason>());
+  const results = yield* Effect.forEach(
+    parts,
+    (part) => askSplitting(part, limits.deadline, halt),
+    { concurrency: PARTS_AT_ONCE },
+  );
   const answers = new Map<string, Answer>();
   const unanswered: Array<Question> = [];
   const reasons: Array<SkipReason> = [];

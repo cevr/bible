@@ -406,6 +406,17 @@ const lineOver = <E>(layer: Layer.Layer<DecisionModel.DecisionModel, E>) =>
     return runLine(outcome);
   }).pipe(Effect.provide(layer), withFs);
 
+/** Judges twenty items through `layer`, a part each, and answers the run's `[judged]` line. */
+const onePartEachOver = <E>(layer: Layer.Layer<DecisionModel.DecisionModel, E>) =>
+  Effect.gen(function* () {
+    const items = Array.from({ length: 20 }, (_, i) => ({
+      file: 'src/a.ts',
+      line: i + 1,
+      text: `item ${i}`,
+    }));
+    return runLine(yield* judgeBy(historyComment, items, { ...(yield* judging), bound: 1 }));
+  }).pipe(Effect.provide(layer), withFs);
+
 /** The answer TypeSafe gives the first item, history; every other is today. */
 const FIRST = new Map([['c0', choice('history', 0.96)]]);
 
@@ -620,6 +631,22 @@ describe('a judged rule never fails on its model', () => {
       expect(yield* lineOver(typesafe.layer)).toBe(
         '[judged] skipped rule=historyComment reason=no-credits items=3',
       );
+    }),
+  );
+
+  it.effect('sends no part after one the account refuses, for credits or a rate limit', () =>
+    Effect.gen(function* () {
+      for (const [status, body, reason] of [
+        [402, { detail: { error_type: 'billing_error' } }, 'no-credits'],
+        [429, { message: 'Rate limit exceeded' }, 'rate-limit'],
+      ] as const) {
+        const typesafe = typesafeAnswering(status, () => body);
+        expect(yield* onePartEachOver(typesafe.layer)).toBe(
+          `[judged] skipped rule=historyComment reason=${reason} items=20`,
+        );
+        // Twenty parts of one item; only those already in flight are sent.
+        expect(typesafe.requests.length).toBeLessThanOrEqual(8);
+      }
     }),
   );
 
