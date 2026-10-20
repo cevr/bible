@@ -56,8 +56,9 @@
 // (`respectGitIgnore: true`, or neither it nor a `testDir` that is not
 // empty set) it reads each `.gitignore` from `testDir` down by minimatch, as
 // `collectFiles` does, each as it stands on disk, tracked or not
-// (`gitignoresUnder`). A test file that is a symbolic link is unreached:
-// playwright's walk takes no link, and the reader follows none.
+// (`gitignoresUnder`). A test file that is a symbolic link, or under a
+// folder that is one, is unreached: playwright's walk takes no link, and the
+// reader follows none.
 // Only a runner reaches a file: `bun test`, a wrapper of it the repo names
 // (`BUN_TEST_WRAPPERS`), `playwright test`; any other command (`echo
 // ./src`, a build) reaches none. A file named
@@ -1098,7 +1099,8 @@ interface Source {
  * is not data (`isData`), with the script of the deepest workspace that holds
  * it that reaches it (`test`, `test:e2e`); none when no script does, no
  * workspace holds it (no workspace's script runs it), or it is a symbolic
- * link (playwright's walk takes no link, and the reader follows none).
+ * link or under a folder that is one (playwright's walk takes no link, and
+ * the reader follows none).
  */
 export const reachesIn = (
   workspaces: ReadonlyArray<Workspace>,
@@ -1246,11 +1248,24 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
       }),
     { concurrency: 16 },
   );
+  const testFiles = files.filter(isTestFile);
+  // Each path from the root a test file is at or under: the file and each folder above it.
+  const ancestry = (file: string) => {
+    const parts = file.split('/');
+    return parts.map((_, at) => parts.slice(0, at + 1).join('/'));
+  };
+  const linked = new Set(
+    yield* Effect.filter(
+      [...new Set(testFiles.flatMap(ancestry))],
+      (at) => Effect.map(Effect.option(fs.readLink(path.join(root, at))), Option.isSome),
+      { concurrency: 16 },
+    ),
+  );
   const tests = yield* Effect.forEach(
-    files.filter(isTestFile),
+    testFiles,
     (file) =>
       Effect.gen(function* () {
-        const link = Option.isSome(yield* Effect.option(fs.readLink(path.join(root, file))));
+        const link = ancestry(file).some((at) => linked.has(at));
         const text = yield* read(file);
         return { file, text, link } satisfies Source;
       }),

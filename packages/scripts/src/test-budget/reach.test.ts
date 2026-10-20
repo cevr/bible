@@ -933,7 +933,7 @@ describe("a workspace's test files", () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    "are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link",
+    "are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one",
     () =>
       Effect.scoped(
         Effect.gen(function* () {
@@ -964,6 +964,13 @@ describe("a workspace's test files", () => {
           yield* write('.git/info/exclude', 'w/e2e/.gitignore\n');
           yield* git('add', '-f', 'package.json', 'w');
           yield* git('rm', '-q', '--cached', 'w/e2e/.gitignore');
+          // A tracked folder made a link to another: git still lists its file, and
+          // playwright's walk does not enter it.
+          yield* write('w/real/e.spec.ts', RUNNER);
+          yield* write('w/linked/e.spec.ts', RUNNER);
+          yield* git('add', 'w/real', 'w/linked');
+          yield* fs.remove(path.join(root, 'w/linked'), { recursive: true });
+          yield* fs.symlink('real', path.join(root, 'w/linked'));
           const { workspaces, tests } = yield* repoTests(root);
           expect(
             reachesIn(workspaces, tests).map(
@@ -973,6 +980,8 @@ describe("a workspace's test files", () => {
             'w/e2e/a.spec.ts: none',
             'w/e2e/b.spec.ts: test:e2e',
             'w/e2e/d.spec.ts: none',
+            'w/linked/e.spec.ts: none',
+            'w/real/e.spec.ts: test:e2e',
           ]);
         }),
       ),

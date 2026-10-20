@@ -1032,7 +1032,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F7
 - **Wrong:** The reach check credited a spec that is a symbolic link, which playwright's walk skips, and read only the `.gitignore` files git lists, though playwright reads an untracked, ignored one too.
 - **Cause:** The reader's inputs came from git's file list, which carries no entry type and leaves ignored files out.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
 
 ### reach-reads-selection-not-cases
 
