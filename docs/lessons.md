@@ -823,3 +823,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** A judged retry test hung when its run's setup read the disk slowly: it joined a run that still waited on the clock for its next ask.
 - **Cause:** The test moved the clock a fixed count of ticks, and slow real I/O let the count run out before the run's retry waited on the clock.
 - **Guard:** code: `packages/scripts/src/judged/run.test.ts` `asks again after a 429 that follows slow real I/O, and keeps the answers`
+
+### reach-counts-named-tests
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check discards valid tests before checking their scripts"
+- **Source:** p6-guardloop/review-9.md F1
+- **Wrong:** The reach check left out a test file that imports its runner under another name (`import { test as scenario } from /* runner */ 'bun:test'`), so no script had to reach it.
+- **Cause:** The reader took a file named as a test for one only when a regex found a runner import or a line that calls `describe`, `it` or `test`, and a comment or an alias hid both.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace`
