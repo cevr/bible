@@ -671,7 +671,8 @@ const session = (platform: Platform, network: Network, clock: TestClock.TestCloc
    * one played: once the device plays, the page shows Playing within half a second.
    */
   const finish = Effect.gen(function* () {
-    if (reader.wants === 'pause') yield* pass(within + look);
+    // A pause and a remote seek are each judged a second after.
+    if (reader.wants === 'pause' || Option.isSome(scrub)) yield* pass(within + look);
     yield* act({ _tag: 'Back' });
     yield* act({ _tag: 'Retry' });
     yield* act({ _tag: 'Resume' });
@@ -760,6 +761,9 @@ describe('each defect found before, as a fixed run', () => {
   );
   it.effect('playerfix r1 M1: the Media Session’s pause pauses the element', () =>
     holds('web', instant, [wait(500), { _tag: 'Remote', kind: 'pause' }, wait(2000)]),
+  );
+  it.effect('the Media Session’s seek moves the element there', () =>
+    holds('web', instant, [wait(500), { _tag: 'Scrub', share: 0.5 }, wait(2000)]),
   );
   it.effect('playerfix r1 M2: the status is read while Start’s play() waits, on Slow 4G', () =>
     holds('web', slow4g, [wait(1430)]),
