@@ -1,0 +1,35 @@
+{
+  "number": 203,
+  "title": "This Is the Threefold Truth",
+  "print": "The engraving SDAHImages 203.png (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/203.png), read line by line on 2026-10-18. Three systems: bars 1-4, 5-8 and 9-13, as the engraving numbers them. The stanzas are lyric rows 1., 2. and 3. under bars 1-8; the refrain, marked Refrain, is bars 9-13 and ends at the final barline. hymnal.db had \"Christ had died!\" and \"Christ has risen!\" where the refrain prints \"Christ has died! Christ is risen!\". Each line is as the engraving prints it, its syllables joined, its punctuation kept, but where a line's `from` says it keeps the row's word.",
+  "stanzas": [
+    [
+      { "text": "This is the threefold truth", "from": "system 1, row 1., bars 1-2" },
+      { "text": "On which our faith depends;", "from": "system 1, row 1., bars 2-4" },
+      { "text": "And with this joyful cry", "from": "system 2, row 1., bars 5-6" },
+      { "text": "Worship begins and ends;", "from": "system 2, row 1., bars 7-8" }
+    ],
+    [
+      { "text": "By this we are upheld", "from": "system 1, row 2., bars 1-2" },
+      {
+        "text": "When doubt and grief assail",
+        "from": "system 1, row 2., bars 2-4: the engraving prints \"as-sails\"; the row's \"assail\" is kept, the verb of \"doubt and grief\" (a re-engraving drops and changes words: 466 \"peae\", 479 \"Thread\")"
+      },
+      { "text": "Our Christian fortitude,", "from": "system 2, row 2., bars 5-6" },
+      { "text": "And only grace avails.", "from": "system 2, row 2., bars 7-8" }
+    ],
+    [
+      { "text": "This is the threefold truth", "from": "system 1, row 3., bars 1-2" },
+      { "text": "Which, if we hold it fast,", "from": "system 1, row 3., bars 2-4" },
+      { "text": "Changes the world and us", "from": "system 2, row 3., bars 5-6" },
+      { "text": "And brings us home at last.", "from": "system 2, row 3., bars 7-8" }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      { "text": "Christ has died!", "from": "system 3, Refrain, bars 9-10" },
+      { "text": "Christ is risen!", "from": "system 3, bars 10-11" },
+      { "text": "Christ will come again!", "from": "system 3, bars 12-13" }
+    ]
+  }
+}

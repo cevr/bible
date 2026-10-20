@@ -1,0 +1,73 @@
+{
+  "number": 593,
+  "title": "In Times Like These",
+  "print": "The engraving SDAHImages 593.png (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/593.png), read line by line on 2026-10-18. Five systems: bars 1-3, 4-7, 8-12, 13-16 and 17-21, as the engraving numbers them. The stanzas are lyric rows 1., 2. and 3. under systems 1 to 3; the refrain starts at the double bar in system 3, marked Refrain; its last two lines are printed twice, the row marked 1, 2. and the row marked 3. Each line is as the row prints it, its syllables joined, its punctuation kept.",
+  "stanzas": [
+    [
+      { "text": "In times like these you need a Savior,", "from": "system 1, row 1., bars 1-2" },
+      {
+        "text": "In times like these you need an anchor;",
+        "from": "systems 1-2, row 1., bars 2-4"
+      },
+      { "text": "Be very sure, be very sure", "from": "system 2, row 1., bars 4-6" },
+      {
+        "text": "Your anchor holds and grips the solid Rock!",
+        "from": "systems 2-3, row 1., bars 6-9"
+      }
+    ],
+    [
+      { "text": "In times like these you need the Bible,", "from": "system 1, row 2., bars 1-2" },
+      { "text": "In times like these O be not idle;", "from": "systems 1-2, row 2., bars 2-4" },
+      { "text": "Be very sure, be very sure", "from": "system 2, row 2., bars 4-6" },
+      {
+        "text": "Your anchor holds and grips the solid Rock!",
+        "from": "systems 2-3, row 2., bars 6-9"
+      }
+    ],
+    [
+      {
+        "text": "In times like these I have a Savior",
+        "from": "system 1, row 3., bars 1-2 (no comma printed after Savior)"
+      },
+      { "text": "In times like these I have an anchor;", "from": "systems 1-2, row 3., bars 2-4" },
+      { "text": "I'm very sure, I'm very sure", "from": "system 2, row 3., bars 4-6" },
+      {
+        "text": "My anchor holds and grips the solid Rock!",
+        "from": "systems 2-3, row 3., bars 6-9"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      { "text": "This Rock is Jesus, Yes, He's the One;", "from": "system 3, Refrain, bars 9-12" },
+      { "text": "This Rock is Jesus, The only One!", "from": "system 4, bars 13-15" },
+      {
+        "varies": [
+          {
+            "after": [1, 2],
+            "lines": [
+              {
+                "text": "Be very sure, be very sure",
+                "from": "systems 4-5, row 1, 2., bars 15-17"
+              },
+              {
+                "text": "Your anchor holds and grips the solid Rock!",
+                "from": "system 5, row 1, 2., bars 18-21"
+              }
+            ]
+          },
+          {
+            "after": [3],
+            "lines": [
+              { "text": "I'm very sure, I'm very sure", "from": "systems 4-5, row 3., bars 15-17" },
+              {
+                "text": "My anchor holds and grips the solid Rock!",
+                "from": "system 5, row 3., bars 18-21"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "number": 620,
+  "title": "On Jordan's Stormy Banks",
+  "print": "The engraving SDAHImages 620.png (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/620.png), read line by line on 2026-10-18. Four systems: bars 1-3, 4-8, 9-12 and 13-17, as the engraving numbers them. The stanzas are lyric rows 1. to 4. under bars 1-8; the refrain, marked Refrain, starts at the double bar in bar 9 and ends at the final barline. hymnal.db had \"plain\" where stanza 2 prints \"plains\" (it rhymes with \"reigns\"). Each line is as the engraving prints it, its syllables joined, its punctuation kept.",
+  "stanzas": [
+    [
+      { "text": "On Jordan's stormy banks I stand,", "from": "system 1, row 1., bars 1-3" },
+      { "text": "And cast a wishful eye", "from": "systems 1-2, row 1., bars 3-4" },
+      { "text": "To Canaan's fair and happy land,", "from": "system 2, row 1., bars 4-6" },
+      { "text": "Where my possessions lie.", "from": "system 2, row 1., bars 7-8" }
+    ],
+    [
+      { "text": "O'er all those wide extended plains", "from": "system 1, row 2., bars 1-3" },
+      { "text": "Shines one eternal day;", "from": "systems 1-2, row 2., bars 3-4" },
+      { "text": "There, Christ, the Sun, forever reigns,", "from": "system 2, row 2., bars 4-6" },
+      { "text": "And scatters night away.", "from": "system 2, row 2., bars 7-8" }
+    ],
+    [
+      { "text": "When shall I reach that happy place,", "from": "system 1, row 3., bars 1-3" },
+      { "text": "And be forever blest?", "from": "systems 1-2, row 3., bars 3-4" },
+      { "text": "When shall I see my Father's face,", "from": "system 2, row 3., bars 4-6" },
+      { "text": "And in His kingdom rest?", "from": "system 2, row 3., bars 7-8" }
+    ],
+    [
+      { "text": "Filled with delight, my raptured soul", "from": "system 1, row 4., bars 1-3" },
+      { "text": "Would here no longer stay;", "from": "systems 1-2, row 4., bars 3-4" },
+      { "text": "Though Jordan's waves around me roll,", "from": "system 2, row 4., bars 4-6" },
+      { "text": "Fearless I'd launch away.", "from": "system 2, row 4., bars 7-8" }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      { "text": "I am bound for the promised land,", "from": "system 3, Refrain, bars 9-11" },
+      { "text": "I am bound for the promised land;", "from": "systems 3-4, bars 11-13" },
+      { "text": "O who will come and go with me?", "from": "system 4, bars 13-15" },
+      { "text": "I am bound for the promised land.", "from": "system 4, bars 15-17" }
+    ]
+  }
+}

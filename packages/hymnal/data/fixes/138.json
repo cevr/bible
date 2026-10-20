@@ -1,0 +1,46 @@
+{
+  "number": 138,
+  "title": "Rise Up, Shepherd, and Follow",
+  "print": "The engraving SDAHImages 138.png (github.com/adventHymnals/SDAHImages, docs/seventh-day-adventist-hymnal/SDAHimages/138.png), read line by line on 2026-10-18. Five systems: bars 1-4, 5-9, 10-14, 15-19 and 20-25, as the engraving numbers them. The stanzas are lyric rows 1. and 2. under bars 1-8; the refrain, marked Refrain, starts at the double bar in bar 9 and ends at the final barline. hymnal.db had \"lamb\" where the refrain prints \"lambs\" (the hymnal's earlier chord chart has \"lambs\" too). Each line is as the engraving prints it, its syllables joined, its punctuation kept.",
+  "stanzas": [
+    [
+      {
+        "text": "There's a star in the east on Christmas morn.",
+        "from": "system 1, row 1., bars 1-3"
+      },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 1, row 1., bars 3-4" },
+      {
+        "text": "It will lead to the place where the Savior's born,",
+        "from": "systems 1-2, row 1., bars 4-6"
+      },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 2, row 1., bars 7-8" }
+    ],
+    [
+      {
+        "text": "If you take good heed to the angel's words,",
+        "from": "system 1, row 2., bars 1-3"
+      },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 1, row 2., bars 3-4" },
+      {
+        "text": "You'll forget your flocks, you'll forget your herds,",
+        "from": "systems 1-2, row 2., bars 4-6"
+      },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 2, row 2., bars 7-8" }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Leave your sheep and leave your lambs,",
+        "from": "systems 2-3, Refrain, bars 9-10"
+      },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 3, bars 11-12" },
+      { "text": "Leave your ewes and leave your rams,", "from": "system 3, bars 13-14" },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 4, bars 15-16" },
+      { "text": "Follow, Follow,", "from": "system 4, bars 17-18" },
+      { "text": "Rise up shepherd, and follow.", "from": "systems 4-5, bars 19-20" },
+      { "text": "Follow the star of Bethlehem,", "from": "system 5, bars 21-22" },
+      { "text": "Rise up, shepherd, and follow.", "from": "system 5, bars 23-25" }
+    ]
+  }
+}
