@@ -42,7 +42,9 @@ describe('loudness (ITU-R BS.1770-4)', () => {
     plane.set(burst.channels[0] ?? new Float32Array(), RATE * 3);
     const measured = loudness({ rate: RATE, frames, channels: [plane] });
     expect(measured.momentaryMax).toBeCloseTo(-9.03, 0);
-    // Only the blocks the burst reaches pass the absolute gate: 7 whole, 6 in part.
+    // The 13 blocks the burst reaches (7 whole, 6 in part) pass both gates; the
+    // block after it holds the K-weighting's tail alone (-51.7 LUFS), which
+    // passes the absolute gate and not the relative one.
     expect(measured.integrated).toBeCloseTo(-10.17, 1);
   });
 
