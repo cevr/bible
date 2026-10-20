@@ -943,3 +943,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check read `export default { testDir: '.' }; module.exports = { testDir: 'narrow' };` by its default export, though playwright loads the object `module.exports` holds and takes only `narrow`.
 - **Cause:** The reader read the export statement alone, and did not ask what else loading the config does: a statement, a function or a name it does not bind can replace or change the export.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-names-config-calls
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Config calls can stop Playwright before any tests run"
+- **Source:** p6-guardloop/review-15.md F1
+- **Wrong:** The reach check read `const stopped = Number.constructor('process.exit(0)')(); export default { testDir: '.' };` as a config that takes its tests, though loading it ends the run before playwright starts.
+- **Cause:** The reader allowed the names a config reads and not what it calls: a member of an allowed name reaches `Function`, and a call of it runs any code.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-reads-bunfig-tables
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Bunfig loader settings bypass the file-reading refusal"
+- **Source:** p6-guardloop/review-15.md F2
+- **Wrong:** The reach check took `bun test src` as a run of every test file in `src` in a workspace whose `bunfig.toml` sets `[loader] ".ts" = "text"`, which makes bun read each file as text and run no case.
+- **Cause:** The bunfig reader checked the keys of `[test]` alone, and not the other tables, which change how bun reads a file.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no bun test run whose bunfig may narrow it or change how bun reads a file, and by one whose bunfig does neither`
