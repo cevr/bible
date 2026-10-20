@@ -1163,3 +1163,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The case that sends no part after a refusal held both its statuses to the rate limit's bound of 32 requests, so a runner that sent all 20 parts after a refusal for credits passed it.
 - **Cause:** One bound, raised for the rate limit's retries, served a case that sends no retry.
 - **Guard:** code: `packages/scripts/src/judged/run.test.ts` `sends no part after one the account refuses, for credits or a rate limit`
+
+### reach-reads-linked-folders
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Symlinked directories still credit tests Playwright skips"
+- **Source:** p6-guardloop/review-23.md F1
+- **Wrong:** The reach check credited `w/linked/a.spec.ts` to `playwright test`, where `w/linked` is a tracked folder made a symbolic link: git still lists its file, and playwright's walk does not enter the link.
+- **Cause:** The reader asked whether the test file itself is a link, not whether a folder above it is one.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
