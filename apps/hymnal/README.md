@@ -92,14 +92,19 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   when it ends on another second than it began on), `pointercancel` or
   `lostpointercapture` (the drag is dropped); another pointer, another
   button and a key end nothing. The browser's `change` ends nothing, as
-  Chrome sends none for a drag that comes back to where it began. A key's
-  step seeks at once, inside a press or not, and a value change with no key
-  and no press open (a screen reader's) seeks at once. After a seek, each
+  Chrome sends none for a drag that comes back to where it began. The bar
+  steps its own keys (the arrows, PageUp, PageDown, Home and End, by the
+  browser's steps): a key's step seeks at once, inside a press or not, and
+  a key that moves nothing (held at an end) leaves nothing behind. A value
+  change with no press open (a screen reader's) seeks at once. After a seek, each
   bar holds the place sent until the player reaches it, or for 2 s. The
-  played part of the track is in the accent, the rest in the line role.
+  played part of the track is in the accent, the rest in the line role;
+  while the length is unknown the bar is disabled and its thumb is muted.
 - `src/player/bar.property.test.tsx` holds the web bar to these rules over
-  seeded runs of presses, keys, other pointers and buttons, a screen
-  reader's steps and playback's ticks, in Chrome's event order.
+  seeded runs of presses, all eight step keys (held, repeated, their keyup
+  lost), other pointers and buttons, a screen reader's steps and
+  playback's ticks, from anywhere on the bar and often its ends, in
+  Chrome's event order.
 - `src/player/status.property.test.ts` holds the page to the reader's Play
   over seeded runs on each device's playback (the web, iOS, Android) and a
   network that loads at once, at Slow 4G or at 3G: after a Play the page
