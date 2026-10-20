@@ -55,8 +55,8 @@ export const SERVED_FROM: ServedFrom = 'custom-domain';
 ```
 
 With it, `bun run deploy` gives the Worker `firsttheblade.com`, redirects
-`www.firsttheblade.com`, `firsttheblade.org` and `www.firsttheblade.org` to it
-(the other names are `REDIRECTED_DOMAINS`) and switches the `workers.dev` URL off. The
+`www.firsttheblade.com`, and firsttheblade.org and firsttheblade.net with their
+`www` (`REDIRECTED_DOMAINS`), to it, and switches the `workers.dev` URL off. The
 canonical URL, the link cards, the sitemap and robots.txt follow, since they
 read the same value. `'workers.dev'` serves the site from that URL instead.
 
