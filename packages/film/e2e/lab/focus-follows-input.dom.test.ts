@@ -128,9 +128,21 @@ const wrong = (path: string, input: Input, seen: Seen): ReadonlyArray<string> =>
  */
 const SETTLED = `window.focusFrames === undefined || window.focusFrames >= 3 || window.focusLeaving === true`;
 
-/** Arm the watch; then, after `path`, wait three frames and read what it saw, with what the path answered. */
+/**
+ * Two frames on the page's clock: a focus a popup queued for its next frame as it opened (the
+ * kit's initial focus, `enqueueFocus`) has landed by then, since a frame asked for earlier runs
+ * first.
+ */
+const FRAMES_SETTLED = `new Promise((settled) => requestAnimationFrame(() => requestAnimationFrame(() => settled(true))))`;
+
+/**
+ * Arm the watch once the page's queued focus has landed (`FRAMES_SETTLED`), so a move the
+ * opening asked for is never read as the path's; then, after `path`, wait three frames and
+ * read what it saw, with what the path answered.
+ */
 const watchedThen = <A>(page: Tab, path: Effect.Effect<A>) =>
   Effect.gen(function* () {
+    yield* page.evaluate(FRAMES_SETTLED);
     yield* page.evaluate(WATCH);
     const answered = yield* path;
     yield* until(page, SETTLED);

@@ -1618,8 +1618,18 @@ The form of an entry, each field on its own line:
 
 - **Date:** 2026-10-20
 - **Kind:** review
-- **Said:** "a command run from ⌘K on Record sometimes moved the focus to the recorder's Close without the ring"
+- **Said:** "the kit's return focus left the ring to the browser after an owner's own close"
 - **Source:** p6-studio-cssdocs/findings.md F1
-- **Wrong:** A command chosen with Enter in ⌘K over the recorder sent the focus back to the recorder's Close with no ring in 1 of 8 runs on main, though the keyboard asked.
-- **Cause:** The kit's return focus asked for the ring only when the close came with a key's event, and ⌘K closes by its owner's `open` with none, so the ring was left to the browser's guess.
+- **Wrong:** After ⌘K's chosen row closed it, the kit gave the focus back to the opener with a plain focus, so whether the opener showed the ring was Chromium's guess, not the input's.
+- **Cause:** The kit's return focus asked for the ring only when the close came with a key's event, and ⌘K closes by its owner's `open` with none.
 - **Guard:** code: `packages/ui/test/browser/dialog.test.ts` `shows the ring on the opener when a key closed it`
+
+### focus-watch-armed-before-initial-focus
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the Record case read the recorder's own initial focus as the next command's move"
+- **Source:** p6-studio-cssdocs/findings.md F2
+- **Wrong:** The focus property's Record case failed 1 run in 24 alone and 4 in 6 under load, naming the recorder's Close as moved to by a key with no ring, though a pointer had opened the recorder.
+- **Cause:** The kit's initial focus lands a frame after the recorder mounts; the case reopened the recorder by a click and armed its watch for the next command before that frame ran.
+- **Guard:** code: `packages/film/e2e/lab/focus-follows-input.dom.test.ts` `FRAMES_SETTLED`
