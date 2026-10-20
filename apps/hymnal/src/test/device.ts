@@ -1,0 +1,74 @@
+/**
+ * A device's playback the test holds: One's `Audio` session as a phone has
+ * it, with no sound. A recording loads when played; the test moves it on
+ * (`device.now`), turns the connection off and on (`device.online`), and
+ * presses the lock screen's buttons (`device.press`). What the player asked
+ * is kept: each URL played and each announcement.
+ */
+
+import { Effect, Layer, Match, Queue, Stream } from 'effect';
+
+import {
+  type Announcement,
+  Playback,
+  PlaybackError,
+  type Remote,
+  type Status,
+} from '../player/player';
+
+export const fakeDevice = () => {
+  const remote = Effect.runSync(Queue.unbounded<Remote>());
+  const device = {
+    /** The playback now. */
+    now: { state: 'idle', positionMs: 0 } satisfies Status as Status,
+    online: true,
+    played: new Array<string>(),
+    announced: new Array<Announcement>(),
+    /** The lock screen's play, pause or seek: the session moves to `next`, then tells the app. */
+    press: (kind: Remote, next: Status) => {
+      device.now = next;
+      Queue.offerUnsafe(remote, kind);
+    },
+  };
+  const at = (next: Status) =>
+    Effect.sync(() => {
+      device.now = next;
+      return next;
+    });
+  const layer = Layer.succeed(
+    Playback,
+    Playback.of({
+      play: (uri) =>
+        Effect.suspend(() => {
+          device.played.push(uri);
+          if (!device.online) {
+            return Effect.fail(
+              PlaybackError.make({
+                operation: 'play',
+                message: 'The Internet connection appears to be offline.',
+              }),
+            );
+          }
+          return at({ state: 'loading', positionMs: 0 });
+        }),
+      pause: Effect.suspend(() => at({ ...device.now, state: 'paused' })),
+      // A recording played to its end plays again from its start.
+      resume: Effect.suspend(() =>
+        at({
+          ...device.now,
+          state: 'playing',
+          positionMs: Match.value(device.now).pipe(
+            Match.when({ state: 'ended' }, () => 0),
+            Match.orElse((now) => now.positionMs),
+          ),
+        }),
+      ),
+      seek: (positionMs) => Effect.suspend(() => at({ ...device.now, positionMs })),
+      status: Effect.sync(() => device.now),
+      online: Effect.sync(() => device.online),
+      announce: (announcement) => Effect.sync(() => void device.announced.push(announcement)),
+      remote: Stream.fromQueue(remote),
+    }),
+  );
+  return { device, layer };
+};
