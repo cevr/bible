@@ -7,7 +7,7 @@
 import { JSONC } from 'bun';
 import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 
-import { repoRoot } from './sources.js';
+import { repoRoot } from '../guard/files.js';
 
 import { type JudgedRule, RuleOptions, Settings } from './rule.js';
 

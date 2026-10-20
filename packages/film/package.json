@@ -24,7 +24,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test --parallel --no-isolate --max-concurrency=3 --timings=node_modules/.cache/bun-test/timings.json --update-timings src lint",
+    "test": "bun test --parallel --no-isolate --max-concurrency=3 --timings=node_modules/.cache/bun-test/timings.json --update-timings --path-ignore-patterns=src/docs.test.ts src lint",
+    "test:docs": "bun test ./src/docs.test.ts",
     "test:e2e": "bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 --preload ./e2e/preload.ts --timeout 20000 e2e",
     "test:e2e:check": "bun src/lab/fixtures/e2e-check.ts",
     "test:perf": "bun test test/perf"

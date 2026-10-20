@@ -1,6 +1,7 @@
 // The repo's items: the items of the judged rules' selectors (`items.ts`)
-// in every file of the working tree the repo lints, tracked or new, so a
-// file never committed is read as a committed one is. A file is a
+// in every file of the gate's (`../guard/files.ts`: what git tracks, and new
+// files inside a workspace), so a file never committed is read as a
+// committed one is, and a folder that is no one's work yet is not read. A file is a
 // TypeScript source (no `.d.ts`) that none of the lint's ignore patterns
 // names, or a series script's Markdown, which only `scriptBeats` reads. Each
 // source is read and parsed once for every rule that reads it. Which of them
@@ -8,10 +9,9 @@
 // answers is not asked again.
 
 import { Glob } from 'bun';
-import { Effect, FileSystem, Path, Schema, Stream } from 'effect';
-import * as ChildProcess from 'effect/process/ChildProcess';
-import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
+import { Effect, FileSystem, Path } from 'effect';
 
+import { gateFiles } from '../guard/files.js';
 import { type Item, type Selector, itemsOf, markdownBeats, parse, selects } from './items.js';
 
 /** One item of a source: its selector, its file and the item. */
@@ -26,45 +26,6 @@ const TYPESCRIPT = /\.[cm]?tsx?$/;
 const linted = (file: string, ignored: ReadonlyArray<Glob>) =>
   (file.endsWith('.md') || (TYPESCRIPT.test(file) && !file.endsWith('.d.ts'))) &&
   !ignored.some((glob) => glob.match(file));
-
-/** A git command exited non-zero: its subcommand and its code (git's own words are dropped). */
-class GitFailed extends Schema.TaggedError<GitFailed>()('GitFailed', {
-  command: Schema.String,
-  code: Schema.Finite,
-}) {
-  override get message() {
-    return `git ${this.command} exited ${this.code}`;
-  }
-}
-
-/** `git <args>` run in `root`: what it prints, or `GitFailed` when it exits non-zero. */
-const git = (root: string, args: ReadonlyArray<string>) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const spawner = yield* ChildProcessSpawner;
-      const handle = yield* spawner.spawn(
-        ChildProcess.make('git', args, {
-          cwd: root,
-          stderr: 'ignore',
-          forceKillAfter: '5 seconds',
-        }),
-      );
-      const [out, code] = yield* Effect.all(
-        [Stream.mkString(Stream.decodeText(handle.stdout)), handle.exitCode],
-        { concurrency: 'unbounded' },
-      );
-      if (code !== 0)
-        return yield* GitFailed.make({
-          command: args.find((arg) => !arg.startsWith('-') && !arg.includes('=')) ?? 'git',
-          code,
-        });
-      return out;
-    }),
-  );
-
-/** The root of the repo at `cwd`, as git names it. */
-export const repoRoot = (cwd: string) =>
-  Effect.map(git(cwd, ['rev-parse', '--show-toplevel']), (out) => out.trim());
 
 /** The items of `selectors` in one source. */
 const itemsIn = (
@@ -82,13 +43,9 @@ const itemsIn = (
   );
 };
 
-/** The names a NUL-separated git listing holds. */
-const namesOf = (listing: string) => listing.split('\0').filter((name) => name !== '');
-
 /**
- * The items of `selectors` in every file of the working tree at `root` the
- * judged lint reads, tracked or untracked (git's ignored files aside), past
- * the lint's `ignorePatterns`; a tracked file deleted from the tree is none.
+ * The items of `selectors` in every file of the gate's at `root` the judged
+ * lint reads, past the lint's `ignorePatterns`.
  */
 export const repoItems = Effect.fn('judged.repoItems')(function* (
   root: string,
@@ -97,20 +54,9 @@ export const repoItems = Effect.fn('judged.repoItems')(function* (
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const [listed, deleted] = yield* Effect.all(
-    [
-      git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']),
-      git(root, ['ls-files', '-z', '--deleted']),
-    ],
-    { concurrency: 2 },
-  );
-  const gone = new Set(namesOf(deleted));
   const ignored = ignorePatterns.map((pattern) => new Glob(pattern));
-  const files = [...new Set(namesOf(listed))].filter(
-    (file) =>
-      !gone.has(file) &&
-      linted(file, ignored) &&
-      selectors.some((selector) => selects(selector, file)),
+  const files = (yield* gateFiles(root)).filter(
+    (file) => linted(file, ignored) && selectors.some((selector) => selects(selector, file)),
   );
   const items = yield* Effect.forEach(
     files,

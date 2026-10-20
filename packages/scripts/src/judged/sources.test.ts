@@ -53,6 +53,7 @@ const repo = (
     yield* git(dir, 'init', '-q', '-b', 'main');
     yield* write({
       '.oxlintrc.json': ['{', '  // the lint', '  "ignorePatterns": ["**/dist/**"]', '}'],
+      'package.json': ['{ "workspaces": ["src"] }'],
       ...committed,
     });
     yield* git(dir, 'add', '-A');
@@ -124,7 +125,7 @@ describe("the repo's items", () => {
   );
 
   it.live(
-    "reads the TypeScript the repo lints, committed or new: past the lint's ignore patterns and git's, no declarations, no deleted file",
+    "reads the TypeScript the repo lints, committed or new in a workspace: past the lint's ignore patterns and git's, no declarations, no deleted file, no new folder outside every workspace",
     () =>
       withFs(
         Effect.gen(function* () {
@@ -146,6 +147,7 @@ describe("the repo's items", () => {
               'src/untracked.ts': comment,
               'src/staged.ts': comment,
               'out/ignored.ts': comment,
+              'prototypes/sketch.ts': comment,
             },
           );
           yield* git(dir, 'rm', '-q', 'src/gone.ts');

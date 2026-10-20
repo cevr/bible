@@ -92,7 +92,8 @@ const lintConfig = (id: string) =>
 
 /**
  * A repo linted by the repo's own rule `id` whose `main` has `file` as
- * `before`, and a branch that makes it `after`, committed.
+ * `before`, and a branch that makes it `after`, committed; `src` is its
+ * workspace, so a new file there is the repo's work.
  */
 const repoOf = (id: string, file: string, before: string, after: string) =>
   Effect.gen(function* () {
@@ -101,6 +102,7 @@ const repoOf = (id: string, file: string, before: string, after: string) =>
     const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-cli-' });
     yield* fs.makeDirectory(path.dirname(path.join(dir, file)), { recursive: true });
     yield* fs.writeFileString(path.join(dir, '.oxlintrc.json'), yield* lintConfig(id));
+    yield* fs.writeFileString(path.join(dir, 'package.json'), '{ "workspaces": ["src"] }\n');
     yield* fs.writeFileString(path.join(dir, file), before);
     yield* git(dir, 'init', '-q', '-b', 'main');
     yield* git(dir, 'add', '-A');
