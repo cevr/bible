@@ -13,9 +13,11 @@
 // its globs match. `bun run <script>` runs that script of the workspace.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, matched by its `testMatch`, not by its
-// `testIgnore`, and by one of the command's filters when it names any; a
-// config the reader cannot read (none, a `testDir`, `testMatch` or
-// `testIgnore` that is not a literal, `projects`) takes none. A by-hand script's other commands (a wrapper of `bun test`) reach a
+// `testIgnore` (a glob as playwright reads one: `**/` before it, any case),
+// and by one of the command's filters when it names any; a config the
+// reader cannot read (none, a `testDir`, `testMatch` or `testIgnore` named
+// as anything but a literal, a regex anchored at the path's start,
+// `projects`) takes none. A by-hand script's other commands (a wrapper of `bun test`) reach a
 // file only by naming it, or a folder that holds it, by its path. A file
 // named as a test that registers none (`holdsTests`) needs no script.
 
@@ -173,22 +175,40 @@ const PLAYWRIGHT_CONFIGS = ['ts', 'js', 'mts', 'mjs', 'cts', 'cjs'].map(
 /** Playwright's own `testMatch` when its config sets none: `**\/*.@(spec|test).?(c|m)[jt]s?(x)`. */
 const PLAYWRIGHT_MATCH = /\.(?:spec|test)\.[cm]?[jt]sx?$/;
 
+/** Where a config sets `key`: the key, bare or quoted, and its colon. */
+const keyAt = (key: string) => `\\b${key}['"]?\\s*:\\s*`;
+
 /**
- * A config's `key`: none when it is set to anything but a quoted string,
- * else the string, or none inside when the config does not set it.
+ * A config's `key`: none when the config names it anywhere but as a quoted
+ * string (a list, a variable, a key in shorthand), else the string, or none
+ * inside when the config does not name it.
  */
 const literalOf = (text: string, key: string): Option.Option<Option.Option<string>> => {
-  if (!new RegExp(`\\b${key}\\s*:`).test(text)) return Option.some(Option.none());
+  if (!new RegExp(`\\b${key}\\b`).test(text)) return Option.some(Option.none());
   return Option.map(
-    Option.fromNullishOr(new RegExp(`\\b${key}\\s*:\\s*(['"])([^'"\n]*)\\1`).exec(text)),
+    Option.fromNullishOr(new RegExp(`${keyAt(key)}(['"])([^'"\n]*)\\1`).exec(text)),
     (m) => Option.some(m[2] ?? ''),
   );
 };
 
 /**
- * A config's `key` (`testMatch`, `testIgnore`) as a test of a path: a regex
- * literal or a quoted glob, `absent` when the config sets none; none when it
- * sets it some other way (a list, a name), which this does not read.
+ * A glob of a config as playwright reads it: `**\/` before it unless it
+ * starts so, matched with no regard to case, as playwright's file matcher
+ * does.
+ */
+const globOf = (pattern: string) => {
+  let glob = pattern;
+  if (!glob.startsWith('**/')) glob = `**/${glob}`;
+  const matcher = new Glob(glob.toLowerCase());
+  return (file: string) => matcher.match(file.toLowerCase());
+};
+
+/**
+ * A config's `key` (`testMatch`, `testIgnore`) as a test of a path from the
+ * workspace: a regex literal or a quoted glob, `absent` when the config sets
+ * none; none when it sets it some other way (a list, a name) or by a regex
+ * anchored at the path's start (playwright tests the absolute path, which
+ * this does not see), which this does not read.
  */
 const patternOf = (
   text: string,
@@ -197,22 +217,18 @@ const patternOf = (
 ): Option.Option<(file: string) => boolean> =>
   Option.match(
     Option.fromNullishOr(
-      new RegExp(`\\b${key}\\s*:\\s*\\/((?:\\\\.|[^/\\\\\\n])+)\\/([a-z]*)`).exec(text),
+      new RegExp(`${keyAt(key)}\\/((?:\\\\.|[^/\\\\\\n])+)\\/([a-z]*)`).exec(text),
     ),
     {
       onSome: (regex) => {
-        const match = new RegExp(regex[1] ?? '', regex[2]);
+        const source = regex[1] ?? '';
+        if (source.startsWith('^')) return Option.none();
+        const match = new RegExp(source, regex[2]);
         return Option.some((file: string) => match.test(file));
       },
       onNone: () =>
         Option.map(literalOf(text, key), (glob) =>
-          Option.match(glob, {
-            onNone: () => absent,
-            onSome: (pattern) => {
-              const matcher = new Glob(pattern);
-              return (file: string) => matcher.match(file);
-            },
-          }),
+          Option.match(glob, { onNone: () => absent, onSome: globOf }),
         ),
     },
   );
@@ -253,7 +269,7 @@ const playwrightRun = (
   );
   const takes = Option.flatMap(file, (at) =>
     Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) => {
-      if (/\bprojects\s*:/.test(text)) return Option.none();
+      if (/\bprojects\b/.test(text)) return Option.none();
       const folder = at.split('/').slice(0, -1);
       return Option.flatMap(literalOf(text, 'testDir'), (dir) =>
         Option.flatMap(pathOf([...folder, Option.getOrElse(dir, () => '.')].join('/')), (root) =>

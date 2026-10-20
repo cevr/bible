@@ -197,11 +197,14 @@ describe("a workspace's test files", () => {
           'test/browser/b.test.ts: test:browser',
           'test/c.spec.ts: none',
         ]);
-        // A file its testIgnore names is not taken, by a glob or a regex.
-        for (const ignore of ["'**/a.spec.ts'", '/a\\.spec/'])
-          expect(
-            reaches(scripts, files, config(`export default { testIgnore: ${ignore} };`)),
-          ).toEqual([
+        // A file its testIgnore names is not taken, by a glob (read as playwright reads one:
+        // any folder before it, any case) or a regex, its key bare or quoted.
+        for (const ignore of [
+          "testIgnore: '**/a.spec.ts'",
+          "testIgnore: 'A.spec.ts'",
+          '"testIgnore": /a\\.spec/',
+        ])
+          expect(reaches(scripts, files, config(`export default { ${ignore} };`))).toEqual([
             'test/browser/a.spec.ts: none',
             'test/browser/b.test.ts: test:browser',
             'test/c.spec.ts: none',
@@ -210,7 +213,10 @@ describe("a workspace's test files", () => {
         for (const configs of [
           config('export default { testDir: here };'),
           config("export default { testIgnore: ['**/a.spec.ts'] };"),
+          config("const testIgnore = '**/a.spec.ts';\nexport default { testIgnore };"),
+          config('export default { testMatch: /^test\\/browser\\// };'),
           config('export default { projects: [] };'),
+          config("export default { 'projects': [] };"),
           {},
         ])
           expect(reaches(scripts, files, configs).map((line) => line.endsWith(': none'))).toEqual([
