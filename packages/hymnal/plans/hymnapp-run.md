@@ -35,6 +35,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Decisions
 
+- reader1 r3 (2026-10-20): hymn list rows are one line of fixed height, so Back restores any offset before the first paint, and a long title ends in "…". Measured: 1 title is cut at 402 px, about 10 at 375 px and 146 at 320 px. The full title stays in the row's label and on the hymn page. This is small and reversible, so the orchestrator decided it (smallest sufficient). The owner may ask for full titles; then rows are measured per title. (reader1)
+
 - Owner 2026-10-20: the hymnal plays the recordings in R2. Quote: "there should also be a player that plays the mp3s in r2". This is unit `player`, after reader1 and beside `palette`: play, pause, seek, a now-playing bar that persists, and background and lock-screen playback through One's `Audio`. (player)
 
 - Owner 2026-10-20: the hymnal uses Selah's whole palette A, not only its accent. Quote: "Also for the Hymno app, let's use the same colors that we were thinking of for Salah". In light mode, the ground is ecru mixed toward white (#eee8e1), the ink is Vandar Poel's blue (#064f6e), and the soft colour is pale king's blue. In dark mode, the ground is Vandar Poel's blue mixed toward black (#032432), and the ink is ecru mixed toward white (#e4dbce). This replaces reader1's "plain system background". It comes as unit `palette` right after reader1 merges, not as a reader1 round (scope never grows inside a running unit). (reader1, palette)
