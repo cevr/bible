@@ -3933,7 +3933,13 @@ TypeSafe's own host, and the runner reads no `.env` file (`bun
 --no-env-file`): none in a checkout sets its key or a proxy. A rule stays at
 `warn` until its labelled corpus shows the precision a gate needs; `bun run
 --cwd packages/scripts judged:measure --rule <id>` measures it there and
-prints its precision and recall at its threshold and at others.
+prints its precision and recall at its threshold and at others. Before a
+change of the runner's request form, its packing or its model lands, `bun
+run --cwd packages/scripts judged:quality` asks a seeded sample of the
+repo's answered items again as the runner now asks (300 drawn at random and
+100 kept findings a rule, about 0.7M input tokens) and prints, a rule, how
+many kept their label and their finding and how far the answers moved; it
+keeps nothing, and no gate runs it.
 `film/drawing-literal` and `film/no-unprobed-ink` hold a film's scenes to
 what the lab can locate and what `film check` can probe; the films' README
 (`apps/animations/README.md`, **Lint**) says what each refuses.
