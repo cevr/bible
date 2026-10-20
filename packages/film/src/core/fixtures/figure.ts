@@ -9,7 +9,8 @@
 // rail in front of the robe's foot (or none), and a wall's thin lines behind
 // it (or none). For a cast sheet's tests (`cast-sheet.slow.test.ts`): the eyes
 // turned off the face's middle, long dark hair down the head's sides and a
-// beard (parted from the hair by a line, or running into it), the house arm
+// beard (parted from the hair by a line, or running into it), a front
+// light's lit band on that hair, the house arm
 // (a sleeve from the shoulder to the hand at rest at its end), a sleeve
 // hanging at rest with the hand floating free beside it, a sleeve reaching
 // to the hand, a bare arm, a limb (a sleeve, a
@@ -41,6 +42,8 @@ const WOOD: Rgb = [150, 100, 60];
 const SKIN_LIGHT: Rgb = [251, 210, 182];
 /** Long hair and a beard: a dark warm brown, dark as a fill and far from the ink (more than 44 from it). */
 const LOCKS: Rgb = [112, 66, 40];
+/** A front light's band on dark hair: the lit chestnut RBF's rig paints along Christ's crown (court, 20.01 s). */
+const LOCKS_LIT: Rgb = [205, 126, 64];
 
 /** How a drawn figure is drawn: its head, its line, its hair and its robe, in pixels. */
 export interface FigureSpec {
@@ -84,6 +87,8 @@ export interface FigureSpec {
   readonly longHair?: boolean;
   /** A dark beard over the lower face between the locks, the mouth inside it: parted from the locks by a line, or running into them. */
   readonly beard?: { readonly parted: boolean };
+  /** A front light's lit band on the long hair: a crescent 10 px wide along the cap's left edge, inside the head's line, on the dark hair with no ink between, 8 px of it between the band and the face. */
+  readonly litBand?: boolean;
   /**
    * What lies between the robe and the hand: the house arm, a sleeve from
    * the shoulder down and out to the hand at rest at its end, the hand's
@@ -360,6 +365,16 @@ const drawHair = (c: Canvas, spec: FigureSpec) => {
         Math.abs(x - cx) <= rx - 14,
     );
     if (spec.beard.parted) c.fill(seam, INK);
+  }
+  if (spec.litBand === true) {
+    const [inner, past] = [
+      ellipse(cx, cy, rx - 3, ry - 3),
+      ellipse(cx + 10, cy + 10, rx - 3, ry - 3),
+    ];
+    c.fill(
+      within(box, (x, y) => y < hairLine - 8 && x < cx && inner(x, y) && !past(x, y)),
+      LOCKS_LIT,
+    );
   }
   if (spec.darkHair === true)
     c.fill(

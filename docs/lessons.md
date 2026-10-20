@@ -755,6 +755,36 @@ The form of an entry, each field on its own line:
 - **Cause:** `mannequinUnderlay` took one height for every view, and the record named no smaller figure.
 - **Guard:** code: `packages/film/src/core/cast-underlay.slow.test.ts` `stands a smaller figure its share of the grown one's height, its head a larger share of it`, `packages/film/src/tools/cast-sheet-make.slow.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
 
+### match-face-marks-on-eye-spacing
+
+- **Date:** 2026-10-18
+- **Kind:** retraction
+- **Said:** "`match` measures the face against the head's outer width with its ink, which overstates a face by about 9% when the render's ink is heavier than the concept's"
+- **Source:** tmp/architecture-loop/pass6/triage.md, review-critic-context (2); tmp/orchestrate/p5/rbf-v3/triage-r3.md
+- **Wrong:** The match read the eyes, the brows and the mouth as shares of the head's outer width, which holds the outline's ink: RBF's Christ draws a 27 px line against his concept's 16, so every mark read short on a face drawn the same.
+- **Cause:** One measure for every ratio, the head's width with its line in.
+- **Guard:** code: `packages/film/src/core/figure.ts` `FACE_MARKS` (the marks as shares of the eye spacing; a line half as heavy again moves none in `figure.test.ts`)
+
+### match-head-shade-skin-not-cloth
+
+- **Date:** 2026-10-18
+- **Kind:** retraction
+- **Said:** "Tool misread: its "lit" is skin (h30 s.51) and its "shade" is cloth (h50 s.21)."
+- **Source:** tmp/orchestrate/p5/rbf-v3/triage-r3.md (finding 22, f5ae994e7, rain 17.5 s); tmp/architecture-loop/pass6/triage.md, review-critic-context (3)
+- **Wrong:** At rain 17.5 s the match's head shade rows paired the farmer's skin with his headcloth, so the shade's drop, turn and saturation compared cloth with the concept's skin.
+- **Cause:** The face's region runs on, with no line between, into the cream headcloth down to his shoulder, and the head's shade split every pixel of that region from the eyes to the head box's foot in two by colour.
+- **Guard:** code: `packages/film/src/core/figure.ts` `skinOf` (the head's shade reads the skin alone, from under the eyes to the chin read from them; a headcloth's face reads no shade in `figure.test.ts`)
+
+### match-lit-hair-band-is-hair
+
+- **Date:** 2026-10-18
+- **Kind:** retraction
+- **Said:** "a lit hair band cut just inside the ink (court.you's chestnut crown) moves `match`'s head edge onto the band and reads it as skin beside the silhouette ink"
+- **Source:** tmp/architecture-loop/pass6/triage.md, match-lit-hair-edge (painter 4756e8009, measured)
+- **Wrong:** On RBF's Christ at court 20.01 s the match read the head's width from the lit band's box, h/w 1.078 against the concept's 1.336, and the dark hair between the band and the face as ink on the hair/skin edge (0.352, flagged); without the band, 1.245 and 0.000.
+- **Cause:** The dark brown hair lay within reach of the ink's colour, so it read as a line's streak, never a fill; the lit band was the only hair, and the head's sides were the hair parts' boxes.
+- **Guard:** code: `packages/film/src/core/figure.ts` `outerSides` (the head's sides on the silhouette ink, dark hair a mass by its paper; the drawn lit band and the court 20.01 s crop in `figure.test.ts` and `figure-crops.test.ts`)
+
 ## Gate and review
 
 ### gate-not-ci

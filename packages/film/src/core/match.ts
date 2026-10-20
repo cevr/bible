@@ -732,7 +732,7 @@ export const matchTable = (
   [
     `### ${figure} (${place})`,
     '',
-    `Concept: ${conceptImageName(concept.image)}, box ${concept.box.join(',')}. Ratios are shares of the head's outer width; a ratio is flagged past ${RATIO_TOLERANCE * 100}% of the concept's.`,
+    `Concept: ${conceptImageName(concept.image)}, box ${concept.box.join(',')}. Ratios are shares of the head's outer width, the face's marks (eyes, brows, mouth) of the eye spacing; a ratio is flagged past ${RATIO_TOLERANCE * 100}% of the concept's.`,
     '',
     '| Measure | Concept | Scene | Diff | Flag | Note |',
     '|---|---|---|---|---|---|',

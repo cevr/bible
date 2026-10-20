@@ -2,21 +2,26 @@
 // painted concept or a rig drawn alone, read as the house look draws a
 // figure (DIRECTION's K1: flat paper shapes inside one thick warm dark ink
 // line, three-mark faces, circle hands) and turned into proportions, each a
-// share of the head's outer width, so a concept and a scene compare whatever
-// their sizes. Pure: RGBA in, numbers out.
+// share of the head's outer width (the face's marks, of the eye spacing), so
+// a concept and a scene compare whatever their sizes. Pure: RGBA in, numbers
+// out.
 //
 // How it reads a crop:
 //
-// - The ink is the crop's commonest dark warm colour; a pixel near it is ink.
-//   A dark fill (hair as dark as the ink) is told from a line by its
-//   thickness: what an opening wider than the line keeps is a mass, a fill.
+// - The ink is the crop's commonest dark warm colour; a pixel near it, or a
+//   dark warm brown within reach of it, is ink. A dark fill (hair, however
+//   far its brown lies from the ink) is told from a line by its thickness:
+//   what an opening wider than the line keeps is a mass, a fill, and the
+//   dark joined to it that is not the ink's own colour is its paper too.
 // - Regions are the fills the ink closes (the ink thickened a little first,
 //   so a soft spot in a line leaks nothing); a mass is a region of its own,
 //   so the line beside dark hair, which is the hair's mass, still closes.
 // - The face is the region round the two eyes (a pair of small upright ink
-//   ovals on one row); the head is the face and the hair regions joined to it
-//   across one line above the eyes, and its outline. Hair that blends into
-//   the face is the face's own region.
+//   ovals on one row, the face either side of them); the head is the face
+//   and the hair regions joined to it across one line above the eyes (dark
+//   hair round the face, and a lit band painted on it, among them), and its
+//   outline: its sides are the silhouette ink's outer edge, never a part's
+//   lit value. Hair that blends into the face is the face's own region.
 // - The body is the fill most of the band under the chin is: a fill here is
 //   what the ink closes and no sharp step of colour splits (a shade's edge
 //   steps less than a robe against what it is drawn on), so a table painted
@@ -72,8 +77,9 @@ export type Shading = typeof Shading.Type;
 
 /**
  * Each proportion a figure is measured by, each a share of the head's outer
- * width, but `headHeight` (the head's height, with its hair, over its width)
- * and `heightInHeads` (the figure's height in head heights).
+ * width, but `headHeight` (the head's height, with its hair, over its width),
+ * `heightInHeads` (the figure's height in head heights) and the face's marks
+ * (`FACE_MARKS`), each a share of the eye spacing.
  */
 export const RATIOS = [
   'headHeight',
@@ -100,6 +106,20 @@ export const RATIOS = [
 ] as const;
 export type Ratio = (typeof RATIOS)[number];
 
+/**
+ * The ratios read against the eye spacing (centre to centre), the traced
+ * marks' own measure: the outer width holds the outline's ink, so a heavier
+ * line (27 px on RBF's Christ against his concept's 16) widens it about 9%
+ * and would shrink every mark by as much on a face drawn the same.
+ */
+const FACE_MARKS: ReadonlySet<Ratio> = new Set([
+  'eyeWidth',
+  'eyeHeight',
+  'browLength',
+  'browAbove',
+  'mouthWidth',
+]);
+
 /** What each ratio is, as a table names it. */
 export const RATIO_LABELS: Readonly<Record<Ratio, string>> = {
   headHeight: 'head height (with hair) / width',
@@ -113,13 +133,13 @@ export const RATIO_LABELS: Readonly<Record<Ratio, string>> = {
   hand: 'hand diameter',
   feetWidth: 'feet, their whole width',
   feetHeight: "feet, their height under the body's lowest row",
-  eyeWidth: 'eye width',
-  eyeHeight: 'eye height',
+  eyeWidth: 'eye width / eye spacing',
+  eyeHeight: 'eye height / eye spacing',
   eyeSpacing: 'eye spacing, centre to centre',
   eyeBelowCentre: 'eye centre below head centre',
-  browLength: 'brow length',
-  browAbove: "brow's top above eye centre",
-  mouthWidth: 'mouth width',
+  browLength: 'brow length / eye spacing',
+  browAbove: "brow's top above eye centre / eye spacing",
+  mouthWidth: 'mouth width / eye spacing',
   mouthBelowCentre: 'mouth below head centre',
   interiorInk: 'ink on the hair/skin edge, its length',
   innerRim: "light rim inside an inner part's edge (an ear, the hair), its length",
@@ -662,17 +682,15 @@ const readCrop = (r: Raster): Option.Option<Read> =>
     }
     const line = lineWidthOf(strong, w, h);
     const half = line / 2;
-    const depth = distanceTo(w, h, (i) => strong[i] === 0);
-    // A mass: what an opening wider than the line keeps.
+    // A mass: what an opening wider than the line keeps of the dark, the ink's colour or its streaks. A part is classed by its paper: dark hair a lit band lies on is a fill, never a line, however far its brown lies from the ink.
+    const depth = distanceTo(w, h, (i) => near[i] === 0);
     const reach = half * 1.8 + 1;
     const fromCore = distanceTo(w, h, (i) => depth[i]! > reach * reach);
-    const mass = new Uint8Array(n);
+    const cored = (i: number) => near[i] === 1 && fromCore[i]! <= reach * reach;
+    // The fill's narrow runs (a strip of hair between the face and the outline, narrower than the opening) are its paper too: what joins a mass through dark that is not the ink's own colour.
+    const mass = reachFrom(w, h, cored, (j) => near[j] === 1 && strong[j] === 0);
     const ink = new Uint8Array(n);
-    for (let i = 0; i < n; i++) {
-      const inMass = strong[i] === 1 && fromCore[i]! <= reach * reach;
-      mass[i] = inMass ? 1 : 0;
-      ink[i] = near[i] === 1 && !inMass ? 1 : 0;
-    }
+    for (let i = 0; i < n; i++) ink[i] = near[i] === 1 && mass[i] === 0 ? 1 : 0;
     const seal = Math.max(1, Math.round(half * 0.4));
     const sealed = distanceTo(w, h, (i) => ink[i] === 1);
     // A mass is a region of its own: where it meets a fill or the ground with no ink between (the line beside dark hair is the hair's), it bars them as a line would.
@@ -897,7 +915,7 @@ const eyeLike = (p: Part) => {
   return aspect >= 1.1 && aspect <= 3.6 && p.area >= 0.5 * widthOf(p) * heightOf(p) && p.area >= 6;
 };
 
-/** The two eyes and the region round them: the largest pair of eye marks on one row with one region between and beside them. */
+/** The two eyes and the region round them: the largest pair of eye marks on one row with one region between them and either side of them. */
 const eyesOf = (read: Read, marks: ReadonlyArray<Part>) => {
   const eyes = marks.filter(eyeLike);
   let best = Option.none<{ readonly eyes: readonly [Part, Part]; readonly face: Part }>();
@@ -910,11 +928,17 @@ const eyesOf = (read: Read, marks: ReadonlyArray<Part>) => {
       if (Math.abs(cyOf(a) - cyOf(b)) > 0.5 * Math.max(heightOf(a), heightOf(b))) continue;
       if (dx < 1.5 * widthOf(a) || dx > 12 * widthOf(a) || a.area + b.area <= score) continue;
       const between = regionNear(read, (cxOf(a) + cxOf(b)) / 2, (cyOf(a) + cyOf(b)) / 2, 4);
+      // The face lies either side of the pair: an ear's line beside the face, between it and the ear, is no eye.
       const left = regionNear(read, a.x0 - read.seal - 2, cyOf(a), 4);
-      if (Option.isNone(between) || Option.isNone(left) || left.value.id !== between.value.id)
+      const right = regionNear(read, b.x1 + read.seal + 2, cyOf(b), 4);
+      const face = Option.map(between, (p) => p.id);
+      if (
+        Option.isNone(face) ||
+        [left, right].some((side) => Option.isNone(side) || side.value.id !== face.value)
+      )
         continue;
       score = a.area + b.area;
-      best = Option.some({ eyes: [a, b] as const, face: between.value });
+      best = Option.some({ eyes: [a, b] as const, face: read.regions.parts[face.value]! });
     }
   return best;
 };
@@ -1287,14 +1311,19 @@ interface Outer {
   readonly mask: Uint8Array;
 }
 
+/** A light region not the head's and at least this share of the face's area is no ear: it lies off the head. An ear is about a twentieth of a face; a hand a quarter. */
+const FOREIGN_FILL = 0.2;
+
 /**
  * The head inside its outline's outer edge, in a box round the face `reach`
  * pixels wide each way: what the ground off the head, walled by the ink and
- * the masses, does not reach from the box's edge, opened by a line (so a
- * line that runs on from the head, a neck's or a robe's, is not the head),
- * and the part of it joined to the face. Its regions `ids` are the head; a
- * dark fill the grain specks with ink is no region, but the ground cannot
- * reach it past the outline, so it is the head too.
+ * the masses, does not reach from the box's edge or from a light fill larger
+ * than an ear that is not the head's (`FOREIGN_FILL`: a robe or a chair the
+ * ink walls in is off the head still), opened by a line (so a line that runs on
+ * from the head, a neck's or a robe's, is not the head), and the part of it
+ * joined to the face. Its regions `ids` are the head; a dark fill the grain
+ * specks with ink is no region, but the ground cannot reach it past the
+ * outline, so it is the head too.
  */
 const outerOf = (
   read: Read,
@@ -1317,17 +1346,33 @@ const outerOf = (
         return x >= px0 && x <= px1 && y >= py0 && y <= py1;
       },
   });
+  // A light fill not the head's and larger than an ear (the robe under it, a chair behind it, a hand raised beside it) is off the head however the ink walls it in; a dark one is its hair or beard.
+  const foreign = (j: number) => {
+    const id = read.regions.labels[j]!;
+    return (
+      id >= 0 &&
+      read.mass[j] === 0 &&
+      !ids.has(id) &&
+      read.regions.parts[id]!.area >= FOREIGN_FILL * face.area
+    );
+  };
   const ground = (i: number) => {
     const j = at(i);
     return (
-      !ids.has(read.regions.labels[j]!) && read.ink[j] === 0 && read.mass[j] === 0 && !plugged(i)
+      !plugged(i) &&
+      (foreign(j) || (!ids.has(read.regions.labels[j]!) && read.ink[j] === 0 && read.mass[j] === 0))
     );
   };
   const onBoxEdge = (i: number) => {
     const [x, y] = [i % bw, Math.floor(i / bw)];
     return x === 0 || y === 0 || x === bw - 1 || y === bh - 1;
   };
-  const outside = reachFrom(bw, bh, (i) => ground(i) && onBoxEdge(i), ground);
+  const outside = reachFrom(
+    bw,
+    bh,
+    (i) => (ground(i) && onBoxEdge(i)) || (!plugged(i) && foreign(at(i))),
+    ground,
+  );
   const fromOutside = distanceTo(bw, bh, (i) => outside[i] === 1);
   const deep = (i: number) => fromOutside[i]! > read.line * read.line;
   const core = reachFrom(bw, bh, (i) => deep(i) && read.regions.labels[at(i)] === face.id, deep);
@@ -1344,7 +1389,88 @@ const outerTop = (outer: Outer): number => {
   return outer.y0 + Math.floor(Math.max(0, first) / outer.bw);
 };
 
-/** Hair: the regions across one line from the face, above the eyes, within the head's reach. */
+/**
+ * The head's sides: on each of its rows `y0` to `y1`, from the head's own
+ * regions `ids` (its dark fills among them) outward, inside the outer mask,
+ * through at most one outline's width of what is not the head's (ink, its
+ * seams, a speck of grain, a dark fill as good as a line here): the
+ * silhouette ink's outer edge. A lit band of hair inside that ink, or a dark fill
+ * whose edge no region marks, moves neither side; an ear, a region of its
+ * own past the face's line, stops the walk, so a head is as wide as its
+ * skull and cheeks, never its ears; and a line the outline runs on into
+ * along a row (a chair's frame, a shoulder's) is not the head.
+ */
+const outerSides = (
+  read: Read,
+  outer: Outer,
+  ids: ReadonlySet<number>,
+  y0: number,
+  y1: number,
+): readonly [number, number] => {
+  const outline = Math.ceil(1.5 * read.line + 2 * read.seal);
+  const grain = read.line * read.line;
+  const inMask = (x: number, y: number) =>
+    x >= outer.x0 &&
+    x < outer.x0 + outer.bw &&
+    outer.mask[(y - outer.y0) * outer.bw + x - outer.x0] === 1;
+  /** From (`x`, `y`) on the head, the last column the walk `dx` reaches. */
+  const walk = (x: number, y: number, dx: number) => {
+    let [edge, run] = [x, 0];
+    for (let nx = x + dx; nx >= 0 && nx < read.w && inMask(nx, y); nx += dx) {
+      const i = y * read.w + nx;
+      const id = read.regions.labels[i]!;
+      if (ids.has(id)) run = 0;
+      else if (id >= 0 && read.mass[i] === 0 && read.regions.parts[id]!.area >= grain) break;
+      else run++;
+      if (run > outline) break;
+      edge = nx;
+    }
+    return edge;
+  };
+  let [lo, hi] = [Infinity, -Infinity];
+  for (
+    let y = Math.max(Math.round(y0), outer.y0);
+    y < Math.min(Math.round(y1), outer.y0 + outer.bh);
+    y++
+  ) {
+    const row = y * read.w;
+    let [first, last] = [-1, -1];
+    for (let x = 0; x < read.w; x++)
+      if (ids.has(read.regions.labels[row + x]!)) {
+        if (first < 0) first = x;
+        last = x;
+      }
+    if (first < 0) continue;
+    lo = Math.min(lo, walk(first, y, -1));
+    hi = Math.max(hi, walk(last, y, 1));
+  }
+  return [lo, hi + 1];
+};
+
+/** The regions that meet region `of` with no ink between: a part painted on it. */
+const touching = (read: Read, of: Part): ReadonlySet<number> => {
+  const { w, h, regions } = read;
+  const found = new Set<number>();
+  for (let y = of.y0; y <= of.y1; y++)
+    for (let x = of.x0; x <= of.x1; x++) {
+      if (regions.labels[y * w + x] !== of.id) continue;
+      for (const [dx, dy] of STEPS) {
+        const [nx, ny] = [x + dx, y + dy];
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const id = regions.labels[ny * w + nx]!;
+        if (id >= 0 && id !== of.id) found.add(id);
+      }
+    }
+  return found;
+};
+
+/**
+ * Hair: the regions across one line from the face, above the eyes, within
+ * the head's reach. Dark hair is a mass round the face, its crown and its
+ * beard one fill when no ink parts them, so a mass that rises past the
+ * face's top is hair however far down it runs; a lit band painted on it
+ * (meeting it with no ink between) is the hair's too.
+ */
 const hairOf = (read: Read, face: Part, eyeY: number, span: number): Array<Part> => {
   const fw = widthOf(face);
   const near = (p: Part) =>
@@ -1353,9 +1479,16 @@ const hairOf = (read: Read, face: Part, eyeY: number, span: number): Array<Part>
     (widthOf(p) >= 0.3 * fw || p.y1 < face.y0 + 0.15 * heightOf(face)) &&
     cyOf(p) < eyeY &&
     p.y1 < eyeY + 0.5 * fw;
-  return [...neighbours(read, face, span)]
+  const dark = (p: Part) => massShare(read, p) > 0.5;
+  const fits = (p: Part) => !p.border && p.area >= read.line * read.line && near(p);
+  const first = [...neighbours(read, face, span)]
     .map((id) => read.regions.parts[id]!)
-    .filter((p) => !p.border && p.area >= read.line * read.line && above(p) && near(p));
+    .filter((p) => fits(p) && (above(p) || (dark(p) && p.y0 < face.y0)));
+  const taken = new Set([face.id, ...first.map((p) => p.id)]);
+  const painted = [...new Set(first.filter(dark).flatMap((p) => [...touching(read, p)]))]
+    .map((id) => read.regions.parts[id]!)
+    .filter((p) => !taken.has(p.id) && fits(p) && above(p));
+  return [...first, ...painted];
 };
 
 /** A side of the head's outer edge: a mass (dark hair) reaches the outline itself, a fill stops `rim` inside it. */
@@ -1398,18 +1531,27 @@ const headOf = (
   const rim = seal + line;
   const masses = new Set(hair.filter((p) => massShare(read, p) > 0.5).map((p) => p.id));
   const parts = [face, ...hair];
-  const hx0 = sideOf(parts, masses, rim, (p) => p.x0, -1, Math.min);
-  const hx1 = sideOf(parts, masses, rim, (p) => p.x1, 1, Math.max) + 1;
+  // The head's own dark fills: hair, and the locks or the beard that meet the face with no ink between, however low they hang.
+  const dark = new Set([
+    ...parts.map((p) => p.id),
+    ...[...touching(read, face)].filter((id) => massShare(read, read.regions.parts[id]!) > 0.5),
+  ]);
+  // The parts' box only sizes the search: the head's sides are its silhouette's.
+  const across =
+    sideOf(parts, masses, rim, (p) => p.x1, 1, Math.max) +
+    1 -
+    sideOf(parts, masses, rim, (p) => p.x0, -1, Math.min);
   const outer = outerOf(
     read,
     face,
-    new Set(parts.map((p) => p.id)),
-    1.2 * (hx1 - hx0),
+    dark,
+    1.2 * across,
     Option.map(open, (o) => o.plug),
   );
   const hy0 = outerTop(outer);
   // An open chin has no line under it: the head ends where the neck starts.
   const hy1 = face.y1 + 1 + ((Option.isNone(open) && rim) || 0);
+  const [hx0, hx1] = outerSides(read, outer, dark, hy0, hy1);
   const [cx, cy] = [(hx0 + hx1) / 2, (hy0 + hy1) / 2];
   const head: Head = {
     a,
@@ -1465,10 +1607,14 @@ const browOver = (
 const faceRatios = (read: Read, head: Head, sink: Sink): Option.Option<MouthPose> => {
   const { a, b, W } = head;
   const [sa, sb] = [markSize(read, a), markSize(read, b)];
-  sink.put('eyeWidth', (sa.width + sb.width) / 2 / W);
-  sink.put('eyeHeight', (sa.height + sb.height) / 2 / W);
-  sink.put('eyeSpacing', (cxOf(b) - cxOf(a)) / W);
-  sink.put('eyeBelowCentre', (head.eyeY - head.cy) / W);
+  // A mark against the eye spacing (`FACE_MARKS`); the spacing and the marks' places against the head.
+  const spacing = cxOf(b) - cxOf(a);
+  const put = (ratio: Ratio, pixels: number) =>
+    sink.put(ratio, pixels / (FACE_MARKS.has(ratio) ? spacing : W));
+  put('eyeWidth', (sa.width + sb.width) / 2);
+  put('eyeHeight', (sa.height + sb.height) / 2);
+  put('eyeSpacing', spacing);
+  put('eyeBelowCentre', head.eyeY - head.cy);
   const soft = faceMarks(read, head.face, [head.hx0, head.hy0, head.hx1, head.hy1]);
   const holds = (p: Part, eye: Part) =>
     soft.labels[Math.round(cyOf(eye)) * read.w + Math.round(cxOf(eye))] === p.id;
@@ -1486,14 +1632,8 @@ const faceRatios = (read: Read, head: Head, sink: Sink): Option.Option<MouthPose
     sink.lacks('browLength', 'no brow over either eye');
     sink.lacks('browAbove', 'no brow over either eye');
   } else {
-    sink.put(
-      'browLength',
-      brows.reduce((s, p) => s + axisLength(read, soft, p.brow), 0) / brows.length / W,
-    );
-    sink.put(
-      'browAbove',
-      brows.reduce((s, p) => s + cyOf(p.eye) - p.brow.y0, 0) / brows.length / W,
-    );
+    put('browLength', brows.reduce((s, p) => s + axisLength(read, soft, p.brow), 0) / brows.length);
+    put('browAbove', brows.reduce((s, p) => s + cyOf(p.eye) - p.brow.y0, 0) / brows.length);
   }
   const under = (p: Part) =>
     p.y0 > Math.max(a.y1, b.y1) && cxOf(p) > cxOf(a) - widthOf(a) && cxOf(p) < cxOf(b) + widthOf(b);
@@ -1506,8 +1646,8 @@ const faceRatios = (read: Read, head: Head, sink: Sink): Option.Option<MouthPose
         return Option.none();
       },
       onSome: (mouth) => {
-        sink.put('mouthWidth', markSize(read, mouth).width / W);
-        sink.put('mouthBelowCentre', (cyOf(mouth) - head.cy) / W);
+        put('mouthWidth', markSize(read, mouth).width);
+        put('mouthBelowCentre', cyOf(mouth) - head.cy);
         const open = strokeOf(read, soft, mouth) > MOUTH_OPEN * head.outline;
         return Option.some<MouthPose>(open ? 'open' : 'closed');
       },
@@ -1966,7 +2106,8 @@ const readWith = (crop: Raster, rims: boolean) => {
     const { W } = head;
     sink.put('headHeight', head.H / W);
     sink.put('outline', head.outline / W);
-    Option.match(rowExtent(read, head.headIds, head.hy1 - 0.2 * W), {
+    // The jaw is the face's: hair hanging beside it (a crown that runs on into the beard) is no jaw.
+    Option.match(rowExtent(read, new Set([head.face.id]), head.hy1 - 0.2 * W), {
       onNone: () => sink.lacks('jaw', 'no head 0.2 of a head above the chin'),
       onSome: ([lo, hi]) => sink.put('jaw', (hi - lo + 1 + 2 * head.rim) / W),
     });
@@ -2016,9 +2157,13 @@ export const readFigure = (crop: Raster): Result.Result<FigureRead, FigureUnread
 /** Measure the figure in `crop`: one figure, with a little room round it. */
 export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, FigureUnread> =>
   Result.map(readWith(crop, true), ({ figure, read, head, body }) => {
-    // The head's shade: the face below the eyes.
+    // The head's shade: the face's skin from just under the eyes to the chin, both read from the eyes (`faceBoxOf`). The face's region runs on, with no line between, into a fill of another paper (a headcloth hanging to the shoulder, a veil), which is no shade of the skin.
+    const skin = skinOf(read, head);
+    const chin = Math.min(head.hy1, faceBoxOf(head).y1);
     const headShading = shadingOf(
-      pixelsOf(read, new Set([head.face.id]), head.eyeY + 0.1 * head.W, head.hy1),
+      pixelsOf(read, new Set([head.face.id]), head.eyeY + 0.1 * head.W, chin).filter((p) =>
+        skin(p.c),
+      ),
     );
     const { mouth, facing, missing, ...lines } = figure;
     return {

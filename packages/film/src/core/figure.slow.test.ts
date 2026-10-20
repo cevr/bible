@@ -39,8 +39,9 @@ describe('a drawn figure', () => {
     near('headHeight', (2 * (PLAIN.ry + PLAIN.line)) / W);
     near('outline', PLAIN.line / W, 0.01);
     near('eyeSpacing', PLAIN.eyeGap / W, 0.01);
-    near('eyeWidth', PLAIN.eyeW / W, 0.01);
-    near('eyeHeight', PLAIN.eyeH / W, 0.01);
+    // The eyes against their spacing: a pixel of an eye is a 48th of it.
+    near('eyeWidth', PLAIN.eyeW / PLAIN.eyeGap, 0.035);
+    near('eyeHeight', PLAIN.eyeH / PLAIN.eyeGap, 0.035);
     // The robe at its hem, and the figure from the hair's top to the feet's bottom.
     near('hem', (PLAIN.robeHem + 2 * PLAIN.line) / W);
     near('hand', (44 + 2 * PLAIN.line) / W);
@@ -135,10 +136,46 @@ describe('a drawn figure', () => {
     expect(plain.mouth).toBeUndefined();
   });
 
+  test("reads the face's marks against the eye spacing: a line half as heavy again moves none of them", () => {
+    const face = { ...PLAIN, mouth: { open: false, width: 30 } };
+    const [light, heavy] = [measured(face), measured({ ...face, line: 10 })];
+    // The outer width holds the line: 4 px more of it each side widens the head 6%.
+    for (const ratio of ['eyeWidth', 'eyeHeight', 'mouthWidth'] as const)
+      expect({ ratio, off: Math.abs(valueOf(heavy, ratio) / valueOf(light, ratio) - 1) }).toEqual({
+        ratio,
+        off: expect.closeTo(0, 1.5),
+      });
+  });
+
+  test("under a headcloth its face's fill runs on into with no line, shades the skin alone", () => {
+    // The RBF farmer's cream cloth, 61 from his skin: near enough to pass for a shade of it.
+    const cloth = measured({ ...PLAIN, headcloth: [230, 220, 190] });
+    expect(plain.headShading).toBeUndefined();
+    expect(cloth.headShading).toBeUndefined();
+  });
+
   test('a crop with no ink is no figure', () => {
     const blank: Raster = { width: 40, height: 40, rgba: new Uint8Array(40 * 40 * 4).fill(240) };
     const m = measureFigure(blank);
     expect(Result.isFailure(m) && m.failure.reason).toBe('no dark warm ink in it');
+  });
+});
+
+describe('long dark hair, a lit band painted on it inside the ink', () => {
+  const W = headWidth(PLAIN);
+  const drawnHeight = (2 * (PLAIN.ry + PLAIN.line)) / W;
+  const [dark, lit] = [
+    measured({ ...PLAIN, longHair: true }),
+    measured({ ...PLAIN, longHair: true, litBand: true }),
+  ];
+
+  test("reads the head to its outline's outer edge, the band moving neither side", () => {
+    expect(Math.abs(valueOf(dark, 'headHeight') / drawnHeight - 1)).toBeLessThan(0.03);
+    expect(Math.abs(valueOf(lit, 'headHeight') / drawnHeight - 1)).toBeLessThan(0.03);
+  });
+
+  test('reads no line of the hair between the band and the skin: the dark hair is the paper the band lies on', () => {
+    expect(valueOf(lit, 'interiorInk')).toBeLessThan(0.02);
   });
 });
 

@@ -2696,21 +2696,35 @@ both (`measureFigure`, `core/figure.ts`, pure: RGBA in, numbers out).
 **The measure.** Every length is a share of the head's outer width, so a
 concept and a scene compare whatever their sizes: the head's height, the
 outline, the jaw, the body's width under the chin, at 0.35 and 0.7 of a
-head under it and at the hem, the height in heads, the hand, the eyes, the
-brows and the mouth, the feet's width and height; the interior ink (a line
+head under it and at the hem, the height in heads, the hand, the eyes'
+spacing, the feet's width and height. The face's marks (the eyes' width and
+height, the brows and the mouth) are shares of the eye spacing, centre to
+centre (`FACE_MARKS`): the outer width holds the outline's ink, so a line
+heavier than the concept's (27 px on RBF's Christ against 16) would shrink
+every mark about 9% on a face drawn the same. The head's sides are the
+silhouette ink's outer edge on its rows (`outerSides`), walked out from the
+head's own regions through at most one outline's width of ink: a part is
+classed by its paper, so dark hair round the face is the head's fill
+however far its brown lies from the ink, a lit band painted on it is hair
+and moves neither side, an ear stops the walk, and a line the outline runs
+on into (a chair's frame) is not the head. The interior ink (a line
 of the hair's own between it and the skin: the owner's rule is none); the
 inner rim (a light band just inside the edge of an inner part of the head,
 an ear or the hair, where that edge is not the silhouette; the owner's
 rule is the concept's); the head's and the body's shading (each lit and
 shaded half's hue, saturation and value, the edge between them, colour or
-grey); the face's pose as its mouth shows it (`mouth`: open, a filled
+grey; the head's is its skin's alone, from under the eyes to the chin read
+from them, so a headcloth its face runs on into with no line is never its
+shade); the face's pose as its mouth shows it (`mouth`: open, a filled
 shape whose stroke is over 0.8 of the head's line, or closed, a line); and
 the outline (`FigureSilhouette`): the head's outer radius at 72 angles from
 its centre, the body's sides row by row, the feet's box. The head's top and
 its outline are where the ground stops at its ink (`outerOf`): what the
 ground off the head, walled by the ink and the dark masses, does not reach,
 opened by a line and joined to the face, so dark hair whose grain specks it
-with ink (no region of its own) is the head's still. A face whose fill
+with ink (no region of its own) is the head's still; a light fill larger
+than an ear that is not the head's (a robe or a chair the ink walls in) is
+ground however it is walled. A face whose fill
 runs on down the neck with no line at the chin (`chin: 'open'`) is read
 down to the chin, the first row of the neck within 1.15 of its width (the
 neck under 0.8 of the face's width and at least 0.15 of it, widening again
