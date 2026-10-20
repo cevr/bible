@@ -83,6 +83,7 @@
       "name": "@bible/hymnal-app",
       "version": "0.1.0",
       "dependencies": {
+        "@bible/hymnal": "workspace:*",
         "@effect/atom-react": "catalog:",
         "@react-navigation/native": "8.0.0-alpha.51",
         "effect": "catalog:",

@@ -18,6 +18,7 @@
     "audio:copy": "bun infra/audio/copy.ts"
   },
   "dependencies": {
+    "@bible/hymnal": "workspace:*",
     "@effect/atom-react": "catalog:",
     "@react-navigation/native": "8.0.0-alpha.51",
     "effect": "catalog:",
