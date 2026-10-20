@@ -66,7 +66,7 @@ describe('the player', () => {
       using app = open();
       app.send(Command.Start({ track: morning }));
       expect(yield* app.until(Player.$is('Loading'))).toEqual(Player.Loading({ track: morning }));
-      expect(app.device.played).toEqual(['https://hymns.cvr.im/audio/sdah/100.mp3']);
+      expect(app.device.played).toEqual(['https://hymns.cvr.im/audio/warm-1/sdah/100.mp3']);
       expect(app.device.played).toEqual([audioUrl(100)]);
 
       app.device.now = { state: 'playing', positionMs: 12_500, durationMs: 151_000 };

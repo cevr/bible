@@ -14,7 +14,7 @@ export const RECORDING_SET = 'warm-1';
 export const recordingKey = (hymn: number) => `sdah/${hymn}.mp3`;
 
 /** One instrument's credit: what it plays, the work, its author and its licence. */
-interface CreditLine {
+export interface CreditLine {
   readonly part: string;
   readonly work: string;
   readonly author: string;
@@ -28,7 +28,7 @@ interface CreditLine {
  * and must be credited with its licence's address; the strings are CC0 and
  * are credited anyway.
  */
-const RECORDING_CREDITS = {
+export const RECORDING_CREDITS = {
   lead: "The recordings are played from the hymnal's own scores.",
   lines: [
     {

@@ -1,6 +1,7 @@
 import { useAtom } from '@effect/atom-react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { About } from '~/about';
 import type { Appearance } from '~/settings';
 import { settings } from '~/store';
 import { color, useAccent } from '~/color';
@@ -45,6 +46,7 @@ export default function Settings() {
           </Pressable>
         ))}
       </View>
+      <About />
     </ScrollView>
   );
 }

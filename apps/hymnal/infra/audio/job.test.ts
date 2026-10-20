@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Console, Effect, Layer, Option, Ref, Result } from 'effect';
 
-import { audioKey } from '../../src/remote.ts';
+import { sourcedKey } from '../../src/remote.ts';
 import { HashBun } from './hash-bun.ts';
 import { dryRun, run } from './job.ts';
 import { SDAH_HYMNS } from './plan.ts';
@@ -165,7 +165,7 @@ const exec = <E>(
 const stores = (fx: Fixture, state: Bucket, faults: TargetFaults = healthy) =>
   Layer.mergeAll(sourceOf(fx), fillOf(fx), targetOf(state, faults));
 
-const key = audioKey;
+const key = sourcedKey;
 
 /** The summary of a run over the default fixture. */
 const sums = (fx: Fixture) => {

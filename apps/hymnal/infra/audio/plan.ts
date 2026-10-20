@@ -11,7 +11,7 @@
  */
 import { Array as Arr, Data, Option, Result } from 'effect';
 
-import { audioKey } from '../../src/remote.ts';
+import { sourcedKey } from '../../src/remote.ts';
 import type { FillEntry, SourceHead, TargetObject } from './stores.ts';
 
 /** The 1985 SDA Hymnal's numbers. */
@@ -73,7 +73,7 @@ export const holds = (object: TargetObject, size: number, md5: string) =>
   object.size === size && unquote(object.etag).toLowerCase() === md5;
 
 const fromS3 = (hymn: number, head: SourceHead, existing: Option.Option<TargetObject>): Item => {
-  const key = audioKey(hymn);
+  const key = sourcedKey(hymn);
   const md5 = etagMd5(head.etag);
   const kept = Option.flatMap(md5, (sum) =>
     Option.filter(existing, (object) => holds(object, head.size, sum)),
@@ -89,7 +89,7 @@ const fromFill = (
   fill: Result.Result<ReadonlyMap<number, FillEntry>, string>,
   existing: Option.Option<TargetObject>,
 ): Item => {
-  const key = audioKey(hymn);
+  const key = sourcedKey(hymn);
   return Result.match(fill, {
     onFailure: (reason) => Item.Unreadable({ hymn, key, reason: `absent from s3, ${reason}` }),
     onSuccess: (entries) =>
@@ -111,14 +111,14 @@ export const plan = (
   target: ReadonlyMap<string, TargetObject>,
 ): ReadonlyArray<Item> =>
   SDAH_HYMNS.map((hymn) => {
-    const existing = Option.fromUndefinedOr(target.get(audioKey(hymn)));
+    const existing = Option.fromUndefinedOr(target.get(sourcedKey(hymn)));
     const head = Option.getOrElse(Option.fromUndefinedOr(heads.get(hymn)), () =>
       Head.Unanswered({ reason: 'not asked' }),
     );
     return Head.$match(head, {
       Present: ({ head: present }) => fromS3(hymn, present, existing),
       Absent: () => fromFill(hymn, fill, existing),
-      Unanswered: ({ reason }) => Item.Unreadable({ hymn, key: audioKey(hymn), reason }),
+      Unanswered: ({ reason }) => Item.Unreadable({ hymn, key: sourcedKey(hymn), reason }),
     });
   });
 
