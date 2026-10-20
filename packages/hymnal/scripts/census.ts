@@ -70,6 +70,8 @@ import { ConfigProvider, Effect, FileSystem, Layer, Option, Schema, Struct } fro
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
+import { Order } from '../src/hymn.js';
+
 const DATA = path.resolve(import.meta.dir, '../data');
 export const FIRST = 1;
 export const LAST = 695;
@@ -968,29 +970,41 @@ export const fixUnitLinesOf = (fix: Fix): Array<Array<typeof Line.Type>> =>
 // The shape of the page
 // ----------------------------------------------------------------------------
 
-/** One lyric row as a shape reader saw it: its system, the strip it read it on, its first and last two words. */
+/**
+ * One lyric row as a shape reader saw it: its system, the strip it read it
+ * on, how many words it sings (syllables joined, a word broken over a system
+ * counted in the row it starts in), its first two words, the two that start
+ * at word ⌊words/2⌋ + 1, its last two, and the places (1 = its first word)
+ * of the words it prints with a capital letter.
+ */
 const OutlineRow = Schema.Struct({
   system: Schema.Int,
   strip: Schema.String,
+  words: Schema.Int,
   first: Schema.String,
+  mid: Schema.String,
   last: Schema.String,
+  capitals: Schema.Array(Schema.Int),
 });
+type OutlineRow = typeof OutlineRow.Type;
 
 /**
- * A shape reading of one hymn's page (`data/shapes.json`): which stanzas the
- * page prints and the lyric rows of each, in printed order; the refrain, if
- * any, where it is printed, and its rows (a row printed once for some
- * stanzas names them in `stanzas`: a refrain that varies by stanza); other
- * rows (`extra`: echoes, descants); and the reader's doubts (`odd`). A fresh
- * model reader wrote it off 1:1 strips of the deciding page, never shown the
- * row (`reader` names its task): counts, positions and two-word anchors,
- * never the lyrics.
+ * A shape reading of one hymn's page (`data/shapes.json`): the metre the
+ * page prints (`null` when none); which stanzas the page prints and the
+ * lyric rows of each, in printed order; the refrain, if any, where it is
+ * printed, where the page has it sung (`order`, as `refrains.json` names
+ * it), and its rows (a row printed once for some stanzas names them in
+ * `stanzas`: a refrain that varies by stanza); other rows (`extra`: echoes,
+ * descants); and the reader's doubts (`odd`). A fresh model reader wrote it
+ * off 1:1 strips of the deciding page, never shown the row (`reader` names
+ * its task): counts, positions and two-word anchors, never the lyrics.
  */
 const Outline = Schema.Struct({
   number: Schema.Int,
   reader: Schema.String,
   images: Schema.Array(Schema.String),
   systems: Schema.Int,
+  metre: Schema.NullOr(Schema.String),
   stanzas: Schema.Array(
     Schema.Struct({ number: Schema.NullOr(Schema.Int), rows: Schema.Array(OutlineRow) }),
   ),
@@ -998,6 +1012,7 @@ const Outline = Schema.Struct({
     Schema.Struct({
       label: Schema.NullOr(Schema.String),
       at: Schema.Literals(['after', 'before', 'inside']),
+      order: Order,
       rows: Schema.Array(
         Schema.Struct({ ...OutlineRow.fields, stanzas: Schema.Array(Schema.Int) }),
       ),
@@ -1016,13 +1031,40 @@ const ReportFile = Schema.Struct({ hymns: Schema.Array(OutlineReport) });
 const OutlinesFile = Schema.Struct({ print: Schema.String, hymns: Schema.Array(Outline) });
 export const decodeOutlines = Schema.decodeEffect(Schema.fromJsonString(OutlinesFile));
 
+/** Hymns under copyright: a reader's notes on them quote none of their words. */
+const UNDER_COPYRIGHT: ReadonlySet<number> = new Set([86, 584]);
+
+/**
+ * A reader's note (`why`, `odd`) of hymn `n` with every quoted span cut to
+ * its first two words (to none for a hymn under copyright): the notes keep
+ * the anchors' rule, two words and no more. Syllables a page prints apart
+ * (`Al - might - y`) are one word.
+ */
+const trimNote = (text: string, n: number) =>
+  text.replace(
+    /(?<![\p{L}\p{N}])(['‘"“])([^'’"”]*?)(['’"”])(?![\p{L}\p{N}])/gu,
+    (whole, open: string, inner: string, close: string) => {
+      const words = inner
+        .trim()
+        .replace(/\s*-\s*/g, '-')
+        .split(/\s+/);
+      if (UNDER_COPYRIGHT.has(n)) return `${open}…${close}`;
+      return words.length <= 2 ? whole : `${open}${words.slice(0, 2).join(' ')} …${close}`;
+    },
+  );
+
 /**
  * A shape reader's report as the census keeps it: decoded, with the reader
- * named. The report is all it reads: the type takes no row, so the shape
- * cannot follow one.
+ * named, its notes trimmed (`trimNote`). The report is all it reads: the type
+ * takes no row, so the shape cannot follow one.
  */
 export const outlineOfReport = (report: OutlineReport, reader: string): Outline =>
-  Schema.decodeSync(Outline)({ ...report, reader });
+  Schema.decodeSync(Outline)({
+    ...report,
+    reader,
+    odd: trimNote(report.odd, report.number),
+    extra: report.extra.map((row) => ({ ...row, why: trimNote(row.why, report.number) })),
+  });
 
 /**
  * The refrain rows a shape reading prints for some stanzas only, grouped by
