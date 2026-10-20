@@ -16,6 +16,8 @@
  * The test is Chrome where happy-dom is not: a range input fits each value
  * written to it to its step (`fitted`), and `change` comes after a press
  * only when the value differs from the one before the press's first move.
+ * Chrome captures the pointer of a press: a touch's capture is let go at
+ * its release, a mouse's after the release's `change` (both measured).
  */
 
 import { describe, expect, test } from 'effect-bun-test';
@@ -121,6 +123,8 @@ interface Model {
   before: Option.Option<number>;
   /** A `change` Chrome owes after the press ended. */
   owed: boolean;
+  /** A mouse's capture, let go after the `change` its release owes. */
+  held: Option.Option<Pointer>;
   readonly seeks: Array<number>;
 }
 
@@ -170,6 +174,7 @@ const play = (run: Run): Option.Option<string> => {
     pressed: Option.none(),
     before: Option.none(),
     owed: false,
+    held: Option.none(),
     seeks: [],
   };
   using page = mounted(model);
@@ -244,8 +249,8 @@ const play = (run: Run): Option.Option<string> => {
         if (Option.exists(model.before, (before) => before !== value())) model.seeks.push(value());
         end();
         pointer('pointerup', kind);
-        // A touch holds the pointer from its press; Chrome lets it go after the release.
         if (kind === 'touch') pointer('lostpointercapture', kind);
+        else model.held = Option.some(kind);
       },
       Cancel: () => {
         const kind = Option.getOrElse(model.pressed, (): Pointer => 'mouse');
@@ -261,6 +266,8 @@ const play = (run: Run): Option.Option<string> => {
       Change: ({ dropped }) => {
         if (model.owed && !dropped) fire(new Event('change', { bubbles: true }));
         model.owed = false;
+        if (Option.isSome(model.held)) pointer('lostpointercapture', model.held.value);
+        model.held = Option.none();
       },
       Arrow: ({ key }) => {
         const to = Math.min(Math.max(value() + steps[key], 0), Math.floor(length));
