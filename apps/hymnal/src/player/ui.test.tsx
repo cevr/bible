@@ -340,6 +340,45 @@ describe('the hymn page’s recording control', () => {
         );
       }),
   );
+  it.live('draws Play and Pause in the text on the accent, on an accent fill', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      /** The button's fill and its title's colour, as the page writes them (inline: each follows the scheme). */
+      const drawn = (label: string) => {
+        const button = Option.getOrThrow(
+          Option.filter(
+            page.find(`[aria-label="${label}"]`),
+            (found): found is HTMLElement => found instanceof HTMLElement,
+          ),
+        );
+        const title = Option.getOrThrow(
+          Option.filter(
+            Option.fromNullishOr(button.firstElementChild),
+            (found): found is HTMLElement => found instanceof HTMLElement,
+          ),
+        );
+        return { fill: button.style.backgroundColor, title: title.style.color };
+      };
+      const expected = { fill: 'var(--accent)', title: 'var(--onAccent)' };
+      expect(drawn('Play hymn 100')).toEqual(expected);
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
+      yield* page.until(Player.$is('Playing'));
+      expect(drawn('Pause hymn 100')).toEqual(expected);
+    }),
+  );
+
+  it.live('draws the part played in the accent and the rest in the line role', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 75_000, durationMs: 150_000 };
+      yield* page.until(Player.$is('Playing'));
+      expect(page.bar().style.backgroundImage).toBe(
+        'linear-gradient(to right, var(--accent) 50%, var(--line) 50%)',
+      );
+    }),
+  );
 });
 
 describe('the now-playing bar', () => {

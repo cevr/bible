@@ -1,5 +1,5 @@
 /**
- * The app's colours: six roles in light and dark, all drawn from Sanzo Wada's
+ * The app's colours: seven roles in light and dark, all drawn from Sanzo Wada's
  * combination No. 167 (Ecru, Pale King's Blue, Vandar Poel's Blue), the
  * palette A the owner chose for Selah and the hymnal. A screen reads a role
  * (`color.ts` on the web, `color.native.ts` on a phone), never a hex value.
@@ -9,7 +9,8 @@
  * shallower than the page's so each text role meets WCAG AA on what it sits
  * on (`theme.test.ts`): light muted mixes 20% toward the ground (35% reads at
  * 3.32:1), and dark soft mixes 70% toward the ground (55% leaves the ink at
- * 3.75:1 on a pressed row).
+ * 3.75:1 on a pressed row). Text on the accent (`onAccent`) is near-black or
+ * white, as the page's `onColor` picks it for a fill.
  */
 
 const wada167 = {
@@ -31,6 +32,8 @@ export interface Roles {
   readonly accent: string;
   /** A pressed row, a selection: under ink and accent text. */
   readonly soft: string;
+  /** Text drawn on an accent fill: the play button's label on the web and Android. */
+  readonly onAccent: string;
 }
 
 type Rgb = readonly [number, number, number];
@@ -56,6 +59,25 @@ const mix = (a: string, b: string, t: number): string => {
   return hex([r + (r2 - r) * t, g + (g2 - g) * t, bl + (b2 - bl) * t]);
 };
 
+/** An sRGB channel (0 to 255) as linear light, with the palette page's knee at 0.03928. */
+const linear = (channel: number) => {
+  const c = channel / 255;
+  if (c <= 0.03928) return c / 12.92;
+  return ((c + 0.055) / 1.055) ** 2.4;
+};
+
+/** A colour's relative luminance, 0 to 1. */
+const luminance = (color: string) => {
+  const [r, g, b] = rgb(color);
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+};
+
+/** Text on a fill of `fill`, as the palette page's `onColor` picks it: near-black on a light fill, else white. */
+const onColor = (fill: string) => {
+  if (luminance(fill) > 0.35) return '#111314';
+  return '#ffffff';
+};
+
 const lightGround = mix(wada167.ecru, '#ffffff', 0.72);
 const darkGround = mix(wada167.vandarPoelsBlue, '#000000', 0.55);
 const darkInk = mix(wada167.ecru, '#ffffff', 0.55);
@@ -68,6 +90,7 @@ export const theme = {
     line: mix(wada167.ecru, wada167.vandarPoelsBlue, 0.22),
     accent: wada167.vandarPoelsBlue,
     soft: mix(wada167.paleKingsBlue, '#ffffff', 0.25),
+    onAccent: onColor(wada167.vandarPoelsBlue),
   },
   dark: {
     ground: darkGround,
@@ -76,5 +99,6 @@ export const theme = {
     line: mix(darkGround, darkInk, 0.2),
     accent: wada167.paleKingsBlue,
     soft: mix(wada167.paleKingsBlue, darkGround, 0.7),
+    onAccent: onColor(wada167.paleKingsBlue),
   },
 } as const satisfies { readonly light: Roles; readonly dark: Roles };

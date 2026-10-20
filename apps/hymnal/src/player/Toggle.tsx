@@ -1,15 +1,17 @@
 /**
  * The player's one button for a hymn, as the player stands: Play when it
  * holds another hymn or none, Pause while it plays or buffers, Play while paused, Play
- * again once ended and Retry once failed; a spinner while it loads. A
- * native button (a `UIButton` on iOS) in the accent.
+ * again once ended and Retry once failed; a spinner while it loads. The
+ * button is in the accent (`AccentButton`): a `UIButton`'s title on iOS, an
+ * accent fill under `onAccent` on the web and Android.
  */
 
 import { Option } from 'effect';
-import { ActivityIndicator, Button } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
 import { useAccent } from '~/color';
 
+import { AccentButton } from './AccentButton';
 import { Command, Player, type Track, trackOf } from './player';
 
 /** The player as `track` sees it: its own state, or idle when it holds another hymn. */
@@ -30,7 +32,7 @@ export function Toggle({
 }) {
   const accent = useAccent();
   const button = (title: string, label: string, command: Command) => (
-    <Button title={title} accessibilityLabel={label} color={accent} onPress={() => send(command)} />
+    <AccentButton title={title} label={label} onPress={() => send(command)} />
   );
   return Player.$match(playerFor(state, track), {
     Idle: () => button('Play', `Play hymn ${track.number}`, Command.Start({ track })),

@@ -8,9 +8,15 @@ import type { ColorValue } from 'react-native';
 
 import { type Roles, theme } from './theme';
 
-const roles = ['ground', 'ink', 'muted', 'line', 'accent', 'soft'] as const satisfies ReadonlyArray<
-  keyof Roles
->;
+const roles = [
+  'ground',
+  'ink',
+  'muted',
+  'line',
+  'accent',
+  'soft',
+  'onAccent',
+] as const satisfies ReadonlyArray<keyof Roles>;
 
 export const color = {
   ground: 'var(--ground)',
@@ -18,10 +24,13 @@ export const color = {
   muted: 'var(--muted)',
   line: 'var(--line)',
   soft: 'var(--soft)',
-} satisfies Record<Exclude<keyof Roles, 'accent'>, ColorValue>;
+} satisfies Record<Exclude<keyof Roles, 'accent' | 'onAccent'>, ColorValue>;
 
 /** The accent in the scheme showing now. */
 export const useAccent = (): ColorValue => 'var(--accent)';
+
+/** Text on the accent in the scheme showing now. */
+export const useOnAccent = (): ColorValue => 'var(--onAccent)';
 
 export const webColors = `
 :root {

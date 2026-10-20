@@ -43,14 +43,20 @@ export const color = Platform.select({
     line: PlatformColor('?android:attr/colorControlHighlight'),
     soft: PlatformColor('?android:attr/colorControlHighlight'),
   }),
-})() satisfies Record<Exclude<keyof Roles, 'accent'>, ColorValue>;
+})() satisfies Record<Exclude<keyof Roles, 'accent' | 'onAccent'>, ColorValue>;
+
+/** The theme's `role` in the scheme showing now. */
+const useRole = (role: 'accent' | 'onAccent'): ColorValue =>
+  Match.value(useColorScheme()).pipe(
+    Match.when('dark', () => theme.dark[role]),
+    Match.orElse(() => theme.light[role]),
+  );
 
 /** The accent in the scheme showing now. */
-export const useAccent = (): ColorValue =>
-  Match.value(useColorScheme()).pipe(
-    Match.when('dark', () => theme.dark.accent),
-    Match.orElse(() => theme.light.accent),
-  );
+export const useAccent = (): ColorValue => useRole('accent');
+
+/** Text on the accent in the scheme showing now. */
+export const useOnAccent = (): ColorValue => useRole('onAccent');
 
 /** The web's CSS: a phone writes none. */
 export const webColors = '';

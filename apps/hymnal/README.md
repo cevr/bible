@@ -14,9 +14,9 @@ under its number, and the refrain written out each time it is sung.
   `virtual:hymnal` plugin (`vite/hymnal.ts`) derives them when the app is
   bundled, for the web and the native bundle alike, so the app opens offline
   and no derived file is committed.
-- The colours are palette A, Wada No. 167, as six roles (ground, ink, muted,
-  line, accent, soft) in light and dark in `src/theme.ts`; a screen reads a
-  role, never a hex value. On iOS each role is a `DynamicColorIOS`
+- The colours are palette A, Wada No. 167, as seven roles (ground, ink,
+  muted, line, accent, soft, and onAccent, the text on an accent fill) in
+  light and dark in `src/theme.ts`; a screen reads a role, never a hex value. On iOS each role is a `DynamicColorIOS`
   (`src/color.native.ts`), on the web a CSS `light-dark()` property
   (`src/color.ts`). Android keeps the system's colours. `src/theme.test.ts`
   holds every text role to WCAG AA on what it sits on.
@@ -54,7 +54,8 @@ under its number, and the refrain written out each time it is sung.
 ## The player
 
 A hymn page plays the hymn's 1985 recording from `audioUrl(n)`: a Play or
-Pause button in the accent, a bar to seek, and the time played and the
+Pause button in the accent (a `UIButton`'s title on iOS, an accent fill
+under the onAccent text on the web and Android), a bar to seek, and the time played and the
 length. The recording plays on when the reader leaves the hymn, and a bar
 above the tabs shows the hymn playing (its number, title and Play or Pause);
 a press on it opens the hymn. Playing another hymn replaces the first.
@@ -94,7 +95,8 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   Chrome sends none for a drag that comes back to where it began. A key's
   step seeks at once, inside a press or not, and a value change with no key
   and no press open (a screen reader's) seeks at once. After a seek, each
-  bar holds the place sent until the player reaches it, or for 2 s.
+  bar holds the place sent until the player reaches it, or for 2 s. The
+  played part of the track is in the accent, the rest in the line role.
 - `src/player/bar.property.test.tsx` holds the web bar to these rules over
   seeded runs of presses, keys, other pointers and buttons, a screen
   reader's steps and playback's ticks, in Chrome's event order.
