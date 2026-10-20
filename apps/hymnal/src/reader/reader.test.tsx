@@ -43,6 +43,7 @@ describe('the hymn list', () => {
       <HymnList hymns={hymns} hrefOf={(n) => `/hymns/${n}`} offset={hymnsOffset} />,
     );
     expect(html).toContain('aria-label="1, Praise to the Lord"');
+    expect(html).toContain('href="/hymns/1"');
     expect(textOf(html)).toContain('1 Praise to the Lord 2 All Creatures of Our God and King');
   });
 

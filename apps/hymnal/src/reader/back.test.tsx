@@ -43,8 +43,8 @@ const mount = (node: ReactNode) => {
 };
 
 /** A left click on `element`; true when the page handled it (the browser follows nothing). */
-const click = (element: Element) => {
-  const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+const click = (element: Element, keys: { readonly metaKey?: boolean } = {}) => {
+  const event = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...keys });
   act(() => void element.dispatchEvent(event));
   return event.defaultPrevented;
 };
@@ -78,6 +78,22 @@ describe('moving between screens on the web', () => {
     );
     const handled = click(row(app.host, '2, All Creatures of Our God and King'));
     expect({ handled, opened }).toEqual({ handled: true, opened: ['/hymns/2'] });
+  });
+
+  it('leaves a Cmd-click on a row to the browser, which opens the hymn in a new tab', () => {
+    using app = mount(
+      <RegistryProvider>
+        <HymnList hymns={hymns.slice(0, 3)} hrefOf={(n) => `/hymns/${n}`} offset={hymnsOffset} />
+      </RegistryProvider>,
+    );
+    const link = row(app.host, '2, All Creatures of Our God and King');
+    const handled = click(link, { metaKey: true });
+    expect({ tag: link.tagName, href: link.getAttribute('href'), handled, opened }).toEqual({
+      tag: 'A',
+      href: '/hymns/2',
+      handled: false,
+      opened: [],
+    });
   });
 
   it('comes back from a hymn to the search as the reader left it', () => {

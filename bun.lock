@@ -103,6 +103,7 @@
         "@effect/platform-bun": "catalog:",
         "@effect/platform-node": "catalog:",
         "@happy-dom/global-registrator": "21.0.3",
+        "@playwright/test": "1.64.0",
         "@react-native-community/template": "0.88.0",
         "@types/react": "19.3.0",
         "alchemy": "2.0.0-beta.83",
