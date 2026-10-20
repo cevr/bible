@@ -1353,3 +1353,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** A cold gate failed in firsttheblade's contrast check: its screenshots missed their 30 s limit, at the checks' lowered priority beside every cold typecheck and build and Selah's native build.
 - **Cause:** The checks phase was laid for work with no time limit, and a package's own `gate` script, which waits on a browser, was taken as one.
 - **Guard:** code: `packages/scripts/src/gate.test.ts` `a package's own gate is Selah's native gate alone: a check with a time limit is its gate:timed, run with the tests`
+
+### cpu-bound-cases-run-serial
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The Media cases encode three at a time, each limit holding its siblings' work"
+- **Source:** p6-testspeed/findings.md F6
+- **Wrong:** Three Media cases failed their 5 s limit in a warm gate at load 39 to 46: the suite ran its encodes three at a time, and its slowest case took 0.77 to 1.07 s alone at load 30, against 0.57 to 0.63 s one after another.
+- **Cause:** `describe.concurrent` over cases that each encode on the CPU puts the siblings' work inside each case's limit.
+- **Guard:** skill: whether a case's work is on the CPU or waits on something is a reading of what it does, which no rule sees. Carried by `packages/film/README.md`: "runs them one after another (`describe`, not `describe.concurrent`):"
