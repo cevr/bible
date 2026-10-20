@@ -1,5 +1,5 @@
 {
-  "print": "The layout mutants of the census: each a recipe (a line dropped, two neighbouring lines swapped, two stanzas swapped, the refrain left out) applied in memory to the hymn's committed printed source (its fix's stanzas, else its row's) and written back as a row with the fix dropped (`scripts/layout.ts`). From r6 M1: the 115 mutants that hymnrows round 6's review built in 25 hymns and the census let through. Recipes and counts only, never a hymn's words.",
+  "print": "The layout mutants of the census, never a hymn's words. From r6 M1: the 115 mutants that hymnrows round 6's review built in 25 hymns and the census let through, each a recipe (a line dropped, two neighbouring lines swapped, two stanzas swapped, the refrain left out) applied in memory to the hymn's committed printed source (its fix's stanzas, else its row's) and written back as a row with the fix dropped (`scripts/layout.ts`). From census2 r1 F1: the 619 line-break mutants (a join, a word moved down or up over a line's end) that census2 round 1's review found the census let through while the property counted them reached, each by its generated name and the fingerprint of the printed text it was found on (`fingerprintOf`).",
   "mutants": [
     {
       "number": 3,
@@ -575,6 +575,3720 @@
       "number": 631,
       "mode": "dropline:3.7/8",
       "from": "r6 M1"
+    },
+    {
+      "number": 2,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "aa0acdfb0eeecf03"
+    },
+    {
+      "number": 2,
+      "mode": "movedown:4.4",
+      "from": "census2 r1 F1",
+      "layout": "aa0acdfb0eeecf03"
+    },
+    {
+      "number": 3,
+      "mode": "movedown:1.2",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 3,
+      "mode": "movedown:1.5",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 3,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 3,
+      "mode": "movedown:2.4",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 3,
+      "mode": "movedown:2.8",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 3,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 3,
+      "mode": "moveup:2.8",
+      "from": "census2 r1 F1",
+      "layout": "ea6ac8c4d1f1460a"
+    },
+    {
+      "number": 5,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "322ef719af82a7fb"
+    },
+    {
+      "number": 5,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "322ef719af82a7fb"
+    },
+    {
+      "number": 9,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "1c1febfc1b3ca508"
+    },
+    {
+      "number": 9,
+      "mode": "moveup:1.7",
+      "from": "census2 r1 F1",
+      "layout": "1c1febfc1b3ca508"
+    },
+    {
+      "number": 9,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "1c1febfc1b3ca508"
+    },
+    {
+      "number": 9,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "1c1febfc1b3ca508"
+    },
+    {
+      "number": 14,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "306d825d5d6f2145"
+    },
+    {
+      "number": 15,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "db2866d1b2b8fa65"
+    },
+    {
+      "number": 15,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "db2866d1b2b8fa65"
+    },
+    {
+      "number": 15,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "db2866d1b2b8fa65"
+    },
+    {
+      "number": 17,
+      "mode": "movedown:3.4",
+      "from": "census2 r1 F1",
+      "layout": "b96fa11593fd0d63"
+    },
+    {
+      "number": 17,
+      "mode": "moveup:4.2",
+      "from": "census2 r1 F1",
+      "layout": "b96fa11593fd0d63"
+    },
+    {
+      "number": 18,
+      "mode": "movedown:1.4",
+      "from": "census2 r1 F1",
+      "layout": "2ed6e11eda1a449a"
+    },
+    {
+      "number": 18,
+      "mode": "moveup:1.4",
+      "from": "census2 r1 F1",
+      "layout": "2ed6e11eda1a449a"
+    },
+    {
+      "number": 19,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "b7b6fbe034e5f8e7"
+    },
+    {
+      "number": 19,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "b7b6fbe034e5f8e7"
+    },
+    {
+      "number": 22,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "ceb196e4cb4ffd01"
+    },
+    {
+      "number": 22,
+      "mode": "moveup:2.4",
+      "from": "census2 r1 F1",
+      "layout": "ceb196e4cb4ffd01"
+    },
+    {
+      "number": 26,
+      "mode": "movedown:3.5",
+      "from": "census2 r1 F1",
+      "layout": "b05c2ad2b71146f6"
+    },
+    {
+      "number": 29,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "b5b2dc34fcd3091d"
+    },
+    {
+      "number": 29,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "b5b2dc34fcd3091d"
+    },
+    {
+      "number": 31,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "721296a27b4fdb46"
+    },
+    {
+      "number": 33,
+      "mode": "join:4.1",
+      "from": "census2 r1 F1",
+      "layout": "fcada75bcda93637"
+    },
+    {
+      "number": 33,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "fcada75bcda93637"
+    },
+    {
+      "number": 36,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "9b43366ebff8a859"
+    },
+    {
+      "number": 39,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "c1644c9dafba1bc3"
+    },
+    {
+      "number": 42,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "1a49bb3545c868eb"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:4.2",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:4.5",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:5.2",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:5.5",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:6.2",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 43,
+      "mode": "moveup:6.5",
+      "from": "census2 r1 F1",
+      "layout": "b87885f2f9b76f75"
+    },
+    {
+      "number": 45,
+      "mode": "movedown:5.3",
+      "from": "census2 r1 F1",
+      "layout": "4c457d33e0e8587c"
+    },
+    {
+      "number": 45,
+      "mode": "moveup:4.3",
+      "from": "census2 r1 F1",
+      "layout": "4c457d33e0e8587c"
+    },
+    {
+      "number": 46,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "6c181b3fad75b005"
+    },
+    {
+      "number": 46,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "6c181b3fad75b005"
+    },
+    {
+      "number": 46,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "6c181b3fad75b005"
+    },
+    {
+      "number": 47,
+      "mode": "movedown:4.6",
+      "from": "census2 r1 F1",
+      "layout": "9e370663d9bcecdb"
+    },
+    {
+      "number": 47,
+      "mode": "movedown:4.7",
+      "from": "census2 r1 F1",
+      "layout": "9e370663d9bcecdb"
+    },
+    {
+      "number": 54,
+      "mode": "movedown:1.5",
+      "from": "census2 r1 F1",
+      "layout": "f8e77af521c37b2d"
+    },
+    {
+      "number": 54,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "f8e77af521c37b2d"
+    },
+    {
+      "number": 59,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "b8a078dce7643237"
+    },
+    {
+      "number": 60,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "88468cb4596ca139"
+    },
+    {
+      "number": 63,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "7e61069123d684bd"
+    },
+    {
+      "number": 63,
+      "mode": "movedown:5.3",
+      "from": "census2 r1 F1",
+      "layout": "7e61069123d684bd"
+    },
+    {
+      "number": 67,
+      "mode": "movedown:1.5",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 67,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 67,
+      "mode": "movedown:2.7",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 67,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 67,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 67,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 67,
+      "mode": "moveup:2.6",
+      "from": "census2 r1 F1",
+      "layout": "c701b72127b7aaef"
+    },
+    {
+      "number": 69,
+      "mode": "join:4.5",
+      "from": "census2 r1 F1",
+      "layout": "daf030997fc5df6f"
+    },
+    {
+      "number": 69,
+      "mode": "movedown:4.5",
+      "from": "census2 r1 F1",
+      "layout": "daf030997fc5df6f"
+    },
+    {
+      "number": 71,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "4a504b918e37edba"
+    },
+    {
+      "number": 71,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "4a504b918e37edba"
+    },
+    {
+      "number": 71,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "4a504b918e37edba"
+    },
+    {
+      "number": 72,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "811b2746560ac10d"
+    },
+    {
+      "number": 72,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "811b2746560ac10d"
+    },
+    {
+      "number": 77,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "0127c948133261f3"
+    },
+    {
+      "number": 78,
+      "mode": "moveup:4.2",
+      "from": "census2 r1 F1",
+      "layout": "4868b562beb80f6e"
+    },
+    {
+      "number": 81,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "e9d22a57d0ba3ffd"
+    },
+    {
+      "number": 81,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "e9d22a57d0ba3ffd"
+    },
+    {
+      "number": 84,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "5d61ee08cc4c77a5"
+    },
+    {
+      "number": 86,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "join:2.1",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "join:2.3",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "join:3.1",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "join:4.1",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "join:4.3",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 86,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "6b31389a20c200b1"
+    },
+    {
+      "number": 87,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "6c507e3e08d234ea"
+    },
+    {
+      "number": 87,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "6c507e3e08d234ea"
+    },
+    {
+      "number": 88,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "9474b4379c76a74b"
+    },
+    {
+      "number": 91,
+      "mode": "movedown:2.4",
+      "from": "census2 r1 F1",
+      "layout": "0472a1018692a165"
+    },
+    {
+      "number": 91,
+      "mode": "movedown:3.4",
+      "from": "census2 r1 F1",
+      "layout": "0472a1018692a165"
+    },
+    {
+      "number": 91,
+      "mode": "moveup:3.4",
+      "from": "census2 r1 F1",
+      "layout": "0472a1018692a165"
+    },
+    {
+      "number": 93,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "cba1b9f6bd0a255d"
+    },
+    {
+      "number": 97,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "1dd49022c542bed6"
+    },
+    {
+      "number": 100,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "0cfcb09301fc8899"
+    },
+    {
+      "number": 100,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "0cfcb09301fc8899"
+    },
+    {
+      "number": 102,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "0ad3d2cddce548ca"
+    },
+    {
+      "number": 104,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "4bf70e7ac2a173e6"
+    },
+    {
+      "number": 104,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "4bf70e7ac2a173e6"
+    },
+    {
+      "number": 105,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "926d2feca81f2523"
+    },
+    {
+      "number": 105,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "926d2feca81f2523"
+    },
+    {
+      "number": 107,
+      "mode": "moveup:5.3",
+      "from": "census2 r1 F1",
+      "layout": "079784017f531046"
+    },
+    {
+      "number": 109,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "b4e6f66c05038bca"
+    },
+    {
+      "number": 110,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "8033f84581ab2806"
+    },
+    {
+      "number": 110,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "8033f84581ab2806"
+    },
+    {
+      "number": 115,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "fc8b7ffd80dbd9cf"
+    },
+    {
+      "number": 115,
+      "mode": "movedown:1.2",
+      "from": "census2 r1 F1",
+      "layout": "fc8b7ffd80dbd9cf"
+    },
+    {
+      "number": 116,
+      "mode": "movedown:1.4",
+      "from": "census2 r1 F1",
+      "layout": "60910cb309a77418"
+    },
+    {
+      "number": 116,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "60910cb309a77418"
+    },
+    {
+      "number": 116,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "60910cb309a77418"
+    },
+    {
+      "number": 116,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "60910cb309a77418"
+    },
+    {
+      "number": 116,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "60910cb309a77418"
+    },
+    {
+      "number": 117,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "a9abc99476f7683a"
+    },
+    {
+      "number": 117,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "a9abc99476f7683a"
+    },
+    {
+      "number": 126,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "a8a120cca04c39f2"
+    },
+    {
+      "number": 127,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "dbd62884c3c72d54"
+    },
+    {
+      "number": 128,
+      "mode": "movedown:2.6",
+      "from": "census2 r1 F1",
+      "layout": "2817b0fb253649cc"
+    },
+    {
+      "number": 128,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "2817b0fb253649cc"
+    },
+    {
+      "number": 129,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "36b863729a68e99f"
+    },
+    {
+      "number": 129,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "36b863729a68e99f"
+    },
+    {
+      "number": 131,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "cfe117e98e3a75cf"
+    },
+    {
+      "number": 139,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "36147dedb4352025"
+    },
+    {
+      "number": 139,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "36147dedb4352025"
+    },
+    {
+      "number": 140,
+      "mode": "movedown:3.5",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:2.4",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:5.2",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:5.3",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 140,
+      "mode": "moveup:5.4",
+      "from": "census2 r1 F1",
+      "layout": "48c25e5c17390b12"
+    },
+    {
+      "number": 145,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "129ace1ba3b066b5"
+    },
+    {
+      "number": 145,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "129ace1ba3b066b5"
+    },
+    {
+      "number": 145,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "129ace1ba3b066b5"
+    },
+    {
+      "number": 145,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "129ace1ba3b066b5"
+    },
+    {
+      "number": 145,
+      "mode": "moveup:4.5",
+      "from": "census2 r1 F1",
+      "layout": "129ace1ba3b066b5"
+    },
+    {
+      "number": 146,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "a8353bed7b492a3e"
+    },
+    {
+      "number": 146,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "a8353bed7b492a3e"
+    },
+    {
+      "number": 146,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "a8353bed7b492a3e"
+    },
+    {
+      "number": 148,
+      "mode": "movedown:5.1",
+      "from": "census2 r1 F1",
+      "layout": "10147c0e5d356ad8"
+    },
+    {
+      "number": 148,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "10147c0e5d356ad8"
+    },
+    {
+      "number": 149,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "fb8d313bc0ca6718"
+    },
+    {
+      "number": 150,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "join:2.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "join:3.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "join:4.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "join:5.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "join:6.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "join:7.3",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 150,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "61d154665e849b4a"
+    },
+    {
+      "number": 152,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "e198b9cc3bc94234"
+    },
+    {
+      "number": 152,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "e198b9cc3bc94234"
+    },
+    {
+      "number": 152,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "e198b9cc3bc94234"
+    },
+    {
+      "number": 153,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "4ced4cc0cc8bb7b9"
+    },
+    {
+      "number": 153,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "4ced4cc0cc8bb7b9"
+    },
+    {
+      "number": 159,
+      "mode": "join:2.1",
+      "from": "census2 r1 F1",
+      "layout": "e03c0057a4f050b6"
+    },
+    {
+      "number": 159,
+      "mode": "join:2.2",
+      "from": "census2 r1 F1",
+      "layout": "e03c0057a4f050b6"
+    },
+    {
+      "number": 159,
+      "mode": "join:2.3",
+      "from": "census2 r1 F1",
+      "layout": "e03c0057a4f050b6"
+    },
+    {
+      "number": 159,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "e03c0057a4f050b6"
+    },
+    {
+      "number": 159,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "e03c0057a4f050b6"
+    },
+    {
+      "number": 162,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "63c7c29dec49ddc2"
+    },
+    {
+      "number": 165,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "995631c6004fc568"
+    },
+    {
+      "number": 165,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "995631c6004fc568"
+    },
+    {
+      "number": 167,
+      "mode": "movedown:1.5",
+      "from": "census2 r1 F1",
+      "layout": "401f383bb1ae9b22"
+    },
+    {
+      "number": 167,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "401f383bb1ae9b22"
+    },
+    {
+      "number": 167,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "401f383bb1ae9b22"
+    },
+    {
+      "number": 168,
+      "mode": "movedown:1.2",
+      "from": "census2 r1 F1",
+      "layout": "9706f243387bb00a"
+    },
+    {
+      "number": 168,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "9706f243387bb00a"
+    },
+    {
+      "number": 168,
+      "mode": "moveup:1.6",
+      "from": "census2 r1 F1",
+      "layout": "9706f243387bb00a"
+    },
+    {
+      "number": 171,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "7b6291aea166bceb"
+    },
+    {
+      "number": 171,
+      "mode": "movedown:3.7",
+      "from": "census2 r1 F1",
+      "layout": "7b6291aea166bceb"
+    },
+    {
+      "number": 171,
+      "mode": "moveup:1.7",
+      "from": "census2 r1 F1",
+      "layout": "7b6291aea166bceb"
+    },
+    {
+      "number": 171,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "7b6291aea166bceb"
+    },
+    {
+      "number": 171,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "7b6291aea166bceb"
+    },
+    {
+      "number": 171,
+      "mode": "moveup:3.7",
+      "from": "census2 r1 F1",
+      "layout": "7b6291aea166bceb"
+    },
+    {
+      "number": 172,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "b65397ced7e7825e"
+    },
+    {
+      "number": 173,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "01549b3f60e9a3a0"
+    },
+    {
+      "number": 178,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "59c641b17e8c5d50"
+    },
+    {
+      "number": 179,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "53b08f2613d42005"
+    },
+    {
+      "number": 180,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "db7e5b25202ddf5d"
+    },
+    {
+      "number": 185,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "b526ef04c8fbd131"
+    },
+    {
+      "number": 185,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "b526ef04c8fbd131"
+    },
+    {
+      "number": 185,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "b526ef04c8fbd131"
+    },
+    {
+      "number": 188,
+      "mode": "movedown:6.3",
+      "from": "census2 r1 F1",
+      "layout": "5acdabaaddfe1a13"
+    },
+    {
+      "number": 188,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "5acdabaaddfe1a13"
+    },
+    {
+      "number": 188,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "5acdabaaddfe1a13"
+    },
+    {
+      "number": 188,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "5acdabaaddfe1a13"
+    },
+    {
+      "number": 188,
+      "mode": "moveup:5.3",
+      "from": "census2 r1 F1",
+      "layout": "5acdabaaddfe1a13"
+    },
+    {
+      "number": 188,
+      "mode": "moveup:5.5",
+      "from": "census2 r1 F1",
+      "layout": "5acdabaaddfe1a13"
+    },
+    {
+      "number": 191,
+      "mode": "movedown:4.7",
+      "from": "census2 r1 F1",
+      "layout": "bc022fe853c03ca5"
+    },
+    {
+      "number": 192,
+      "mode": "movedown:3.7",
+      "from": "census2 r1 F1",
+      "layout": "6194906b0add07d3"
+    },
+    {
+      "number": 192,
+      "mode": "moveup:1.7",
+      "from": "census2 r1 F1",
+      "layout": "6194906b0add07d3"
+    },
+    {
+      "number": 192,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "6194906b0add07d3"
+    },
+    {
+      "number": 192,
+      "mode": "moveup:3.7",
+      "from": "census2 r1 F1",
+      "layout": "6194906b0add07d3"
+    },
+    {
+      "number": 193,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 193,
+      "mode": "movedown:5.3",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 193,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 193,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 193,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 193,
+      "mode": "moveup:4.3",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 193,
+      "mode": "moveup:5.3",
+      "from": "census2 r1 F1",
+      "layout": "50dc689dc0a5a8b8"
+    },
+    {
+      "number": 198,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "002ab1cfeeac924a"
+    },
+    {
+      "number": 198,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "002ab1cfeeac924a"
+    },
+    {
+      "number": 198,
+      "mode": "moveup:4.4",
+      "from": "census2 r1 F1",
+      "layout": "002ab1cfeeac924a"
+    },
+    {
+      "number": 199,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "54ec1f276648eb97"
+    },
+    {
+      "number": 203,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "c91b3177b4f4c5ae"
+    },
+    {
+      "number": 206,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "903df78e19ac91b9"
+    },
+    {
+      "number": 210,
+      "mode": "movedown:2.7",
+      "from": "census2 r1 F1",
+      "layout": "76c7630f37d4e4fb"
+    },
+    {
+      "number": 210,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "76c7630f37d4e4fb"
+    },
+    {
+      "number": 211,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "60dfbce1eefd994b"
+    },
+    {
+      "number": 215,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "de7492ddc6ac5e46"
+    },
+    {
+      "number": 217,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "a4b552306cb86547"
+    },
+    {
+      "number": 217,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "a4b552306cb86547"
+    },
+    {
+      "number": 218,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "dc926d176a3b5bd5"
+    },
+    {
+      "number": 224,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "c4091ef81a3ee204"
+    },
+    {
+      "number": 225,
+      "mode": "join:1.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "join:2.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "join:3.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "join:4.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "movedown:1.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "movedown:2.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "movedown:3.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "movedown:4.7",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 225,
+      "mode": "moveup:4.3",
+      "from": "census2 r1 F1",
+      "layout": "db21ede1083da76b"
+    },
+    {
+      "number": 226,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "428c977624dd90cd"
+    },
+    {
+      "number": 228,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "041bc34371874bce"
+    },
+    {
+      "number": 228,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "041bc34371874bce"
+    },
+    {
+      "number": 228,
+      "mode": "moveup:4.4",
+      "from": "census2 r1 F1",
+      "layout": "041bc34371874bce"
+    },
+    {
+      "number": 229,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "8e7d62ec35a9f8df"
+    },
+    {
+      "number": 229,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "8e7d62ec35a9f8df"
+    },
+    {
+      "number": 235,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "4a0cd2dda6c402b8"
+    },
+    {
+      "number": 235,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "4a0cd2dda6c402b8"
+    },
+    {
+      "number": 235,
+      "mode": "movedown:4.2",
+      "from": "census2 r1 F1",
+      "layout": "4a0cd2dda6c402b8"
+    },
+    {
+      "number": 235,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "4a0cd2dda6c402b8"
+    },
+    {
+      "number": 235,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "4a0cd2dda6c402b8"
+    },
+    {
+      "number": 235,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "4a0cd2dda6c402b8"
+    },
+    {
+      "number": 236,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "bb37c16472a2c4bb"
+    },
+    {
+      "number": 238,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "ce0e6f861932deef"
+    },
+    {
+      "number": 239,
+      "mode": "movedown:1.8",
+      "from": "census2 r1 F1",
+      "layout": "a531adec2d9f6b7f"
+    },
+    {
+      "number": 239,
+      "mode": "movedown:3.4",
+      "from": "census2 r1 F1",
+      "layout": "a531adec2d9f6b7f"
+    },
+    {
+      "number": 239,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "a531adec2d9f6b7f"
+    },
+    {
+      "number": 239,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "a531adec2d9f6b7f"
+    },
+    {
+      "number": 239,
+      "mode": "moveup:1.8",
+      "from": "census2 r1 F1",
+      "layout": "a531adec2d9f6b7f"
+    },
+    {
+      "number": 241,
+      "mode": "movedown:5.1",
+      "from": "census2 r1 F1",
+      "layout": "1d49d5fd5ad2a804"
+    },
+    {
+      "number": 241,
+      "mode": "moveup:5.1",
+      "from": "census2 r1 F1",
+      "layout": "1d49d5fd5ad2a804"
+    },
+    {
+      "number": 242,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "808ee325c23d1fbf"
+    },
+    {
+      "number": 244,
+      "mode": "movedown:1.5",
+      "from": "census2 r1 F1",
+      "layout": "a411cea1ee87b4f8"
+    },
+    {
+      "number": 244,
+      "mode": "movedown:1.6",
+      "from": "census2 r1 F1",
+      "layout": "a411cea1ee87b4f8"
+    },
+    {
+      "number": 244,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "a411cea1ee87b4f8"
+    },
+    {
+      "number": 244,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "a411cea1ee87b4f8"
+    },
+    {
+      "number": 244,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "a411cea1ee87b4f8"
+    },
+    {
+      "number": 245,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "f35bd10063ce6892"
+    },
+    {
+      "number": 245,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "f35bd10063ce6892"
+    },
+    {
+      "number": 255,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "f4b577050342e04c"
+    },
+    {
+      "number": 259,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "69363f1127aef3d6"
+    },
+    {
+      "number": 259,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "69363f1127aef3d6"
+    },
+    {
+      "number": 261,
+      "mode": "movedown:1.6",
+      "from": "census2 r1 F1",
+      "layout": "40cc882d8a1afae2"
+    },
+    {
+      "number": 261,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "40cc882d8a1afae2"
+    },
+    {
+      "number": 261,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "40cc882d8a1afae2"
+    },
+    {
+      "number": 262,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "e1f1dafd8ccfd9d4"
+    },
+    {
+      "number": 263,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "e09b5a0c6c974255"
+    },
+    {
+      "number": 263,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "e09b5a0c6c974255"
+    },
+    {
+      "number": 264,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "12487c02125757a6"
+    },
+    {
+      "number": 264,
+      "mode": "moveup:4.3",
+      "from": "census2 r1 F1",
+      "layout": "12487c02125757a6"
+    },
+    {
+      "number": 269,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "8e904cf3ce5644d7"
+    },
+    {
+      "number": 269,
+      "mode": "movedown:5.1",
+      "from": "census2 r1 F1",
+      "layout": "8e904cf3ce5644d7"
+    },
+    {
+      "number": 277,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "moveup:2.4",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 277,
+      "mode": "moveup:4.5",
+      "from": "census2 r1 F1",
+      "layout": "930fb883699769b2"
+    },
+    {
+      "number": 282,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "5df556087b554baf"
+    },
+    {
+      "number": 290,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "15d968800f0f0c3b"
+    },
+    {
+      "number": 292,
+      "mode": "moveup:4.6",
+      "from": "census2 r1 F1",
+      "layout": "23bee882a750a81d"
+    },
+    {
+      "number": 293,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "932334e26b567ea8"
+    },
+    {
+      "number": 296,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "3fc04fab8262f1fd"
+    },
+    {
+      "number": 296,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "3fc04fab8262f1fd"
+    },
+    {
+      "number": 298,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "movedown:5.1",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "moveup:4.3",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 298,
+      "mode": "moveup:4.4",
+      "from": "census2 r1 F1",
+      "layout": "86402115c682967a"
+    },
+    {
+      "number": 300,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "badc190eeda07838"
+    },
+    {
+      "number": 300,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "badc190eeda07838"
+    },
+    {
+      "number": 301,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "4dbe829332ac8e73"
+    },
+    {
+      "number": 318,
+      "mode": "join:2.3",
+      "from": "census2 r1 F1",
+      "layout": "06ac26784e7b3a03"
+    },
+    {
+      "number": 318,
+      "mode": "join:3.3",
+      "from": "census2 r1 F1",
+      "layout": "06ac26784e7b3a03"
+    },
+    {
+      "number": 322,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "58b1410c90633809"
+    },
+    {
+      "number": 325,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "af82e49fcde31cfd"
+    },
+    {
+      "number": 330,
+      "mode": "movedown:2.4",
+      "from": "census2 r1 F1",
+      "layout": "5055a1a02a59a4dd"
+    },
+    {
+      "number": 330,
+      "mode": "movedown:5.4",
+      "from": "census2 r1 F1",
+      "layout": "5055a1a02a59a4dd"
+    },
+    {
+      "number": 330,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "5055a1a02a59a4dd"
+    },
+    {
+      "number": 330,
+      "mode": "moveup:5.1",
+      "from": "census2 r1 F1",
+      "layout": "5055a1a02a59a4dd"
+    },
+    {
+      "number": 333,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "20759b95771bd1d7"
+    },
+    {
+      "number": 338,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "1a642f70de3e7399"
+    },
+    {
+      "number": 341,
+      "mode": "movedown:1.2",
+      "from": "census2 r1 F1",
+      "layout": "688b6b2888bbde5c"
+    },
+    {
+      "number": 344,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "355c403bb027e8b0"
+    },
+    {
+      "number": 344,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "355c403bb027e8b0"
+    },
+    {
+      "number": 345,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "1f8cc3ccf13767a4"
+    },
+    {
+      "number": 345,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "1f8cc3ccf13767a4"
+    },
+    {
+      "number": 345,
+      "mode": "moveup:3.7",
+      "from": "census2 r1 F1",
+      "layout": "1f8cc3ccf13767a4"
+    },
+    {
+      "number": 346,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "81282a8d06753a0e"
+    },
+    {
+      "number": 346,
+      "mode": "movedown:5.3",
+      "from": "census2 r1 F1",
+      "layout": "81282a8d06753a0e"
+    },
+    {
+      "number": 347,
+      "mode": "movedown:5.1",
+      "from": "census2 r1 F1",
+      "layout": "f5c8eebb83ab1022"
+    },
+    {
+      "number": 347,
+      "mode": "movedown:5.3",
+      "from": "census2 r1 F1",
+      "layout": "f5c8eebb83ab1022"
+    },
+    {
+      "number": 347,
+      "mode": "moveup:4.6",
+      "from": "census2 r1 F1",
+      "layout": "f5c8eebb83ab1022"
+    },
+    {
+      "number": 347,
+      "mode": "moveup:5.3",
+      "from": "census2 r1 F1",
+      "layout": "f5c8eebb83ab1022"
+    },
+    {
+      "number": 352,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "39b40183d9c1606d"
+    },
+    {
+      "number": 352,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "39b40183d9c1606d"
+    },
+    {
+      "number": 352,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "39b40183d9c1606d"
+    },
+    {
+      "number": 352,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "39b40183d9c1606d"
+    },
+    {
+      "number": 353,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "fc1f644a16a714f2"
+    },
+    {
+      "number": 360,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "e0d4760ef860a944"
+    },
+    {
+      "number": 360,
+      "mode": "movedown:3.5",
+      "from": "census2 r1 F1",
+      "layout": "e0d4760ef860a944"
+    },
+    {
+      "number": 360,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "e0d4760ef860a944"
+    },
+    {
+      "number": 360,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "e0d4760ef860a944"
+    },
+    {
+      "number": 360,
+      "mode": "moveup:3.7",
+      "from": "census2 r1 F1",
+      "layout": "e0d4760ef860a944"
+    },
+    {
+      "number": 360,
+      "mode": "moveup:4.2",
+      "from": "census2 r1 F1",
+      "layout": "e0d4760ef860a944"
+    },
+    {
+      "number": 361,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "8a70d8f93697d6db"
+    },
+    {
+      "number": 362,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "4c47e88388444515"
+    },
+    {
+      "number": 362,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "4c47e88388444515"
+    },
+    {
+      "number": 362,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "4c47e88388444515"
+    },
+    {
+      "number": 363,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "7070fec91f8fe8b3"
+    },
+    {
+      "number": 363,
+      "mode": "moveup:2.6",
+      "from": "census2 r1 F1",
+      "layout": "7070fec91f8fe8b3"
+    },
+    {
+      "number": 364,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "cd5fb3a6c5c9cff3"
+    },
+    {
+      "number": 364,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "cd5fb3a6c5c9cff3"
+    },
+    {
+      "number": 364,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "cd5fb3a6c5c9cff3"
+    },
+    {
+      "number": 379,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "d62bf37d97d4637e"
+    },
+    {
+      "number": 379,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "d62bf37d97d4637e"
+    },
+    {
+      "number": 379,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "d62bf37d97d4637e"
+    },
+    {
+      "number": 380,
+      "mode": "moveup:4.2",
+      "from": "census2 r1 F1",
+      "layout": "50fc94550352b869"
+    },
+    {
+      "number": 384,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "e464d8243b0a0eec"
+    },
+    {
+      "number": 384,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "e464d8243b0a0eec"
+    },
+    {
+      "number": 385,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "aeaf96f19023c57f"
+    },
+    {
+      "number": 385,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "aeaf96f19023c57f"
+    },
+    {
+      "number": 386,
+      "mode": "moveup:2.6",
+      "from": "census2 r1 F1",
+      "layout": "cae26fd3a7ce1252"
+    },
+    {
+      "number": 386,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "cae26fd3a7ce1252"
+    },
+    {
+      "number": 386,
+      "mode": "moveup:3.8",
+      "from": "census2 r1 F1",
+      "layout": "cae26fd3a7ce1252"
+    },
+    {
+      "number": 388,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "8bcbeda42095fac1"
+    },
+    {
+      "number": 388,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "8bcbeda42095fac1"
+    },
+    {
+      "number": 388,
+      "mode": "movedown:3.5",
+      "from": "census2 r1 F1",
+      "layout": "8bcbeda42095fac1"
+    },
+    {
+      "number": 388,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "8bcbeda42095fac1"
+    },
+    {
+      "number": 388,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "8bcbeda42095fac1"
+    },
+    {
+      "number": 390,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "2926f9addbe68db9"
+    },
+    {
+      "number": 390,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "2926f9addbe68db9"
+    },
+    {
+      "number": 390,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "2926f9addbe68db9"
+    },
+    {
+      "number": 390,
+      "mode": "moveup:5.1",
+      "from": "census2 r1 F1",
+      "layout": "2926f9addbe68db9"
+    },
+    {
+      "number": 392,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "7105d3df3d6d5942"
+    },
+    {
+      "number": 392,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "7105d3df3d6d5942"
+    },
+    {
+      "number": 392,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "7105d3df3d6d5942"
+    },
+    {
+      "number": 399,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "e1a9e781aae9d3be"
+    },
+    {
+      "number": 399,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "e1a9e781aae9d3be"
+    },
+    {
+      "number": 401,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "388a99d50b8fb5f0"
+    },
+    {
+      "number": 402,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "3948b0ecf8ca7fc4"
+    },
+    {
+      "number": 404,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "fb21c79a869c6fde"
+    },
+    {
+      "number": 404,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "fb21c79a869c6fde"
+    },
+    {
+      "number": 405,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "14d73c036665a988"
+    },
+    {
+      "number": 405,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "14d73c036665a988"
+    },
+    {
+      "number": 405,
+      "mode": "movedown:4.2",
+      "from": "census2 r1 F1",
+      "layout": "14d73c036665a988"
+    },
+    {
+      "number": 405,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "14d73c036665a988"
+    },
+    {
+      "number": 405,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "14d73c036665a988"
+    },
+    {
+      "number": 406,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "c76d994105741bff"
+    },
+    {
+      "number": 407,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "2519fb2763b861f8"
+    },
+    {
+      "number": 408,
+      "mode": "join:4.1",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 408,
+      "mode": "join:4.2",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 408,
+      "mode": "join:4.3",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 408,
+      "mode": "join:4.5",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 408,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 408,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 408,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "ddbc4a35e66ce8c9"
+    },
+    {
+      "number": 409,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "aefa1b384cf03f38"
+    },
+    {
+      "number": 409,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "aefa1b384cf03f38"
+    },
+    {
+      "number": 410,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "55daf9b16aedf0e8"
+    },
+    {
+      "number": 411,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "a67b3b1e03e4931a"
+    },
+    {
+      "number": 412,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "427d6abde4a08c8c"
+    },
+    {
+      "number": 413,
+      "mode": "movedown:1.2",
+      "from": "census2 r1 F1",
+      "layout": "51e132d2d080e761"
+    },
+    {
+      "number": 413,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "51e132d2d080e761"
+    },
+    {
+      "number": 413,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "51e132d2d080e761"
+    },
+    {
+      "number": 413,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "51e132d2d080e761"
+    },
+    {
+      "number": 415,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "dcad9a18516a4104"
+    },
+    {
+      "number": 421,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "817c8e026c851987"
+    },
+    {
+      "number": 422,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "64befc6bdfddfa15"
+    },
+    {
+      "number": 422,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "64befc6bdfddfa15"
+    },
+    {
+      "number": 422,
+      "mode": "movedown:2.4",
+      "from": "census2 r1 F1",
+      "layout": "64befc6bdfddfa15"
+    },
+    {
+      "number": 430,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:1.2",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:2.1",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:2.2",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:2.3",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:3.1",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "join:3.3",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 430,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "bff7ec1eb0228f18"
+    },
+    {
+      "number": 435,
+      "mode": "join:2.2",
+      "from": "census2 r1 F1",
+      "layout": "9e198daa9c43be55"
+    },
+    {
+      "number": 435,
+      "mode": "join:2.3",
+      "from": "census2 r1 F1",
+      "layout": "9e198daa9c43be55"
+    },
+    {
+      "number": 435,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "9e198daa9c43be55"
+    },
+    {
+      "number": 436,
+      "mode": "moveup:3.7",
+      "from": "census2 r1 F1",
+      "layout": "e3f44b280ba00f45"
+    },
+    {
+      "number": 436,
+      "mode": "moveup:3.9",
+      "from": "census2 r1 F1",
+      "layout": "e3f44b280ba00f45"
+    },
+    {
+      "number": 440,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "23d0f3fb4c870363"
+    },
+    {
+      "number": 440,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "23d0f3fb4c870363"
+    },
+    {
+      "number": 440,
+      "mode": "join:1.4",
+      "from": "census2 r1 F1",
+      "layout": "23d0f3fb4c870363"
+    },
+    {
+      "number": 440,
+      "mode": "join:1.5",
+      "from": "census2 r1 F1",
+      "layout": "23d0f3fb4c870363"
+    },
+    {
+      "number": 440,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "23d0f3fb4c870363"
+    },
+    {
+      "number": 447,
+      "mode": "moveup:4.7",
+      "from": "census2 r1 F1",
+      "layout": "3928c969920f56d9"
+    },
+    {
+      "number": 454,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "a82f5148a4ea3503"
+    },
+    {
+      "number": 454,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "a82f5148a4ea3503"
+    },
+    {
+      "number": 454,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "a82f5148a4ea3503"
+    },
+    {
+      "number": 457,
+      "mode": "moveup:4.7",
+      "from": "census2 r1 F1",
+      "layout": "788fa3e058ebd4ae"
+    },
+    {
+      "number": 458,
+      "mode": "movedown:1.6",
+      "from": "census2 r1 F1",
+      "layout": "4c01a04836b96a52"
+    },
+    {
+      "number": 458,
+      "mode": "movedown:2.6",
+      "from": "census2 r1 F1",
+      "layout": "4c01a04836b96a52"
+    },
+    {
+      "number": 458,
+      "mode": "movedown:3.6",
+      "from": "census2 r1 F1",
+      "layout": "4c01a04836b96a52"
+    },
+    {
+      "number": 458,
+      "mode": "movedown:4.6",
+      "from": "census2 r1 F1",
+      "layout": "4c01a04836b96a52"
+    },
+    {
+      "number": 460,
+      "mode": "movedown:1.7",
+      "from": "census2 r1 F1",
+      "layout": "0197a876decb0cec"
+    },
+    {
+      "number": 460,
+      "mode": "movedown:2.7",
+      "from": "census2 r1 F1",
+      "layout": "0197a876decb0cec"
+    },
+    {
+      "number": 460,
+      "mode": "movedown:3.7",
+      "from": "census2 r1 F1",
+      "layout": "0197a876decb0cec"
+    },
+    {
+      "number": 460,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "0197a876decb0cec"
+    },
+    {
+      "number": 470,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "95f4a400f63292f2"
+    },
+    {
+      "number": 474,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "41f6cc30d3536a5f"
+    },
+    {
+      "number": 474,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "41f6cc30d3536a5f"
+    },
+    {
+      "number": 475,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "5addd3c1b92b9730"
+    },
+    {
+      "number": 475,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "5addd3c1b92b9730"
+    },
+    {
+      "number": 475,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "5addd3c1b92b9730"
+    },
+    {
+      "number": 475,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "5addd3c1b92b9730"
+    },
+    {
+      "number": 480,
+      "mode": "movedown:2.3",
+      "from": "census2 r1 F1",
+      "layout": "1e7b7b92e842e6cd"
+    },
+    {
+      "number": 480,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "1e7b7b92e842e6cd"
+    },
+    {
+      "number": 480,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "1e7b7b92e842e6cd"
+    },
+    {
+      "number": 480,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "1e7b7b92e842e6cd"
+    },
+    {
+      "number": 481,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "0930f6a63515361f"
+    },
+    {
+      "number": 481,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "0930f6a63515361f"
+    },
+    {
+      "number": 481,
+      "mode": "join:1.4",
+      "from": "census2 r1 F1",
+      "layout": "0930f6a63515361f"
+    },
+    {
+      "number": 487,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "d0f3f9d329e3bebf"
+    },
+    {
+      "number": 487,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "d0f3f9d329e3bebf"
+    },
+    {
+      "number": 487,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "d0f3f9d329e3bebf"
+    },
+    {
+      "number": 493,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "0858489565abee3e"
+    },
+    {
+      "number": 496,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "a8a5c874be0e18a7"
+    },
+    {
+      "number": 496,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "a8a5c874be0e18a7"
+    },
+    {
+      "number": 497,
+      "mode": "movedown:2.6",
+      "from": "census2 r1 F1",
+      "layout": "61296a7f5bc2ab0e"
+    },
+    {
+      "number": 497,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "61296a7f5bc2ab0e"
+    },
+    {
+      "number": 503,
+      "mode": "join:1.11",
+      "from": "census2 r1 F1",
+      "layout": "9b270ca00d26301c"
+    },
+    {
+      "number": 503,
+      "mode": "join:1.7",
+      "from": "census2 r1 F1",
+      "layout": "9b270ca00d26301c"
+    },
+    {
+      "number": 503,
+      "mode": "join:1.8",
+      "from": "census2 r1 F1",
+      "layout": "9b270ca00d26301c"
+    },
+    {
+      "number": 504,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "aeae61f423d8821f"
+    },
+    {
+      "number": 504,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "aeae61f423d8821f"
+    },
+    {
+      "number": 504,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "aeae61f423d8821f"
+    },
+    {
+      "number": 504,
+      "mode": "moveup:4.2",
+      "from": "census2 r1 F1",
+      "layout": "aeae61f423d8821f"
+    },
+    {
+      "number": 506,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "206041be7ec81f5e"
+    },
+    {
+      "number": 509,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "09fba81d9a8262cc"
+    },
+    {
+      "number": 510,
+      "mode": "movedown:1.2",
+      "from": "census2 r1 F1",
+      "layout": "9f4d09696750f53e"
+    },
+    {
+      "number": 510,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "9f4d09696750f53e"
+    },
+    {
+      "number": 516,
+      "mode": "moveup:3.4",
+      "from": "census2 r1 F1",
+      "layout": "e94db0148360cdca"
+    },
+    {
+      "number": 524,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "0f12b01663b9478f"
+    },
+    {
+      "number": 525,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "fa109a0a904cacd5"
+    },
+    {
+      "number": 538,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "7f404aae7af02514"
+    },
+    {
+      "number": 538,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "7f404aae7af02514"
+    },
+    {
+      "number": 538,
+      "mode": "moveup:2.6",
+      "from": "census2 r1 F1",
+      "layout": "7f404aae7af02514"
+    },
+    {
+      "number": 542,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "9c5f3e4ea7d3a03a"
+    },
+    {
+      "number": 542,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "9c5f3e4ea7d3a03a"
+    },
+    {
+      "number": 543,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "90b32cb2008acbcb"
+    },
+    {
+      "number": 544,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "64951e97b06fe0ea"
+    },
+    {
+      "number": 544,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "64951e97b06fe0ea"
+    },
+    {
+      "number": 545,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "af0867c9b5098d27"
+    },
+    {
+      "number": 545,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "af0867c9b5098d27"
+    },
+    {
+      "number": 547,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "3e8920f695fbd8ec"
+    },
+    {
+      "number": 550,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "16e1aeb38fedbb1e"
+    },
+    {
+      "number": 551,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "57a795a0c45bfcc9"
+    },
+    {
+      "number": 554,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "914217560f0e8ed4"
+    },
+    {
+      "number": 554,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "914217560f0e8ed4"
+    },
+    {
+      "number": 554,
+      "mode": "moveup:3.4",
+      "from": "census2 r1 F1",
+      "layout": "914217560f0e8ed4"
+    },
+    {
+      "number": 555,
+      "mode": "movedown:1.4",
+      "from": "census2 r1 F1",
+      "layout": "0ffa6f89e63f4af4"
+    },
+    {
+      "number": 555,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "0ffa6f89e63f4af4"
+    },
+    {
+      "number": 555,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "0ffa6f89e63f4af4"
+    },
+    {
+      "number": 555,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "0ffa6f89e63f4af4"
+    },
+    {
+      "number": 555,
+      "mode": "moveup:4.4",
+      "from": "census2 r1 F1",
+      "layout": "0ffa6f89e63f4af4"
+    },
+    {
+      "number": 556,
+      "mode": "movedown:3.6",
+      "from": "census2 r1 F1",
+      "layout": "14f4733fee3c98e8"
+    },
+    {
+      "number": 556,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "14f4733fee3c98e8"
+    },
+    {
+      "number": 556,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "14f4733fee3c98e8"
+    },
+    {
+      "number": 556,
+      "mode": "moveup:2.4",
+      "from": "census2 r1 F1",
+      "layout": "14f4733fee3c98e8"
+    },
+    {
+      "number": 556,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "14f4733fee3c98e8"
+    },
+    {
+      "number": 559,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "821e32ee9c8567d3"
+    },
+    {
+      "number": 560,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "05cca31caaca847a"
+    },
+    {
+      "number": 560,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "05cca31caaca847a"
+    },
+    {
+      "number": 561,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "c8b4b16bf7dc2a68"
+    },
+    {
+      "number": 561,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "c8b4b16bf7dc2a68"
+    },
+    {
+      "number": 561,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "c8b4b16bf7dc2a68"
+    },
+    {
+      "number": 561,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "c8b4b16bf7dc2a68"
+    },
+    {
+      "number": 561,
+      "mode": "moveup:2.5",
+      "from": "census2 r1 F1",
+      "layout": "c8b4b16bf7dc2a68"
+    },
+    {
+      "number": 563,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "e180781ef6b52e8b"
+    },
+    {
+      "number": 566,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "108177e3ca96cddc"
+    },
+    {
+      "number": 566,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "108177e3ca96cddc"
+    },
+    {
+      "number": 566,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "108177e3ca96cddc"
+    },
+    {
+      "number": 566,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "108177e3ca96cddc"
+    },
+    {
+      "number": 566,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "108177e3ca96cddc"
+    },
+    {
+      "number": 566,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "108177e3ca96cddc"
+    },
+    {
+      "number": 567,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "017239a3ae7c7afa"
+    },
+    {
+      "number": 567,
+      "mode": "movedown:4.5",
+      "from": "census2 r1 F1",
+      "layout": "017239a3ae7c7afa"
+    },
+    {
+      "number": 567,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "017239a3ae7c7afa"
+    },
+    {
+      "number": 567,
+      "mode": "moveup:1.6",
+      "from": "census2 r1 F1",
+      "layout": "017239a3ae7c7afa"
+    },
+    {
+      "number": 567,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "017239a3ae7c7afa"
+    },
+    {
+      "number": 568,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "e79be744a82ae237"
+    },
+    {
+      "number": 570,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "1df6d326d6e652c2"
+    },
+    {
+      "number": 573,
+      "mode": "movedown:2.5",
+      "from": "census2 r1 F1",
+      "layout": "d5276931a0f104fa"
+    },
+    {
+      "number": 573,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "d5276931a0f104fa"
+    },
+    {
+      "number": 573,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "d5276931a0f104fa"
+    },
+    {
+      "number": 573,
+      "mode": "moveup:3.2",
+      "from": "census2 r1 F1",
+      "layout": "d5276931a0f104fa"
+    },
+    {
+      "number": 573,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "d5276931a0f104fa"
+    },
+    {
+      "number": 574,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "41fd7c74f179e0c4"
+    },
+    {
+      "number": 578,
+      "mode": "join:4.1",
+      "from": "census2 r1 F1",
+      "layout": "f0a1a84a0e163b57"
+    },
+    {
+      "number": 578,
+      "mode": "join:4.2",
+      "from": "census2 r1 F1",
+      "layout": "f0a1a84a0e163b57"
+    },
+    {
+      "number": 578,
+      "mode": "join:4.3",
+      "from": "census2 r1 F1",
+      "layout": "f0a1a84a0e163b57"
+    },
+    {
+      "number": 586,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "89ffa0b740922e5b"
+    },
+    {
+      "number": 587,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "880bfa764c81ac74"
+    },
+    {
+      "number": 587,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "880bfa764c81ac74"
+    },
+    {
+      "number": 587,
+      "mode": "moveup:4.1",
+      "from": "census2 r1 F1",
+      "layout": "880bfa764c81ac74"
+    },
+    {
+      "number": 592,
+      "mode": "movedown:3.7",
+      "from": "census2 r1 F1",
+      "layout": "1582fbf40f3be2f4"
+    },
+    {
+      "number": 593,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "93c8183d9086ebfe"
+    },
+    {
+      "number": 593,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "93c8183d9086ebfe"
+    },
+    {
+      "number": 593,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "93c8183d9086ebfe"
+    },
+    {
+      "number": 596,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "6cdb0b8bfa3bc105"
+    },
+    {
+      "number": 597,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "09eea603c068eed9"
+    },
+    {
+      "number": 598,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "5300c9f5803b8f61"
+    },
+    {
+      "number": 601,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "630ad6abae10fec8"
+    },
+    {
+      "number": 601,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "630ad6abae10fec8"
+    },
+    {
+      "number": 607,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "8420b517238e1e43"
+    },
+    {
+      "number": 608,
+      "mode": "moveup:3.7",
+      "from": "census2 r1 F1",
+      "layout": "ae93ecf31076232c"
+    },
+    {
+      "number": 611,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "5e7d7817de396fb9"
+    },
+    {
+      "number": 616,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "3b19d8f4b395a8e9"
+    },
+    {
+      "number": 621,
+      "mode": "movedown:2.2",
+      "from": "census2 r1 F1",
+      "layout": "680dc0e7e1d6e8ab"
+    },
+    {
+      "number": 621,
+      "mode": "moveup:2.7",
+      "from": "census2 r1 F1",
+      "layout": "680dc0e7e1d6e8ab"
+    },
+    {
+      "number": 625,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "5cb70955fdaee1c9"
+    },
+    {
+      "number": 631,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "dccd68f2831b8adb"
+    },
+    {
+      "number": 631,
+      "mode": "moveup:3.5",
+      "from": "census2 r1 F1",
+      "layout": "dccd68f2831b8adb"
+    },
+    {
+      "number": 637,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "movedown:4.2",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "movedown:5.1",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "moveup:2.1",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "moveup:4.4",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "moveup:4.5",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 637,
+      "mode": "moveup:5.5",
+      "from": "census2 r1 F1",
+      "layout": "1a0cac3987ea6cdb"
+    },
+    {
+      "number": 638,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "e0861d21ae92ce0f"
+    },
+    {
+      "number": 642,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "6bb6f0afd435073b"
+    },
+    {
+      "number": 642,
+      "mode": "movedown:2.1",
+      "from": "census2 r1 F1",
+      "layout": "6bb6f0afd435073b"
+    },
+    {
+      "number": 642,
+      "mode": "movedown:3.1",
+      "from": "census2 r1 F1",
+      "layout": "6bb6f0afd435073b"
+    },
+    {
+      "number": 642,
+      "mode": "moveup:3.3",
+      "from": "census2 r1 F1",
+      "layout": "6bb6f0afd435073b"
+    },
+    {
+      "number": 643,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "d198a38251b666e8"
+    },
+    {
+      "number": 643,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "d198a38251b666e8"
+    },
+    {
+      "number": 645,
+      "mode": "moveup:3.1",
+      "from": "census2 r1 F1",
+      "layout": "08c7679992834f4a"
+    },
+    {
+      "number": 649,
+      "mode": "movedown:3.2",
+      "from": "census2 r1 F1",
+      "layout": "4eee4f95fd36c3ba"
+    },
+    {
+      "number": 649,
+      "mode": "movedown:4.1",
+      "from": "census2 r1 F1",
+      "layout": "4eee4f95fd36c3ba"
+    },
+    {
+      "number": 650,
+      "mode": "moveup:1.4",
+      "from": "census2 r1 F1",
+      "layout": "8331b90fafc902ce"
+    },
+    {
+      "number": 652,
+      "mode": "moveup:3.6",
+      "from": "census2 r1 F1",
+      "layout": "0b03b55e82b367d6"
+    },
+    {
+      "number": 655,
+      "mode": "movedown:3.3",
+      "from": "census2 r1 F1",
+      "layout": "a7a1229fff9c2328"
+    },
+    {
+      "number": 655,
+      "mode": "movedown:4.3",
+      "from": "census2 r1 F1",
+      "layout": "a7a1229fff9c2328"
+    },
+    {
+      "number": 658,
+      "mode": "moveup:1.7",
+      "from": "census2 r1 F1",
+      "layout": "61ee28bdd361d421"
+    },
+    {
+      "number": 662,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "f0b29919fbfa1f70"
+    },
+    {
+      "number": 662,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "f0b29919fbfa1f70"
+    },
+    {
+      "number": 662,
+      "mode": "join:1.5",
+      "from": "census2 r1 F1",
+      "layout": "f0b29919fbfa1f70"
+    },
+    {
+      "number": 666,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "b4b13ac0cd98fff5"
+    },
+    {
+      "number": 666,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "b4b13ac0cd98fff5"
+    },
+    {
+      "number": 666,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "b4b13ac0cd98fff5"
+    },
+    {
+      "number": 669,
+      "mode": "join:1.5",
+      "from": "census2 r1 F1",
+      "layout": "ed6563a60e9a0e4f"
+    },
+    {
+      "number": 669,
+      "mode": "moveup:1.5",
+      "from": "census2 r1 F1",
+      "layout": "ed6563a60e9a0e4f"
+    },
+    {
+      "number": 670,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "a893d5cfbd180a8d"
+    },
+    {
+      "number": 670,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "a893d5cfbd180a8d"
+    },
+    {
+      "number": 671,
+      "mode": "join:1.2",
+      "from": "census2 r1 F1",
+      "layout": "076bc1bcfb83261a"
+    },
+    {
+      "number": 671,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "076bc1bcfb83261a"
+    },
+    {
+      "number": 671,
+      "mode": "join:1.5",
+      "from": "census2 r1 F1",
+      "layout": "076bc1bcfb83261a"
+    },
+    {
+      "number": 671,
+      "mode": "join:1.7",
+      "from": "census2 r1 F1",
+      "layout": "076bc1bcfb83261a"
+    },
+    {
+      "number": 671,
+      "mode": "moveup:1.3",
+      "from": "census2 r1 F1",
+      "layout": "076bc1bcfb83261a"
+    },
+    {
+      "number": 672,
+      "mode": "join:1.7",
+      "from": "census2 r1 F1",
+      "layout": "b437337aac3d8bce"
+    },
+    {
+      "number": 672,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "b437337aac3d8bce"
+    },
+    {
+      "number": 672,
+      "mode": "movedown:1.3",
+      "from": "census2 r1 F1",
+      "layout": "b437337aac3d8bce"
+    },
+    {
+      "number": 672,
+      "mode": "movedown:1.7",
+      "from": "census2 r1 F1",
+      "layout": "b437337aac3d8bce"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:1.6",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:1.8",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:2.2",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:2.3",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:2.6",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 673,
+      "mode": "moveup:2.8",
+      "from": "census2 r1 F1",
+      "layout": "b356fac4cf649523"
+    },
+    {
+      "number": 676,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "f5202102dcb97d60"
+    },
+    {
+      "number": 677,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "f9854e7392420bcb"
+    },
+    {
+      "number": 677,
+      "mode": "join:1.4",
+      "from": "census2 r1 F1",
+      "layout": "f9854e7392420bcb"
+    },
+    {
+      "number": 677,
+      "mode": "join:1.5",
+      "from": "census2 r1 F1",
+      "layout": "f9854e7392420bcb"
+    },
+    {
+      "number": 677,
+      "mode": "moveup:1.4",
+      "from": "census2 r1 F1",
+      "layout": "f9854e7392420bcb"
+    },
+    {
+      "number": 679,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "2134885f98b54b74"
+    },
+    {
+      "number": 679,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "2134885f98b54b74"
+    },
+    {
+      "number": 679,
+      "mode": "join:1.5",
+      "from": "census2 r1 F1",
+      "layout": "2134885f98b54b74"
+    },
+    {
+      "number": 679,
+      "mode": "join:1.7",
+      "from": "census2 r1 F1",
+      "layout": "2134885f98b54b74"
+    },
+    {
+      "number": 681,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "32f3b93ddd485acb"
+    },
+    {
+      "number": 683,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "ede51d63ab8662de"
+    },
+    {
+      "number": 684,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "0e1acd1ed8a9d832"
+    },
+    {
+      "number": 684,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "0e1acd1ed8a9d832"
+    },
+    {
+      "number": 684,
+      "mode": "movedown:1.1",
+      "from": "census2 r1 F1",
+      "layout": "0e1acd1ed8a9d832"
+    },
+    {
+      "number": 687,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "319a310fe3322dde"
+    },
+    {
+      "number": 687,
+      "mode": "join:1.2",
+      "from": "census2 r1 F1",
+      "layout": "319a310fe3322dde"
+    },
+    {
+      "number": 687,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "319a310fe3322dde"
+    },
+    {
+      "number": 688,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "6c88e453dba0e1b3"
+    },
+    {
+      "number": 689,
+      "mode": "join:1.2",
+      "from": "census2 r1 F1",
+      "layout": "6b283fe07f0c30c2"
+    },
+    {
+      "number": 689,
+      "mode": "moveup:1.2",
+      "from": "census2 r1 F1",
+      "layout": "6b283fe07f0c30c2"
+    },
+    {
+      "number": 692,
+      "mode": "join:1.1",
+      "from": "census2 r1 F1",
+      "layout": "9d5ad123686df7ab"
+    },
+    {
+      "number": 692,
+      "mode": "join:1.2",
+      "from": "census2 r1 F1",
+      "layout": "9d5ad123686df7ab"
+    },
+    {
+      "number": 692,
+      "mode": "join:1.3",
+      "from": "census2 r1 F1",
+      "layout": "9d5ad123686df7ab"
+    },
+    {
+      "number": 692,
+      "mode": "join:1.4",
+      "from": "census2 r1 F1",
+      "layout": "9d5ad123686df7ab"
+    },
+    {
+      "number": 692,
+      "mode": "movedown:1.4",
+      "from": "census2 r1 F1",
+      "layout": "9d5ad123686df7ab"
+    },
+    {
+      "number": 692,
+      "mode": "moveup:1.1",
+      "from": "census2 r1 F1",
+      "layout": "9d5ad123686df7ab"
     }
   ]
 }

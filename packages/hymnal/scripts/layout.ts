@@ -10,7 +10,8 @@
  * that no longer has them refuses the recipe, never skips it.
  */
 
-import { Result, Schema } from 'effect';
+import { Predicate, Result, Schema } from 'effect';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -20,19 +21,22 @@ import {
   decidingOf,
   type Fix,
   formatProblems,
-  layoutOf,
-  outlinesOf,
-  isEcho,
-  type Outline,
-  type Placement,
-  placementOf,
-  readAs,
-  type PrintedLayout,
-  type PrintedLine,
-  type RefrainItem,
-  refrainAfter,
+  layoutLineAs,
   layoutLinesIn,
   layoutLinesOf,
+  isEcho,
+  type Outline,
+  outlinesOf,
+  type Placement,
+  placementOf,
+  placing,
+  type PrintedLayout,
+  type PrintedText,
+  printedTextOf,
+  readAs,
+  readText,
+  type RefrainText,
+  type Ruling,
   type Sources,
   spansOf,
   type StanzaCheck,
@@ -132,7 +136,7 @@ export const applyRecipe = (
 };
 
 // ----------------------------------------------------------------------------
-// The generated property: every layout mutation of a printed layout
+// The generated property: every layout mutation of a printed source's text
 // ----------------------------------------------------------------------------
 
 /** The layout properties a row can get wrong (the README's census section names each). */
@@ -152,116 +156,104 @@ export const PROPERTIES = [
 export type Property = (typeof PROPERTIES)[number];
 
 /**
- * One mutation of a printed layout: its property, its name (`dropline:2.3`,
- * stanza 2's line 3 dropped), the layout it makes, the stanzas whose words
- * or lines it changes (1-based; `all` when it changes the refrain or the
- * stanzas' count), and whether it moves no word (`breaks`: only where lines
- * break or open, so the rows stand where they stood).
+ * One mutation of a printed source: its property, its name (`dropline:2.3`,
+ * stanza 2's line 3 dropped), the text it makes, the stanzas whose words or
+ * lines it changes (1-based; `all` when it changes the refrain or the
+ * stanzas' count). The census reads the mutant from its text
+ * (`layoutOfMutant`), as it reads a row: no mark of the source is carried
+ * over by the mutation.
  */
 export interface LayoutMutant {
   readonly property: Property;
   readonly name: string;
-  readonly layout: PrintedLayout;
+  readonly text: PrintedText;
   readonly touches: readonly number[] | 'all';
-  readonly breaks: boolean;
 }
 
-const sameLine = (a: PrintedLine, b: PrintedLine) => a.words.join(' ') === b.words.join(' ');
-const sameLines = (a: readonly PrintedLine[], b: readonly PrintedLine[]) =>
-  a.flatMap((line) => line.words).join(' ') === b.flatMap((line) => line.words).join(' ');
+/** The layout the census reads from a mutant's text (`readText`): each block it changed read again, each it left alone as read. */
+export const layoutOfMutant = (mutant: LayoutMutant): PrintedLayout => readText(mutant.text);
 
-/** A line's words, each with its marks. */
-type Run = Pick<PrintedLine, 'words' | 'sentences' | 'capitals'>;
+const sameLine = (a: string, b: string) => wordsOf(a).join(' ') === wordsOf(b).join(' ');
+const sameBlock = (a: readonly string[], b: readonly string[]) => sameWords(a, b);
 
-/** A line's words from `from` to `to` (as `Array.slice`), each with its marks. */
-const cut = (line: Run, from: number, to?: number): Run => ({
-  words: line.words.slice(from, to),
-  sentences: line.sentences.slice(from, to),
-  capitals: line.capitals.slice(from, to),
+/** A line's text as its lead (any whitespace it opens with) and its tokens. */
+const tokensOf = (line: string) => ({
+  lead: /^\s*/u.exec(line)?.[0] ?? '',
+  tokens: line.split(/\s+/u).filter((token) => token !== ''),
 });
 
-/** Two runs of words as one, each with its marks. */
-const glue = (a: Run, b: Run): Run => ({
-  words: [...a.words, ...b.words],
-  sentences: [...a.sentences, ...b.sentences],
-  capitals: [...a.capitals, ...b.capitals],
-});
+/** A line made of a lead and tokens. */
+const lineOf = (lead: string, tokens: readonly string[]) => `${lead}${tokens.join(' ')}`;
 
-/** A unit's line mutations: each as its property, its name's tail, its lines, and whether it moves no word. */
-const lineMutations = function* (lines: readonly PrintedLine[]) {
-  const at = (k: number) => lines[k] ?? { words: [], sentences: [], capitals: [], indent: false };
-  const without = (k: number) => lines.filter((_, j) => j !== k);
+/** A block's line mutations: each as its property, its name's tail, its lines, and whether it moves no word. */
+const lineMutations = function* (lines: readonly string[]) {
+  const at = (k: number) => lines[k] ?? '';
   for (let k = 0; k < lines.length; k++) {
     const line = at(k);
+    const mine = tokensOf(line);
     yield {
       property: 'line presence',
       name: `dropline:${k + 1}`,
-      lines: without(k),
-      breaks: false,
+      lines: lines.toSpliced(k, 1),
     } as const;
     yield {
       property: 'line presence',
       name: `repeatline:${k + 1}`,
       lines: lines.toSpliced(k + 1, 0, line),
-      breaks: false,
     } as const;
     yield {
       property: 'indent',
       name: `indent:${k + 1}`,
-      lines: lines.toSpliced(k, 1, { ...line, indent: true }),
-      breaks: true,
+      lines: lines.toSpliced(k, 1, `  ${line}`),
     } as const;
-    if (line.words.length >= 2) {
-      const m = Math.floor(line.words.length / 2);
-      const halves = [
-        { ...cut(line, 0, m), indent: line.indent },
-        { ...cut(line, m), indent: false },
-      ];
+    if (mine.tokens.length >= 2) {
+      const m = Math.floor(mine.tokens.length / 2);
       yield {
         property: 'line break',
         name: `split:${k + 1}`,
-        lines: lines.toSpliced(k, 1, ...halves),
-        breaks: true,
+        lines: lines.toSpliced(
+          k,
+          1,
+          lineOf(mine.lead, mine.tokens.slice(0, m)),
+          lineOf('', mine.tokens.slice(m)),
+        ),
       } as const;
     }
     if (k + 1 >= lines.length) continue;
     const next = at(k + 1);
+    const theirs = tokensOf(next);
     if (!sameLine(line, next))
       yield {
         property: 'line order',
         name: `swaplines:${k + 1}`,
         lines: lines.toSpliced(k, 2, next, line),
-        breaks: false,
       } as const;
     yield {
       property: 'line break',
       name: `join:${k + 1}`,
-      lines: lines.toSpliced(k, 2, { ...glue(line, next), indent: line.indent }),
-      breaks: true,
+      lines: lines.toSpliced(k, 2, lineOf(mine.lead, [...mine.tokens, ...theirs.tokens])),
     } as const;
-    if (line.words.length >= 2)
+    if (mine.tokens.length >= 2)
       yield {
         property: 'line break',
         name: `movedown:${k + 1}`,
         lines: lines.toSpliced(
           k,
           2,
-          { ...line, ...cut(line, 0, -1) },
-          { ...next, ...glue(cut(line, -1), next) },
+          lineOf(mine.lead, mine.tokens.slice(0, -1)),
+          lineOf(theirs.lead, [...mine.tokens.slice(-1), ...theirs.tokens]),
         ),
-        breaks: true,
       } as const;
-    if (next.words.length >= 2)
+    if (theirs.tokens.length >= 2)
       yield {
         property: 'line break',
         name: `moveup:${k + 1}`,
         lines: lines.toSpliced(
           k,
           2,
-          { ...line, ...glue(line, cut(next, 0, 1)) },
-          { ...next, ...cut(next, 1) },
+          lineOf(mine.lead, [...mine.tokens, ...theirs.tokens.slice(0, 1)]),
+          lineOf(theirs.lead, theirs.tokens.slice(1)),
         ),
-        breaks: true,
       } as const;
   }
   const [first, last] = [at(0), at(lines.length - 1)];
@@ -270,15 +262,14 @@ const lineMutations = function* (lines: readonly PrintedLine[]) {
       property: 'line order',
       name: 'swapends',
       lines: lines.toSpliced(0, 1, last).toSpliced(lines.length - 1, 1, first),
-      breaks: false,
     } as const;
 };
 
 /** The refrain's runs of lines every stanza sings (its items between the parts that vary), each as its first item's place and its lines. */
-const refrainRuns = (refrain: readonly RefrainItem[]) => {
-  const runs: Array<{ at: number; lines: PrintedLine[] }> = [];
+const refrainRuns = (refrain: readonly RefrainText[]) => {
+  const runs: Array<{ at: number; lines: string[] }> = [];
   for (const [k, item] of refrain.entries()) {
-    if ('varies' in item) continue;
+    if (!Predicate.isString(item)) continue;
     const last = runs.at(-1);
     if (last !== undefined && last.at + last.lines.length === k) last.lines.push(item);
     else runs.push({ at: k, lines: [item] });
@@ -286,299 +277,310 @@ const refrainRuns = (refrain: readonly RefrainItem[]) => {
   return runs;
 };
 
+/** The refrain lines sung after stanza `i` (1-based), as text: every shared line, and the varying part written for it. */
+const refrainTextAfter = (text: PrintedText, i: number): readonly string[] =>
+  (text.refrain ?? []).flatMap((item) =>
+    Predicate.isString(item)
+      ? [item]
+      : (item.varies.find((part) => part.after.includes(i))?.lines ?? []),
+  );
+
 const ORDERS = Order.literals;
 
 /**
- * Every mutation of Decided 3 of one hymn's printed layout, against its
+ * Every mutation of Decided 3 of one hymn's printed source, against its
  * shape readings (`outlines`, whose rows no echo makes the words of an extra
  * row to drop).
  */
 export const mutantsOf = function* (
-  layout: PrintedLayout,
+  text: PrintedText,
   outlines: readonly Outline[],
 ): Generator<LayoutMutant> {
-  yield* stanzaMutants(layout);
-  yield* stanzaLineMutants(layout);
-  yield* refrainLineMutants(layout);
-  yield* refrainMutants(layout);
-  yield* extraMutants(layout, outlines);
+  yield* stanzaMutants(text);
+  yield* stanzaLineMutants(text);
+  yield* insertMutants(text);
+  yield* refrainLineMutants(text);
+  yield* refrainMutants(text);
+  yield* extraMutants(text, outlines);
 };
 
-/** A layout with other stanzas. */
+/** A text with other stanzas. */
 const withStanzas = (
-  layout: PrintedLayout,
-  stanzas: ReadonlyArray<readonly PrintedLine[]>,
-): PrintedLayout => ({
-  ...layout,
-  stanzas,
-});
+  text: PrintedText,
+  stanzas: ReadonlyArray<readonly string[]>,
+): PrintedText => ({ ...text, stanzas });
 
 /** Stanza count, order and split: each stanza dropped, repeated, swapped with each other, split at each line, joined to the next, its boundary moved. */
-const stanzaMutants = function* (layout: PrintedLayout): Generator<LayoutMutant> {
-  const stanzas = layout.stanzas;
+const stanzaMutants = function* (text: PrintedText): Generator<LayoutMutant> {
+  const stanzas = text.stanzas;
   for (let i = 0; i < stanzas.length; i++) {
     const stanza = stanzas[i] ?? [];
     yield {
       property: 'stanza count',
       name: `dropstanza:${i + 1}`,
-      layout: withStanzas(layout, stanzas.toSpliced(i, 1)),
+      text: withStanzas(text, stanzas.toSpliced(i, 1)),
       touches: 'all',
-      breaks: false,
     };
     yield {
       property: 'stanza count',
       name: `repeatstanza:${i + 1}`,
-      layout: withStanzas(layout, stanzas.toSpliced(i + 1, 0, stanza)),
+      text: withStanzas(text, stanzas.toSpliced(i + 1, 0, stanza)),
       touches: 'all',
-      breaks: false,
     };
     for (let j = i + 1; j < stanzas.length; j++)
-      if (!sameLines(stanza, stanzas[j] ?? []))
+      if (!sameBlock(stanza, stanzas[j] ?? []))
         yield {
           property: 'stanza order',
           name: `swap:${i + 1}-${j + 1}`,
-          layout: withStanzas(
-            layout,
+          text: withStanzas(
+            text,
             stanzas.toSpliced(i, 1, stanzas[j] ?? []).toSpliced(j, 1, stanza),
           ),
           touches: [i + 1, j + 1],
-          breaks: false,
         };
     for (let b = 1; b < stanza.length; b++)
       yield {
         property: 'stanza split',
         name: `splitstanza:${i + 1}.${b}`,
-        layout: withStanzas(layout, stanzas.toSpliced(i, 1, stanza.slice(0, b), stanza.slice(b))),
+        text: withStanzas(text, stanzas.toSpliced(i, 1, stanza.slice(0, b), stanza.slice(b))),
         touches: 'all',
-        breaks: false,
       };
-    yield* boundaryMutants(layout, i);
+    yield* boundaryMutants(text, i);
   }
 };
 
 /** Stanza `i` (0-based) joined to the next, and the boundary between them moved a line either way. */
-const boundaryMutants = function* (layout: PrintedLayout, i: number): Generator<LayoutMutant> {
-  const stanzas = layout.stanzas;
+const boundaryMutants = function* (text: PrintedText, i: number): Generator<LayoutMutant> {
+  const stanzas = text.stanzas;
   const [stanza, next] = [stanzas[i] ?? [], stanzas[i + 1]];
   if (next === undefined) return;
   yield {
     property: 'stanza split',
     name: `joinstanzas:${i + 1}`,
-    layout: withStanzas(layout, stanzas.toSpliced(i, 2, [...stanza, ...next])),
+    text: withStanzas(text, stanzas.toSpliced(i, 2, [...stanza, ...next])),
     touches: 'all',
-    breaks: false,
   };
   if (stanza.length >= 2)
     yield {
       property: 'stanza split',
       name: `boundaryup:${i + 1}`,
-      layout: withStanzas(
-        layout,
+      text: withStanzas(
+        text,
         stanzas.toSpliced(i, 2, stanza.slice(0, -1), [...stanza.slice(-1), ...next]),
       ),
       touches: [i + 1, i + 2],
-      breaks: false,
     };
   if (next.length >= 2)
     yield {
       property: 'stanza split',
       name: `boundarydown:${i + 1}`,
-      layout: withStanzas(
-        layout,
+      text: withStanzas(
+        text,
         stanzas.toSpliced(i, 2, [...stanza, ...next.slice(0, 1)], next.slice(1)),
       ),
       touches: [i + 1, i + 2],
-      breaks: false,
     };
 };
 
-/** A unit's line mutation named in the hymn: `dropline:3` of stanza 2 is `dropline:2.3`, `swapends` of the refrain `swapends:refrain.1`. */
+/** A block's line mutation named in the hymn: `dropline:3` of stanza 2 is `dropline:2.3`, `swapends` of the refrain `swapends:refrain.1`. */
 const within = (name: string, unit: string) =>
   name.includes(':') ? name.replace(':', `:${unit}.`) : `${name}:${unit}`;
 
-/** Each stanza's line mutations, and a line of the stanza after it (before it, for the last) put in. */
-const stanzaLineMutants = function* (layout: PrintedLayout): Generator<LayoutMutant> {
-  const stanzas = layout.stanzas;
-  for (let i = 0; i < stanzas.length; i++) {
-    const stanza = stanzas[i] ?? [];
-    for (const one of lineMutations(stanza))
+/** Each stanza's line mutations. */
+const stanzaLineMutants = function* (text: PrintedText): Generator<LayoutMutant> {
+  const stanzas = text.stanzas;
+  for (let i = 0; i < stanzas.length; i++)
+    for (const one of lineMutations(stanzas[i] ?? []))
       yield {
         property: one.property,
         name: within(one.name, `${i + 1}`),
-        layout: withStanzas(layout, stanzas.toSpliced(i, 1, one.lines)),
+        text: withStanzas(text, stanzas.toSpliced(i, 1, one.lines)),
         touches: [i + 1],
-        breaks: one.breaks,
       };
-    const other = stanzas[i + 1 < stanzas.length ? i + 1 : i - 1] ?? [];
-    for (const [k, line] of other.entries())
-      if (!stanza.some((mine) => sameLine(mine, line)))
-        yield {
-          property: 'line presence',
-          name: `insertline:${i + 1}.${k + 1}`,
-          layout: withStanzas(layout, stanzas.toSpliced(i, 1, stanza.toSpliced(k, 0, line))),
-          touches: [i + 1],
-          breaks: false,
-        };
-  }
 };
 
-/** The line mutations of the refrain's lines every stanza sings, and of each part that varies; each part dropped, or the parts sung as one. */
-const refrainLineMutants = function* (layout: PrintedLayout): Generator<LayoutMutant> {
-  const items = layout.refrain ?? [];
+/**
+ * Each line of each other stanza put in at each place of each stanza:
+ * `insertline:2.3/1.4` is stanza 1's line 4 put in before stanza 2's line 3
+ * (place 1 opens the stanza, its count of lines + 1 ends it).
+ */
+const insertMutants = function* (text: PrintedText): Generator<LayoutMutant> {
+  const stanzas = text.stanzas;
+  for (const [i, stanza] of stanzas.entries())
+    for (let place = 0; place <= stanza.length; place++)
+      for (const [d, donor] of stanzas.entries()) {
+        if (d === i) continue;
+        for (const [k, line] of donor.entries())
+          yield {
+            property: 'line presence',
+            name: `insertline:${i + 1}.${place + 1}/${d + 1}.${k + 1}`,
+            text: withStanzas(text, stanzas.toSpliced(i, 1, stanza.toSpliced(place, 0, line))),
+            touches: [i + 1],
+          };
+      }
+};
+
+/** The line mutations of the refrain's lines every stanza sings, and of each part that varies; each part dropped with its siblings kept, the item dropped whole, or its parts sung as one. */
+const refrainLineMutants = function* (text: PrintedText): Generator<LayoutMutant> {
+  const items = text.refrain ?? [];
   for (const run of refrainRuns(items))
     for (const one of lineMutations(run.lines))
       yield {
         property: one.property,
         name: within(one.name, `refrain.${run.at + 1}`),
-        layout: { ...layout, refrain: items.toSpliced(run.at, run.lines.length, ...one.lines) },
+        text: { ...text, refrain: items.toSpliced(run.at, run.lines.length, ...one.lines) },
         touches: 'all',
-        breaks: one.breaks,
       };
   for (const [k, item] of items.entries()) {
-    if (!('varies' in item)) continue;
-    for (const [p, part] of item.varies.entries())
+    if (Predicate.isString(item)) continue;
+    for (const [p, part] of item.varies.entries()) {
       for (const one of lineMutations(part.lines))
         yield {
           property: one.property,
           name: within(one.name, `varies.${k + 1}.${p + 1}`),
-          layout: {
-            ...layout,
+          text: {
+            ...text,
             refrain: items.toSpliced(k, 1, {
               varies: item.varies.toSpliced(p, 1, { ...part, lines: one.lines }),
             }),
           },
           touches: 'all',
-          breaks: one.breaks,
         };
+      yield {
+        property: 'refrain varies',
+        name: `dropvaries:${k + 1}.${p + 1}`,
+        text: { ...text, refrain: items.toSpliced(k, 1, { varies: item.varies.toSpliced(p, 1) }) },
+        touches: 'all',
+      };
+    }
     yield {
       property: 'refrain varies',
       name: `dropvaries:${k + 1}`,
-      layout: { ...layout, refrain: items.toSpliced(k, 1) },
+      text: { ...text, refrain: items.toSpliced(k, 1) },
       touches: 'all',
-      breaks: false,
     };
     yield {
       property: 'refrain varies',
       name: `unvary:${k + 1}`,
-      layout: {
-        ...layout,
+      text: {
+        ...text,
         refrain: items.toSpliced(k, 1, ...item.varies.flatMap((part) => part.lines)),
       },
       touches: 'all',
-      breaks: false,
     };
   }
 };
 
 /** The refrain dropped, sung in each other order, or put inside one stanza only; with none, a stanza's last line made one. */
-const refrainMutants = function* (layout: PrintedLayout): Generator<LayoutMutant> {
-  const stanzas = layout.stanzas;
-  if (layout.refrain === undefined) {
+const refrainMutants = function* (text: PrintedText): Generator<LayoutMutant> {
+  const stanzas = text.stanzas;
+  if (text.refrain === undefined) {
     for (const [i, stanza] of stanzas.entries())
       if (stanza.length >= 2)
         yield {
           property: 'refrain presence',
           name: `makerefrain:${i + 1}`,
-          layout: {
-            ...layout,
+          text: {
+            ...text,
             refrain: stanza.slice(-1),
             stanzas: stanzas.toSpliced(i, 1, stanza.slice(0, -1)),
           },
           touches: 'all',
-          breaks: false,
         };
     return;
   }
   yield {
     property: 'refrain presence',
     name: 'norefrain',
-    layout: { ...layout, refrain: undefined },
+    text: { ...text, refrain: undefined },
     touches: 'all',
-    breaks: false,
   };
-  const order = layout.order ?? 'after-each';
+  const order = text.order ?? 'after-each';
   for (const other of ORDERS.filter((one) => one !== order))
     yield {
       property: 'refrain placement',
       name: `order:${other}`,
-      layout: { ...layout, order: other },
+      text: { ...text, order: other },
       touches: 'all',
-      breaks: false,
     };
   for (const [i, stanza] of stanzas.entries())
     yield {
       property: 'refrain placement',
       name: `inside:${i + 1}`,
-      layout: {
-        ...layout,
+      text: {
+        ...text,
         refrain: undefined,
-        stanzas: stanzas.toSpliced(i, 1, [...stanza, ...refrainAfter(layout, i + 1)]),
+        stanzas: stanzas.toSpliced(i, 1, [...stanza, ...refrainTextAfter(text, i + 1)]),
       },
       touches: 'all',
-      breaks: false,
     };
 };
 
 /** The words of each extra row that is no echo, dropped wherever the source sings them. */
 const extraMutants = function* (
-  layout: PrintedLayout,
+  text: PrintedText,
   outlines: readonly Outline[],
 ): Generator<LayoutMutant> {
   for (const outline of outlines)
     for (const [e, extra] of outline.extra.entries()) {
-      const without = isEcho(extra) ? layout : withoutRow(layout, extra);
+      const without = isEcho(extra) ? text : withoutRow(text, extra);
       // A row the source sings nowhere drops nothing: no mutant.
-      if (without !== layout)
+      if (without !== text)
         yield {
           property: 'unnumbered rows',
           name: `dropextra:${outline.reader}.${e + 1}`,
-          layout: without,
+          text: without,
           touches: 'all',
-          breaks: false,
         };
     }
 };
 
-/** A layout with every place a row stands dropped: in each stanza's own lines, and in the refrain's. */
-const withoutRow = (layout: PrintedLayout, row: Outline['extra'][number]): PrintedLayout => {
-  const drop = (lines: readonly PrintedLine[]) => {
-    const words = lines.flatMap((line) => line.words);
+/**
+ * A text with every place a row stands dropped, in each stanza's own lines
+ * and in the refrain's: each token whose words all fall in a place the row
+ * stands goes, and a line left with no token goes with it.
+ */
+const withoutRow = (text: PrintedText, row: Outline['extra'][number]): PrintedText => {
+  const drop = (lines: readonly string[]) => {
+    const words = lines.flatMap((line) => wordsOf(line));
     const gone = new Set<number>();
     for (const span of spansOf(words, row)) for (let k = span.start; k < span.end; k++) gone.add(k);
     if (gone.size === 0) return lines;
     let at = 0;
     return lines.flatMap((line) => {
-      const keep = (_: string | boolean, k: number) => !gone.has(at + k);
-      const kept = {
-        ...line,
-        words: line.words.filter(keep),
-        sentences: line.sentences.filter(keep),
-        capitals: line.capitals.filter(keep),
-      };
-      at += line.words.length;
-      return kept.words.length === 0 ? [] : [kept];
+      const { lead, tokens } = tokensOf(line);
+      const kept = tokens.filter((token) => {
+        const count = wordsOf(token).length;
+        const keep =
+          count === 0 || Array.from({ length: count }, (_, j) => at + j).some((k) => !gone.has(k));
+        at += count;
+        return keep;
+      });
+      return kept.length === 0 || kept.every((token) => wordsOf(token).length === 0)
+        ? []
+        : [lineOf(lead, kept)];
     });
   };
-  const refrain = layout.refrain;
+  const refrain = text.refrain;
   let dropped = false;
-  const dropping = (lines: readonly PrintedLine[]) => {
+  const dropping = (lines: readonly string[]) => {
     const kept = drop(lines);
     dropped ||= kept !== lines;
     return kept;
   };
-  const without: PrintedLayout = {
-    ...layout,
-    stanzas: layout.stanzas.map(dropping),
+  const without: PrintedText = {
+    ...text,
+    stanzas: text.stanzas.map(dropping),
     refrain:
       refrain === undefined
         ? undefined
-        : refrainRuns(refrain).reduceRight<readonly RefrainItem[]>(
+        : refrainRuns(refrain).reduceRight<readonly RefrainText[]>(
             (items, run) => items.toSpliced(run.at, run.lines.length, ...dropping(run.lines)),
             refrain,
           ),
   };
-  // The layout itself when the source sings the row nowhere.
-  return dropped ? without : layout;
+  // The text itself when the source sings the row nowhere.
+  return dropped ? without : text;
 };
 
 /** What one hymn's mutants come to, by property: how many, and the names of those no layout line tells apart. */
@@ -589,19 +591,21 @@ export interface Reach {
 
 /**
  * Every mutant of one hymn held to its shape readings by the census's own
- * checks (`layoutLinesOf`, `formatProblems`): a mutant is reached when it
- * prints a layout line the hymn as committed does not. The hymn as committed
- * is checked once; a mutant checks again only the stanzas it touches, and a
- * mutant that moves no word places no row again. `book` is the words the
- * book capitalises inside a line (`capitalsOf`).
+ * checks (`layoutLinesOf`, `formatProblems`) over the layout the census reads
+ * from the mutant's text: a mutant is reached when it prints a layout line
+ * the hymn as committed does not. The hymn as committed is checked once; a
+ * mutant checks again only the stanzas it touches (each through the census's
+ * own `stanzaCheckOf`), and a mutant that moves no word places no row again.
+ * `book` is the words the book capitalises inside a line (`capitalsOf`).
  */
 export const reachOf = (
   n: number,
-  layout: PrintedLayout,
+  text: PrintedText,
   outlines: readonly Outline[],
   borrower: boolean,
   book: ReadonlySet<string>,
 ): ReadonlyMap<Property, Reach> => {
+  const layout = readText(text);
   const controls = outlines.map((outline) => {
     const what = `${n} shape (${outline.reader})`;
     const read = readAs(outline, layout);
@@ -617,31 +621,72 @@ export const reachOf = (
   });
   const format = new Set(formatProblems(n, layout));
   const reach = new Map<Property, { mutants: number; unreached: string[] }>();
-  for (const mutant of mutantsOf(layout, outlines)) {
+  for (const mutant of mutantsOf(text, outlines)) {
     const one = reach.get(mutant.property) ?? { mutants: 0, unreached: [] };
     reach.set(mutant.property, one);
     one.mutants += 1;
-    const touched = (i: number) => mutant.touches === 'all' || mutant.touches.includes(i);
+    const mutated = layoutOfMutant(mutant);
     const reached =
-      formatProblems(n, mutant.layout).some((line) => !format.has(line)) ||
-      controls.some((control) => {
-        const lines = layoutLinesIn(n, control.outline, mutant.layout, borrower, book, (i) => {
-          if (mutant.layout.stanzas.length !== layout.stanzas.length) return undefined;
-          if (readAs(control.outline, mutant.layout) !== control.read) return undefined;
-          if (!touched(i)) return control.checks.get(i);
-          const placement = control.placements.get(i);
-          return mutant.breaks && placement !== undefined
-            ? stanzaCheckOf(control.what, control.read, mutant.layout, i, book, placement)
-            : undefined;
-        });
-        // The first line the hymn as committed does not print is enough.
-        for (const line of lines) if (!control.lines.has(line)) return true;
-        return false;
-      });
+      formatProblems(n, mutated).some((line) => !format.has(line)) ||
+      controls.some((control) => reaches(n, control, mutant, mutated, layout, borrower, book));
     if (!reached) one.unreached.push(mutant.name);
   }
   return reach;
 };
+
+/**
+ * Whether a mutant prints a layout line the hymn as committed does not,
+ * against one reading. Where the mutant keeps the stanzas' count and the
+ * reading's shape, a stanza it does not touch is the committed one's check,
+ * and each stanza it touches is placed from the committed placement
+ * (`placing`: the rows its words agree on kept), its lines read as they are
+ * found; the first new one is enough.
+ */
+const reaches = (
+  n: number,
+  control: {
+    readonly outline: Outline;
+    readonly read: Outline;
+    readonly what: string;
+    readonly checks: ReadonlyMap<number, StanzaCheck>;
+    readonly placements: ReadonlyMap<number, Placement>;
+    readonly lines: ReadonlySet<string>;
+  },
+  mutant: LayoutMutant,
+  mutated: PrintedLayout,
+  layout: PrintedLayout,
+  borrower: boolean,
+  book: ReadonlySet<string>,
+): boolean => {
+  const kept =
+    mutated.stanzas.length === layout.stanzas.length &&
+    readAs(control.outline, mutated) === control.read;
+  const touched = (i: number) => mutant.touches === 'all' || mutant.touches.includes(i);
+  const checks = new Map<number, StanzaCheck>();
+  if (kept)
+    for (let i = 1; i <= Math.min(control.read.stanzas.length, mutated.stanzas.length); i++) {
+      if (!touched(i)) continue;
+      const run = placing(control.what, control.read, mutated, i, control.placements.get(i));
+      let step = run.next();
+      for (; step.done !== true; step = run.next())
+        if (!control.lines.has(layoutLineAs(n, step.value))) return true;
+      checks.set(i, stanzaCheckOf(control.what, control.read, mutated, i, book, step.value));
+    }
+  const lines = layoutLinesIn(n, control.outline, mutated, borrower, book, (i) =>
+    !kept ? undefined : touched(i) ? checks.get(i) : control.checks.get(i),
+  );
+  // The first line the hymn as committed does not print is enough.
+  for (const line of lines) if (!control.lines.has(line)) return true;
+  return false;
+};
+
+/**
+ * The fingerprint of the printed text a reach ruling was ruled on: a ruling
+ * whose `layout` is another hymn's text, or this hymn's before its row
+ * changed, names mutants of a text that is gone (stale).
+ */
+export const fingerprintOf = (text: PrintedText): string =>
+  createHash('sha256').update(JSON.stringify(text)).digest('hex').slice(0, 16);
 
 /**
  * The generated property over the book: every hymn with a deciding page, its
@@ -649,8 +694,11 @@ export const reachOf = (
  * mutants and how many no layout line tells apart; the hymns with no shape
  * reading; how many unreached mutants the committed lists hold, the page's
  * (`unreachable`: no page tells them apart) and the check's (`gaps`: the
- * page does, the check does not); and each mutant on the wrong side of
- * them (`<n> <name>`): unreached but on neither list, or on one but reached.
+ * page does, the check does not); each mutant on the wrong side of them
+ * (`<n> <name>`): unreached but on neither list, or on one but reached; and
+ * each reach ruling ruled on another text than the hymn's now (`stale`);
+ * and every mutant no layout line tells apart, listed or not (`unreached`,
+ * `<n> <name>`).
  */
 export interface Domain {
   readonly hymns: number;
@@ -662,14 +710,36 @@ export interface Domain {
   readonly unread: readonly number[];
   readonly unlisted: readonly string[];
   readonly reached: readonly string[];
+  readonly stale: readonly string[];
+  readonly unreached: ReadonlySet<string>;
 }
+
+/** A hymn's reach rulings, each with the text it was ruled on: those that list a mutant. */
+const reachRulings = (rulings: readonly Ruling[]) =>
+  rulings.filter((ruling) => (ruling.unreachable ?? []).length + (ruling.gaps ?? []).length > 0);
+
+/** Each reach ruling of hymn `n` ruled on another text than `text` (`fingerprintOf`), by its judge. */
+export const staleRulings = (n: number, text: PrintedText, rulings: readonly Ruling[]) => {
+  const now = fingerprintOf(text);
+  return reachRulings(rulings).flatMap((ruling) =>
+    ruling.layout === now
+      ? []
+      : [`${n} ${ruling.judge}: ruled on layout ${ruling.layout ?? 'none'}, the text is ${now}`],
+  );
+};
 
 export const domainOf = (sources: Sources): Domain => {
   const properties = new Map<Property, { mutants: number; unreached: number }>(
     PROPERTIES.map((property) => [property, { mutants: 0, unreached: 0 }]),
   );
-  const [unread, unlisted, reached]: [number[], string[], string[]] = [[], [], []];
+  const [unread, unlisted, reached, stale]: [number[], string[], string[], string[]] = [
+    [],
+    [],
+    [],
+    [],
+  ];
   const lists = { unreachable: 0, gaps: 0 };
+  const unreached = new Set<string>();
   const hymns = [...decidingOf(sources.inventory)]
     .filter(([, deciding]) => deciding.source !== 'none')
     .map(([n]) => n)
@@ -680,8 +750,13 @@ export const domainOf = (sources: Sources): Domain => {
       unread.push(n);
       continue;
     }
-    const layout = layoutOf(sources.rows.get(n) ?? [], sources.fixes.get(n), sources.orders.get(n));
+    const text = printedTextOf(
+      sources.rows.get(n) ?? [],
+      sources.fixes.get(n),
+      sources.orders.get(n),
+    );
     const rulings = sources.rulings.get(n) ?? [];
+    stale.push(...staleRulings(n, text, rulings));
     const unreachable = rulings.flatMap((ruling) => ruling.unreachable ?? []);
     const gaps = rulings.flatMap((ruling) => ruling.gaps ?? []);
     const listed = new Set([...unreachable, ...gaps]);
@@ -694,21 +769,34 @@ export const domainOf = (sources: Sources): Domain => {
         .map((name) => `${n} ${name} (listed twice)`),
     );
     const missed = new Set<string>();
-    for (const [property, reach] of reachOf(n, layout, outlines, borrower, bookOf(sources, n))) {
+    for (const [property, reach] of reachOf(n, text, outlines, borrower, bookOf(sources, n))) {
       const total = properties.get(property);
       if (total !== undefined) {
         total.mutants += reach.mutants;
         total.unreached += reach.unreached.length;
       }
-      for (const name of reach.unreached) missed.add(name);
+      for (const name of reach.unreached) {
+        missed.add(name);
+        unreached.add(`${n} ${name}`);
+      }
     }
     unlisted.push(...[...missed].filter((name) => !listed.has(name)).map((name) => `${n} ${name}`));
     reached.push(...[...listed].filter((name) => !missed.has(name)).map((name) => `${n} ${name}`));
   }
-  return { hymns: hymns.length, properties, lists, unread, unlisted, reached };
+  return { hymns: hymns.length, properties, lists, unread, unlisted, reached, stale, unreached };
 };
 
-const Mutant = Schema.Struct({ number: Schema.Int, mode: Schema.String, from: Schema.String });
+/**
+ * One committed fixture: a hymn, its mode (a recipe for `applyRecipe`, or a
+ * generated mutant's name), the review it came from, and for a generated
+ * one the fingerprint of the printed text it was found on (`fingerprintOf`).
+ */
+const Mutant = Schema.Struct({
+  number: Schema.Int,
+  mode: Schema.String,
+  from: Schema.String,
+  layout: Schema.optionalKey(Schema.String),
+});
 export type Mutant = typeof Mutant.Type;
 
 const MutantsFile = Schema.Struct({ print: Schema.String, mutants: Schema.Array(Mutant) });

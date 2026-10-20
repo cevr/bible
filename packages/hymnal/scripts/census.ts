@@ -66,7 +66,16 @@ import { HymnalService, HymnId } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Database } from 'bun:sqlite';
-import { ConfigProvider, Effect, FileSystem, Layer, Option, Schema, Struct } from 'effect';
+import {
+  ConfigProvider,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+  Struct,
+} from 'effect';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 
@@ -337,6 +346,12 @@ const Ruling = Schema.Struct({
    * the crops: the generated property's committed list of the check's gaps.
    */
   gaps: Schema.optionalKey(Schema.Array(Schema.String)),
+  /**
+   * The printed text a ruling's `unreachable` and `gaps` were ruled on, as
+   * `layout.ts`'s `fingerprintOf`: a mutant is named by its place, so a row
+   * that changes after the ruling leaves it naming other mutations (stale).
+   */
+  layout: Schema.optionalKey(Schema.String),
 });
 export type Ruling = typeof Ruling.Type;
 
@@ -1167,28 +1182,43 @@ const QUOTE_OPEN = /^["“‘(]/u;
  * The lines of one text block as printed (a stanza, a refrain's run), each
  * word marked where the source opens a sentence on it (the block's first
  * word, a word after one that ends `.`, `!` or `?`, and a word that opens a
- * quote: the page capitalises such a word wherever it falls in a row), and
- * where the source writes it with a capital inside its line (`midCapital`).
+ * quote: the page capitalises such a word wherever it falls in a row).
  */
 export const linesOf = (texts: readonly string[]): PrintedLine[] => {
   let open = true;
   return texts.map((text) => {
-    const [words, sentences, capitals]: [string[], boolean[], boolean[]] = [[], [], []];
-    let before: string | undefined;
-    for (const token of text.split(/\s+/u)) {
-      if (token === '') continue;
-      const these = wordsOf(token);
-      const capital = midCapital(token, before);
-      for (const [k, word] of these.entries()) {
-        words.push(word);
-        sentences.push(k === 0 && (open || QUOTE_OPEN.test(token)));
-        capitals.push(capital);
-      }
-      if (these.length > 0 || SENTENCE_END.test(token)) open = SENTENCE_END.test(token);
-      before = token;
-    }
-    return { words, sentences, capitals, indent: /^\s/u.test(text) };
+    const read = lineRead(text, open);
+    open = read.open;
+    return read.line;
   });
+};
+
+/** Each line read so far, by whether a sentence is open as it starts and its text. */
+const lineReads = new Map<string, { readonly line: PrintedLine; readonly open: boolean }>();
+
+/** One line of a block (`linesOf`), read with a sentence open or not as it starts: its marks, and whether one is open as it ends. */
+const lineRead = (text: string, opening: boolean) => {
+  const key = `${opening ? 1 : 0}${text}`;
+  const known = lineReads.get(key);
+  if (known !== undefined) return known;
+  let open = opening;
+  const [words, sentences, capitals]: [string[], boolean[], boolean[]] = [[], [], []];
+  let before: string | undefined;
+  for (const token of text.split(/\s+/u)) {
+    if (token === '') continue;
+    const these = wordsOf(token);
+    const capital = midCapital(token, before);
+    for (const [k, word] of these.entries()) {
+      words.push(word);
+      sentences.push(k === 0 && (open || QUOTE_OPEN.test(token)));
+      capitals.push(capital);
+    }
+    if (these.length > 0 || SENTENCE_END.test(token)) open = SENTENCE_END.test(token);
+    before = token;
+  }
+  const read = { line: { words, sentences, capitals, indent: /^\s/u.test(text) }, open };
+  lineReads.set(key, read);
+  return read;
 };
 
 /**
@@ -1202,30 +1232,121 @@ const midCapital = (token: string, before: string | undefined) =>
   !QUOTE_OPEN.test(token) &&
   /^\p{Lu}/u.test(token.replace(/^['’]/u, ''));
 
-/** A row's text as its lines: one block, its blank lines left out. */
-const textLines = (text: string) => linesOf(text.split('\n').filter((line) => line.trim() !== ''));
+/** A row's text as its lines, its blank lines left out. */
+const textLines = (text: string) => text.split('\n').filter((line) => line.trim() !== '');
 
-/** A fix's refrain items as printed: its shared lines one block, each varying part its own. */
-const refrainItemsOf = (items: NonNullable<Fix['refrain']>['lines']) => {
-  const shared = linesOf(items.flatMap((item) => ('varies' in item ? [] : [item.text])));
+/** A refrain item as text: a line every stanza sings, or a part that varies by stanza (the lines sung after the stanzas it names). */
+export type RefrainText =
+  | string
+  | {
+      readonly varies: ReadonlyArray<{
+        readonly after: readonly number[];
+        readonly lines: readonly string[];
+      }>;
+    };
+
+/**
+ * The printed source as text, before the census reads it (`readText`): each
+ * stanza's lines, the refrain's items (`undefined` when it has none), and
+ * where `refrains.json` has the refrain sung. The layout mutations change
+ * this text, and the census reads each mutant from it as it reads a row.
+ */
+export interface PrintedText {
+  readonly stanzas: ReadonlyArray<readonly string[]>;
+  readonly refrain: readonly RefrainText[] | undefined;
+  readonly order: Order | undefined;
+}
+
+/**
+ * The printed source the fidelity oracle reads, as text: the fix file when
+ * there is one, else the row (its stanzas by id, its refrain verses in id
+ * order, -1 first); `order` is where `refrains.json` has its refrain sung.
+ */
+export const printedTextOf = (
+  row: Verses,
+  fix: Fix | undefined,
+  order: Order | undefined,
+): PrintedText => {
+  if (fix !== undefined)
+    return {
+      stanzas: fix.stanzas.map((lines) => lines.map((line) => line.text)),
+      refrain:
+        fix.refrain === undefined
+          ? undefined
+          : fix.refrain.lines.map((item) =>
+              'varies' in item
+                ? {
+                    varies: item.varies.map((part) => ({
+                      after: part.after,
+                      lines: part.lines.map((line) => line.text),
+                    })),
+                  }
+                : item.text,
+            ),
+      order,
+    };
+  const refrain = row
+    .filter((verse) => verse.id < 0)
+    .toSorted((a, b) => b.id - a.id)
+    .flatMap((verse) => textLines(verse.text));
+  return {
+    stanzas: row
+      .filter((verse) => verse.id >= 0)
+      .toSorted((a, b) => a.id - b.id)
+      .map((verse) => textLines(verse.text)),
+    refrain: refrain.length > 0 ? refrain : undefined,
+    order,
+  };
+};
+
+/** Each block of text read so far (`linesOf`), by the array's identity: a mutant keeps the blocks it leaves alone. */
+const blocks = new WeakMap<readonly string[], readonly PrintedLine[]>();
+
+const blockOf = (texts: readonly string[]): readonly PrintedLine[] => {
+  const known = blocks.get(texts);
+  if (known !== undefined) return known;
+  const lines = linesOf(texts);
+  blocks.set(texts, lines);
+  return lines;
+};
+
+/** Each refrain read so far, by its items' identity. */
+const refrains = new WeakMap<readonly RefrainText[], readonly RefrainItem[]>();
+
+/** A refrain's items as printed: its shared lines one block, each varying part its own. */
+const refrainItemsOf = (items: readonly RefrainText[]): readonly RefrainItem[] => {
+  const known = refrains.get(items);
+  if (known !== undefined) return known;
+  const shared = linesOf(items.flatMap((item) => (Predicate.isString(item) ? [item] : [])));
   let k = 0;
-  return items.map((item): RefrainItem => {
-    if ('varies' in item)
+  const read = items.map((item): RefrainItem => {
+    if (!Predicate.isString(item))
       return {
-        varies: item.varies.map((part) => ({
-          after: part.after,
-          lines: linesOf(part.lines.map((line) => line.text)),
-        })),
+        varies: item.varies.map((part) => ({ after: part.after, lines: blockOf(part.lines) })),
       };
     k += 1;
     return shared[k - 1] ?? { words: [], sentences: [], capitals: [], indent: false };
   });
+  refrains.set(items, read);
+  return read;
 };
 
 /**
- * The printed source the fidelity oracle reads, as lines: the fix file when
- * there is one, else the row (its stanzas by id, its refrain verses as
- * stored); `order` is where `refrains.json` has its refrain sung.
+ * The printed source as the layout check reads it: each stanza one block of
+ * lines, the refrain's shared lines one block and each varying part its own
+ * (`linesOf` marks a sentence's opening across the lines of one block). The
+ * census reads every row through this, and the layout mutations read every
+ * mutant through it, so a mutant's marks are the ones its text gives.
+ */
+export const readText = (text: PrintedText): PrintedLayout => ({
+  stanzas: text.stanzas.map(blockOf),
+  refrain: text.refrain === undefined ? undefined : refrainItemsOf(text.refrain),
+  order: text.order,
+});
+
+/**
+ * The printed source the fidelity oracle reads, as lines (`readText` of
+ * `printedTextOf`).
  */
 export const layoutOf = (
   row: Verses,
@@ -1236,7 +1357,7 @@ export const layoutOf = (
   layouts.set(row, made);
   const found = made.find((one) => one.fix === fix && one.order === order);
   if (found !== undefined) return found.layout;
-  const layout = sourceLayoutOf(row, fix, order);
+  const layout = readText(printedTextOf(row, fix, order));
   made.push({ fix, order, layout });
   return layout;
 };
@@ -1250,28 +1371,6 @@ const layouts = new WeakMap<
     readonly layout: PrintedLayout;
   }>
 >();
-
-const sourceLayoutOf = (
-  row: Verses,
-  fix: Fix | undefined,
-  order: Order | undefined,
-): PrintedLayout => {
-  if (fix !== undefined)
-    return {
-      stanzas: fix.stanzas.map((lines) => linesOf(lines.map((line) => line.text))),
-      refrain: fix.refrain === undefined ? undefined : refrainItemsOf(fix.refrain.lines),
-      order,
-    };
-  const refrain = row.filter((verse) => verse.id < 0).flatMap((verse) => textLines(verse.text));
-  return {
-    stanzas: row
-      .filter((verse) => verse.id >= 0)
-      .toSorted((a, b) => a.id - b.id)
-      .map((verse) => textLines(verse.text)),
-    refrain: refrain.length > 0 ? refrain : undefined,
-    order,
-  };
-};
 
 /** The refrain lines sung after stanza `i` (1-based): every shared line, and the varying part written for it. */
 export const refrainAfter = (layout: PrintedLayout, i: number): readonly PrintedLine[] =>
@@ -1549,7 +1648,16 @@ const placeRow = (text: Text, row: OutlineRow, pos: number, held: boolean) => {
     middle: Math.floor(count / 2) + 1,
     middleAt: holds >= 0 ? holds : NONE,
   };
-  return { placed, problems: [opens, centre, ends].filter((line) => line !== '') };
+  // One past the last word any search above may read: each `placesOf` reads
+  // from its `lo` to its `hi` and an anchor's words (one more for a split
+  // spelling) after it, whichever search it took.
+  const reads =
+    Math.max(
+      pos + count + first.words.length,
+      want + count + last.words.length,
+      middle + SLACK + mid.words.length,
+    ) + 2;
+  return { placed, problems: [opens, centre, ends].filter((line) => line !== ''), reads };
 };
 
 /**
@@ -1561,28 +1669,49 @@ const placeRow = (text: Text, row: OutlineRow, pos: number, held: boolean) => {
  * whose anchor is not at its place is placed by the one place of the anchor
  * within its count of words (a reader's slip moves only its own row), else
  * by its count, and the rows after it are placed and checked as before.
+ *
+ * A row's place reads only the words before its `reads` and the row before
+ * it, so `kept` (a placement of the same rows in words that agree up to
+ * where they first differ) gives the rows it placed with no search: each row
+ * before the first one whose reads reach past the words that agree. Each
+ * row's lines come as it is placed, so a caller that needs only the first
+ * new one stops there.
  */
-const placeRows = (
+const placeRows = function* (
+  what: string,
   text: Text,
   rows: ReadonlyArray<{ readonly label: string; readonly row: OutlineRow }>,
-) => {
-  const placed: Placed[] = [];
-  const problems: string[] = [];
-  let pos = 0;
-  for (const [k, { label, row }] of rows.entries()) {
-    const one = placeRow(text, row, pos, placed[k - 1]?.held ?? true);
-    placed.push(one.placed);
-    for (const line of one.problems) problems.push(`${label} ${line}`);
-    pos = one.placed.end;
-    const before = rows[k - 1];
-    const [a, b] = [spanOff(placed[k - 1], before?.row), spanOff(one.placed, row)];
-    if (before !== undefined && a !== 0 && b !== 0 && Math.sign(a) !== Math.sign(b))
-      problems.push(
-        `${before.label} and ${label} span ${a > 0 ? '+' : ''}${a} and ${b > 0 ? '+' : ''}${b} words against their counts`,
-      );
+  kept: readonly RowPlaced[],
+): Generator<string, RowPlaced[]> {
+  const done: RowPlaced[] = [];
+  for (const one of kept) {
+    done.push(one);
+    yield* one.lines;
   }
-  return { placed, end: pos, problems };
+  for (let k = done.length; k < rows.length; k++) {
+    const { label, row } = rows[k] ?? { label: '', row: undefined };
+    if (row === undefined) break;
+    const before = done[k - 1];
+    const one = placeRow(text, row, before?.placed.end ?? 0, before?.placed.held ?? true);
+    const lines = one.problems.map((line) => `${what}: ${label} ${line}`);
+    const above = rows[k - 1];
+    const [a, b] = [spanOff(before?.placed, above?.row), spanOff(one.placed, row)];
+    if (above !== undefined && a !== 0 && b !== 0 && Math.sign(a) !== Math.sign(b))
+      lines.push(
+        `${what}: ${above.label} and ${label} span ${a > 0 ? '+' : ''}${a} and ${b > 0 ? '+' : ''}${b} words against their counts`,
+      );
+    done.push({ placed: one.placed, lines, reads: one.reads });
+    yield* lines;
+  }
+  return done;
 };
+
+/** One row placed (`placeRows`): its span, its lines, and one past the last word its place reads. */
+interface RowPlaced {
+  readonly placed: Placed;
+  readonly lines: readonly string[];
+  readonly reads: number;
+}
 
 /**
  * How many words more (or fewer) a placed row spans than its count. One row
@@ -1609,8 +1738,8 @@ const sungOf = (layout: PrintedLayout, i: number) => {
   for (const line of lines) {
     opens.push(words.length);
     words.push(...line.words);
-    sentences.push(...line.sentences);
     capitals.push(...line.capitals);
+    sentences.push(...line.sentences);
   }
   return { words, opens, sentences, capitals, own: layout.stanzas[i - 1]?.length ?? 0 };
 };
@@ -1665,14 +1794,48 @@ export interface Placement {
   readonly lines: readonly string[];
   /** Where the stanza's own rows stand among `rows`. */
   readonly ownAt: readonly number[];
+  /** The words placed in, and each row as `placeRows` placed it. */
+  readonly words: readonly string[];
+  readonly each: readonly RowPlaced[];
 }
 
+/** Whether two placements place the same rows: each the same reading's row under the same label. */
+const sameRows = (a: Placement['rows'], b: Placement['rows']) =>
+  a.length === b.length && a.every((one, k) => one.row === b[k]?.row && one.label === b[k]?.label);
+
+/** Where two runs of words first differ (the shorter's length when one opens the other). */
+const firstDiffering = (a: readonly string[], b: readonly string[]) => {
+  const n = Math.min(a.length, b.length);
+  for (let k = 0; k < n; k++) if (a[k] !== b[k]) return k;
+  return n;
+};
+
+/** Stanza `i`'s placement (`placing`), all of it. */
 export const placementOf = (
   what: string,
   outline: Outline,
   layout: PrintedLayout,
   i: number,
+  known?: Placement,
 ): Placement => {
+  const run = placing(what, outline, layout, i, known);
+  for (let one = run.next(); ; one = run.next()) if (one.done === true) return one.value;
+};
+
+/**
+ * Stanza `i`'s rows placed in the words it sings, each line as it is found,
+ * the placement at the end. `known`, a placement of the same rows in other
+ * words (the hymn as committed, where a mutant changes one stanza), gives
+ * the rows its words agree on (`placeRows`), and the whole of it when the
+ * words are the same (a line break moved moves no word).
+ */
+export const placing = function* (
+  what: string,
+  outline: Outline,
+  layout: PrintedLayout,
+  i: number,
+  known?: Placement,
+): Generator<string, Placement> {
   const { words } = sungOf(layout, i);
   const stanzaRows = outline.stanzas[i - 1]?.rows ?? [];
   const refrain = refrainRowsFor(outline, i, layout.refrain !== undefined, layout.stanzas.length);
@@ -1694,8 +1857,10 @@ export const placementOf = (
       : [...own, ...after]),
   ];
   const text = textOf(words);
-  const { placed, end, problems } = placeRows(text, rows);
-  const lines = problems.map((line) => `${what}: ${line}`);
+  const kept = keptOf(known, rows, words);
+  const each = yield* placeRows(what, text, rows, kept);
+  const lines = each.flatMap((one) => one.lines);
+  const end = each.at(-1)?.placed.end ?? 0;
   // A word sung after the last row is in no row, unless an extra row of the
   // page (an Amen printed apart, sung after the last stanza) stands there.
   const tail = words.length - end;
@@ -1707,13 +1872,31 @@ export const placementOf = (
         spansOf(text, extra).some((span) => span.start === end && span.end === words.length),
       )
     )
-  )
-    lines.push(
-      `${what}: stanza ${i} sings ${tail} words from ${quoted(words.slice(end, end + 2))} on, in no row the page prints`,
-    );
+  ) {
+    const line = `${what}: stanza ${i} sings ${tail} words from ${quoted(words.slice(end, end + 2))} on, in no row the page prints`;
+    lines.push(line);
+    yield line;
+  }
   const labels = new Set(own.map((one) => one.label));
   const ownAt = rows.flatMap((one, k) => (labels.has(one.label) ? [k] : []));
-  return { rows, placed, lines, ownAt };
+  return { rows, placed: each.map((one) => one.placed), lines, ownAt, words, each };
+};
+
+/**
+ * The rows of `known` a placement in `words` keeps (`placeRows`): every
+ * row when the words are the same, else each row before the first whose
+ * reads reach the first word that differs; none for other rows.
+ */
+const keptOf = (
+  known: Placement | undefined,
+  rows: Placement['rows'],
+  words: readonly string[],
+): readonly RowPlaced[] => {
+  if (known === undefined || !sameRows(known.rows, rows)) return [];
+  const differs = firstDiffering(known.words, words);
+  if (differs === words.length && differs === known.words.length) return known.each;
+  const stop = known.each.findIndex((one) => one.reads > differs);
+  return stop < 0 ? known.each : known.each.slice(0, stop);
 };
 
 /** The named metres the 1985 book prints, as syllables a line. */
@@ -1874,10 +2057,10 @@ export const stanzaCheckOf = (
 
 /**
  * Each capital the page prints inside an anchored row where the source opens
- * no line and no sentence and writes no capital itself, on a word the page
- * does not capitalise wherever it falls (`book`, `capitalsOf`), at every
- * place the word may stand (`wordPlaces`): the page opens a line there that
- * the source runs on.
+ * no line and no sentence, on a word the page does not capitalise wherever
+ * it falls (`book`, `capitalsOf`), at every place the word may stand
+ * (`wordPlaces`), where the source writes no capital itself: the page opens
+ * a line there that the source runs on.
  */
 const unopenedCapitals = (
   what: string,
@@ -1983,8 +2166,12 @@ export const layoutLinesIn = function* (
 ): Generator<string> {
   const [n] = args;
   if (!UNDER_COPYRIGHT.has(n)) return yield* layoutLinesRead(...args);
-  for (const line of layoutLinesRead(...args)) yield line.replace(/"[^"]*"/g, '"…"');
+  for (const line of layoutLinesRead(...args)) yield layoutLineAs(n, line);
 };
+
+/** A layout line of hymn `n` as the census prints it: its quoted words cut (`"…"`) for a hymn under copyright. */
+export const layoutLineAs = (n: number, line: string) =>
+  UNDER_COPYRIGHT.has(n) ? line.replace(/"[^"]*"/g, '"…"') : line;
 
 const layoutLinesRead = function* (
   n: number,
