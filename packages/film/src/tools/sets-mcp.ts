@@ -103,7 +103,7 @@ const ManifestPatch = Schema.Struct({
   ),
 });
 
-/** `review.json` as the publish reads and writes it: its keys as they are, two-space JSON. */
+/** `review.json` as the publish reads and writes it: its keys as they are, as the repo's formatter prints them. */
 const ManifestJson = repoJson(Schema.Record(Schema.String, Schema.Json));
 
 /** A set's folder name: one segment, as the dated sets are (`storyboard-2026-10-14`). */

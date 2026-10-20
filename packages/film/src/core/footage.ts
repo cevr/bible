@@ -204,7 +204,7 @@ export const FootageLock = Schema.Struct({
 );
 export type FootageLock = typeof FootageLock.Type;
 
-/** The lock as it is written: two-space JSON, ending in a newline. */
+/** The lock as it is written, as the repo's formatter prints it (`repoJson`). */
 export const FootageLockJson = repoJson(FootageLock);
 
 /** The lock of a library with nothing imported. */

@@ -149,7 +149,7 @@ const SoundFit = Schema.Struct({
 });
 export type SoundFit = typeof SoundFit.Type;
 
-/** A fit as its file holds it: two-space JSON and a final newline (`repoJson`). */
+/** A fit as its file holds it, as the repo's formatter prints it (`repoJson`). */
 export const SoundFitJson = repoJson(SoundFit);
 
 /**
@@ -368,9 +368,8 @@ export const Lock = Schema.Record(Schema.String, LockEntry);
 export type Lock = typeof Lock.Type;
 
 /**
- * `library.lock.json` on disk: two-space JSON and a final newline (`repoJson`).
- * The formatter sets a short array of strings on one line where this writes
- * one per line, so `bun run fmt` follows every `sfx` command that writes it.
+ * `library.lock.json` on disk, as the repo's formatter prints it, with a final
+ * newline (`repoJson`), so an `sfx` command's write leaves no diff for `bun run fmt`.
  */
 export const LockJson = repoJson(Lock);
 
