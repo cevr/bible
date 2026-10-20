@@ -1082,7 +1082,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-18.md F2
 - **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='**/guard' src`, though bun's scan skips the folder the pattern matches and all under it.
 - **Cause:** The reader matched an ignore pattern against the file's path alone, not against each folder on it.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or an ignore pattern names`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or a plain ignore pattern names`
 
 ### reach-reads-filter-flags
 

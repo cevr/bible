@@ -35,8 +35,9 @@
 // scan entering no `node_modules` and no folder whose name starts with `.`;
 // a filter that starts with `./` names a file or a folder by its path from
 // the workspace; any other filter takes each file the scan finds whose path
-// holds it; `--path-ignore-patterns` takes no file its globs match, nor any
-// under a folder they match.
+// holds it; `--path-ignore-patterns` takes no file it names, nor any under
+// a folder it names, and one that is a glob reaches nothing (bun's match of
+// a folder by a glob is not reproduced).
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
@@ -248,23 +249,47 @@ type Run =
       readonly filters: ReadonlyArray<string>;
       readonly ignores: ReadonlyArray<string>;
     }
-  | { readonly kind: 'playwright'; readonly takes: (file: string) => boolean };
+  | {
+      readonly kind: 'playwright';
+      readonly takes: (file: string, text: string) => boolean;
+    };
+
+/** A character that makes an ignore pattern a glob. */
+const GLOB = /[*?[\]{}!]/;
 
 /**
  * A `bun test`'s arguments read as bun reads them: its filters, and its
- * ignore patterns; nothing when it holds a flag outside `BUN_FLAGS`.
+ * ignore patterns; nothing when it holds a flag outside `BUN_FLAGS`, or an
+ * ignore pattern that is a glob (`GLOB`): bun's scan matches a folder by
+ * one in a way the reader does not reproduce (measured on bun 1.4.3: a
+ * glob of any folder `guard` with a closing slash skips `src/guard`, and
+ * `src/guard/` skips nothing).
  */
 const bunTestOf = (words: ReadonlyArray<string>): ReadonlyArray<Run> =>
   Option.match(argumentsOf(words, BUN_FLAGS), {
     onNone: () => [],
-    onSome: ({ positionals, given }) => [
-      {
-        kind: 'bunTest',
-        filters: positionals,
-        ignores: valuesOf(given, ['--path-ignore-patterns']),
-      },
-    ],
+    onSome: ({ positionals, given }) => {
+      const ignores = valuesOf(given, ['--path-ignore-patterns']);
+      if (ignores.some((pattern) => GLOB.test(pattern))) return [];
+      return [{ kind: 'bunTest', filters: positionals, ignores }];
+    },
   });
+
+/**
+ * Whether a plain ignore pattern (no `GLOB`) skips `file`: it names the
+ * file, or a folder the file is under, by its path from the workspace
+ * (measured on bun 1.4.3: `src/guard` skips `src/guard/a.test.ts`, `guard`
+ * skips nothing deeper). Read with no regard to case, a leading `./` and a
+ * closing `/` gone, so it may skip more than bun does, never less.
+ */
+const skips = (pattern: string, file: string) => {
+  const at = pattern
+    .replace(/^(?:\.\/)+/, '')
+    .replace(/\/+$/, '')
+    .toLowerCase();
+  const path = file.toLowerCase();
+  return at === '' || at === '.' || path === at || path.startsWith(`${at}/`);
+};
 
 /**
  * The keys of a bunfig's `[test]` that leave its files and cases as they
@@ -345,20 +370,19 @@ const isBunTestName = (file: string) =>
  * Whether a command takes `file` (its path from the workspace, `/` between
  * its parts). A `bun test` takes a file as bun 1.4 does, measured: its scan
  * enters no `node_modules` and no folder whose name starts with `.`, takes
- * a file by its name (`isBunTestName`), and skips each folder and file an
- * ignore pattern matches with all under it; a `./` path to a file takes it
- * by its path, in one of `BUN_EXTENSION`, unless a pattern skips it.
+ * a file by its name (`isBunTestName`), and skips each file a plain ignore
+ * pattern names and all under a folder it names (`skips`); a `./` path to a
+ * file takes it by its path, in one of `BUN_EXTENSION`, unless a pattern
+ * skips it. A `playwright test` takes a file as
+ * its config and filters do, by its path and, for a source map, its text
+ * (`playwrightRun`).
  */
-const runsFile = (run: Run, file: string) => {
+const runsFile = (run: Run, file: string, text: string) => {
   if (file.split('/').includes('node_modules')) return false;
-  if (run.kind === 'playwright') return run.takes(file);
-  // Bun's scan skips a folder or a file an ignore pattern matches, and
-  // every file under such a folder (`**/guard` skips `src/guard/a.test.ts`).
+  if (run.kind === 'playwright') return run.takes(file, text);
   const parts = file.split('/');
-  const ignored = parts
-    .map((_, at) => parts.slice(0, at + 1).join('/'))
-    .some((path) => run.ignores.some((pattern) => new Glob(pattern).match(path)));
-  if (ignored || !BUN_EXTENSION.test(file)) return false;
+  if (run.ignores.some((pattern) => skips(pattern, file)) || !BUN_EXTENSION.test(file))
+    return false;
   const scanned = isBunTestName(file) && !parts.slice(0, -1).some((part) => part.startsWith('.'));
   if (run.filters.length === 0) return scanned;
   return run.filters.some((filter) => {
@@ -889,11 +913,15 @@ const playwrightRun = (
                     patternOf(settings, 'testIgnore', () => false),
                   ]),
                   ([matches, ignored]) =>
-                    (path: string) => {
+                    (path: string, text: string) => {
                       const under = root === '' || path.startsWith(`${root}/`);
                       const file = `${absolute}/${path}`;
+                      // Playwright filters a `.js` file by the sources its source map names
+                      // (`sourceMapSources`), which the reader does not read.
+                      const mapped = path.endsWith('.js') && text.includes('sourceMappingURL');
                       const named =
-                        filters.length === 0 || filters.some((f) => argumentMatches(f, file));
+                        filters.length === 0 ||
+                        (!mapped && filters.some((f) => argumentMatches(f, file)));
                       return (
                         under &&
                         walked(root, path, respectsGit, gitignores) &&
@@ -1004,13 +1032,13 @@ const runsOf = (
  * workspace): `test` when the gate's runs it, else the first `test:*` run by
  * hand that names it; none when no script does.
  */
-const reachOf = (workspace: Workspace, file: string): Option.Option<string> => {
-  if (runsOf(workspace, 'test').some((run) => run.kind === 'bunTest' && runsFile(run, file)))
+const reachOf = (workspace: Workspace, file: string, text: string): Option.Option<string> => {
+  if (runsOf(workspace, 'test').some((run) => run.kind === 'bunTest' && runsFile(run, file, text)))
     return Option.some('test');
   return Option.fromUndefinedOr(
     Object.keys(workspace.scripts)
       .filter((name) => name.startsWith('test:'))
-      .find((name) => runsOf(workspace, name).some((run) => runsFile(run, file))),
+      .find((name) => runsOf(workspace, name).some((run) => runsFile(run, file, text))),
   );
 };
 
@@ -1057,7 +1085,7 @@ export const reachesIn = (
 ): ReadonlyArray<{ readonly file: string; readonly by: Option.Option<string> }> =>
   files
     .filter(({ file, text }) => isTestFile(file) && !isData(file, text))
-    .map(({ file, link }) => ({
+    .map(({ file, text, link }) => ({
       file,
       by: Option.flatMap(
         Option.filter(
@@ -1068,7 +1096,7 @@ export const reachesIn = (
           ),
           () => !link,
         ),
-        (workspace) => reachOf(workspace, file.slice(workspace.dir.length + 1)),
+        (workspace) => reachOf(workspace, file.slice(workspace.dir.length + 1), text),
       ),
     }));
 

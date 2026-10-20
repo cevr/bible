@@ -13,7 +13,8 @@ const RUNNER = "import { test } from 'bun:test';\n";
  * How `scripts` (a workspace at `w`, `/repo/w`, its playwright configs
  * `configs`, its `.gitignore` texts by folder `gitignores`, its bunfig's
  * text `bunfig`, its wrappers of `bun test` `wrappers`) reach each of
- * `files` (paths from `w`), as `<file>: <script>`, or `none`.
+ * `files` (paths from `w`, each its text in `texts` or a test's), as
+ * `<file>: <script>`, or `none`.
  */
 const reaches = (
   scripts: Record<string, string>,
@@ -22,10 +23,11 @@ const reaches = (
   gitignores: Record<string, string> = {},
   bunfig = '',
   wrappers: ReadonlyArray<string> = [],
+  texts: Record<string, string> = {},
 ) =>
   reachesIn(
     [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitignores, bunfig, wrappers }],
-    files.map((file) => ({ file: `w/${file}`, text: RUNNER, link: false })),
+    files.map((file) => ({ file: `w/${file}`, text: texts[file] ?? RUNNER, link: false })),
   ).map(({ file, by }) => `${file.slice(2)}: ${Option.getOrElse(by, () => 'none')}`);
 
 describe("a workspace's test files", () => {
@@ -197,48 +199,57 @@ describe("a workspace's test files", () => {
     }),
   );
 
-  it.effect("leave out what a flag's value or an ignore pattern names", () =>
-    Effect.sync(() => {
-      expect(
-        reaches({ test: 'bun test --timeout 5000 --preload ./setup.test.ts src' }, [
-          'src/a.test.ts',
-          'setup.test.ts',
-          'lib/5000.test.ts',
-        ]),
-      ).toEqual(['src/a.test.ts: test', 'setup.test.ts: none', 'lib/5000.test.ts: none']);
-      expect(
-        reaches({ test: 'bun test --path-ignore-patterns=src/docs.test.ts src' }, [
-          'src/docs.test.ts',
-          'src/a.test.ts',
-        ]),
-      ).toEqual(['src/docs.test.ts: none', 'src/a.test.ts: test']);
-      expect(
-        reaches({ test: 'bun test --path-ignore-patterns "src/**/slow.*" src' }, [
-          'src/x/slow.test.ts',
-        ]),
-      ).toEqual(['src/x/slow.test.ts: none']);
-      // A pattern that matches a folder skips every file under it, bun's scan measured.
-      for (const test of [
-        'bun test --pass-with-no-tests --path-ignore-patterns=src/guard src/guard/parts.test.ts',
-        'bun test --path-ignore-patterns=src src',
-        "bun test --path-ignore-patterns='**/guard' src",
-        "bun test --path-ignore-patterns='src/guard/**' src",
-      ])
-        expect([test, ...reaches({ test }, ['src/guard/parts.test.ts'])]).toEqual([
-          test,
-          'src/guard/parts.test.ts: none',
-        ]);
-      // A pattern is of the whole path: a bare name matches no folder deeper down.
-      expect(
-        reaches({ test: 'bun test --path-ignore-patterns=guard src' }, ['src/guard/parts.test.ts']),
-      ).toEqual(['src/guard/parts.test.ts: test']);
-      expect(
-        reaches({ test: 'bun --conditions=browser --conditions development test src' }, [
-          'src/a.test.ts',
-          'development/b.test.ts',
-        ]),
-      ).toEqual(['src/a.test.ts: test', 'development/b.test.ts: none']);
-    }),
+  it.effect(
+    "leave out what a flag's value or a plain ignore pattern names, and are reached by no run that names an ignore glob",
+    () =>
+      Effect.sync(() => {
+        expect(
+          reaches({ test: 'bun test --timeout 5000 --preload ./setup.test.ts src' }, [
+            'src/a.test.ts',
+            'setup.test.ts',
+            'lib/5000.test.ts',
+          ]),
+        ).toEqual(['src/a.test.ts: test', 'setup.test.ts: none', 'lib/5000.test.ts: none']);
+        const files = ['src/guard/parts.test.ts', 'src/a.test.ts'];
+        const takes = (test: string, guard: string, a: string) =>
+          expect([test, ...reaches({ test }, files)]).toEqual([
+            test,
+            `src/guard/parts.test.ts: ${guard}`,
+            `src/a.test.ts: ${a}`,
+          ]);
+        // A plain pattern skips the file it names and each file under a folder it names
+        // (measured on bun 1.4.3: `src/guard` skips src/guard, a bare `guard` skips nothing);
+        // the reader skips more than bun (`./src/guard`, `src/guard/`), never less.
+        takes('bun test --path-ignore-patterns=src/a.test.ts src', 'test', 'none');
+        takes(
+          'bun test --pass-with-no-tests --path-ignore-patterns=src/guard src/guard/parts.test.ts',
+          'none',
+          'none',
+        );
+        takes('bun test --path-ignore-patterns=SRC/Guard/ src', 'none', 'test');
+        takes('bun test --path-ignore-patterns=./src/guard src', 'none', 'test');
+        takes('bun test --path-ignore-patterns=src src', 'none', 'none');
+        takes('bun test --path-ignore-patterns=./ src', 'none', 'none');
+        takes('bun test --path-ignore-patterns=guard src', 'test', 'test');
+        // Bun's scan matches a folder by a glob in a way the reader does not reproduce
+        // (measured: `**/guard/` skips src/guard, `src/**/` skips every file): a glob reaches none.
+        for (const test of [
+          "bun test --path-ignore-patterns='**/guard/' src",
+          "bun test --path-ignore-patterns='**/gu*/' src",
+          "bun test --path-ignore-patterns='src/**/' src",
+          "bun test --path-ignore-patterns='**/[g]uard/' src",
+          "bun test --path-ignore-patterns='**/{guard}/' src",
+          "bun test --path-ignore-patterns='src/gu?rd' src",
+          "bun test --path-ignore-patterns='!src/guard' src",
+        ])
+          takes(test, 'none', 'none');
+        expect(
+          reaches({ test: 'bun --conditions=browser --conditions development test src' }, [
+            'src/a.test.ts',
+            'development/b.test.ts',
+          ]),
+        ).toEqual(['src/a.test.ts: test', 'development/b.test.ts: none']);
+      }),
   );
 
   it.effect('follow bun run to the script it runs, and stop at a script already run', () =>
@@ -469,7 +480,7 @@ describe("a workspace's test files", () => {
           'other/report.log.test.ts: none',
         ]);
       // Quoted, the same characters are the word's.
-      expect(reaches({ test: "bun test --path-ignore-patterns 'other/*' src" }, files)).toEqual([
+      expect(reaches({ test: "bun test --reporter-outfile 'out/*.xml' src" }, files)).toEqual([
         'src/guard/a.test.ts: test',
         'src/guard/b.test.ts: test',
         'other/report.log.test.ts: none',
@@ -689,6 +700,24 @@ describe("a workspace's test files", () => {
             `test/browser/b.test.ts: ${b}`,
             'test/c.spec.ts: none',
           ]);
+        // A filter takes a `.js` file by the sources its source map names, which the reader
+        // does not read: one with a source map is not taken by a filter, and is with none.
+        const mapped = `${RUNNER}//# sourceMappingURL=data:application/json;base64,eyJzb3VyY2VzIjpbIm9yaWdpbmFsLnRzIl19`;
+        for (const [filter, a] of [
+          ['a.spec.js', 'none'],
+          ['', 'test:browser'],
+        ])
+          expect(
+            reaches(
+              { 'test:browser': `playwright test -c test/browser/pw.config.ts ${filter}` },
+              ['test/browser/a.spec.js'],
+              config('export default {};'),
+              {},
+              '',
+              [],
+              { 'test/browser/a.spec.js': mapped },
+            ),
+          ).toEqual([`test/browser/a.spec.js: ${a}`]);
         // A file its testIgnore names is not taken, by a glob (read as playwright reads one:
         // any folder before it, any case, minimatch's extglobs) or a regex, its key bare or quoted.
         // A regex is of the absolute path, as playwright tests it.
