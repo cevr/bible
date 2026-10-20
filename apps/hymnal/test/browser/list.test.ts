@@ -239,16 +239,34 @@ const open = async ({
   };
 
   /**
+   * Scrolls the list three rows away from `at` and lets it hear of that,
+   * then in one task scrolls it back to `at` and clicks the row nearest its
+   * middle, or the tab bar's link named `tab`: a press at once. That task
+   * runs as a frame begins, its scroll's event already sent for that frame,
+   * so the app has a whole frame to leave the list before the event comes.
+   * Answers where he left the list and the row.
+   */
+  const leaveAtOnce = async (at: number, tab?: string) => {
+    // A row he can press is drawn.
+    await middleRow();
+    await page.evaluate((y) => window.hymnal.away(y), at);
+    return page.evaluate(
+      ([y, link]) =>
+        new Promise<{ top: number; label: string }>((done) =>
+          requestAnimationFrame(() => done(window.hymnal.leave(y, link))),
+        ),
+      [at, tab] as const,
+    );
+  };
+
+  /**
    * Presses the row nearest the list's middle: as a pointer does, or `now`,
    * in the same task as his last scroll, back to `at` from three rows away.
    * Answers the row and where he left the list.
    */
   const press = async (list: ListName, when: Press, at: number) => {
     if (when === 'now') {
-      // A row he can press is drawn.
-      await middleRow();
-      await page.evaluate((y) => window.hymnal.away(y), at);
-      const left = await page.evaluate((y) => window.hymnal.leave(y), at);
+      const left = await leaveAtOnce(at);
       await opened(list, left.label);
       return left;
     }
@@ -303,6 +321,7 @@ const open = async ({
     blank,
     errors,
     middleRow,
+    leaveAtOnce,
     press,
     tab,
     comeBack,
@@ -370,15 +389,7 @@ const paths = {
     const other = list === 'hymns' ? 'search' : 'hymns';
     const { top, label } =
       when === 'now'
-        ? await app
-            .middleRow()
-            .then(() => app.page.evaluate((y) => window.hymnal.away(y), at))
-            .then(() =>
-              app.page.evaluate(([y, title]) => window.hymnal.leave(y, title), [
-                at,
-                lists[other].title,
-              ] as const),
-            )
+        ? await app.leaveAtOnce(at, lists[other].title)
         : { top: (await app.place()).top, label: (await app.middleRow()).label };
     if (when === 'later') await app.tab(other);
     await app.page.waitForFunction(
@@ -472,29 +483,48 @@ interface Seen extends Visit {
    * of that scroll, as the label says.
    */
   readonly leftBeforeScrollEvent?: boolean;
+  /** A press at once alone: which try this was. */
+  readonly tries?: number;
 }
 
 /**
- * The visits that left the list more than a pixel from their share's
- * offset (so a visit is the case its values name, whatever the way it
- * leaves), did not come back within one row, did not draw the reader's row
- * in the first frame with every row on screen, saw the list move by itself,
- * or after the move left rows blank or the list elsewhere; and the presses
- * at once whose list heard of the reader's last scroll before it left.
+ * Whether a visit left the list more than a pixel from its share's offset
+ * (so a visit is the case its values name, whatever the way it leaves), did
+ * not come back within one row, did not draw the reader's row in the first
+ * frame with every row on screen, saw the list move by itself, or after the
+ * move left rows blank or the list elsewhere.
  */
-const missed = (visits: ReadonlyArray<Seen>) =>
-  visits.filter(
-    (v) =>
-      Math.abs(v.left - v.target) > 1 ||
-      Math.abs(v.found - v.left) > rowHeight ||
-      !v.first.drawn ||
-      v.first.blank > 0 ||
-      v.first.empty > 0 ||
-      v.jumps.length > 0 ||
-      v.after.blank > 0 ||
-      Math.abs(v.after.top - v.after.goal) > 1 ||
-      (v.press === 'now' && v.leftBeforeScrollEvent !== true),
+const wrong = (v: Seen) =>
+  Math.abs(v.left - v.target) > 1 ||
+  Math.abs(v.found - v.left) > rowHeight ||
+  !v.first.drawn ||
+  v.first.blank > 0 ||
+  v.first.empty > 0 ||
+  v.jumps.length > 0 ||
+  v.after.blank > 0 ||
+  Math.abs(v.after.top - v.after.goal) > 1;
+
+/** Whether a visit is the press its label says: a press at once whose list never heard of the last scroll. */
+const labelled = (v: Seen) => v.press !== 'now' || v.leftBeforeScrollEvent === true;
+
+/** The visits that went wrong, and the presses at once that were not one. */
+const missed = (visits: ReadonlyArray<Seen>) => visits.filter((v) => wrong(v) || !labelled(v));
+
+/**
+ * How many tries a press at once has to be one: a try whose list heard of
+ * the last scroll before it left, and went right otherwise, is made again
+ * from its start, up to this many tries; the last is a miss.
+ */
+const tries = 3;
+
+/** This run's presses at once: their tries, and how many of those were made again. */
+const atOnce = { tries: 0, again: 0 };
+
+afterAll(() => {
+  console.log(
+    `hymnal browser test: HYMNAL_LIST_SEED=${seed}, presses at once: ${atOnce.tries} tries, ${atOnce.again} made again`,
   );
+});
 
 /**
  * On a page of its own, cold-loaded at `list`, makes each visit in turn: in
@@ -508,23 +538,42 @@ const visit = async (list: ListName, visits: ReadonlyArray<Visit>) => {
   const hydration = await app.errors();
   const seen: Array<Seen> = [];
   for (const v of visits) {
-    await app.resize(v.height);
-    const { max } = await app.place();
-    const target = Math.round(max * v.share);
-    await app.scrollTo(target);
-    if (v.press === 'later') await app.settle(150);
-    const { top: left, first } = await paths[v.way](app, list, v.press, target);
-    const label =
-      v.press === 'now'
-        ? {
-            leftBeforeScrollEvent: await app.page.evaluate(() =>
-              window.hymnal.leftBeforeScrollEvent(),
-            ),
-          }
-        : {};
-    const { top: found } = await app.place();
-    const after = await moves[v.move](app);
-    seen.push({ ...v, target, left, found, first, jumps: await app.jumps(), after, ...label });
+    for (let attempt = 1; ; attempt += 1) {
+      await app.resize(v.height);
+      const { max } = await app.place();
+      const target = Math.round(max * v.share);
+      await app.scrollTo(target);
+      if (v.press === 'later') await app.settle(150);
+      const { top: left, first } = await paths[v.way](app, list, v.press, target);
+      const label =
+        v.press === 'now'
+          ? {
+              leftBeforeScrollEvent: await app.page.evaluate(() =>
+                window.hymnal.leftBeforeScrollEvent(),
+              ),
+              tries: attempt,
+            }
+          : {};
+      const { top: found } = await app.place();
+      const after = await moves[v.move](app);
+      const s: Seen = {
+        ...v,
+        target,
+        left,
+        found,
+        first,
+        jumps: await app.jumps(),
+        after,
+        ...label,
+      };
+      if (v.press === 'now') atOnce.tries += 1;
+      // Only the label makes a try again: a try that went wrong is a miss, whatever its label.
+      if (labelled(s) || wrong(s) || attempt === tries) {
+        seen.push(s);
+        break;
+      }
+      atOnce.again += 1;
+    }
   }
   return { seed, hydration, misses: missed(seen) };
 };
