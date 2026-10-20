@@ -9,7 +9,8 @@
  * `SERVED_FROM = 'custom-domain'` it takes the apex domain, redirects `www`
  * and each of `REDIRECTED_DOMAINS` (with its `www`) to it, and turns its
  * `workers.dev` host off. Any other stage is a throwaway copy on a
- * generated `workers.dev` name and never touches the domain.
+ * generated `workers.dev` name and never takes the site's hostnames; it
+ * shares the sending domain with prod (`./domain.ts`).
  *
  * The email list's routes run in the same Worker, over D1, Email Sending, a
  * Queue and a Rate Limit (`./mail.ts`). Its two secrets, `MAIL_TOKEN_KEY` (the

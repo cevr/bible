@@ -1573,3 +1573,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** The rebase of ftb-mail onto origin/main kept both sides of each append to `docs/lessons.md` but left diff3's base line, `||||||| parent of …`, in three commits.
 - **Cause:** The resolver read only the two-way conflict form, and git rerere replayed its resolution on the second try.
 - **Guard:** code: `packages/scripts/src/merge-audit.ts` `each: Flag.String('each')`
+
+### contact-rule-waits-for-verified-inbox
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Contact provisioning runs before destination verification"
+- **Source:** ftb-mail-2/review-1.md F1
+- **Wrong:** The prod stack declared the rule forwarding hello@firsttheblade.com in the same deploy that registered the owner's inbox, while Email Routing takes a forward only to a verified destination and Alchemy's Address does not wait for the verification.
+- **Cause:** The resources were wired by their props, and the provider contract (verified first, a human click between) was not read for its order.
+- **Guard:** skill: the verification is a click in the owner's inbox that only Cloudflare sees, so no local test reaches it. Carried by `apps/firsttheblade/README.md`: "only to a verified destination, so the rule is declared once `.env` says"
+
+### stage-isolation-names-shared-resources
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The stage guide gives a false isolation guarantee"
+- **Source:** ftb-mail-2/review-1.md F2
+- **Wrong:** The README and the Site Worker's doc still said a throwaway stage never touches the domain after every stage was made to reconcile the shared sending domain.
+- **Cause:** The claim sat in files about the site's hostnames, and the change that made the domain shared named neither line.
+- **Guard:** skill: a sentence's claim goes stale with no file named in it changing, which only a reader sees. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it"
+
+### letter-tests-use-the-sent-path
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Postal footer tests bypass the production configuration path"
+- **Source:** ftb-mail-2/review-1.md F3
+- **Wrong:** Every postal test passed the address to the letters explicitly, while the list's own calls take the default, so a default that stopped reading `POSTAL_ADDRESS` stayed green.
+- **Cause:** The test was written against the parameter it added, not the call the product makes.
+- **Guard:** code: `apps/firsttheblade/src/mail/letters.test.ts` `the letters the list sends carry POSTAL_ADDRESS`

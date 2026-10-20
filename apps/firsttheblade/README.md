@@ -89,7 +89,10 @@ template editor and no analytics.
 - **Contact:** `hello@firsttheblade.com` (`CONTACT` in `src/site.ts`, named on
   the privacy page) is forwarded to the owner's inbox by Cloudflare Email
   Routing, which the prod stack sets up: Email Routing on the zone, the
-  inbox as a destination, and one rule.
+  inbox as a destination, and one rule. Cloudflare takes a forwarding rule
+  only to a verified destination, so the rule is declared once `.env` says
+  the inbox is verified (`MAIL_FORWARD_VERIFIED=true`), on the deploy after
+  the owner opens Cloudflare's verification link.
 - **No postal address yet** (owner, 2026-10-20). A letter that asks for
   support is commercial email, which must carry one, so the P.O. box goes
   into `POSTAL_ADDRESS` (`src/mail/letters.ts`) before the first letter
@@ -107,12 +110,14 @@ inbox the contact address is forwarded to. They live in
 MAIL_TOKEN_KEY=<openssl rand -hex 32>
 MAIL_ADMIN_TOKEN=<openssl rand -hex 32>
 MAIL_FORWARD_TO=<the owner's inbox, prod only>
+MAIL_FORWARD_VERIFIED=true   # once the inbox's verification link is opened
 ```
 
 Changing `MAIL_TOKEN_KEY` breaks every link already sent. The first prod
 deploy adds `MAIL_FORWARD_TO` as an Email Routing destination, and
-Cloudflare sends it a verification email: nothing is forwarded until the
-owner opens its link. Under
+Cloudflare sends it a verification email. Once the owner opens its link,
+`MAIL_FORWARD_VERIFIED=true` and one more prod deploy add the rule that
+forwards `hello@firsttheblade.com` to it. Under
 `bun run preview` the list runs in memory: each email is written to
 `tmp/outbox/<n>.txt` instead of being sent, so a sign-up can be confirmed and
 left from a laptop.
@@ -131,7 +136,10 @@ bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to 
 
 Alchemy asks before it changes anything. In a shell that can't prompt (Claude Code's `!`, CI), pass the approval through: `bun run deploy --yes`.
 
-A throwaway copy goes to its own stage and never touches the domain:
+A throwaway copy goes to its own stage, on its own `workers.dev` host, and
+never takes the site's hostnames. It does share the sending domain with
+prod: its deploy onboards firsttheblade.com to Email Sending when it is not
+yet, and sets message previews off; its destroy leaves the domain as it is.
 
 ```bash
 bun run build && bunx alchemy deploy alchemy.run.ts --stage agent-<name> --yes

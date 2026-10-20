@@ -13,8 +13,9 @@
  *   owner's inbox as a destination, and one rule that forwards the contact
  *   address to it. The inbox is read from `MAIL_FORWARD_TO` in the deployer's
  *   `.env` and is never in the repository. Cloudflare sends it a
- *   verification email when it is first added, and forwards nothing until
- *   its link is opened.
+ *   verification email when it is first added, and takes a forwarding rule
+ *   only to a verified destination, so the rule is declared once
+ *   `MAIL_FORWARD_VERIFIED` is true: on the deploy after its link is opened.
  */
 import * as Alchemy from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
@@ -28,6 +29,8 @@ const contact = Effect.gen(function* () {
   const inbox = yield* Config.Redacted('MAIL_FORWARD_TO');
   const routing = yield* Cloudflare.Email.Routing('MailRouting', { zone: DOMAIN });
   const owner = yield* Cloudflare.Email.Address('OwnerInbox', { email: Redacted.value(inbox) });
+  const verified = yield* Config.Boolean('MAIL_FORWARD_VERIFIED').pipe(Config.withDefault(false));
+  if (!verified) return;
   yield* Cloudflare.Email.Rule('Contact', {
     zone: { zoneId: routing.zoneId, name: DOMAIN },
     name: 'Contact',

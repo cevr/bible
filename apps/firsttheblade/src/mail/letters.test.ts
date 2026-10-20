@@ -48,9 +48,19 @@ const missingPostal = (letters: ReadonlyArray<Letter>, postal: Option.Option<str
     .filter(() => Option.isNone(postal))
     .map((letter) => letter.subject);
 
+/** Every letter the list sends, as it sends them. */
+const SENT: ReadonlyArray<Letter> = [
+  confirmLetter(TO, ORIGIN, 'c.1.token'),
+  ...FILMS.map((film) => filmLetter(TO, ORIGIN, film, 'u.1.token')),
+];
+
 describe('the letters', () => {
   test('none mentions Patreon while no postal address is set', () => {
-    expect(missingPostal(lettersWith(POSTAL_ADDRESS), POSTAL_ADDRESS)).toEqual([]);
+    expect(missingPostal(SENT, POSTAL_ADDRESS)).toEqual([]);
+  });
+
+  test('the letters the list sends carry POSTAL_ADDRESS', () => {
+    expect(SENT).toEqual(lettersWith(POSTAL_ADDRESS));
   });
 
   test('the check finds a letter that mentions Patreon with no postal address, and passes one with it', () => {
