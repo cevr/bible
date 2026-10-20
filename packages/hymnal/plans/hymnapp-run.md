@@ -187,7 +187,7 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - One 2.9 now (owner, 2026-10-20: "Also, let's update to one 2.9, please"): `one29` takes the next heavy slot after coldload, beside the queue (playstall's gate, census2 r2, render). It also checks whether 2.9.0 lets Android start a recording paused at a place with the lock screen (closing playstall's F5 gap) and reports bytes. (one29)
 
-- `gateload` moves from follow-up to the next unit, ahead of every queued unit: gates 7 and 8 started at load 3.7 and 6.5 and still went red only on 5 s timeouts outside the units (animations RBF's figures, film, film's docs check), so no unit can merge on a green gate until it lands. Invariant: the gate passes when started at load ≤ 12, with no timeout raised and no test skipped. playstall's gate, one29, census2 r2 and render wait for it; coldload's review runs meanwhile. (gateload; carried tooling first)
+- `gateload` is dropped: origin/main's gate already runs each workspace's tests alone (8218c7691, ff4099c3d; lesson `gate-runs-tests-alone`) and was green twice at load 6.6, once with six busy loops (measured, `gateload/base-gate*.log`); the units' branches predate it, so each rebases onto origin/main before its gate. The earlier reading was: gates 7 and 8 started at load 3.7 and 6.5 and still went red only on 5 s timeouts outside the units (animations RBF's figures, film, film's docs check), so no unit can merge on a green gate until it lands. Invariant: the gate passes when started at load ≤ 12, with no timeout raised and no test skipped. playstall's gate, one29, census2 r2 and render wait for it; coldload's review runs meanwhile. (gateload; carried tooling first)
 
 ## Owner questions
 
@@ -204,7 +204,9 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Follow-ups
 
-- gateload (carried tooling, next free slot): under full load, `bun run gate` exits 1 on 5 s test timeouts in animations "RBF's figures", film, the `@bible/hymnal` census and scripts, and turbo cancels the rest (coldload gates 3–6, measured; RBF's file passes alone in 0.9 s). Our share is the hymnal census and scripts tests; the animations and film ones go to their runs' owners as a note.
+- Two figure-golden cases in animations run past bun's 5 s on synchronous CPU work and still pass (2.7 s alone, 5.1–7.6 s in the gate; measured by the gateload planner): a note to the animations run's owner, not ours.
+
+- (closed: gateload dropped, see Decisions) gateload: under full load, `bun run gate` exits 1 on 5 s test timeouts in animations "RBF's figures", film, the `@bible/hymnal` census and scripts, and turbo cancels the rest (coldload gates 3–6, measured; RBF's file passes alone in 0.9 s). Our share is the hymnal census and scripts tests; the animations and film ones go to their runs' owners as a note.
 
 - One upgrade: Android play from a place (prepare paused at a seek, with the lock screen), closing playstall's F5 gap.
 
