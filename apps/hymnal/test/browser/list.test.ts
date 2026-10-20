@@ -128,13 +128,23 @@ const open = async ({
   touch = false,
 }: { path?: string; height?: number; hold?: boolean; touch?: boolean } = {}) => {
   await take();
-  const context: BrowserContext = await browser.newContext({
-    viewport: windowOf(height),
-    hasTouch: touch,
-  });
+  const context: BrowserContext = await browser
+    .newContext({ viewport: windowOf(height), hasTouch: touch })
+    .catch((error: Error) => {
+      give();
+      return Promise.reject(error);
+    });
+  /** Closes the page and gives its place back. */
+  const close = () => context.close().finally(give);
+  /** Closes the page, then fails with `error`: a page that fails to open keeps no place. */
+  const fail = (error: Error) =>
+    close().then(
+      () => Promise.reject(error),
+      () => Promise.reject(error),
+    );
   // A step that waits waits for a reader's moment, not for ever: a list that draws no row fails here.
   context.setDefaultTimeout(3000);
-  const page: Page = await context.newPage();
+  const page: Page = await context.newPage().catch(fail);
   let size = windowOf(height);
 
   /** Waits `ms`, then two frames. */
@@ -279,7 +289,7 @@ const open = async ({
     await shown();
   };
 
-  await load();
+  await load().catch(fail);
   return {
     page,
     context,
@@ -297,7 +307,7 @@ const open = async ({
     tab,
     comeBack,
     load,
-    [Symbol.asyncDispose]: () => context.close().finally(give),
+    [Symbol.asyncDispose]: close,
   };
 };
 
@@ -333,6 +343,8 @@ const seed = ((given) =>
   given !== undefined && given !== '' ? Number(given) >>> 0 : Math.floor(Math.random() * 2 ** 32))(
   process.env['HYMNAL_LIST_SEED'],
 );
+// Once a run, before any case: a case that throws or times out names no seed of its own.
+console.log(`hymnal browser test: HYMNAL_LIST_SEED=${seed}`);
 
 /**
  * The ways back to a list after the reader leaves it, and how he leaves it
