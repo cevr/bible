@@ -1273,3 +1273,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** The words of the site's buttons sat above the middle of their pills: 2.75 px in the header pill and 3.13 px in the night button.
 - **Cause:** A font's line box keeps room above the capitals and below the baseline, and the buttons centred the line box, not the letters.
 - **Guard:** code: `apps/firsttheblade/src/buttons.test.ts` `a pill and a button label are trimmed to the cap height and the baseline, so their letters sit in the middle`; `every button wraps its words in a trimmed label`
+
+### tests-build-shared-fixtures-at-load
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A fixture the cases share is made by the first case that asks"
+- **Source:** p6-testspeed/findings.md F1
+- **Wrong:** The sound library's tests made their library in an `Effect.cached` memo the first case on it ran inside its 5 s limit, with the cases concurrent, so which case paid, and the paid calls it counted, moved with their order; the package entries' and film services' tests read the source graph in their first case, 0.55 s alone and past 5 s under load.
+- **Cause:** A memo made where the file loads is built on its first use, inside that case's time limit.
+- **Guard:** lint:film/no-lazy-test-fixture, proof `packages/film/lint/fixtures/no-lazy-test-fixture.ts` `RED film/no-lazy-test-fixture`
+
+### gate-runs-tests-alone
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The gate runs every workspace's tests at once beside the checks"
+- **Source:** p6-testspeed/findings.md F2
+- **Wrong:** The gate was red in 10 of 10 runs: a case took ten times its time alone (0.47 s alone, 6.1 s in the gate) past its 5 s limit.
+- **Cause:** `turbo run gate test` ran every workspace's tests in parallel beside the typechecks, builds and Selah's native gate, each test runner one worker per core.
+- **Guard:** code: `packages/scripts/src/gate.test.ts` `the gate is gate.sh: the checks, then the tests under the lock`, `packages/scripts/src/gate.test.ts` `the tests run each workspace's alone, one after another`
+
+### test-git-turns-maintenance-off
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Git's detached maintenance breaks a test repository's delete"
+- **Source:** p6-testspeed/findings.md F3
+- **Wrong:** The gate's files test failed with NotFound when its scope deleted the test repository, in 11 of 15 runs of a commit and a delete on one process.
+- **Cause:** Git 2.56 starts automatic maintenance detached after a commit, and its `.git/objects/maintenance.lock` came and went while the recursive delete walked the folder; each of six test files wrote its own git config, and none turned it off.
+- **Guard:** lint:film/test-git-config, proof `packages/film/lint/fixtures/test-git-config.ts` `RED film/test-git-config`
+
+### mcp-events-flake-unreproduced
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The lab's MCP events case was red once under load and is not reproduced"
+- **Source:** p6-testspeed/findings.md F4
+- **Wrong:** `logs a callback by its origin alone` failed once in a loaded gate.
+- **Cause:** Not recorded: 25 runs under 24 busy loops, and 6 film suites under 12, gave no failure.
+- **Guard:** none: a guard for a cause not seen would guess at it; the phased gate runs the film's tests alone, and the case stays open.
