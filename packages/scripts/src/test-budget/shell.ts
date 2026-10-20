@@ -137,11 +137,16 @@ const SHELL_CHANGES = new Set([
  * So does a word the shell expands (`EXPANDS`: `bun test --conditions
  * ./src/*.test.ts` hands bun one file as a condition's value), and a `<` or
  * `>` anywhere: a redirection (`bun test src > report.log`) takes its words
- * from the command.
+ * from the command. So does a character other than a printable ASCII one, a
+ * space or a tab (a line's end, a carriage return, a no-break space): the
+ * shell may split its words, join its lines or end a comment where this
+ * reader does not (`true \` and `# x && bun test` on the next line run
+ * `true` alone).
  */
 export const changesShell = (script: string) => {
   const read = readOf(script);
   return (
+    /[^\x20-\x7E\t]/.test(script) ||
     /[$`<>]/.test(script) ||
     read.expands ||
     read.commands.some((words) => {

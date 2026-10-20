@@ -432,6 +432,34 @@ describe("a workspace's test files", () => {
     }),
   );
 
+  it.effect(
+    'are reached by no script that holds a character the shell may read otherwise than the reader',
+    () =>
+      Effect.sync(() => {
+        const files = ['src/a.test.ts', 'lint/b.test.ts'];
+        for (const test of [
+          // The shell joins the lines, then reads `#` as a comment's start: it runs `true` alone.
+          'true \\\n# comment && bun test',
+          // None of these splits words for the shell: bun is handed one filter, `src<char>lint`.
+          'bun test --pass-with-no-tests src\u00a0lint',
+          'bun test src\rlint',
+          'bun test src\vlint',
+          'bun test src\flint',
+          'bun test src lint\u2028',
+          "bun test 'src' lint # é",
+        ])
+          expect([test, ...reaches({ test }, files)]).toEqual([
+            test,
+            'src/a.test.ts: none',
+            'lint/b.test.ts: none',
+          ]);
+        expect(reaches({ test: 'bun test src\tlint' }, files)).toEqual([
+          'src/a.test.ts: test',
+          'lint/b.test.ts: test',
+        ]);
+      }),
+  );
+
   it.effect("are reached by no words of a script's comment", () =>
     Effect.sync(() => {
       expect(
