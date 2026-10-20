@@ -27,6 +27,12 @@ const morning = Option.getOrThrow(hymnAt('100'));
 const setValue = (input: HTMLInputElement, value: string) =>
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, value);
 
+/** The reader's pointer on the bar: `pointerdown` opens a press, `pointerup` ends it. */
+const pointer = (bar: HTMLInputElement, type: 'pointerdown' | 'pointerup' | 'pointercancel') =>
+  bar.dispatchEvent(
+    new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, pointerType: 'touch' }),
+  );
+
 /** The reader moves the bar to `value`: the browser sets it and says `input`. */
 const drag = (bar: HTMLInputElement, value: string) => {
   setValue(bar, value);
@@ -34,8 +40,8 @@ const drag = (bar: HTMLInputElement, value: string) => {
 };
 
 /**
- * The browser ends the drag: it fits the bar's value to its step, as Chrome
- * does and happy-dom does not, then says `change`.
+ * The browser's `change` after a drag: it fits the bar's value to its step,
+ * as Chrome does and happy-dom does not, then says `change`.
  */
 const release = (bar: HTMLInputElement) => {
   const step = Number(bar.step) || 1;
@@ -152,14 +158,15 @@ describe('the hymn page’s recording control', () => {
       yield* page.until((player) => Player.$is('Playing')(player) && player.at === 10.4);
       const bar = page.bar();
 
+      act(() => void pointer(bar, 'pointerdown'));
       act(() => drag(bar, '75'));
       expect(page.device.sought).toEqual([]);
-      act(() => void bar.dispatchEvent(new Event('pointerup', { bubbles: true })));
+      act(() => void pointer(bar, 'pointerup'));
       // Playing on between the pointer's release and the browser's `change`.
       page.device.now = { ...page.device.now, positionMs: 75_400 };
       yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75.4);
       act(() => release(bar));
-      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75);
+      // One seek across the release and its `change`.
       expect(page.device.sought).toEqual([75_000]);
 
       page.device.now = { ...page.device.now, positionMs: 80_400 };
@@ -174,6 +181,42 @@ describe('the hymn page’s recording control', () => {
     }),
   );
 
+  it.live('sends nothing on a `change` the browser fits from a fractional place', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 80_400, durationMs: 151_000 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 80.4);
+      const bar = page.bar();
+
+      // Chrome holds the place on the bar's step, and says `change` with it.
+      act(() => {
+        setValue(bar, '80');
+        bar.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      page.device.now = { ...page.device.now, positionMs: 85_400 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 85.4);
+      expect(bar.getAttribute('aria-valuetext')).toBe('1:25 of 2:31');
+      expect(page.device.sought).toEqual([]);
+    }),
+  );
+
+  it.live('seeks a key’s step at once, with no press', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 40_200, durationMs: 151_000 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 40.2);
+      const bar = page.bar();
+
+      // ArrowRight: Chrome steps the value and says `input`, then `change`.
+      act(() => drag(bar, '41'));
+      expect(page.device.sought).toEqual([41_000]);
+      act(() => void bar.dispatchEvent(new Event('change', { bubbles: true })));
+      expect(page.device.sought).toEqual([41_000]);
+    }),
+  );
+
   it.live('holds the place it sent until the player reaches it', () =>
     Effect.gen(function* () {
       using page = mount();
@@ -184,7 +227,9 @@ describe('the hymn page’s recording control', () => {
 
       page.device.lagging = true;
       act(() => {
+        pointer(bar, 'pointerdown');
         drag(bar, '75');
+        pointer(bar, 'pointerup');
         release(bar);
       });
       expect(page.device.sought).toEqual([75_000]);
@@ -211,8 +256,9 @@ describe('the hymn page’s recording control', () => {
       const bar = page.bar();
 
       act(() => {
+        pointer(bar, 'pointerdown');
         drag(bar, '95');
-        bar.dispatchEvent(new Event('pointercancel', { bubbles: true }));
+        pointer(bar, 'pointercancel');
       });
       page.device.now = { ...page.device.now, positionMs: 80_000 };
       yield* page.until((player) => Player.$is('Playing')(player) && player.at === 80);
@@ -313,32 +359,66 @@ describe('the now-playing bar', () => {
   );
 });
 
-describe('a bar that tells no drag’s end (iOS, Android)', () => {
-  /** A bar over `useScrub` that sends its drag once it rests for `rest`, its seeks kept. */
-  const resting = () => {
-    const sought = new Array<number>();
-    const bar = { change: (_seconds: number) => {} };
-    function Bar() {
-      const scrub = useScrub({ at: 10, length: Option.some(151), onSeek: (s) => sought.push(s) });
-      useCommitAtRest(scrub, Duration.millis(20));
-      bar.change = scrub.change;
-      return <></>;
-    }
-    const host = document.createElement('div');
-    const root = createRoot(host);
-    act(() => root.render(<Bar />));
-    return {
-      sought,
-      change: (seconds: number) => act(() => bar.change(seconds)),
-      /** Wait while the bar rests past its `rest`. */
-      rest: Effect.promise(() => act(() => Effect.runPromise(Effect.sleep(Duration.millis(60))))),
-      unmount: () => act(() => root.unmount()),
-    };
+/**
+ * A bar over `useScrub` alone, at a player that stays at 0:10, its seeks
+ * kept: it lets a drag go once it rests for 20 ms, as iOS's and Android's
+ * bars do, and holds a place it sent for `settle`. It unmounts when the
+ * test's `using` ends.
+ */
+const hooked = (settle: Duration.Input = Duration.seconds(2)) => {
+  const sought = new Array<number>();
+  const bar = { scrub: Option.none<ReturnType<typeof useScrub>>() };
+  function Bar() {
+    const scrub = useScrub(
+      { at: 10, length: Option.some(151), onSeek: (s) => sought.push(s) },
+      settle,
+    );
+    useCommitAtRest(scrub, Duration.millis(20));
+    bar.scrub = Option.some(scrub);
+    return <></>;
+  }
+  const host = document.createElement('div');
+  const root = createRoot(host);
+  act(() => root.render(<Bar />));
+  let mounted = true;
+  const scrub = () => Option.getOrThrow(bar.scrub);
+  const unmount = () => {
+    if (mounted) act(() => root.unmount());
+    mounted = false;
   };
+  return {
+    sought,
+    value: () => scrub().value,
+    change: (seconds: number) => act(() => scrub().change(seconds)),
+    /** The web's press: down, a move to `seconds`, and up. */
+    drag: (seconds: number) =>
+      act(() => {
+        scrub().press();
+        scrub().move(seconds);
+        scrub().release();
+      }),
+    /** Wait while the bar rests past its `rest`. */
+    rest: Effect.promise(() => act(() => Effect.runPromise(Effect.sleep(Duration.millis(60))))),
+    /** Wait, as the bar draws, until `holds` is true of its value. */
+    until: (holds: (value: number) => boolean) =>
+      // Each look lets a millisecond pass inside `act`, so the bar draws what came in it.
+      Effect.promise(() => act(() => Effect.runPromise(Effect.sleep(Duration.millis(1))))).pipe(
+        Effect.map(() => scrub().value),
+        Effect.repeat({ until: holds }),
+        Effect.timeoutOrElse({
+          duration: Duration.seconds(1),
+          orElse: () => Effect.die(`the bar stayed at ${scrub().value}`),
+        }),
+      ),
+    unmount,
+    [Symbol.dispose]: unmount,
+  };
+};
 
+describe('a bar that tells no drag’s end (iOS, Android)', () => {
   it.live('sends the drag once, where it rests, and nothing while it moves', () =>
     Effect.gen(function* () {
-      const bar = resting();
+      using bar = hooked();
       bar.change(40);
       bar.change(70);
       expect(bar.sought).toEqual([]);
@@ -346,17 +426,29 @@ describe('a bar that tells no drag’s end (iOS, Android)', () => {
       expect(bar.sought).toEqual([70]);
       yield* bar.rest;
       expect(bar.sought).toEqual([70]);
-      bar.unmount();
     }),
   );
 
   it.live('sends nothing once the bar is gone before the drag rests', () =>
     Effect.gen(function* () {
-      const bar = resting();
+      using bar = hooked();
       bar.change(40);
       bar.unmount();
       yield* bar.rest;
       expect(bar.sought).toEqual([]);
+    }),
+  );
+});
+
+describe('the place a bar sent', () => {
+  it.live('is held while the player is elsewhere, then given up after `settle`', () =>
+    Effect.gen(function* () {
+      // The player never reaches 1:15: a seek the device refused, or one that never lands.
+      using bar = hooked(Duration.millis(30));
+      bar.drag(75);
+      expect(bar.sought).toEqual([75]);
+      expect(bar.value()).toBe(75);
+      yield* bar.until((value) => value === 10);
     }),
   );
 });
