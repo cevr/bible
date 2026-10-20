@@ -202,6 +202,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Follow-ups
 
+- gateload (carried tooling, next free slot): under full load, `bun run gate` exits 1 on 5 s test timeouts in animations "RBF's figures", film, the `@bible/hymnal` census and scripts, and turbo cancels the rest (coldload gates 3–6, measured; RBF's file passes alone in 0.9 s). Our share is the hymnal census and scripts tests; the animations and film ones go to their runs' owners as a note.
+
 - One upgrade: Android play from a place (prepare paused at a seek, with the lock screen), closing playstall's F5 gap.
 
 - Responsive readings 696-920 (the old app had them; the new app stops at 695): compile them from the scans, after checking each reading's Scripture version for copyright. (old-app read, 2026-10-20)
