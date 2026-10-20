@@ -401,7 +401,7 @@ describe('the web position bar under any run of input', () => {
     expect(broken.slice(0, 3).map((it) => it.value)).toEqual([]);
   });
 
-  // Each defect found before, as the run that found it.
+  // Each defect found before, as a fixed run of steps that shows it.
   const drag = (to: ReadonlyArray<number>): Array<Step> =>
     to.map((second): Step => ({ _tag: 'Move', to: second }));
   const playFor = (seconds: number): Array<Step> =>

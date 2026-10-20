@@ -209,7 +209,7 @@ describe('the hymn page’s recording control', () => {
       yield* page.until((player) => Player.$is('Playing')(player) && player.at === 40.2);
       const bar = page.bar();
 
-      // ArrowRight: Chrome steps the value and says `input`, then `change`.
+      // What Chrome sends for ArrowRight, with no keydown: the value 41 and `input`, then `change`.
       act(() => drag(bar, '41'));
       expect(page.device.sought).toEqual([41_000]);
       act(() => void bar.dispatchEvent(new Event('change', { bubbles: true })));
