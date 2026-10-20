@@ -424,7 +424,8 @@ interface Finding {
  * of those the cache answered and how many it asked about (`items` is
  * `cached + asked`; items of one key go in the request once), its skip, and
  * the files of the items whose answer the store does not keep (unanswered,
- * or answered and not kept).
+ * or answered and not kept), every file of the rule's when the store could
+ * not be written.
  */
 interface Outcome {
   readonly rule: JudgedRule;
@@ -493,11 +494,12 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
       Effect.asSome,
       Effect.catch((error) =>
         Console.error(
-          `[judged] answers not kept rule=${[...new Set(fresh.map((q) => q.rule.id))].join(',')} detail=${detailOf(error)}`,
+          `[judged] answers not kept rule=${[...new Set(items.map((item) => item.rule.id))].join(',')} detail=${detailOf(error)}`,
         ).pipe(Effect.as(Option.none<ReadonlyMap<string, Verdict>>())),
       ),
     );
   const held = Option.getOrElse(store, () => cache);
+  const renewed = Option.isSome(store);
   /** An item's answer, and whether the store keeps it: the store's, else this run's own, not kept. */
   const answerOf = (item: RuleItem): Option.Option<{ answer: Verdict; kept: boolean }> =>
     Option.orElse(
@@ -548,9 +550,11 @@ export const judge = Effect.fn('judged.judge')(function* <E>(
       skip: Option.flatMap(asked.reason, (reason) =>
         Option.liftPredicate({ reason, items: left.length }, () => left.length > 0),
       ),
+      // A write that failed renewed no answer's day, so the store may drop one
+      // this run read before a findings file of today's expires: every file is unkept.
       unkept: new Set(
         own
-          .filter((item) => !Option.exists(answerOf(item), ({ kept }) => kept))
+          .filter((item) => !renewed || !Option.exists(answerOf(item), ({ kept }) => kept))
           .map((item) => item.file),
       ),
     };

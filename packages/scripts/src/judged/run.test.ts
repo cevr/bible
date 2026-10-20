@@ -475,6 +475,42 @@ describe('a judged rule', () => {
   });
 
   it.effect(
+    'names every file unkept when the store kept its answers but could not renew their day',
+    () => {
+      const model = countingModel((text) => P.get(text) ?? 0.99);
+      return Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const options = yield* judging;
+        const keyOf = (text: string) => cacheKey(ruleKey(historyComment), options.model, text);
+        const today = dayOf(yield* Clock.currentTimeMillis);
+        // Every answer kept ten days ago; then the store's folder takes no write.
+        yield* keepAnswers(options.storeFile, {
+          fresh: new Map(
+            ITEMS.map((item): [string, Verdict] => {
+              const p = P.get(item.text) ?? 0;
+              return [
+                keyOf(item.text),
+                { label: 'history', probabilities: { history: p, today: 1 - p } },
+              ];
+            }),
+          ),
+          read: new Set(),
+          day: today - 10,
+        });
+        const folder = path.dirname(options.storeFile);
+        yield* Effect.acquireRelease(fs.chmod(folder, 0o555), () =>
+          Effect.orDie(fs.chmod(folder, 0o755)),
+        );
+        const outcome = yield* judgeBy(historyComment, ITEMS, options);
+        expect(model.requests).toHaveLength(0);
+        expect(outcome.findings.map((f) => [f.file, f.kept])).toEqual([['src/a.ts', true]]);
+        expect(outcome.unkept).toEqual(new Set(['src/a.ts', 'src/b.ts']));
+      }).pipe(Effect.provide(model.layer), withFs);
+    },
+  );
+
+  it.effect(
     "asks again when the rule's subject, instructions or criteria change, and not for its threshold or message",
     () => {
       const model = countingModel((text) => P.get(text) ?? 0.99);
