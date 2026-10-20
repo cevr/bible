@@ -9,8 +9,8 @@
 // script it cannot read reaches nothing, so the check can call a file
 // unreached that runs, never the reverse. A script reaches files only when
 // its commands are joined by `&&` alone (`andChained`), none sets a variable
-// (`setsVariables`: `BUN_OPTIONS` hands bun flags), none runs in another
-// folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
+// or changes the shell (`changesShell`: `BUN_OPTIONS`, `export`), none runs
+// in another folder (`movesFolder`: `cd`, a subshell, `--cwd`), and each holds only
 // flags that leave what runs as it is (`BUN_FLAGS`, `PLAYWRIGHT_FLAGS`; an
 // unknown one, a narrowing one such as `--changed`, `-t`, `--grep`,
 // `--shard`, `--list`, or an attached short value is refused).
@@ -40,8 +40,9 @@
 // no `node_modules`, and where it respects git's ignore rules
 // (`respectGitIgnore: true`, or neither it nor `testDir` set) it reads each
 // `.gitignore` from `testDir` down by minimatch, as `collectFiles` does.
-// A by-hand script's other commands (a wrapper of `bun test`) reach a file
-// only by naming it, or a folder that holds it, by its path. A file named
+// Only a runner reaches a file: `bun test`, a wrapper of it the repo names
+// (`BUN_TEST_WRAPPERS`), `playwright test`; any other command (`echo
+// ./src`, a build) reaches none. A file named
 // as a test needs a script unless it is data (`isData`): it parses and
 // exports by default only an object or array of literals, which runs
 // nothing when loaded and so registers no test. A test file no workspace
@@ -52,7 +53,7 @@ import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { Minimatch, minimatch } from 'minimatch';
 import { type Expression, type ObjectExpression, parseSync } from 'oxc-parser';
 import { gateFiles } from '../guard/files.ts';
-import { andChained, commandsOf, setsVariables } from './shell.ts';
+import { andChained, changesShell, commandsOf } from './shell.ts';
 
 /** Whether bun's runner takes a file for a test by its name. */
 const isTestFile = (file: string) => /(?:\.test|_test|\.spec|_spec)\.[cm]?[jt]sx?$/.test(file);
@@ -160,14 +161,15 @@ const BUN_FLAGS: Flags = new Map([
 ]);
 
 /**
- * A command's words read against the flags it may hold: its other words in
- * order, and each flag's values by its name; none when it holds a flag not
- * in `flags`. A flag that takes a value takes the next word unless that
- * word is a flag.
+ * A command's words read against the flags it may hold: its other words,
+ * and each flag with its value, both in the order the command gives them;
+ * none when it holds a flag not in `flags`, or a flag that takes a value
+ * with none after it. A flag that takes a value takes the next word unless
+ * that word is a flag; any flag takes a value after `=`.
  */
 const argumentsOf = (words: ReadonlyArray<string>, flags: Flags) => {
   const positionals: Array<string> = [];
-  const values = new Map<string, Array<string>>();
+  const given: Array<readonly [string, string]> = [];
   for (let at = 0; at < words.length; at++) {
     const word = words[at] ?? '';
     if (!word.startsWith('-')) {
@@ -177,18 +179,28 @@ const argumentsOf = (words: ReadonlyArray<string>, flags: Flags) => {
     const [name = '', inline] = word.split(/=(.*)/s);
     const valued = Option.fromUndefinedOr(flags.get(name));
     if (Option.isNone(valued)) return Option.none();
-    const value = Option.fromUndefinedOr(inline).pipe(
-      Option.orElse(() => {
-        const next = words[at + 1] ?? '-';
-        if (!valued.value || next.startsWith('-')) return Option.none<string>();
-        at++;
-        return Option.some(next);
-      }),
-    );
-    values.set(name, [...(values.get(name) ?? []), ...Option.toArray(value)]);
+    if (Predicate.isString(inline)) {
+      given.push([name, inline]);
+      continue;
+    }
+    if (!valued.value) {
+      given.push([name, '']);
+      continue;
+    }
+    const next = words[at + 1] ?? '-';
+    if (next.startsWith('-')) return Option.none();
+    at++;
+    given.push([name, next]);
   }
-  return Option.some({ positionals, values });
+  return Option.some({ positionals, given });
 };
+
+/** The values a command's flags `names` were given, in the order it gives them. */
+const valuesOf = (
+  given: ReadonlyArray<readonly [string, string]>,
+  names: ReadonlyArray<string>,
+): ReadonlyArray<string> =>
+  given.filter(([name]) => names.includes(name)).map(([, value]) => value);
 
 /** Where bun's subcommand stands in a `bun` command (`test`, `run`, a file): past bun's own flags and their values. */
 const subcommandAt = (words: ReadonlyArray<string>) => {
@@ -203,28 +215,31 @@ const subcommandAt = (words: ReadonlyArray<string>) => {
 };
 
 /**
- * What a command runs: the words that name files and the globs it leaves
- * out (`bun test`, which takes every test file when it names none, or
- * another command, which takes what it names by path), or the files
- * playwright's config takes.
+ * What a command runs: a `bun test`'s filters and the globs it leaves out
+ * (every test file when it names no filter), or the files playwright's
+ * config takes.
  */
 type Run =
   | {
-      readonly kind: 'bunTest' | 'named';
+      readonly kind: 'bunTest';
       readonly filters: ReadonlyArray<string>;
       readonly ignores: ReadonlyArray<string>;
     }
   | { readonly kind: 'playwright'; readonly takes: (file: string) => boolean };
 
 /**
- * A command's arguments read as `bun test` reads them: its filters, and its
+ * A `bun test`'s arguments read as bun reads them: its filters, and its
  * ignore patterns; nothing when it holds a flag outside `BUN_FLAGS`.
  */
-const runOf = (kind: 'bunTest' | 'named', words: ReadonlyArray<string>): ReadonlyArray<Run> =>
+const bunTestOf = (words: ReadonlyArray<string>): ReadonlyArray<Run> =>
   Option.match(argumentsOf(words, BUN_FLAGS), {
     onNone: () => [],
-    onSome: ({ positionals, values }) => [
-      { kind, filters: positionals, ignores: values.get('--path-ignore-patterns') ?? [] },
+    onSome: ({ positionals, given }) => [
+      {
+        kind: 'bunTest',
+        filters: positionals,
+        ignores: valuesOf(given, ['--path-ignore-patterns']),
+      },
     ],
   });
 
@@ -288,12 +303,11 @@ const runsFile = (run: Run, file: string) => {
   if (run.kind === 'playwright') return run.takes(file);
   if (run.ignores.some((pattern) => new Glob(pattern).match(file))) return false;
   const named = isTestFile(file);
-  const bunTest = run.kind === 'bunTest';
-  if (bunTest && run.filters.length === 0) return named;
+  if (run.filters.length === 0) return named;
   return run.filters.some((filter) => {
-    const asPath = Option.liftPredicate(filter, (f) => !bunTest || f.startsWith('./'));
+    const asPath = Option.liftPredicate(filter, (f) => f.startsWith('./'));
     return Option.match(Option.flatMap(asPath, pathOf), {
-      onNone: () => bunTest && named && file.includes(filter),
+      onNone: () => named && file.includes(filter),
       // `./` is the workspace itself: every file named as a test under it.
       onSome: (at) => (at === '' && named) || file === at || (named && file.startsWith(`${at}/`)),
     });
@@ -582,61 +596,56 @@ const playwrightRun = (
   const { configs, absolute, gitignores } = workspace;
   const read = argumentsOf(words, PLAYWRIGHT_FLAGS);
   const filters = Option.match(read, { onNone: () => [], onSome: (a) => a.positionals });
-  const config = Option.flatMap(read, ({ values }) =>
-    Option.flatMap(
-      Option.fromUndefinedOr(
-        [...(values.get('--config') ?? []), ...(values.get('-c') ?? [])].at(-1),
-      ),
-      pathOf,
-    ),
+  // The last `--config` or `-c` names the config; one given by a path this
+  // does not read (absolute, or out of the workspace) takes none, never the
+  // default config.
+  const file = Option.flatMap(read, ({ given }) =>
+    Option.match(Option.fromUndefinedOr(valuesOf(given, ['--config', '-c']).at(-1)), {
+      onNone: () => Option.fromUndefinedOr(PLAYWRIGHT_CONFIGS.find((name) => name in configs)),
+      onSome: pathOf,
+    }),
   );
-  const file = Option.orElse(config, () =>
-    Option.fromUndefinedOr(PLAYWRIGHT_CONFIGS.find((name) => name in configs)),
-  );
-  const takes = Option.flatMap(
-    Option.flatMap(read, () => file),
-    (at) =>
-      Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) =>
-        Option.flatMap(settingsOf(at, text), (settings) => {
-          if ([...settings.keys()].some((key) => !PLAYWRIGHT_SETTINGS.has(key)))
-            return Option.none();
-          const folder = at.split('/').slice(0, -1);
-          const dir = Option.match(Option.fromUndefinedOr(settings.get('testDir')), {
-            onNone: () => Option.some('.'),
-            onSome: stringOf,
-          });
-          // Playwright skips what git ignores when the config says so, and by
-          // default when it sets neither `testDir` nor `respectGitIgnore`.
-          const gitPolicy = Option.match(Option.fromUndefinedOr(settings.get('respectGitIgnore')), {
-            onNone: () => Option.some(!settings.has('testDir')),
-            onSome: booleanOf,
-          });
-          return Option.flatMap(Option.all([dir, gitPolicy]), ([dir, respectsGit]) =>
-            Option.flatMap(pathOf([...folder, dir].join('/')), (root) =>
-              Option.map(
-                Option.all([
-                  patternOf(settings, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
-                  patternOf(settings, 'testIgnore', () => false),
-                ]),
-                ([matches, ignored]) =>
-                  (path: string) => {
-                    const under = root === '' || path.startsWith(`${root}/`);
-                    const file = `${absolute}/${path}`;
-                    const named =
-                      filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
-                    return (
-                      under &&
-                      walked(root, path, respectsGit, gitignores) &&
-                      matches(file) &&
-                      !ignored(file) &&
-                      named
-                    );
-                  },
-              ),
+  const takes = Option.flatMap(file, (at) =>
+    Option.flatMap(Option.fromUndefinedOr(configs[at]), (text) =>
+      Option.flatMap(settingsOf(at, text), (settings) => {
+        if ([...settings.keys()].some((key) => !PLAYWRIGHT_SETTINGS.has(key))) return Option.none();
+        const folder = at.split('/').slice(0, -1);
+        const dir = Option.match(Option.fromUndefinedOr(settings.get('testDir')), {
+          onNone: () => Option.some('.'),
+          onSome: stringOf,
+        });
+        // Playwright skips what git ignores when the config says so, and by
+        // default when it sets neither `testDir` nor `respectGitIgnore`.
+        const gitPolicy = Option.match(Option.fromUndefinedOr(settings.get('respectGitIgnore')), {
+          onNone: () => Option.some(!settings.has('testDir')),
+          onSome: booleanOf,
+        });
+        return Option.flatMap(Option.all([dir, gitPolicy]), ([dir, respectsGit]) =>
+          Option.flatMap(pathOf([...folder, dir].join('/')), (root) =>
+            Option.map(
+              Option.all([
+                patternOf(settings, 'testMatch', globMatcher(PLAYWRIGHT_MATCH)),
+                patternOf(settings, 'testIgnore', () => false),
+              ]),
+              ([matches, ignored]) =>
+                (path: string) => {
+                  const under = root === '' || path.startsWith(`${root}/`);
+                  const file = `${absolute}/${path}`;
+                  const named =
+                    filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
+                  return (
+                    under &&
+                    walked(root, path, respectsGit, gitignores) &&
+                    matches(file) &&
+                    !ignored(file) &&
+                    named
+                  );
+                },
             ),
-          );
-        }),
-      ),
+          ),
+        );
+      }),
+    ),
   );
   return {
     kind: 'playwright',
@@ -665,16 +674,22 @@ const movesFolder = (words: ReadonlyArray<string>) =>
   );
 
 /**
- * What the script `name` of a workspace runs, the scripts it runs with `bun
- * run` followed, each in a shell of its own. It runs nothing this can read
- * when its commands are joined by anything but `&&` (`andChained`: one may
- * not run, or fail unseen), when one sets a variable (`setsVariables`: it
- * may hand a program flags), when one runs in another folder (`movesFolder`,
+ * What the script `name` of a workspace runs: each `bun test`, each
+ * wrapper of it (`wrappers`, read as `bun test` with the words it is
+ * given), each `playwright test`, and the scripts it runs with `bun run`
+ * followed, each in a shell of its own; any other command runs nothing this
+ * credits. It runs nothing this can read when its commands are joined by
+ * anything but `&&` (`andChained`: one may not run, or fail unseen), when
+ * one sets a variable or changes the shell (`changesShell`: it may hand a
+ * program flags), when one runs in another folder (`movesFolder`,
  * wherever it stands: the reader reads every path from the workspace's
  * folder), or when it hands a script it runs more words.
  */
 const runsOf = (
-  workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute' | 'gitignores' | 'bunfig'>,
+  workspace: Pick<
+    Workspace,
+    'scripts' | 'configs' | 'absolute' | 'gitignores' | 'bunfig' | 'wrappers'
+  >,
   name: string,
   seen: ReadonlySet<string> = new Set(),
 ): ReadonlyArray<Run> => {
@@ -684,13 +699,13 @@ const runsOf = (
   if (Option.isNone(script)) return [];
   const within = new Set([...seen, name]);
   const commands = commandsOf(script.value);
-  if (!andChained(script.value) || setsVariables(script.value) || commands.some(movesFolder))
+  if (!andChained(script.value) || changesShell(script.value) || commands.some(movesFolder))
     return [];
   return commands.flatMap((command): ReadonlyArray<Run> => {
     const words = programWords(command);
     if (words[0] === 'playwright' && words[1] === 'test')
       return [playwrightRun(words.slice(2), { configs, absolute, gitignores })];
-    if (words[0] !== 'bun') return runOf('named', words.slice(1));
+    if (words[0] !== 'bun') return [];
     const at = subcommandAt(words);
     const sub = words[at] ?? '';
     const next = words[at + 1] ?? '';
@@ -702,8 +717,9 @@ const runsOf = (
       return runsOf(workspace, next, within);
     }
     if (bunfigNarrows(workspace.bunfig)) return [];
-    if (sub === 'test') return runOf('bunTest', [...words.slice(1, at), ...words.slice(at + 1)]);
-    return runOf('named', words.slice(at));
+    if (sub === 'test' || workspace.wrappers.includes(Option.getOrElse(pathOf(sub), () => '')))
+      return bunTestOf([...words.slice(1, at), ...words.slice(at + 1)]);
+    return [];
   });
 };
 
@@ -732,7 +748,18 @@ interface Workspace {
   readonly gitignores: Readonly<Record<string, string>>;
   /** The text of the workspace's `bunfig.toml`, `''` when it has none (both set nothing). */
   readonly bunfig: string;
+  /** The wrappers of `bun test` in the workspace (`BUN_TEST_WRAPPERS`), by their paths from it. */
+  readonly wrappers: ReadonlyArray<string>;
 }
+
+/**
+ * The repo's wrappers of `bun test`, by their paths from the root: each runs
+ * `bun test` in its workspace with the words it is given (the film's E2E
+ * runner sets `--parallel`'s count and its fixtures' folder, nothing else),
+ * so `bun <wrapper> <words>` takes what `bun test <words>` takes.
+ * `reach.test.ts` holds each to a file of the repo that spawns `bun test`.
+ */
+const BUN_TEST_WRAPPERS = ['packages/film/src/lab/fixtures/run-suite.ts'];
 
 /** A file of the repo: its path from the root, and its text. */
 interface Source {
@@ -848,6 +875,9 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
           yield* Effect.option(read(path.join(dir, 'bunfig.toml'))),
           () => '',
         );
+        const wrappers = BUN_TEST_WRAPPERS.filter((file) => file.startsWith(`${dir}/`)).map(
+          (file) => file.slice(dir.length + 1),
+        );
         return {
           dir,
           absolute: path.join(root, dir),
@@ -855,6 +885,7 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
           configs,
           gitignores,
           bunfig,
+          wrappers,
         } satisfies Workspace;
       }),
     { concurrency: 16 },

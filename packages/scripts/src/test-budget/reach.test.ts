@@ -10,7 +10,7 @@ const RUNNER = "import { test } from 'bun:test';\n";
 /**
  * How `scripts` (a workspace at `w`, `/repo/w`, its playwright configs
  * `configs`, its `.gitignore` texts by folder `gitignores`, its bunfig's
- * text `bunfig`) reach each of
+ * text `bunfig`, its wrappers of `bun test` `wrappers`) reach each of
  * `files` (paths from `w`), as `<file>: <script>`, or `none`.
  */
 const reaches = (
@@ -19,9 +19,10 @@ const reaches = (
   configs: Record<string, string> = {},
   gitignores: Record<string, string> = {},
   bunfig = '',
+  wrappers: ReadonlyArray<string> = [],
 ) =>
   reachesIn(
-    [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitignores, bunfig }],
+    [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitignores, bunfig, wrappers }],
     files.map((file) => ({ file: `w/${file}`, text: RUNNER })),
   ).map(({ file, by }) => `${file.slice(2)}: ${Option.getOrElse(by, () => 'none')}`);
 
@@ -42,6 +43,7 @@ describe("a workspace's test files", () => {
                 configs: {},
                 gitignores: {},
                 bunfig: '',
+                wrappers: [],
               },
               {
                 dir: 'w/nested',
@@ -50,6 +52,7 @@ describe("a workspace's test files", () => {
                 configs: {},
                 gitignores: {},
                 bunfig: '',
+                wrappers: [],
               },
             ],
             [
@@ -112,6 +115,7 @@ describe("a workspace's test files", () => {
                 configs: {},
                 gitignores: {},
                 bunfig: '',
+                wrappers: [],
               },
             ],
             [
@@ -332,6 +336,35 @@ describe("a workspace's test files", () => {
       }),
   );
 
+  it.effect(
+    'are taken by the config the last --config or -c names, and by none for one not read',
+    () =>
+      Effect.sync(() => {
+        const configs = {
+          'wide.config.ts': "export default { testDir: '.' };",
+          'narrow.config.ts': "export default { testDir: 'narrow' };",
+          'playwright.config.ts': "export default { testDir: '.' };",
+        };
+        const files = ['other/b.spec.ts'];
+        for (const { browser, by } of [
+          { browser: 'playwright test -c wide.config.ts --config narrow.config.ts', by: 'none' },
+          { browser: 'playwright test --config=wide.config.ts -c narrow.config.ts', by: 'none' },
+          {
+            browser: 'playwright test -c narrow.config.ts --config wide.config.ts',
+            by: 'test:browser',
+          },
+          { browser: 'playwright test --config /repo/w/wide.config.ts', by: 'none' },
+          { browser: 'playwright test --config ../w/wide.config.ts', by: 'none' },
+          { browser: 'playwright test --config', by: 'none' },
+          { browser: 'playwright test', by: 'test:browser' },
+        ])
+          expect([browser, ...reaches({ 'test:browser': browser }, files, configs)]).toEqual([
+            browser,
+            `other/b.spec.ts: ${by}`,
+          ]);
+      }),
+  );
+
   it.effect("are reached by no words of a script's comment", () =>
     Effect.sync(() => {
       expect(
@@ -357,6 +390,9 @@ describe("a workspace's test files", () => {
           'BUN_OPTIONS=-tfast bun test',
           'env BUN_OPTIONS=-tfast bun test',
           'bun run build && CI=1 bun test',
+          'export BUN_OPTIONS=-ttie && bun test',
+          'source ./env.sh && bun test',
+          'alias bun=true && bun test',
         ])
           expect([test, ...reaches({ test }, ['src/a.test.ts'])]).toEqual([
             test,
@@ -385,35 +421,59 @@ describe("a workspace's test files", () => {
     }),
   );
 
-  it.effect('are named by hand by a script of their own, by a path to them', () =>
-    Effect.sync(() => {
-      const scripts = {
-        test: 'bun test src',
-        'test:e2e': 'bun src/fixtures/run-suite.ts --timeout 20000 --preload ./e2e/preload.ts e2e',
-        'test:browser': 'bun run build && playwright test --config=test/browser/pw.config.ts',
-        'test:docs': 'bun test ./docs.test.ts',
-      };
-      const configs = { 'test/browser/pw.config.ts': "export default { testDir: '.' };" };
-      expect(
-        reaches(
-          scripts,
-          [
-            'src/a.test.ts',
-            'e2e/b.test.ts',
-            'test/browser/c.spec.ts',
-            'lib/d.test.ts',
-            'docs.test.ts',
-          ],
-          configs,
-        ),
-      ).toEqual([
-        'src/a.test.ts: test',
-        'e2e/b.test.ts: test:e2e',
-        'test/browser/c.spec.ts: test:browser',
-        'lib/d.test.ts: none',
-        'docs.test.ts: test:docs',
-      ]);
-    }),
+  it.effect(
+    'are run by hand by a script of their own: a bun test, a wrapper of it the repo names, or playwright',
+    () =>
+      Effect.sync(() => {
+        const scripts = {
+          test: 'bun test src',
+          'test:e2e':
+            'bun src/fixtures/run-suite.ts --timeout 20000 --preload ./e2e/preload.ts e2e',
+          'test:browser': 'bun run build && playwright test --config=test/browser/pw.config.ts',
+          'test:docs': 'bun test ./docs.test.ts',
+          'test:paths': 'echo ./lib',
+          'test:print': 'bun scripts/print.ts ./lib',
+        };
+        const configs = { 'test/browser/pw.config.ts': "export default { testDir: '.' };" };
+        const files = [
+          'src/a.test.ts',
+          'e2e/b.test.ts',
+          'test/browser/c.spec.ts',
+          'lib/d.test.ts',
+          'docs.test.ts',
+        ];
+        expect(reaches(scripts, files, configs, {}, '', ['src/fixtures/run-suite.ts'])).toEqual([
+          'src/a.test.ts: test',
+          'e2e/b.test.ts: test:e2e',
+          'test/browser/c.spec.ts: test:browser',
+          'lib/d.test.ts: none',
+          'docs.test.ts: test:docs',
+        ]);
+        // A `bun <file>` the repo names no wrapper runs nothing this credits.
+        expect(reaches(scripts, ['e2e/b.test.ts'], configs)).toEqual(['e2e/b.test.ts: none']);
+      }),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "are run by the repo's wrappers of bun test, each a file that spawns bun test with its words",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = path.join(import.meta.dir, '..', '..', '..', '..');
+        const { workspaces } = yield* repoTests(root);
+        const wrappers = workspaces.flatMap(({ dir, wrappers }) =>
+          wrappers.map((file) => `${dir}/${file}`),
+        );
+        expect(wrappers).toEqual(['packages/film/src/lab/fixtures/run-suite.ts']);
+        for (const wrapper of wrappers) {
+          const text = yield* fs.readFileString(path.join(root, wrapper));
+          expect([wrapper, /process\.execPath,\s*\[\s*'test',\s*\.\.\.args/.test(text)]).toEqual([
+            wrapper,
+            true,
+          ]);
+        }
+      }),
   );
 
   it.effect(

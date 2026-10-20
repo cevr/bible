@@ -68,13 +68,54 @@ export const commandsOf = (script: string): ReadonlyArray<ReadonlyArray<string>>
   readOf(script).commands.map(programOf);
 
 /**
- * Whether a command of a script sets a variable for itself, bare or through
- * `env` (`CI=1 bun test`, `env BUN_OPTIONS=-t bun test`): a variable such
- * as `BUN_OPTIONS` or `NODE_OPTIONS` hands a program flags its words do not
- * show.
+ * The shell's own commands that change what the commands after them run
+ * with: their variables, their options, their folder, or the program a name
+ * runs.
  */
-export const setsVariables = (script: string) =>
-  readOf(script).commands.some((words) => words[0] === 'env' || ASSIGNMENT.test(words[0] ?? ''));
+const SHELL_CHANGES = new Set([
+  'export',
+  'readonly',
+  'declare',
+  'typeset',
+  'local',
+  'set',
+  'unset',
+  'shopt',
+  'setopt',
+  'alias',
+  'unalias',
+  'hash',
+  'enable',
+  'builtin',
+  'command',
+  'eval',
+  'exec',
+  'source',
+  '.',
+  'trap',
+  'umask',
+  'ulimit',
+  'read',
+  'getopts',
+  'let',
+  'shift',
+  'cd',
+  'pushd',
+  'popd',
+]);
+
+/**
+ * Whether a command of a script sets a variable, bare or through `env`
+ * (`CI=1 bun test`, `env BUN_OPTIONS=-t bun test`), or is one of the shell's
+ * own that changes what later commands run with (`SHELL_CHANGES`: `export
+ * BUN_OPTIONS=-t`): a variable such as `BUN_OPTIONS` or `NODE_OPTIONS`
+ * hands a program flags its words do not show.
+ */
+export const changesShell = (script: string) =>
+  readOf(script).commands.some((words) => {
+    const program = words[0] ?? '';
+    return program === 'env' || ASSIGNMENT.test(program) || SHELL_CHANGES.has(program);
+  });
 
 /**
  * Whether a script's commands are joined by `&&` alone: each runs only when
