@@ -10,7 +10,9 @@
 // any of bun's script extensions); a filter that starts with `./` names a
 // file or a folder by its path from the workspace; any other filter takes
 // each test file whose path holds it; `--path-ignore-patterns` takes none
-// its globs match. `bun run <script>` runs that script of the workspace.
+// its globs match. `bun run <script>` runs that script of the workspace. A
+// script that runs a command in another folder (`cd`, a subshell, `--cwd`;
+// `movesFolder`) reaches none, since each path is read from the workspace.
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
@@ -498,7 +500,27 @@ const programWords = (words: ReadonlyArray<string>) => {
   return words;
 };
 
-/** What the script `name` of a workspace runs, the scripts it runs with `bun run` followed. */
+/** The commands that move the shell to another folder for the commands after them. */
+const MOVES = new Set(['cd', 'pushd', 'popd']);
+
+/**
+ * Whether a command runs in another folder than its workspace's, or moves
+ * the script there: a word that is `cd`, `pushd` or `popd`, a word that opens
+ * a subshell (`(`), or a flag that names a folder to run in (`--cwd`,
+ * `--chdir`, `-C`), any program's.
+ */
+const movesFolder = (words: ReadonlyArray<string>) =>
+  words.some(
+    (word) => MOVES.has(word) || word.startsWith('(') || /^(?:--cwd|--chdir|-C)(?:=|$)/.test(word),
+  );
+
+/**
+ * What the script `name` of a workspace runs, the scripts it runs with `bun
+ * run` followed, each in a shell of its own. The reader reads every path
+ * from the workspace's folder, so a script that holds a command run in
+ * another folder (`movesFolder`), wherever it stands in the script, runs
+ * nothing it can read.
+ */
 const runsOf = (
   workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute' | 'gitignores'>,
   name: string,
@@ -509,7 +531,9 @@ const runsOf = (
   const script = Option.fromUndefinedOr(scripts[name]);
   if (Option.isNone(script)) return [];
   const within = new Set([...seen, name]);
-  return commandsOf(script.value).flatMap((command): ReadonlyArray<Run> => {
+  const commands = commandsOf(script.value);
+  if (commands.some(movesFolder)) return [];
+  return commands.flatMap((command): ReadonlyArray<Run> => {
     const words = programWords(command);
     if (words[0] === 'playwright' && words[1] === 'test')
       return [playwrightRun(words.slice(2), { configs, absolute, gitignores })];

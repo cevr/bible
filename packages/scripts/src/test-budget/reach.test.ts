@@ -183,6 +183,36 @@ describe("a workspace's test files", () => {
     }),
   );
 
+  it.effect('are reached by no script that runs in another folder than its workspace', () =>
+    Effect.sync(() => {
+      const files = ['src/a.test.ts', 'other/b.test.ts'];
+      const scripts = [
+        'cd src && bun test',
+        '(cd src && bun test)',
+        '{ cd src; bun test; }',
+        'pushd src && bun test',
+        'bun --cwd src test',
+        'bun --cwd=src test',
+        'bun test && cd src',
+        'bun run inner',
+        'env -C src bun test',
+        'env --chdir=src bun test',
+      ];
+      for (const test of scripts)
+        expect([test, ...reaches({ test, inner: 'cd src && bun test' }, files)]).toEqual([
+          test,
+          'src/a.test.ts: none',
+          'other/b.test.ts: none',
+        ]);
+      expect(
+        reaches({ test: 'bun test', 'test:e2e': 'cd e2e && bun test' }, ['e2e/c.test.ts']),
+      ).toEqual(['e2e/c.test.ts: test']);
+      expect(
+        reaches({ test: 'bun test src', 'test:e2e': 'cd e2e && bun test' }, ['e2e/c.test.ts']),
+      ).toEqual(['e2e/c.test.ts: none']);
+    }),
+  );
+
   it.effect('are named by hand by a script of their own, by a path to them', () =>
     Effect.sync(() => {
       const scripts = {
