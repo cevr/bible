@@ -2,7 +2,7 @@ pre-commit:
   jobs:
     # Budget: under 5 s. Only the staged files are linted (with fixes) and
     # formatted; stage_fixed re-stages what the tools rewrote. The gate
-    # (typecheck, build, tests) runs in CI, and by hand between units.
+    # (typecheck, build, tests) runs by hand between units.
     - name: lint
       glob: '*.{ts,tsx,js,jsx,mts,cts}'
       run: bun x oxlint --fix {staged_files}

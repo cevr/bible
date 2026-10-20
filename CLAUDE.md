@@ -39,7 +39,6 @@ bun run gate                   # The feedback cycle: lint (deterministic and jud
 bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
 bun run test:budget [<ws>…]    # Each workspace's tests alone under 10 s, no total (local only)
 bun run --filter @bible/selah gate  # Native Swift gate on macOS
-bun run ci [<commit>]          # Wait for a commit's CI run on main and print its verdict
 ```
 
 ## The gate is the feedback cycle

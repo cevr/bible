@@ -57,8 +57,6 @@ Counsel defects:
 | ID  | Defect | Red test | Status |
 | --- | ------ | -------- | ------ |
 
-CI: a red or cancelled run on main (`bun run ci <commit>`) is a finding with its run id and the step it stopped in (and, cancelled, the step that spent the job's time).
-
 Live check: `<check, cues diff, mix, lab drive, stills for the owner's review: what was run and the result>`
 
 ## Close
