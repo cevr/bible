@@ -25,14 +25,8 @@
 // runner's `.serial` form (`it.live.serial`) registers its case with it.
 
 import { Effect, Option } from 'effect';
-import {
-  Diagnostic,
-  type ESTree,
-  Rule,
-  RuleContext,
-  Visitor,
-} from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, type Bindings, bindings, memberName, type Module } from './nodes.ts';
+import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect/rule-bindings';
+import { ancestors, type Bindings, bindings, collect, memberName, type Module } from './nodes.ts';
 
 /** The module the touch gesture is exported from. */
 const isGestures: Module = (from) => /(?:^|\/)fixtures\/gestures(?:\.[jt]s)?$/u.test(from);
@@ -217,7 +211,7 @@ export const touchesSerial = Rule.define({
   create: function* () {
     const context = yield* RuleContext;
     const b = yield* bindings;
-    return yield* Visitor.accumulate('Identifier', seen(b), (all) => {
+    return collect('Identifier', seen(b), (all) => {
       const touching = touchingBindings(all);
       return Effect.forEach(
         all.filter((s) => s.host._tag !== 'Declared' && touches(s, touching)),

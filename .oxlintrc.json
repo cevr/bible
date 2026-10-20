@@ -1750,6 +1750,13 @@
           {
             "property": "markVariableAsUsed",
             "message": "a film rule reads a name's binding through packages/film/lint/nodes.ts, never the scope tree itself."
+          },
+          // Visitor.accumulate copies its list on every node it keeps, n² over
+          // a file: the strength rule spent 1.5 s of the lint in it.
+          {
+            "object": "Visitor",
+            "property": "accumulate",
+            "message": "Visitor.accumulate copies its list on every node it keeps (n² over a file): keep nodes with packages/film/lint/nodes.ts's collect, which grows its list in place."
           }
         ]
       }

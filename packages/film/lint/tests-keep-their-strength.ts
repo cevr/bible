@@ -38,7 +38,15 @@ import {
   RuleContext,
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, type Bindings, bindings, keyName, memberName, type Module } from './nodes.ts';
+import {
+  ancestors,
+  type Bindings,
+  bindings,
+  collect,
+  keyName,
+  memberName,
+  type Module,
+} from './nodes.ts';
 
 /** bun's own timeout for a test that names none, in milliseconds. */
 const BUN_DEFAULT_MS = 5_000;
@@ -100,9 +108,17 @@ const startsProcess = (b: Bindings, call: ESTree.CallExpression): boolean => {
       return name === 'make' && isChildProcessModule(b, callee.object);
     });
   if (callee.type !== 'Identifier') return false;
-  if (BUN_SPAWNS.some((name) => b.importsAs(callee, isBun, name))) return true;
-  if (NODE_SPAWNS.some((name) => b.importsAs(callee, isNodeChildProcess, name))) return true;
-  if (b.importsAs(callee, isChildProcess, 'make')) return true;
+  const imported = b.importOf(callee);
+  if (
+    Option.exists(
+      imported,
+      ({ from, name }) =>
+        (isBun(from) && BUN_SPAWNS.includes(name)) ||
+        (isNodeChildProcess(from) && NODE_SPAWNS.includes(name)) ||
+        (isChildProcess(from) && name === 'make'),
+    )
+  )
+    return true;
   return Option.exists(
     b.takenFrom(callee),
     ({ key, value }) => BUN_SPAWNS.includes(key) && b.isGlobal(value, 'Bun'),
@@ -337,8 +353,19 @@ export const testsKeepTheirStrength = Rule.define({
         if (timeouts && setsDefault(b, n)) defaults.push(n);
       }),
     );
-    const names = yield* Visitor.accumulate('Identifier', sightingOf(b), (all) => {
-      const starting = startingHosts(all);
+    // Every name is kept as met, and read for spawns only when a case raises
+    // its timeout: most files raise none, and the read is the rule's cost.
+    const names = collect('Identifier', Option.some, (identifiers) => {
+      const raising = cases.flatMap((call) => {
+        const timeout = timeoutOf(b, call);
+        if (!timeouts || timeout._tag === 'None' || !raises(timeout)) return [];
+        return [{ call, node: timeout.node }];
+      });
+      const startingOf = () => {
+        if (raising.length === 0) return new Set<ESTree.Node>();
+        return startingHosts(identifiers.flatMap((n) => Option.toArray(sightingOf(b)(n))));
+      };
+      const starting = startingOf();
       /** Whether a case, or for a suite a case inside it, starts a process. */
       const spawns = (call: ESTree.CallExpression) =>
         starting.has(call) ||
@@ -347,11 +374,9 @@ export const testsKeepTheirStrength = Rule.define({
       const retries = cases.flatMap((call) =>
         Option.toArray(Option.map(retryOf(call), (p) => ({ node: p, message: RETRY_MESSAGE }))),
       );
-      const raised = cases.flatMap((call) => {
-        const timeout = timeoutOf(b, call);
-        if (!timeouts || timeout._tag === 'None' || !raises(timeout) || spawns(call)) return [];
-        return [{ node: timeout.node, message: TIMEOUT_MESSAGE }];
-      });
+      const raised = raising
+        .filter(({ call }) => !spawns(call))
+        .map(({ node }) => ({ node, message: TIMEOUT_MESSAGE }));
       const raisedDefaults = defaults.flatMap((n) => {
         const value = Option.fromUndefinedOr(n.arguments[0]);
         if (Option.isNone(value) || value.value.type === 'SpreadElement') return [];

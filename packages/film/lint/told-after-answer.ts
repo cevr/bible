@@ -26,14 +26,16 @@
 // The config turns it on over `packages/film/e2e`.
 
 import { Effect, Option } from 'effect';
+import { Diagnostic, type ESTree, Rule, RuleContext } from 'oxlint-plugin-effect/rule-bindings';
 import {
-  Diagnostic,
-  type ESTree,
-  Rule,
-  RuleContext,
-  Visitor,
-} from 'oxlint-plugin-effect/rule-bindings';
-import { ancestors, type Bindings, bindings, memberName, type Module, unwrapped } from './nodes.ts';
+  ancestors,
+  type Bindings,
+  bindings,
+  collect,
+  memberName,
+  type Module,
+  unwrapped,
+} from './nodes.ts';
 
 const MESSAGE =
   'a fake route completes a Deferred itself: the case waiting on it runs on at once, inside the call, and an answer made after reads what the case changed then. Tell through the harness: told(Deferred.done(asked, Exit.void), json(…)) runs the tell once its answer is made.';
@@ -157,7 +159,7 @@ export const toldAfterAnswer = Rule.define({
   create: function* () {
     const context = yield* RuleContext;
     const b = yield* bindings;
-    return yield* Visitor.accumulate(
+    return collect(
       'CallExpression',
       (n) =>
         Option.liftPredicate(

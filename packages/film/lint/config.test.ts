@@ -15,6 +15,8 @@
 // - The purity rule: a block that keeps a layer's folder (`**/lab/**`) out
 //   also keeps out every package export that resolves into it
 //   (`@bible/film/review` is the lab's).
+// - The film's rules: `Visitor.accumulate`, which copies its list on every
+//   node it keeps, is refused to them, and `nodes.ts`'s `collect` is not.
 
 import { BunServices } from '@effect/platform-bun';
 import { JSONC } from 'bun';
@@ -127,6 +129,18 @@ const Property = Schema.Struct({
   message: Schema.String,
 });
 type Property = typeof Property.Type;
+/** A property ban of `no-restricted-properties`: on any object when it names none. */
+const AnyProperty = Schema.Struct({
+  object: Schema.optionalKey(Schema.String),
+  property: Schema.String,
+  message: Schema.String,
+});
+/** The config oxlint runs a probe of property bans with. */
+const PropertiesConfig = Schema.fromJsonString(
+  Schema.Struct({
+    rules: Schema.Struct({ 'no-restricted-properties': withOptions(AnyProperty) }),
+  }),
+);
 const Imports = Schema.Struct({
   patterns: Schema.optionalKey(Schema.Array(Schema.Struct({ group: Schema.Array(Schema.String) }))),
 });
@@ -421,6 +435,36 @@ describe('the lint config', () => {
             yield* unreported({ builtins: false }, properties, brandsMade(properties)),
           ).toEqual([]);
         }
+      }),
+    SPAWNS_MS,
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "refuses Visitor.accumulate to the film's rules, and leaves the rest of Visitor",
+    () =>
+      Effect.gen(function* () {
+        const config = yield* readJson('.oxlintrc.json', Config);
+        const block = config.overrides.find((o) =>
+          o.files.includes('**/packages/film/lint/**/*.ts'),
+        );
+        expect(block).toBeDefined();
+        const properties = Option.match(Option.fromUndefinedOr(block), {
+          onNone: () => [],
+          onSome: (o) => optionsIn(o, 'no-restricted-properties', AnyProperty),
+        });
+        const probe = [
+          "import { Visitor } from 'oxlint-plugin-effect/rule-bindings';",
+          "Visitor.accumulate('Identifier', keep, analyze);",
+          "Visitor.on('Identifier', visit);",
+          'Visitor.merge(one, two);',
+        ];
+        const out = yield* oxlintOver(
+          yield* Schema.encodeEffect(PropertiesConfig)({
+            rules: { 'no-restricted-properties': ['error', ...properties] },
+          }),
+          `${probe.join('\n')}\n`,
+        );
+        expect([...reportedLines(out, ['no-restricted-properties'])]).toEqual([2]);
       }),
     SPAWNS_MS,
   );

@@ -20,6 +20,7 @@ import {
   Scope,
   sourceCode,
   type Variable,
+  Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
 
 /** Every ancestor of `node`, nearest first, the Program last. */
@@ -31,6 +32,29 @@ export const ancestors = (node: ESTree.Node): ReadonlyArray<ESTree.Node> => {
     out.push(at);
   }
   return out;
+};
+
+/**
+ * Each node of `type` the walk meets that `extract` keeps, handed to
+ * `analyze` at the file's end, in the order met. The list grows in place, so
+ * a file of n such nodes costs n: `Visitor.accumulate` copies its list on
+ * every node it keeps, n² over a file, and `.oxlintrc.json` refuses it to the
+ * film's rules.
+ */
+export const collect = <A>(
+  type: string,
+  extract: (node: ESTree.Node) => Option.Option<A>,
+  analyze: (all: ReadonlyArray<A>) => Effect.Effect<void, never, RuleContext>,
+) => {
+  const all: Array<A> = [];
+  return Visitor.merge(
+    Visitor.on(type, (node) =>
+      Effect.sync(() => {
+        Option.map(extract(node), (kept) => all.push(kept));
+      }),
+    ),
+    Visitor.onExit('Program', () => Effect.suspend(() => analyze(all))),
+  );
 };
 
 /**
@@ -410,14 +434,54 @@ const readsOfIn = (code: Source, node: ESTree.Node): ReadonlyArray<ESTree.Node> 
 /** The modules a test is run with: `it`, `test`, `describe` and `expect` are theirs. */
 const isRunner: Module = (from) => from === 'bun:test' || from === 'effect-bun-test';
 
+/**
+ * The names the file's imports from the test runner bind, each with the name
+ * it takes there (`check` for `it as check`). Imports stand at the top of a
+ * file, so a name is the runner's `name` only when it is bound to that import
+ * or is the global spelled `name`: any other is read without the scope tree.
+ */
+const runnerLocalsIn = (code: Source): ReadonlyMap<string, string> =>
+  new Map(
+    code.sourceCode.ast.body.flatMap((statement) => {
+      if (statement.type !== 'ImportDeclaration') return [];
+      if (!isRunner(resolvedFrom(code.file, String(statement.source.value)))) return [];
+      return statement.specifiers.flatMap((specifier) => {
+        if (specifier.type !== 'ImportSpecifier') return [];
+        return Option.toArray(
+          Option.map(staticName(specifier.imported, false), (name) => [specifier.local.name, name]),
+        );
+      });
+    }),
+  );
+
+/** `make`'s answer, made on the first call and kept for the rest. */
+const once = <A>(make: () => A) => {
+  let held: Option.Option<A> = Option.none();
+  return (): A =>
+    Option.getOrElse(held, () => {
+      const made = make();
+      held = Option.some(made);
+      return made;
+    });
+};
+
 /** Whether `node` is the test runner's `name`: imported from it (or an alias), or bun's global of that name. */
-const isRunnerIn = (code: Source, node: ESTree.Node, name: string) =>
-  importsAsIn(code, node, isRunner, name) || isGlobalIn(code, node, name);
+const isRunnerIn = (
+  code: Source,
+  locals: () => ReadonlyMap<string, string>,
+  node: ESTree.Node,
+  name: string,
+) =>
+  node.type === 'Identifier' &&
+  (node.name === name || locals().get(node.name) === name) &&
+  (importsAsIn(code, node, isRunner, name) || isGlobalIn(code, node, name));
 
 /** What a file's bindings give a rule, each read where the name is written. */
 export interface Bindings {
   /** How a name is bound: its first definition, none for a name the file binds nowhere. */
   readonly definitionOf: (id: Named) => Option.Option<Definition>;
+  /** The import a name is bound to where it is read: its module and the name it takes there; none for any other name. */
+  readonly importOf: (node: ESTree.Node) => Option.Option<Imported>;
   /** Whether a name is bound to the import of `name` (`*` the module whole, `default`) from a module `from` accepts. */
   readonly importsAs: (node: ESTree.Node, from: Module, name: string) => boolean;
   /** Whether an expression reads an export: the name imported, an alias, or `ns.name` off the module whole. */
@@ -453,8 +517,14 @@ const bindingsIn = (code: Source): Bindings => {
     if (n.type === 'Identifier') return Option.flatMap(topLevelValueIn(code, n), writtenNumber);
     return signed(n, numberOf);
   };
+  const runnerLocals = once(() => runnerLocalsIn(code));
   return {
     definitionOf: (id) => definitionIn(code, id),
+    importOf: (node) =>
+      Option.flatMap(
+        Option.liftPredicate(node, (n): n is ESTree.IdentifierReference => n.type === 'Identifier'),
+        (id) => importIn(code, id),
+      ),
     importsAs: (node, from, name) => importsAsIn(code, node, from, name),
     readsImport: (node, from, name) => readsImportIn(code, node, from, name),
     callsImport: (node, from, name) => callsImportIn(code, node, from, name),
@@ -463,7 +533,7 @@ const bindingsIn = (code: Source): Bindings => {
     readsCue: (node) => readsCueIn(code, node),
     takenFrom: (id) => takenFromIn(code, id),
     readsOf: (declaration) => readsOfIn(code, declaration),
-    isRunner: (node, name) => isRunnerIn(code, node, name),
+    isRunner: (node, name) => isRunnerIn(code, runnerLocals, node, name),
     valueOf: (id) => topLevelValueIn(code, id),
     numberOf,
     moduleOf: (from) => resolvedFrom(code.file, from),
