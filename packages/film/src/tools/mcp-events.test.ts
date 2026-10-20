@@ -494,21 +494,25 @@ describe('MCP Events on the lab', () => {
       Effect.gen(function* () {
         const { lab } = yield* labWithMcp;
         const hook = yield* callback;
-        yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/hooks/T0SECRET?token=s3`));
+        yield* rpc(
+          lab,
+          'events/subscribe',
+          subscribeAt(`${hook.url}/hooks/T0SECRET?token=Q3SECRET`),
+        );
         yield* Queue.take(hook.heard);
         yield* Ref.set(hook.echo, false);
         yield* rpc(lab, 'events/subscribe', subscribeAt(`${hook.url}/other/T1SECRET`));
         yield* Queue.take(hook.heard);
         // A callback where nothing listens: the client's failure names the whole URL, the log its kind.
         const closed = 'http://127.0.0.1:1';
-        yield* rpc(lab, 'events/subscribe', subscribeAt(`${closed}/hooks/T2SECRET?token=s5`));
+        yield* rpc(lab, 'events/subscribe', subscribeAt(`${closed}/hooks/T2SECRET?token=Q5SECRET`));
         const said = lines.filter((line) => line.startsWith('mcp.events.'));
         expect(said.map((line) => line.split(' ')[0])).toEqual([
           'mcp.events.subscribed',
           'mcp.events.unverified',
           'mcp.events.unverified',
         ]);
-        expect(said.filter((line) => /SECRET|token|s3|s5|\/hooks|\/other/.test(line))).toEqual([]);
+        expect(said.filter((line) => /SECRET|token|\/hooks|\/other/.test(line))).toEqual([]);
         expect(said.slice(0, 2).every((line) => line.includes(` at=${hook.url} `))).toBe(true);
         expect(said[2]).toContain(`at=${closed} reason="unreachable: TransportError"`);
       }).pipe(
