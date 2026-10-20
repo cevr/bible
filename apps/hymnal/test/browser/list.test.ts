@@ -417,6 +417,34 @@ describe('a list comes back where the reader left it', () => {
       });
     }
   }
+
+  it.concurrent('the search list, its results shorter than the window grown while he was away, draws every row once he clears the search', async () => {
+    // A small phone's window: the 13 results of "shepherd" scroll there.
+    await using app = await open({ path: lists.search.path, height: 320 });
+    await app.page.getByRole('searchbox').fill('shepherd');
+    await app.page.waitForFunction(() => {
+      const max = window.hymnal.place()?.max ?? 0;
+      return max > 0 && max < 13 * 44;
+    });
+    const { max } = await app.place();
+    const left = await app.scrollTo(max);
+    await app.settle(150);
+    const row = await app.middleRow();
+    await app.press('search');
+    // Taller than the 13 results: the list comes back at its top.
+    await app.resize(874);
+    await app.comeBack('search', row.label, () => app.page.goBack());
+    const found = (await app.place()).top;
+    await app.page.getByRole('searchbox').fill('');
+    await app.page.waitForFunction(() => (window.hymnal.place()?.max ?? 0) > 10_000);
+    await app.settle(150);
+    expect({ left: left > 0, found, blank: await app.blank(), jumps: await app.jumps() }).toEqual({
+      left: true,
+      found: 0,
+      blank: 0,
+      jumps: [],
+    });
+  });
 });
 
 describe('a list loaded cold hydrates the server’s list', () => {
