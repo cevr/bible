@@ -1,6 +1,6 @@
 # 02b · As It Reads
 
-Series: From Milk to Meat · Tier One (Milk) · after 02 (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · after 02 (the number settles when the list is renumbered)
 Promise: the viewer sees that there are only two ways to read the Bible, as it reads or as you read it; that the second has no end of meanings; and that the Bible crosses every age and tongue because it explains its own words, so anyone can learn to use its dictionary, trying each meaning in its passage.
 Prerequisites: 01 (the milk is "the first principles of the oracles of God"), 02 (the Bereans, the one measuring rule; 02 hands off to this film in one line).
 Length: about 6:20 (726 spoken words: 4:41 at 155 wpm, 5:05 with the marked breaths and holds, 4:48–5:14 at 165–150 wpm with them; plus the title, beat leads and tails, about 30 s of music alone and 28 s of credits). Measured with `bun cli.ts drafts` and a word count of the `say` lines, 2026-10-19, after the review.

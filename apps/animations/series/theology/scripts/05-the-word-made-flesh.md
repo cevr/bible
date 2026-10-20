@@ -1,6 +1,6 @@
 # 05 · The Word Made Flesh
 
-Series: From Milk to Meat · Tier One (Milk) · 5 of 13
+Series: The Path of the Just · Tier One (Milk) · 5 of 13
 Promise: the viewer meets the One Isaiah saw on the throne and learns that He is Jesus. He is the divine Son, with God before the world and bearing His Father's name. He laid His glory down to become one of us, so that God would be "with us" and we could see what God is like.
 Prerequisites: 02 (Scripture explains itself; here John explains Isaiah), 03 (to see Jesus is to see the Father), 04 (a world lost, which is why He came).
 Length: about 6:00 (671 spoken words: 4:20 at 155 wpm, 4:40 with the 20 s of marked breaths and holds; plus the title, about 1 s between beats, about 30 s of music alone and 28 s of credits).

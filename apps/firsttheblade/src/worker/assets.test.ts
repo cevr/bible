@@ -5,9 +5,9 @@ import { candidates } from './assets.ts';
 describe('the files a path names', () => {
   test('a page path names its html file, then its directory index', () => {
     expect(candidates('/about')).toEqual(['/about.html', '/about/index.html']);
-    expect(candidates('/series/from-milk-to-meat')).toEqual([
-      '/series/from-milk-to-meat.html',
-      '/series/from-milk-to-meat/index.html',
+    expect(candidates('/series/the-path-of-the-just')).toEqual([
+      '/series/the-path-of-the-just.html',
+      '/series/the-path-of-the-just/index.html',
     ]);
   });
 

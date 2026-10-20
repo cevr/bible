@@ -1,6 +1,6 @@
 # 08 · Faith Toward God
 
-Series: From Milk to Meat · Tier One (Milk) · stone 2 of Hebrews' six (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · stone 2 of Hebrews' six (the number settles when the list is renumbered)
 Promise: the viewer sees that Jesus speaks of eternal life three ways (to know God, to keep his law, to have Christ himself) and that each has its echo in the Old Testament; that Moses puts loving God, obeying his voice and holding fast to him in one sentence, and asks Israel to choose that one life, not one part of it; and that faith joins them, because faith comes by hearing his word: we trust the one whose voice we know, we do what he says, and we hold on to him.
 Prerequisites: 02b (read it as it reads), 03b (the law describes his character), 04b (life was lost with nearness), 06b (Jesus spoke of eternal life three ways, one life from his word), 07 (stone 1, repentance from dead works).
 Length: about 5:50 (647 spoken words: 4:10 at 155 wpm, 4:37 with the marked breaths and holds, 4:22–4:46 at 165–150 wpm with them; plus the title, beat leads and tails, about 30 s of music alone and 28 s of credits). Measured with `bun cli.ts drafts` and a word count of the `say` lines, 2026-10-19, after the review.

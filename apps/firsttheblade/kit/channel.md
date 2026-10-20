@@ -40,7 +40,7 @@ Jesus said the kingdom of God grows like seed in the ground: first the blade, th
 
 Four series:
 
-• From Milk to Meat: the faith from its first principles to its deepest truths.
+• The Path of the Just: the faith from its first principles to its deepest truths.
 
 • Dwell in the Land: country living from the Bible.
 
@@ -72,12 +72,12 @@ Use `hello@firsttheblade.com`.
 
 Create these in series order, each one Public.
 
-| Playlist             | Description                                                                                                                                  |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `From Milk to Meat`  | The faith from its first principles to its deepest truths, in the order the Bible serves them: milk first, then meat. Start with 01.         |
-| `Dwell in the Land`  | Country living from the Bible: what it is, why it matters, and where and how to begin.                                                       |
-| `Taught of the Lord` | Education from the Bible, for parents and teachers: what school is for, and how a child is taught of the Lord.                               |
-| `The True Remedies`  | Health from the Bible, and the simple remedies God gave: fresh air, sunlight, water, rest, exercise, good food, temperance and trust in Him. |
+| Playlist               | Description                                                                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `The Path of the Just` | The faith from its first principles to its deepest truths, in the order the Bible serves them, as a light that shines more and more. Start with 01. |
+| `Dwell in the Land`    | Country living from the Bible: what it is, why it matters, and where and how to begin.                                                              |
+| `Taught of the Lord`   | Education from the Bible, for parents and teachers: what school is for, and how a child is taught of the Lord.                                      |
+| `The True Remedies`    | Health from the Bible, and the simple remedies God gave: fresh air, sunlight, water, rest, exercise, good food, temperance and trust in Him.        |
 
 ## The steps in YouTube Studio
 
@@ -99,10 +99,10 @@ Newer versions of Studio merge **Branding** and **Basic info** into one **Profil
 3. **Content → Playlists → New playlist**
    - Create the four playlists above, in series order, each one Public.
 4. **Customisation → Layout**
-   - **Video spotlight:** choose a channel trailer for people who haven't subscribed. Use From Milk to Meat 01 once it's up.
+   - **Video spotlight:** choose a channel trailer for people who haven't subscribed. Use The Path of the Just 01 once it's up.
    - Then choose a featured video for returning subscribers: the latest film.
    - **Featured sections:** choose **Add section → Videos**.
-   - Then choose **Add section → Single playlist** four times, in series order: From Milk to Meat, Dwell in the Land, Taught of the Lord, The True Remedies.
+   - Then choose **Add section → Single playlist** four times, in series order: The Path of the Just, Dwell in the Land, Taught of the Lord, The True Remedies.
    - Choose **Publish**.
 5. **Settings → Channel → Basic info → Keywords**
    - Paste the keywords, then choose **Save**.

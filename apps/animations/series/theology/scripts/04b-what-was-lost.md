@@ -1,6 +1,6 @@
 # 04b · What Was Lost
 
-Series: From Milk to Meat · Tier One (Milk) · the salvation arc, 2 of 3, after 04 (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · the salvation arc, 2 of 3, after 04 (the number settles when the list is renumbered)
 Promise: the viewer counts what the fall cost: the image (Adam's son is born in Adam's likeness), nearness to God (his presence consumes sin, so he keeps us back that we may live), life itself, and the power to stop sinning; and sees that the last is the deepest, for paying the price alone would not end it.
 Prerequisites: 03b (the image, form and character), 04 (the serpent's question; how sin entered).
 Length: about 5:50 (640 spoken words: 4:08 at 155 wpm, 4:37 with the marked breaths and holds; plus the 6 s title, seams of 0.6 s between beats and a 3 s hold into the thesis, about 30 s of music alone and 28 s of credits). Measured on that clock: the title starts at 7.9 %, the deepest turn (`bondage`) at 56.5 %, the landing (`gate`) at 73.5 %, and the landing runs 34.5 s through the thesis's last word.

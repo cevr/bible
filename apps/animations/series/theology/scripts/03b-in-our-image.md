@@ -1,6 +1,6 @@
 # 03b · In Our Image
 
-Series: From Milk to Meat · Tier One (Milk) · the salvation arc, 1 of 3, after 03 (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · the salvation arc, 1 of 3, after 03 (the number settles when the list is renumbered)
 Promise: to know what salvation saves us from, the viewer starts where we began: God made us in his image, his form, for he is a person, and his character, which his law describes; and Jesus is that image in full.
 Prerequisites: 02b (read it as it reads), 03 (God told Moses his name; his law is his love written out).
 Length: about 5:40 (626 spoken words: 4:02 at 155 wpm, 4:28 with the marked breaths and holds; plus the 6 s title, seams of 0.6 s between beats and a 3 s hold into the thesis, about 30 s of music alone and 28 s of credits). Measured on that clock: the title starts at 9.9 %, the deepest turn (`express`) at 62.5 %, the landing (`robe`) at 74.8 %, and the landing runs 27.5 s through the thesis's last word.

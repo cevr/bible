@@ -1,6 +1,6 @@
 # 02 · The Oracles of God
 
-Series: From Milk to Meat · Tier One (Milk) · 2 of 13
+Series: The Path of the Just · Tier One (Milk) · 2 of 13
 Promise: the viewer knows where the Bible came from, why it is the one rule every other voice is measured by, and one plain habit for letting it explain itself (the next film, 02b, gives the Bible's own dictionary), so they can check every later film against it.
 Prerequisites: 01 (the milk is "the first principles of the oracles of God").
 Length: about 5:25 (573 spoken words: 3:42 at 155 wpm, 4:02 with the marked breaths and holds, 3:48–4:09 at 165–150 wpm with them; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits). Recounted 2026-10-19 after `plain` and `figure` moved to 02b.

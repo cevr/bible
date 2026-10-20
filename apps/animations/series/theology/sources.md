@@ -1,4 +1,4 @@
-# Sources and searches · From Milk to Meat
+# Sources and searches · The Path of the Just
 
 How the material was gathered (2026-10-10/11), what was found per topic, and the refs the credits will name. Refs and short snippets only; every snippet below was printed by a tool in this session and copied verbatim.
 
@@ -31,7 +31,7 @@ Key passages:
 - MM 124.2 (EGW) — 1 Pet 2:2 "in perception, in likeness to the character of Christ".
 - Steps to Christ chapter order (SC 9 God's Love for Man · SC 17 The Sinner's Need of Christ · SC 49 Faith and Acceptance · SC 67 Growing Up Into Christ · SC 115 Rejoicing in the Lord) — Tier One's inner order.
 
-## 01 · Milk and Meat
+## 01 · In Its Order
 
 Searches — egw: first the blade then the ear germination of the seed beginning of spiritual life · the soul must be fed by the word as the body by food · no limit to the growth … no more truth to be revealed · babes in Christ always need milk never grow ought to be teachers. pioneer: many things to say hard to be uttered Melchisedec priesthood strong meat (0 hits) · weaned from the milk precept upon precept line upon line.
 
@@ -951,7 +951,7 @@ Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's natur
 
 | Script                | Words | Quoted | Share  | KJV quotes | Source snippets                |
 | --------------------- | ----- | ------ | ------ | ---------- | ------------------------------ |
-| 01 Milk and Meat      | 741   | 130    | 17.5 % | all exact  | all found                      |
+| 01 In Its Order       | 741   | 130    | 17.5 % | all exact  | all found                      |
 | 02 The Oracles of God | 652   | 110    | 16.9 % | all exact  | 2 flagged: MWV1 20.8, GC 598.3 |
 | 03 God Is Love        | 582   | 94     | 16.2 % | all exact  | 2 flagged: SC 10.2, SC 11.1    |
 

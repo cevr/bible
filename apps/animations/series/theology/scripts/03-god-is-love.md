@@ -1,6 +1,6 @@
 # 03 · God Is Love
 
-Series: From Milk to Meat · Tier One (Milk) · 3 of 13
+Series: The Path of the Just · Tier One (Milk) · 3 of 13
 Promise: the viewer sees why so many people are afraid of God, how God has shown his own character (in creation, in his own name, in Jesus, and above all at the cross), and that the cross did not buy God's love but came from it.
 Prerequisites: 01, 02 (the Bible explains itself; here it explains God).
 Length: about 5:30 (602 spoken words: 3:53 at 155 wpm, 4:15 with the 22 s of marked breaths and holds; plus the title, about 1 s between beats, the black moment, about 30 s of music alone and 28 s of credits).

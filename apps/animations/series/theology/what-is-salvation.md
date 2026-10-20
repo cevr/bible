@@ -1,6 +1,6 @@
 # What Is Salvation? (draft, owner's ideas, 2026-10-19)
 
-The owner's ideas for scripts, set against _From Milk to Meat_ ([series.md](series.md)). Nothing here is a script yet, and no episode number has moved. Every verse below was read in the KJV with `bible verse` on 2026-10-19; every pioneer line was found with `bible egw search` the same day and is a lead, not yet copied into `sources.md` or verified by the frame's verifier.
+The owner's ideas for scripts, set against _The Path of the Just_ ([series.md](series.md)). Nothing here is a script yet, and no episode number has moved. Every verse below was read in the KJV with `bible verse` on 2026-10-19; every pioneer line was found with `bible egw search` the same day and is a lead, not yet copied into `sources.md` or verified by the frame's verifier.
 
 ## The question
 

@@ -1,6 +1,6 @@
 # 06b · What Is Salvation?
 
-Series: From Milk to Meat · Tier One (Milk) · the salvation arc, 3 of 3, after 06 (the number settles when the list is renumbered)
+Series: The Path of the Just · Tier One (Milk) · the salvation arc, 3 of 3, after 06 (the number settles when the list is renumbered)
 Promise: the viewer sees that salvation answers all four losses at once: Jesus is the ladder over the separation, God's gift of life meets death, a new heart breaks the chain from the inside, and by beholding him the image is restored; and that the six stones that follow show how it is received, beginning with repentance.
 Prerequisites: 03b (the image), 04b (the four losses), 05 (the Word made flesh), 06 (the Lamb).
 Length: about 5:50 (637 spoken words: 4:07 at 155 wpm, 4:37 with the marked breaths and holds; plus the 6 s title, seams of 0.6 s between beats and a 3 s hold into the thesis, about 30 s of music alone and 28 s of credits). Measured on that clock: the title starts at 9.9 %, the deepest turn (`image`) at 56.4 %, the landing (`bethel`) at 73.3 %, and the landing runs 35.0 s through the thesis's last word.

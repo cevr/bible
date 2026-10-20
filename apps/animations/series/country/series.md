@@ -1,6 +1,6 @@
 # Dwell in the Land: a series on country living
 
-A playlist of narrated cut-paper films (apps/animations, the house style of _From Milk to Meat_) on country living: what it is, why God gives it, and where and how a family moves toward it. Drafted 2026-10-13. Nothing here is narrated, rendered or checked. The opening script is in `scripts/`; every citation, with its check against the local corpus, is in `sources.md`.
+A playlist of narrated cut-paper films (apps/animations, the house style of _The Path of the Just_) on country living: what it is, why God gives it, and where and how a family moves toward it. Drafted 2026-10-13. Nothing here is narrated, rendered or checked. The opening script is in `scripts/`; every citation, with its check against the local corpus, is in `sources.md`.
 
 **Owner direction (2026-10-13):** "leaving the cities, I think is a very important topic that interleaves with education for many reasons. I think we can kind of even have a, maybe a whole series on country living in general, what, why, where, how, and that kind of have both doctrinal and educational content alongside with it. Adam's schoolroom, if we can use it, let's use it. Let's find the author. I think it's fun. But like I said, you know, we're not, we're not trying to overtly quote Adventist pioneers and whatnot. We want to reach a target, like a wide target audience and avoid prejudice."
 
@@ -61,7 +61,7 @@ House rules for every episode (binding):
 
 ## How each episode is built
 
-The shape is the same as _From Milk to Meat_'s:
+The shape is the same as _The Path of the Just_'s:
 
 - **Cold open on the plain family** in the city flat, or at the grandmother's gate, ending on the viewer's question.
 - **The Bible scene** that answers it (STORY), with one small dose of the honest objection, answered within seconds.

@@ -1,15 +1,15 @@
-# From Milk to Meat
+# The Path of the Just
 
 A playlist of narrated cut-paper explainer films (apps/animations, the house style of `righteousness-by-faith`) that walks every Christian from the first principles of the faith to its deepest truths, in the order the Bible itself serves them. Drafted 2026-10-10/11 for Cristian; 05 revised 2026-10-12. Nothing here is narrated, rendered or checked; scripts for 01–03, 05 and 08 are in `scripts/`, the search record in `sources.md`.
 
 ## The name
 
-**Keep "From Milk to Meat."** Short form for thumbnails and the playlist card: **Milk to Meat**.
+**The Path of the Just** (owner, 2026-10-20, ask a879ff5af83). Its verse: "But the path of the just is as the shining light, that shineth more and more unto the perfect day" (Prov 4:18).
 
-- It is the Bible's own picture, in KJV words every Christian half-remembers (Heb 5:12–14; 1 Cor 3:1–2; 1 Pet 2:2), so it needs no denominational explanation and promises growth, not a debate.
-- It names the arc and the order at once: milk first, then meat, and the series literally follows the syllabus Hebrews gives (below).
-- The pioneer reading behind it makes the name kinder than it sounds: meat does not leave the milk behind. "The man who eats hard food, instead of milk, does not reject any element that is in milk, but gets it all and more" (E. J. Waggoner, MEDM September 1904, 286.6). Episode 01 is built on that line, so the name never reads as "babies vs. grown-ups."
-- Alternatives weighed: _Strong Meat_ (sounds combative, loses the gentle start); _First Principles_ (accurate for Tier One only); _Full Age_ (obscure); _Grow in Grace_ (warm but vague; kept as 01's thesis line instead).
+- Growth as light that grows, in a KJV line every Christian can own. It talks down to no one, and it fits the widening light and the hill path the films already use (01's `path` and `title`).
+- **Milk and meat stay inside the films.** 01 (In Its Order) explains Hebrews' image (Heb 5:12–14; 1 Cor 3:1–2; 1 Pet 2:2); 02 opens on 01's cup, and the cup comes back full later. The words never go in a title, a card label, a tier name a viewer sees, or a thumbnail. Unexplained there, "milk" can call the viewer a baby before they press play; Hebrews says it as a rebuke. The tier names below (Milk, Meat, Strong meat) are our plan's labels only; viewers meet the tiers as the foundation, the Priest in heaven and the things to come, 01's own words in `path`.
+- The pioneer reading behind the image is why it stays inside: meat does not leave the milk behind. "The man who eats hard food, instead of milk, does not reject any element that is in milk, but gets it all and more" (E. J. Waggoner, MEDM September 1904, 286.6). 01 is built on that line.
+- Weighed and left (2026-10-20): _From Milk to Meat_ (the earlier name, 2026-10-13), _Unto the Perfect Day_, _The Full Stature_ (Eph 4:13), _Grow in Grace_ (2 Pet 3:18; 01's thesis line instead), _Line upon Line_ (in Isa 28 the scoffers mock it), _First the Blade_ (Mark 4:28; the channel's name).
 
 ## The arc, and why this order
 
@@ -61,7 +61,7 @@ History flag key:
 
 The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' order (07–13), with 11b (how prophecy reads) between the new life and stone 5. The series motif: the six stones light one by one.
 
-**01 · Milk and Meat** (script: `scripts/01-milk-and-meat.md`)
+**01 · In Its Order** (script: `scripts/01-in-its-order.md`)
 
 - **Promise:** The Bible itself has an order for growing up: milk first, then meat. Meat never throws the milk away; it is the same truths combined. This series walks that order.
 - **Core KJV:** Heb 5:12–14; Heb 6:1–2; Heb 5:10–11; 1 Pet 2:2; 1 Cor 3:1–2; Isa 28:9–10; 2 Pet 3:18.

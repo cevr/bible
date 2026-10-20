@@ -47,7 +47,7 @@ const SCRIPTS = 'scripts';
 /** Where a series keeps its plan, whose title names it. */
 const PLAN = 'series.md';
 
-/** A draft by its series and its file's name: `theology/01-milk-and-meat`. */
+/** A draft by its series and its file's name: `theology/01-in-its-order`. */
 export const draftKey = (series: string, draft: string) => `${series}/${draft}`;
 
 /** A draft as a take is kept against it: the staging voice, no spellings of its own, its spoken beats. */

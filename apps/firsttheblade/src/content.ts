@@ -29,7 +29,7 @@ export interface Part {
   readonly question: string;
 }
 
-export type SeriesId = 'milk' | 'land' | 'taught' | 'remedies';
+export type SeriesId = 'path' | 'land' | 'taught' | 'remedies';
 
 export interface Series {
   readonly id: SeriesId;
@@ -59,31 +59,31 @@ export const MARK_4_28: Verse = {
 
 export const SERIES: ReadonlyArray<Series> = [
   {
-    id: 'milk',
-    slug: 'from-milk-to-meat',
-    name: 'From Milk to Meat',
+    id: 'path',
+    slug: 'the-path-of-the-just',
+    name: 'The Path of the Just',
     subject: 'Theology',
     form: 'Cut-paper films',
     verse: {
-      text: 'But strong meat belongeth to them that are of full age, even those who by reason of use have their senses exercised to discern both good and evil.',
-      ref: 'Hebrews 5:14',
+      text: 'But the path of the just is as the shining light, that shineth more and more unto the perfect day.',
+      ref: 'Proverbs 4:18',
     },
     line: 'The faith from its first principles to its deepest truths, in the order the Bible serves them.',
     about: [
-      'Hebrews speaks of milk and of strong meat: the first principles of the faith, and the deeper things a growing Christian is ready to take in. This series walks that road one short film at a time, in the order the Bible itself serves it.',
-      'Meat never leaves the milk behind. Each film builds on the ones before it, and the cross stands at the centre of them all.',
+      'The Bible has an order for growing: the first principles of the faith first, then the deeper things a growing Christian is ready to take in. This series walks that road one short film at a time, in the order the Bible itself serves it.',
+      'Nothing learned first is left behind. Each film builds on the ones before it, and the cross stands at the centre of them all.',
     ],
     parts: [
       {
-        title: 'Milk',
+        title: 'The foundation',
         question: 'God’s word, God’s character, sin, who Jesus is, and the cross.',
       },
       {
-        title: 'Meat',
+        title: 'The Priest in heaven',
         question: 'Christ’s work for us now, as our High Priest, and what it means for us.',
       },
       {
-        title: 'Strong meat',
+        title: 'The things to come',
         question: 'How prophecy reads, the last things, and the earth made new.',
       },
     ],

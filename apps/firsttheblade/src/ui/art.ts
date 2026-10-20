@@ -6,7 +6,7 @@
  * round 3's series marks in the same colours.
  */
 import emblemLand from '../art/emblem-land.svg';
-import emblemMilk from '../art/emblem-milk.svg';
+import emblemPath from '../art/emblem-path.svg';
 import emblemRemedies from '../art/emblem-remedies.svg';
 import emblemTaught from '../art/emblem-taught.svg';
 import field768 from '../art/field-768.webp';
@@ -44,7 +44,7 @@ export const MARK = { small: mark112, large: mark320 } as const;
 
 /** Each series' emblem, a drawing in the brand's colours. */
 export const EMBLEMS: Record<SeriesId, string> = {
-  milk: emblemMilk,
+  path: emblemPath,
   land: emblemLand,
   taught: emblemTaught,
   remedies: emblemRemedies,

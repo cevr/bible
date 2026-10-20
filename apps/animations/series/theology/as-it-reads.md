@@ -1,6 +1,6 @@
 # As It Reads (draft, owner's idea, 2026-10-19)
 
-The owner's idea for a foundational film, set against _From Milk to Meat_ ([series.md](series.md)) and its episode 02 ([scripts/02-the-oracles-of-god.md](scripts/02-the-oracles-of-god.md)). Nothing here is a script yet, and no episode number has moved. Every verse below was read in the KJV with `bible verse` on 2026-10-19; every pioneer line was read in the corpus the same day (`bible egw lookup`) and is a lead, not yet verified into `sources.md`.
+The owner's idea for a foundational film, set against _The Path of the Just_ ([series.md](series.md)) and its episode 02 ([scripts/02-the-oracles-of-god.md](scripts/02-the-oracles-of-god.md)). Nothing here is a script yet, and no episode number has moved. Every verse below was read in the KJV with `bible verse` on 2026-10-19; every pioneer line was read in the corpus the same day (`bible egw lookup`) and is a lead, not yet verified into `sources.md`.
 
 ## The idea, in the owner's words
 

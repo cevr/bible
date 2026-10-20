@@ -1,6 +1,6 @@
-# 01 · Milk and Meat
+# 01 · In Its Order
 
-Series: From Milk to Meat · Tier One (Milk) · opener
+Series: The Path of the Just · Tier One (Milk) · opener
 Promise: by the end the viewer knows what the Bible means by milk and meat, why growing is normal and glad, and the path the series will walk.
 Length: about 6:50 (750 spoken words: 4:50 at 155 wpm, 5:18 with the marked breaths and holds, 5:00–5:27 at 165–150 wpm; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
 Status: draft for the owner. Nothing narrated. Every KJV line below was printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15 (supplied-word brackets dropped for speech); every paraphrase source was printed by the corpus search (sources.md). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
@@ -79,13 +79,13 @@ New to the library: the grown man's festive dress on the plain lead; the wedding
 
 ### `title` · ~6 s
 
-**picture:** Title over the teal sky above the courtyard: From Milk to Meat. A small cup of milk at the left of the title and a loaf at its right, gold-edged.
+**picture:** Title over the teal sky above the courtyard: The Path of the Just. Under it a thin gold path rises toward a small dawn light, the hill of `path` in miniature. No cup and no loaf: the title names no milk (owner, 2026-10-20).
 
 ### `milk` · IDEA · ~30 s
 
 **say:** {start}Start with the milk. {/} {peter}Peter writes, {newborn}“As newborn babes, desire the sincere milk of the word, that ye may {*}grow thereby.” {/} {sincere}Sincere here means pure, {mixed}with {*}nothing mixed in. {/} {word}So the milk is God's word, plain and unmixed. {/} {good}And milk is {*}good. {/} {need}A baby cannot do without it. {/} {began}Every one of us began there, {shame}and there is no shame in a cup of milk.
 **cite:** 1 Peter 2:2; E. J. Waggoner, The Present Truth, August 17, 1893, 315; E. J. Waggoner, The Medical Missionary, September 1904, 286
-**picture:** IDEA: the parchment page, matched from the title's cup. A grey figure holds a small cup; on `newborn` a book opens beside it and a ribbon of white pours from its pages into the cup (`word`). On `mixed` a dropper of dark ink hovers over the cup and is waved away. On `need` the cup passes to a row of small figures of every height, each drinking in turn; on `shame` the grey figure from `cold` takes a cup too and smiles.
+**picture:** IDEA: the parchment page, matched from the cup on the courtyard table in `cold`. A grey figure holds a small cup; on `newborn` a book opens beside it and a ribbon of white pours from its pages into the cup (`word`). On `mixed` a dropper of dark ink hovers over the cup and is waved away. On `need` the cup passes to a row of small figures of every height, each drinking in turn; on `shame` the grey figure from `cold` takes a cup too and smiles.
 **paraphrase sources (not spoken):**
 
 - PTUK August 17, 1893, page 315.16 (E. J. Waggoner) — "As newborn babes, desire the sincere [pure, unadulterated] milk of the word … We see, therefore, that the heavenly milk is the pure, unmixed word of God." → `sincere`, `word`
