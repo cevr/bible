@@ -1123,3 +1123,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check credited `e2e/a.spec.js` with an inline source map that names `original.ts` to `playwright test a.spec.js`, though playwright filters a mapped file by the sources its map names and leaves it out.
 - **Cause:** The reader matched a positional filter against the file's own path alone.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+
+### reach-reads-plain-ignores
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Escaped Bun ignore patterns still credit excluded test files"
+- **Source:** p6-guardloop/review-20.md F1
+- **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='src\/guard'`, though bun reads the backslash as an escape and skips the folder (measured on bun 1.4.3), and so for `src/guard/parts.test.t\s`.
+- **Cause:** The reader refused a deny-list of glob characters and read every other pattern literally, so a character bun reads otherwise passed.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or a plain ignore pattern names, and are reached by no run that names an ignore glob`
