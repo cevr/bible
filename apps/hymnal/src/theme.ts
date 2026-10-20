@@ -1,5 +1,5 @@
 /**
- * The app's colours: seven roles in light and dark, all drawn from Sanzo Wada's
+ * The app's colours: nine roles in light and dark, all drawn from Sanzo Wada's
  * combination No. 167 (Ecru, Pale King's Blue, Vandar Poel's Blue), the
  * palette A the owner chose for Selah and the hymnal. A screen reads a role
  * (`color.ts` on the web, `color.native.ts` on a phone), never a hex value.

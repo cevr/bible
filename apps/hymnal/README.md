@@ -14,8 +14,9 @@ under its number, and the refrain written out each time it is sung.
   `virtual:hymnal` plugin (`vite/hymnal.ts`) derives them when the app is
   bundled, for the web and the native bundle alike, so the app opens offline
   and no derived file is committed.
-- The colours are palette A, Wada No. 167, as seven roles (ground, ink,
-  muted, line, accent, soft, and onAccent, the text on an accent fill) in
+- The colours are palette A, Wada No. 167, as nine roles (ground, ink,
+  muted, line, accent, soft, onAccent, the text on an accent fill, and
+  pressed and onPressed, a held accent fill and its text) in
   light and dark in `src/theme.ts`; a screen reads a role, never a hex value. On iOS each role is a `DynamicColorIOS`
   (`src/color.native.ts`), on the web a CSS `light-dark()` property
   (`src/color.ts`). Android keeps the system's colours. `src/theme.test.ts`
