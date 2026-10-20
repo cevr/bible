@@ -465,3 +465,7 @@ board style 9005 world text: the plain lead's "two circle hands floating beside 
 ## 2026-10-19T13:37:50Z · film
 
 The owner kept candidate 9's three cast sheets as the lead (ask a8fb2170353, set rbf-lead-sheets-2026-10-19). The cold picture brief and the Board world now describe him (wavy brown hair, no beard, teal top, khaki trousers, arms in sleeves, about 3.36 heads, chin by a shade step); the accused's "tunic" in the briefs reads "top"; the world's grandmother is Rosa as docs/ensemble.md draws her. The Board's kept tries and lead-rig.ts still draw the plain grey lead until the rig is traced from the sheets.
+
+## 2026-10-20T17:54:00Z · film
+
+Unbaked ink (BAKED false): on a 0.5 s grid over the 9 drawn scenes, 255 of 543 stills are byte-equal to the baked ones and 288 differ, each a close shot; there the figures' line, hands, brows and mouth read about a quarter thinner while the set's ink (the dock's rails, the bench, the table) keeps its width, so close up the figures' line reads lighter than the set's (court mark:power, cold mark:judge).

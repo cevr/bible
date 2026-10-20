@@ -126,7 +126,10 @@ export const farmerProp: RivePropSpec<FigureTimeline, keyof typeof FARMER_KNOBS>
   concept: farmer.concept,
 };
 
-/** A circle hand of `artboard`, its centre at our origin: no view model, only its paper's crawl. */
+/**
+ * A circle hand of `artboard`, its centre at our origin: its paper crawls by its `boil`
+ * timeline, and its view model's one number, `ink`, is the shot's (`FIGURES.shot`).
+ */
 const handProp = (artboard: string, key: string, size = 1): RivePropSpec<HandTimeline, never> => ({
   source: { riv: figuresRiv, artboard, timelines: HAND_TIMELINES, numbers: [] },
   engine: 'canvas',

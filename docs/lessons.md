@@ -470,6 +470,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The helper's code changed and its comment was not read back.
 - **Guard:** skill: whether a comment still says what its code does is judged by reading both, and the judged comment rule is off on its corpus. Carried by `CLAUDE.md`: "A comment says what the code does now and why"
 
+### hand-prop-comment-after-unbake
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Hand comment incorrectly says “no view model”"
+- **Source:** rbf-unbake/review-1.md F1
+- **Wrong:** RBF's hand spec said a circle hand has no view model after the file bound its ink, which gives every hand the number `ink`.
+- **Cause:** The unbake changed one flag in `figures.ts`; the comment on the hand spec in `rigs.ts` reads that flag's effect and was not read back.
+- **Guard:** skill: whether a comment still says what its code does is judged by reading both, and the judged comment rule is off on its corpus. Carried by `CLAUDE.md`: "A comment says what the code does now and why"
+
 ## Figures and the cast
 
 ### bookend-the-setting
