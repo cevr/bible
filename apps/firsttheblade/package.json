@@ -12,7 +12,8 @@
     "contrast": "bun scripts/contrast.ts",
     "kit": "bun kit/draw.ts",
     "plan": "bun run build && alchemy plan alchemy.run.ts --stage prod",
-    "deploy": "bun run build && alchemy deploy alchemy.run.ts --stage prod"
+    "deploy": "bun run build && alchemy deploy alchemy.run.ts --stage prod",
+    "mail:send": "bun scripts/mail-send.ts"
   },
   "dependencies": {
     "@bible/ui": "workspace:*",

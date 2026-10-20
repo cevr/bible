@@ -26,7 +26,8 @@ import { Assets, pageRequest } from '../worker/assets.ts';
 import { addressOf } from './address.ts';
 import { Films } from './films.ts';
 import { confirmLetter } from './letters.ts';
-import { type ConfirmClaim, type FilmCounts, List } from './list.ts';
+import { type SendAnswer, SendRequest } from './admin.ts';
+import { type ConfirmClaim, List } from './list.ts';
 import { logMail, warnMail } from './log.ts';
 import { Mailer } from './mailer.ts';
 import { MAIL_PAGES, MAIL_ROUTES, SIGNUP_FIELDS } from './paths.ts';
@@ -58,11 +59,6 @@ const ONE_CLICK = 'List-Unsubscribe=One-Click';
 const see = (path: string) => HttpServerResponse.redirect(path, { status: 303 });
 
 const text = (body: string, status: number) => HttpServerResponse.text(body, { status });
-
-/** What the send route answers `bun run mail:send` with. */
-type SendAnswer =
-  | { readonly error: string }
-  | (FilmCounts & { readonly film: string; readonly queued: number });
 
 const json = (body: SendAnswer, status: number) => HttpServerResponse.jsonUnsafe(body, { status });
 
@@ -196,11 +192,6 @@ const leave = Effect.fn('Mail.leave')(function* (request: HttpServerRequest.Http
   yield* logMail('unsubscribe.done', { subscriber: leaver.value, oneClick: Number(oneClick) });
   if (oneClick) return text('You have left the list.', 200);
   return see(MAIL_PAGES.left);
-});
-
-const SendRequest = Schema.Struct({
-  film: Schema.String,
-  dryRun: Schema.optionalKey(Schema.Boolean),
 });
 
 /**

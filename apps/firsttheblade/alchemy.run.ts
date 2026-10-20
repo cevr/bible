@@ -1,5 +1,8 @@
 /**
- * The stack: one Cloudflare Worker serving the built site (`src/worker/Site.ts`).
+ * The stack: one Cloudflare Worker serving the built site and its email list
+ * (`src/worker/Site.ts`), with the list's D1 database, queue, rate limit and
+ * Email Sending binding (`src/worker/mail.ts`). Deploying needs the list's
+ * two secrets in `.env` (README, The email list).
  * `bun run deploy` builds and deploys `prod`; any other stage is a throwaway
  * copy (`bunx alchemy deploy alchemy.run.ts --stage <name>`), destroyed with
  * `bunx alchemy destroy alchemy.run.ts --stage <name>`.

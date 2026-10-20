@@ -1,8 +1,9 @@
 # First the Blade
 
 The website for the First the Blade YouTube channel
-([@firsttheblade](https://www.youtube.com/@firsttheblade)). Seven static pages:
-home, about, one page per series, and the not-found page.
+([@firsttheblade](https://www.youtube.com/@firsttheblade)), and its email
+list. Prerendered pages: home, about, one page per series, privacy, the
+not-found page, and the email list's notices.
 
 ## How it is built
 
@@ -14,10 +15,10 @@ home, about, one page per series, and the not-found page.
   Its open state is a local signal; no state is shared or kept in the address,
   so @bible/atom-solid and @bible/url-state are not used.
 - **The Worker** (`src/worker/Site.ts`) serves `dist/` from Cloudflare's static
-  assets. Every request passes through `src/worker/respond.ts` first:
-  GET and HEAD only, the not-found page as a 404, cache headers by kind of file,
-  and the security headers (a strict content policy with no inline script or
-  style).
+  assets. Every request passes through `src/worker/respond.ts` first: the
+  email list's routes, then GET and HEAD only, the not-found page as a 404,
+  cache headers by kind of file, and the security headers (a strict content
+  policy with no inline script or style; forms post only to this site).
 - **Pages and words** are data: `src/pages.ts` (paths, titles, link cards),
   `src/content.ts` (the verse, the four series). A series lists its films once
   they are added to its `episodes`.
@@ -41,17 +42,61 @@ only (ask ab8011aa651).
 2. Give it its study page: its words, the verses it cites and further reading.
    The page is not built yet; the first film builds it, from the film's script
    and sources.
-3. Deploy, and send the film's email.
+3. Deploy, then send the film's email: `bun run mail:send path/01 --dry-run`
+   counts who will get it, and `bun run mail:send path/01` sends it. Running
+   it again finishes a send that stopped and sends no one the film twice.
+
+## The email list
+
+The list is the site's own, on Cloudflare (owner, ask a8b77b61c99): a sign-up,
+a confirm, one-click leave, and one email per film. There is no tracking, no
+template editor and no analytics.
+
+- **Sign-up** is the form in the night close (`src/ui/mail.tsx`). It posts to
+  `POST /subscribe` with no script; a honeypot field and a limit of five tries
+  a minute from one connection keep bots out. Every address gets the same
+  answer, so the page never tells who is on the list. A new or pending address
+  is sent one email to confirm, at most once an hour.
+- **Confirm** is the link in that email, `GET /subscribe/confirm?token=`. A
+  link works for seven days, and only the newest one works.
+- **Leave** is the link at the foot of every film's email, `GET /unsubscribe`
+  (one button), and its `POST`, which a mail app's one-click unsubscribe also
+  sends (`List-Unsubscribe`, RFC 8058).
+- **A film's email** goes out through `bun run mail:send` (`scripts/mail-send.ts`),
+  which calls `POST /mail/send` with the admin secret. The Worker puts one
+  delivery per confirmed subscriber on a Cloudflare Queue and sends them a
+  batch at a time; the `sends` table records each, so no one gets a film twice.
+  The email is built from the film's entry in `src/content.ts` (`src/mail/letters.ts`).
+- **Where it lives:** the list is D1 (`migrations/`, applied on deploy), the
+  emails go through Cloudflare Email Sending from `films@firsttheblade.com`,
+  and the Worker binds both with the Queue and a Rate Limit (`src/worker/mail.ts`).
+  The routes are `src/mail/routes.ts`; the logs name ids and counts only
+  (`[mail] <action> key=value`), never an address or a token.
+
+Two secrets sign the links and guard the send route. They live in
+`apps/firsttheblade/.env` (gitignored), which `bun run deploy` and
+`bun run mail:send` both read; the deploy binds them to the Worker as secrets:
+
+```bash
+MAIL_TOKEN_KEY=<openssl rand -hex 32>
+MAIL_ADMIN_TOKEN=<openssl rand -hex 32>
+```
+
+Changing `MAIL_TOKEN_KEY` breaks every link already sent. Under
+`bun run preview` the list runs in memory: each email is written to
+`tmp/outbox/<n>.txt` instead of being sent, so a sign-up can be confirmed and
+left from a laptop.
 
 ## Commands
 
 ```bash
 bun run build      # vite build (browser) + vite build --ssr (pages) + prerender → dist/
 bun run preview    # dist/ through the Worker's policy on http://localhost:8470 (PORT to change)
-bun run test       # the Worker's policy, the pages' data, the sitemap
+bun run test       # the Worker's policy, the email list, the pages' data, the sitemap
 bun run typecheck
 bun run plan       # build, then show what `prod` would change
 bun run deploy     # build, then deploy `prod`
+bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to the email list
 ```
 
 Alchemy asks before it changes anything. In a shell that can't prompt (Claude Code's `!`, CI), pass the approval through: `bun run deploy --yes`.
