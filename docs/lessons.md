@@ -1363,3 +1363,53 @@ The form of an entry, each field on its own line:
 - **Wrong:** Three Media cases failed their 5 s limit in a warm gate at load 39 to 46: the suite ran its encodes three at a time, and its slowest case took 0.77 to 1.07 s alone at load 30, against 0.57 to 0.63 s one after another.
 - **Cause:** `describe.concurrent` over cases that each encode on the CPU puts the siblings' work inside each case's limit.
 - **Guard:** skill: whether a case's work is on the CPU or waits on something is a reading of what it does, which no rule sees. Carried by `packages/film/README.md`: "runs them one after another (`describe`, not `describe.concurrent`):"
+
+### lazy-fixture-rule-reads-curried-memos
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Curried TTL caches bypass the fixture guard"
+- **Source:** p6-testspeed/review-2.md F1
+- **Wrong:** `film/no-lazy-test-fixture` passed `Effect.cachedWithTTL('1 minute')(read)` and a named TTL helper applied where the file loads, each a memo the first case to ask builds inside its limit.
+- **Cause:** The rule read a memo maker's own call and a pipe's steps, not a maker applied by a call of its own or through a name.
+- **Guard:** lint:film/no-lazy-test-fixture, proof `packages/film/lint/fixtures/no-lazy-test-fixture.ts` `export const named = withinMinute(read); // RED film/no-lazy-test-fixture`
+
+### test-git-rule-follows-spreads
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The Git guard accepts the original faulty fixture"
+- **Source:** p6-testspeed/review-2.md F2
+- **Wrong:** `film/test-git-config` passed the base `guard/files.test.ts`, whose `AS_TEST` held three settings spread into git's arguments, the very file whose delete the maintenance lock broke.
+- **Cause:** The rule took an array as git's only by a name that says git or a call it is handed to, not by where it is spread.
+- **Guard:** lint:film/test-git-config, proof `packages/film/lint/fixtures/test-git-config.ts` `const AS_TEST = ['-c', 'user.name=t', 'commit']; // RED film/test-git-config`
+
+### lazy-fixture-rule-spares-flows
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Deferred function composition is rejected as a shared fixture"
+- **Source:** p6-testspeed/review-2.md F3
+- **Wrong:** `film/no-lazy-test-fixture` reported `flow(Effect.cached, Effect.flatten)` where the file loads, a helper whose every call makes its own memo.
+- **Cause:** The rule read a memo maker handed to any call as a pipe step, `flow` among them.
+- **Guard:** code: `packages/film/lint/fixtures/no-lazy-test-fixture.ts` `it.effect('applies a flow in its own case', () => Fx.flatten(composed(read)));`
+
+### docs-name-renamed-scripts
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Firsttheblade’s README names the removed task"
+- **Source:** p6-testspeed/review-2.md F4
+- **Wrong:** The firsttheblade README said the app's `gate` is `bun run contrast` after the script became `gate:timed`.
+- **Cause:** The sentence names a script, not a file, so no docs check reads it when the script is renamed.
+- **Guard:** skill: a sentence's claim goes stale with no file named in it changing, which only a reader sees. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it"
+
+### docs-count-plugin-rules
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The film README counts twenty-five plugin rules after the unit added two"
+- **Source:** p6-testspeed/findings.md F7
+- **Wrong:** The film README said twenty-five of the plugin's rules have an asserted message after the unit's two rules made twenty-seven.
+- **Cause:** A count in words changes with no name in its sentence changing.
+- **Guard:** skill: a count in a sentence is a claim only a reader holds to the code. Carried by `CLAUDE.md`: "a unit's review request carries this list, and the reviewer reads those lines"
