@@ -104,8 +104,8 @@ const standIn = (each: Case) => {
   };
   const dry = json({
     tasks: [
-      { taskId: 'x#test', package: 'x', command: each.command ?? 'bun test' },
-      { taskId: 'y#test', package: 'y', command: 'bun test' },
+      { taskId: 'x#test', package: 'x', directory: 'x', command: each.command ?? 'bun test' },
+      { taskId: 'y#test', package: 'y', directory: 'y', command: 'bun test' },
     ],
   });
   return [
@@ -141,6 +141,17 @@ const run = (each: Case) =>
       path.join(src, 'test-budget.ts'),
     );
     yield* fs.copy(path.join(import.meta.dir, 'test-budget'), path.join(src, 'test-budget'));
+    yield* fs.copy(path.join(import.meta.dir, 'guard'), path.join(src, 'guard'));
+    // A repository with no workspace: the reach check (`test-budget/reach.ts`) finds no test file.
+    yield* fs.writeFileString(path.join(root, 'package.json'), '{ "workspaces": [] }');
+    yield* Effect.scoped(
+      Effect.flatMap(
+        spawner.spawn(
+          ChildProcess.make('git', ['init', '-q'], { cwd: root, forceKillAfter: '5 seconds' }),
+        ),
+        (git) => git.exitCode,
+      ),
+    );
     yield* fs.symlink(
       path.join(import.meta.dir, '..', 'node_modules'),
       path.join(root, 'packages', 'scripts', 'node_modules'),
