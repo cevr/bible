@@ -1153,3 +1153,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check credited `all/left.spec.ts` to `playwright test --update-snapshots all narrow`, though playwright reads `all` as the snapshot mode and filters by `narrow` alone.
 - **Cause:** The allow-list read `--update-snapshots` and `-u` as taking no value, where playwright declares them `[mode]`, a value or none.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+
+### tests-bound-each-case
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The credits-refusal test no longer detects loss of halting"
+- **Source:** p6-guardloop/review-22.md F1
+- **Wrong:** The case that sends no part after a refusal held both its statuses to the rate limit's bound of 32 requests, so a runner that sent all 20 parts after a refusal for credits passed it.
+- **Cause:** One bound, raised for the rate limit's retries, served a case that sends no retry.
+- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `sends no part after one the account refuses, for credits or a rate limit`
