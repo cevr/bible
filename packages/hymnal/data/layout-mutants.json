@@ -1,0 +1,580 @@
+{
+  "print": "The layout mutants of the census: each a recipe (a line dropped, two neighbouring lines swapped, two stanzas swapped, the refrain left out) applied in memory to the hymn's committed printed source (its fix's stanzas, else its row's) and written back as a row with the fix dropped (`scripts/layout.ts`). From r6 M1: the 115 mutants that hymnrows round 6's review built in 25 hymns and the census let through. Recipes and counts only, never a hymn's words.",
+  "mutants": [
+    {
+      "number": 3,
+      "mode": "dropline:1.4/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 3,
+      "mode": "swaplines:2.7/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 3,
+      "mode": "dropline:2.8/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 3,
+      "mode": "swaplines:3.3/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 3,
+      "mode": "dropline:3.4/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 14,
+      "mode": "swaplines:1.2/3",
+      "from": "r6 M1"
+    },
+    {
+      "number": 14,
+      "mode": "swaplines:2.2/3",
+      "from": "r6 M1"
+    },
+    {
+      "number": 24,
+      "mode": "swap:1-3",
+      "from": "r6 M1"
+    },
+    {
+      "number": 24,
+      "mode": "swaplines:2.2/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 24,
+      "mode": "dropline:2.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 59,
+      "mode": "dropline:1.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 59,
+      "mode": "swaplines:1.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 59,
+      "mode": "swaplines:3.2/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 59,
+      "mode": "dropline:3.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 59,
+      "mode": "swaplines:3.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 61,
+      "mode": "swaplines:1.5/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 61,
+      "mode": "dropline:1.6/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 61,
+      "mode": "swaplines:3.5/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 61,
+      "mode": "dropline:3.6/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 61,
+      "mode": "swaplines:3.6/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 122,
+      "mode": "dropline:3.1/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 125,
+      "mode": "dropline:2.4/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 125,
+      "mode": "dropline:2.5/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 125,
+      "mode": "swaplines:2.5/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 125,
+      "mode": "dropline:3.4/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 125,
+      "mode": "dropline:3.5/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 178,
+      "mode": "dropline:1.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 189,
+      "mode": "dropline:3.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 259,
+      "mode": "swaplines:1.2/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 259,
+      "mode": "dropline:1.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 259,
+      "mode": "swaplines:1.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 259,
+      "mode": "dropline:2.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 259,
+      "mode": "swaplines:2.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 259,
+      "mode": "swaplines:3.3/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "swaplines:1.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "dropline:1.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "swaplines:2.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "dropline:2.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "swaplines:3.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "dropline:3.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "swaplines:4.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 311,
+      "mode": "dropline:4.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 317,
+      "mode": "dropline:3.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 317,
+      "mode": "dropline:4.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 356,
+      "mode": "dropline:1.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 377,
+      "mode": "swaplines:2.4/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 377,
+      "mode": "swaplines:3.4/6",
+      "from": "r6 M1"
+    },
+    {
+      "number": 426,
+      "mode": "dropline:1.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 426,
+      "mode": "dropline:3.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 426,
+      "mode": "swaplines:3.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 476,
+      "mode": "dropline:1.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 476,
+      "mode": "dropline:2.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 476,
+      "mode": "dropline:3.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 492,
+      "mode": "dropline:1.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 492,
+      "mode": "dropline:1.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 492,
+      "mode": "dropline:2.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 492,
+      "mode": "dropline:3.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 492,
+      "mode": "dropline:4.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "swaplines:1.2/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "swaplines:1.3/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "dropline:1.4/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "swaplines:1.7/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "swaplines:1.8/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "dropline:1.9/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "swaplines:1.9/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "swaplines:1.10/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 503,
+      "mode": "dropline:1.11/12",
+      "from": "r6 M1"
+    },
+    {
+      "number": 506,
+      "mode": "dropline:3.8/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 506,
+      "mode": "swaplines:4.6/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 506,
+      "mode": "swaplines:4.7/9",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "norefrain",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "dropline:1.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "swaplines:2.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "dropline:2.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "swaplines:3.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "dropline:3.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "swaplines:4.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 512,
+      "mode": "dropline:4.4/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 558,
+      "mode": "swaplines:1.1/5",
+      "from": "r6 M1"
+    },
+    {
+      "number": 558,
+      "mode": "swaplines:2.1/5",
+      "from": "r6 M1"
+    },
+    {
+      "number": 558,
+      "mode": "swaplines:3.1/5",
+      "from": "r6 M1"
+    },
+    {
+      "number": 558,
+      "mode": "dropline:3.3/5",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "dropline:2.7/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "dropline:3.7/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "dropline:4.5/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "swaplines:4.5/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "swaplines:4.6/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "swaplines:5.3/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "dropline:5.4/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 575,
+      "mode": "dropline:5.7/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:1.1/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "swaplines:1.1/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:1.2/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:1.4/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:1.6/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "swaplines:1.6/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:1.7/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:2.2/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:2.4/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:2.7/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:3.1/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "swaplines:3.1/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:3.2/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:3.4/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:3.6/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "swaplines:3.6/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 580,
+      "mode": "dropline:3.7/7",
+      "from": "r6 M1"
+    },
+    {
+      "number": 627,
+      "mode": "dropline:2.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 627,
+      "mode": "dropline:2.2/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 627,
+      "mode": "dropline:2.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 627,
+      "mode": "dropline:3.1/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 627,
+      "mode": "dropline:3.2/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 627,
+      "mode": "dropline:3.3/4",
+      "from": "r6 M1"
+    },
+    {
+      "number": 631,
+      "mode": "swaplines:3.6/8",
+      "from": "r6 M1"
+    },
+    {
+      "number": 631,
+      "mode": "dropline:3.7/8",
+      "from": "r6 M1"
+    }
+  ]
+}

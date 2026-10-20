@@ -1681,7 +1681,11 @@ const entryProblems = (entry: Entry, deciding: Deciding, sources: Sources): stri
  * its deciding page; each shape reading is of that page, and agrees with
  * the printed source (`shapeProblems`).
  */
-const outlineEntryProblems = (entry: Entry, deciding: Deciding, sources: Sources): string[] => {
+export const outlineEntryProblems = (
+  entry: Entry,
+  deciding: Deciding,
+  sources: Sources,
+): string[] => {
   const n = entry.number;
   const outlines = sources.outlines.get(n) ?? [];
   const borrower = sources.inventory.lent.some((one) => one.hymn === n);
@@ -2225,6 +2229,18 @@ export const censusLayer = Layer.merge(
     ),
   ),
   BunServices.layer,
+);
+
+/** The census and its sources, read once in a process: the test files share the one read. */
+export const readCensusOnce = Effect.runSync(
+  Effect.cached(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const census = yield* decodeCensus(yield* fs.readFileString(path.join(DATA, 'census.json')));
+      const sources = yield* loadSources;
+      return { census, sources };
+    }).pipe(Effect.provide(censusLayer)),
+  ),
 );
 
 if (import.meta.main) {

@@ -10,7 +10,7 @@
  * fixed case the census must refuse, with the problem line it must print.
  */
 
-import { Effect, Exit, FileSystem, Option } from 'effect';
+import { Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {
@@ -21,17 +21,16 @@ import {
   type Census,
   censusLayer,
   decidingOf,
-  decodeCensus,
   type Entry,
   type Fix,
   hunksOf,
   type Inventory,
   inventoryProblems,
   lentReadings,
-  loadSources,
   photoProblem,
   printedOf,
   problemsOf,
+  readCensusOnce,
   readingProblems,
   type Reading,
   type Ruling,
@@ -46,20 +45,9 @@ import {
   wordsOf,
 } from '../scripts/census.js';
 
-const data = (file: string) => new URL(`../data/${file}`, import.meta.url).pathname;
-
-/** The census and its sources, read once as the file loads: no case's time limit holds the read. */
-const read = Effect.succeed(
-  // oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
-  await Effect.runPromise(
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const census = yield* decodeCensus(yield* fs.readFileString(data('census.json')));
-      const sources = yield* loadSources;
-      return { census, sources };
-    }).pipe(Effect.provide(censusLayer)),
-  ),
-);
+/** The census and its sources, read once for every test file, as this file loads: no case's time limit holds the read. */
+// oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
+const read = Effect.succeed(await Effect.runPromise(readCensusOnce));
 
 const withEntry = (census: Census, n: number, change: (entry: Entry) => Entry): Census => ({
   ...census,
