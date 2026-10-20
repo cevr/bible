@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 import { useAccent } from '~/color';
 import { type WebTab, WebTabBar } from '~/web/WebTabBar';
+import { webOnly } from '~/web/webOnly';
 
 const hymns = { name: '(hymns)', title: 'Hymns', href: '/' } as const satisfies WebTab;
 const search = { name: 'search', title: 'Search', href: '/search' } as const satisfies WebTab;
@@ -58,7 +59,7 @@ export default function TabsLayout() {
           }),
         }}
       />
-      <WebTabBar tabs={[hymns, search, settings]} />
+      {webOnly(<WebTabBar tabs={[hymns, search, settings]} />)}
     </Tabs>
   );
 }
