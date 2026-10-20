@@ -469,7 +469,7 @@ interface Seen extends Visit {
 }
 
 /**
- * The visits that left the list more than one row from their share's
+ * The visits that left the list more than a pixel from their share's
  * offset (so a visit is the case its values name, whatever the way it
  * leaves), did not come back within one row, did not draw the reader's row
  * in the first frame with every row on screen, saw the list move by itself,
@@ -478,7 +478,7 @@ interface Seen extends Visit {
 const missed = (visits: ReadonlyArray<Seen>) =>
   visits.filter(
     (v) =>
-      Math.abs(v.left - v.target) > rowHeight ||
+      Math.abs(v.left - v.target) > 1 ||
       Math.abs(v.found - v.left) > rowHeight ||
       !v.first.drawn ||
       v.first.blank > 0 ||
@@ -491,7 +491,7 @@ const missed = (visits: ReadonlyArray<Seen>) =>
 /**
  * On a page of its own, cold-loaded at `list`, makes each visit in turn: in
  * a window of the visit's height, the reader scrolls to its share of the
- * list's height and leaves the list from there, within one row (pressing
+ * list's height and leaves the list from there, within a pixel (pressing
  * or clicking after a pause, or in the same task as his scroll back there
  * from three rows away); he comes back the visit's way, then makes its move.
  */
