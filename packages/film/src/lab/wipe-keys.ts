@@ -1,4 +1,4 @@
-// A wipe's divider by the keyboard (the lab's Compare and a Set's wipe): its
+// A wipe's divider by the keyboard (a set's wipe): its
 // grip is a slider, moved as one is, through the page's keymap. While the
 // grip has focus (`Focus` `slider`) ←/→ and ↓/↑ nudge it a hundredth of the
 // frame, ten with ⇧ and a thousandth with ⌥; Home and End put it at the

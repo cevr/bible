@@ -224,10 +224,9 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --band-3: #2b1c41;
   --band-3-ink: #b9a3f5;
 
-  /* Drawn over the picture: must read on any frame (the compare divider, marks' halo). */
+  /* Drawn over the picture: must read on any frame (a set's wipe, a sketch's halo). */
   --on-picture: #fff;
   --on-picture-shade: rgb(0 0 0 / 0.55);
-  --fs-on-picture: 30px; /* a label drawn in the picture's own units (the compare divider's) */
   /* A Board card's words on its paper, in the frame's own units (`cqw`: a share of the frame's width). */
   --fs-card: 4cqw;
   --lh-card: 5.2cqw;
@@ -244,8 +243,7 @@ One `:root` block, in one stylesheet, `packages/film/src/player/tokens.css`, lin
   --state-warning: #d9b56a; /* a warning finding */
   --state-recording: #e5484d; /* record armed / recording, clip */
   --state-note: #f0609a; /* a note pin and its ink */
-  --note-wash: rgb(240 96 154 / 0.16); /* the note's ink as a wash: a correction's words instead */
-  --state-agent: #7fc4c0; /* the agent's reply, a sound tick */
+  --state-agent: #7fc4c0; /* the agent's reply */
   --state-scratch: var(--text-3); /* a staging take: Scratch */
   --state-live: var(--text-1); /* a cue playing at the frame: its lane, its literal, its meter */
 

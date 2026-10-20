@@ -37,8 +37,10 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
   --st-gutter: var(--s-4);
 }
 .st-app { height: 100dvh; display: grid; grid-template-rows: var(--st-header-h) minmax(0, 1fr); color: var(--text-1); font-family: var(--font); font-size: var(--fs-3); line-height: var(--lh-3); }
-/* A bare button draws nothing of its own; the kit's button and segmented control keep their own look. */
-.st-app button:where(:not(.sh-btn, .sh-seg > button)) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+/* A bare button draws nothing of its own, in the studio and in the dialogs it portals out (the recorder, Move…); the
+   kit's button and segmented control keep their own look. The reset weighs nothing, so any rule of the studio's sets
+   over it. */
+:where(.st-app, .st-record, .st-picker) :where(button:not(.sh-btn, .sh-seg > button)) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .st-app :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .st-icon { width: var(--s-4); height: var(--s-4); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .st-await { margin: 0; padding: var(--s-4); color: var(--text-2); }
@@ -48,15 +50,15 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-home:hover { color: var(--text-1); background: var(--surface-2); }
 .st-header { display: flex; align-items: center; gap: var(--s-3); padding: 0 var(--st-gutter); border-bottom: var(--border); min-width: 0; }
 .st-film { font-weight: var(--w-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.st-app .st-ver { display: inline-flex; align-items: center; gap: var(--s-1); height: var(--s-6); padding: 0 var(--s-2); border-radius: var(--r-1); background: var(--surface-2); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-2); line-height: var(--lh-2); font-weight: var(--w-1); flex: none; }
+.st-ver { display: inline-flex; align-items: center; gap: var(--s-1); height: var(--s-6); padding: 0 var(--s-2); border-radius: var(--r-1); background: var(--surface-2); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-2); line-height: var(--lh-2); font-weight: var(--w-1); flex: none; }
 .st-ver .st-icon { width: var(--s-3); height: var(--s-3); color: var(--text-2); }
 .st-stage { font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); white-space: nowrap; }
 .st-spacer { flex: 1; }
 .st-status { display: flex; align-items: center; gap: var(--s-3); min-width: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
 .st-doing { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
 .st-doing::before { content: ''; display: inline-block; width: var(--s-2); height: var(--s-2); border-radius: var(--r-dot); background: var(--k-sound); margin-right: var(--s-2); }
-.st-app .st-waits { color: var(--text-1); white-space: nowrap; padding: 0 var(--s-2); height: var(--s-6); border-radius: var(--r-1); }
-.st-app .st-waits:hover { background: var(--surface-2); }
+.st-waits { color: var(--text-1); white-space: nowrap; padding: 0 var(--s-2); height: var(--s-6); border-radius: var(--r-1); }
+.st-waits:hover { background: var(--surface-2); }
 /* Every row starts at its number; the check, on the version shown, sits at the row's end. */
 .lab-context-item.st-version { display: flex; justify-content: flex-start; align-items: center; gap: var(--s-3); }
 .st-version .lab-context-check { margin-left: auto; }
@@ -102,17 +104,17 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-tc { font-family: var(--font-mono); font-size: var(--fs-tc); line-height: var(--lh-tc); font-weight: var(--w-1); font-variant-numeric: tabular-nums slashed-zero; white-space: nowrap; min-width: 7.4ch; }
 .st-tc small { font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-3); margin-left: var(--s-2); }
 .st-keys { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: var(--surface-1); border: var(--border); flex: none; }
-.st-app .st-key { width: 38px; height: 34px; display: grid; place-items: center; border-radius: var(--r-2); color: var(--text-1); }
-.st-app .st-key:hover { background: var(--surface-3); }
+.st-key { width: 38px; height: 34px; display: grid; place-items: center; border-radius: var(--r-2); color: var(--text-1); }
+.st-key:hover { background: var(--surface-3); }
 /* Play: a raised neutral key at rest; the blue gradient, with a halo, only while it plays. */
-.st-app .st-key[data-look="play"] { position: relative; width: 52px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); transition: background var(--t-base) var(--ease); }
-.st-app .st-key[data-look="play"]:focus-visible { box-shadow: var(--focus-ring); }
-.st-app .st-key[data-look="play"][aria-pressed="true"] { background: linear-gradient(165deg, var(--accent-a), var(--accent-b)); color: var(--accent-ink); }
+.st-key[data-look="play"] { position: relative; width: 52px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); transition: background var(--t-base) var(--ease); }
+.st-key[data-look="play"]:focus-visible { box-shadow: var(--focus-ring); }
+.st-key[data-look="play"][aria-pressed="true"] { background: linear-gradient(165deg, var(--accent-a), var(--accent-b)); color: var(--accent-ink); }
 .st-key[data-look="play"][aria-pressed="true"]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 0 var(--accent); animation: st-halo var(--t-sheet) var(--ease) forwards; pointer-events: none; }
 @keyframes st-halo { from { box-shadow: 0 0 0 0 var(--accent-wash-strong); } to { box-shadow: 0 0 0 var(--s-3) transparent; } }
 .st-caption { flex: 1; min-width: 0; margin: 0; color: var(--text-1); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-.st-app .st-tbtn { height: var(--hit); min-width: var(--hit); padding: 0 var(--s-2); border-radius: var(--r-1); color: var(--text-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); }
-.st-app .st-tbtn:hover, .st-app .st-tbtn[aria-pressed="true"] { color: var(--text-1); background: var(--surface-2); }
+.st-tbtn { height: var(--hit); min-width: var(--hit); padding: 0 var(--s-2); border-radius: var(--r-1); color: var(--text-2); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); }
+.st-tbtn:hover, .st-tbtn[aria-pressed="true"] { color: var(--text-1); background: var(--surface-2); }
 
 /* Timeline */
 .st-timeline { grid-area: timeline; min-height: 0; margin: 0 var(--st-gutter) var(--st-gutter); border-radius: var(--r-panel); background: var(--surface-1); border: var(--border); box-shadow: 0 -1px 0 0 var(--rim); display: grid; grid-template-columns: var(--st-head-w) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; position: relative; }
@@ -153,23 +155,23 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-next { display: flex; align-items: center; gap: var(--s-3); padding-left: var(--s-3); height: var(--st-next-h); border-bottom: 0; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); white-space: nowrap; }
 .st-next-words { position: sticky; left: var(--s-3); display: flex; gap: var(--s-3); }
 .st-next em { font-style: normal; color: var(--text-3); }
-.st-app .st-clip { position: absolute; top: 5px; bottom: 5px; border-radius: var(--r-1); overflow: hidden; display: flex; align-items: center; padding: 0 var(--s-2); font-size: var(--fs-2); line-height: var(--lh-2); font-weight: var(--w-clip); white-space: nowrap; touch-action: pan-x; background: var(--k-script); color: var(--k-script-ink); }
-.st-app .st-clip[data-fit="block"], .st-app .st-clip[data-fit="tick"] { padding: 0; }
+.st-clip { position: absolute; top: 5px; bottom: 5px; border-radius: var(--r-1); overflow: hidden; display: flex; align-items: center; padding: 0 var(--s-2); font-size: var(--fs-2); line-height: var(--lh-2); font-weight: var(--w-clip); white-space: nowrap; touch-action: pan-x; background: var(--k-script); color: var(--k-script-ink); }
+.st-clip[data-fit="block"], .st-clip[data-fit="tick"] { padding: 0; }
 .st-clip[data-fit="tick"] { border-radius: var(--r-0); }
-.st-app .st-clip:focus-visible { box-shadow: var(--focus-ring-inset); }
+.st-clip:focus-visible { box-shadow: var(--focus-ring-inset); }
 .st-lbl { overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; }
-.st-app .st-clip[data-kind="board"] { background-color: var(--surface-2); background-repeat: no-repeat; background-size: cover; background-position: center; color: var(--text-1); }
+.st-clip[data-kind="board"] { background-color: var(--surface-2); background-repeat: no-repeat; background-size: cover; background-position: center; color: var(--text-1); }
 .st-clip[data-kind="board"]::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--k-board); z-index: 1; }
 .st-clip[data-picture="true"] > .st-lbl { display: none; }
 .st-clip[data-kind="board"] > .st-lbl { position: absolute; left: var(--s-1); bottom: 3px; padding: 0 var(--s-1); border-radius: var(--r-0); background: var(--backdrop); font-size: var(--fs-1); line-height: var(--lh-1); font-weight: var(--w-2); max-width: calc(100% - var(--s-2)); }
-.st-app .st-clip[data-kind="voice"] { background: var(--voice-bed); color: var(--k-voice); }
-.st-app .st-clip[data-kind="scenes"] { background: var(--k-scene); color: var(--k-scene-ink); }
-.st-app .st-clip[data-kind="sound"] { background: var(--k-sound); color: var(--k-sound-ink); }
-.st-app .st-clip[data-kind="render"] { background: var(--k-render); color: var(--k-render-ink); }
+.st-clip[data-kind="voice"] { background: var(--voice-bed); color: var(--k-voice); }
+.st-clip[data-kind="scenes"] { background: var(--k-scene); color: var(--k-scene-ink); }
+.st-clip[data-kind="sound"] { background: var(--k-sound); color: var(--k-sound-ink); }
+.st-clip[data-kind="render"] { background: var(--k-render); color: var(--k-render-ink); }
 .st-clip[data-est="true"]::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, var(--hatch) 0 5px, transparent 5px 10px); pointer-events: none; }
 /* The beat selected: an inset ring on the clip itself, so an estimated clip keeps its hatch. */
-.st-app .st-clip[data-linked="true"] { box-shadow: inset 0 0 0 2px var(--on-picture); }
-.st-app .st-clip[data-linked="true"]:focus-visible { box-shadow: inset 0 0 0 2px var(--on-picture), var(--focus-ring-inset); }
+.st-clip[data-linked="true"] { box-shadow: inset 0 0 0 2px var(--on-picture); }
+.st-clip[data-linked="true"]:focus-visible { box-shadow: inset 0 0 0 2px var(--on-picture), var(--focus-ring-inset); }
 /* An approved clip: a dot in the approved state's colour at its top right. */
 .st-ok { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--state-approved); box-shadow: 0 0 0 1px var(--backdrop); z-index: 2; pointer-events: none; }
 .st-marks { position: absolute; left: 0; right: 0; bottom: 1px; height: var(--s-2); z-index: 2; pointer-events: none; }
@@ -191,12 +193,11 @@ body.film-studio { display: block; overflow: hidden; background: var(--surface-0
 .st-ttl { min-width: 0; flex: 1; }
 .st-ttl h2 { margin: 0; font-size: var(--fs-4); line-height: var(--lh-4); font-weight: var(--w-3); }
 .st-sub { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); font-variant-numeric: tabular-nums slashed-zero; }
-.st-app .st-btn { height: var(--s-8); padding: 0 var(--s-3); border-radius: var(--r-1); border: 1px solid var(--line-strong); background: var(--surface-2); font-size: var(--fs-2); line-height: var(--lh-2); white-space: nowrap; }
-.st-app .st-btn.primary { border-color: var(--text-1); background: var(--text-1); color: var(--surface-1); font-weight: var(--w-3); }
-.st-app .st-btn:disabled { cursor: default; border-color: var(--line-strong); background: var(--surface-2); color: var(--text-3); }
-.st-record .st-close { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-:is(.st-app, .st-record) .st-close { width: var(--s-8); height: var(--s-8); border-radius: var(--r-1); display: grid; place-items: center; color: var(--text-2); flex: none; }
-:is(.st-app, .st-record) .st-close:hover { background: var(--surface-3); color: var(--text-1); }
+.st-btn { height: var(--s-8); padding: 0 var(--s-3); border-radius: var(--r-1); border: 1px solid var(--line-strong); background: var(--surface-2); font-size: var(--fs-2); line-height: var(--lh-2); white-space: nowrap; }
+.st-btn.primary { border-color: var(--text-1); background: var(--text-1); color: var(--surface-1); font-weight: var(--w-3); }
+.st-btn:disabled { cursor: default; border-color: var(--line-strong); background: var(--surface-2); color: var(--text-3); }
+.st-close { width: var(--s-8); height: var(--s-8); border-radius: var(--r-1); display: grid; place-items: center; color: var(--text-2); flex: none; }
+.st-close:hover { background: var(--surface-3); color: var(--text-1); }
 .st-row { display: flex; align-items: center; gap: var(--s-3); height: 40px; padding: 0 var(--s-4); border-bottom: var(--border); font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
 a.st-row { color: var(--text-2); text-decoration: none; }
 a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
@@ -224,18 +225,18 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   /* The Script key too: a phone opens the pane from the reading block's head, and the timecode keeps its room. */
   .st-caption, .st-key[data-look="edge"], .st-key[data-look="pane"] { display: none; }
   .st-keys { margin-left: auto; }
-  .st-app .st-key { width: var(--hit); height: var(--hit); }
-  .st-app .st-key[data-look="play"] { width: 56px; }
+  .st-key { width: var(--hit); height: var(--hit); }
+  .st-key[data-look="play"] { width: 56px; }
   /* The chip stays its size; a finger's area is its hit-slop, centred on it. */
-  .st-app .st-ver { position: relative; }
-  .st-app .st-ver::before { content: ''; position: absolute; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); left: min(0px, calc(50% - var(--hit) / 2)); right: min(0px, calc(50% - var(--hit) / 2)); }
+  .st-ver { position: relative; }
+  .st-ver::before { content: ''; position: absolute; top: calc(50% - var(--hit) / 2); bottom: calc(50% - var(--hit) / 2); left: min(0px, calc(50% - var(--hit) / 2)); right: min(0px, calc(50% - var(--hit) / 2)); }
   .st-timeline { margin: 0; border-radius: 0; border-width: 1px 0 0; grid-template-columns: 0 minmax(0, 1fr); box-shadow: none; }
   /* A phone keeps its lanes and gives the rest to the words: no lane heads, no zoom corner, no Next row. */
   .st-corner, .st-heads, .st-next { display: none; }
   .st-scroller { grid-column: 1 / span 2; }
   .st-reading { grid-area: reading; display: block; overflow-y: auto; padding: var(--s-3) var(--st-gutter) var(--s-6); border-top: var(--border); }
   .st-studio[data-open="true"] .st-reading { display: none; }
-  .st-app .st-r-head { display: flex; gap: var(--s-2); align-items: center; width: 100%; min-height: var(--hit); margin-bottom: var(--s-2); padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: var(--fs-2); line-height: var(--lh-2); text-align: start; cursor: pointer; }
+  .st-r-head { display: flex; gap: var(--s-2); align-items: center; width: 100%; min-height: var(--hit); margin-bottom: var(--s-2); font-size: var(--fs-2); line-height: var(--lh-2); text-align: start; }
   .st-r-head b { font-weight: var(--w-3); color: var(--k-script); }
   .st-r-head span { margin-left: auto; font-family: var(--font-mono); color: var(--text-2); }
   /* The Script pane's glyph at the head's end: the head opens it. */
@@ -243,12 +244,12 @@ a.st-row:hover { background: var(--surface-3); color: var(--text-1); }
   .st-reading p { margin: 0 0 var(--s-2); font-size: var(--fs-4); line-height: var(--lh-4); text-wrap: pretty; }
   .st-reading .st-r-cite { font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
   /* What waits, a tap from its list: the header's menu, a full line here. */
-  .st-app .st-reading .st-waits { display: flex; align-items: center; width: 100%; height: auto; min-height: var(--hit); margin: 0 0 var(--s-2); padding: 0; white-space: normal; text-align: start; font-size: var(--fs-3); line-height: var(--lh-3); }
+  .st-reading .st-waits { display: flex; align-items: center; width: 100%; height: auto; min-height: var(--hit); margin: 0 0 var(--s-2); padding: 0; white-space: normal; text-align: start; font-size: var(--fs-3); line-height: var(--lh-3); }
   .st-insp { grid-area: reading; padding: 0; display: none; }
   .st-studio[data-open="true"] .st-insp { display: block; }
   .st-pane { border-radius: 0; border-width: 1px 0 0; border-color: var(--line-strong); }
   .st-pane-head { padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4); }
-  .st-app .st-btn, :is(.st-app, .st-record) .st-close { height: var(--hit); min-width: var(--hit); }
+  .st-btn, .st-close { height: var(--hit); min-width: var(--hit); }
   .st-row { height: 48px; }
   .st-version { min-height: var(--hit); }
 }
@@ -281,13 +282,13 @@ export const INSPECTOR_CSS = `
 /* Board: each panel at its mark, its tries a strip of 64px thumbs, the kept one ringed in the Board's ink. */
 .st-panel { display: flex; flex-direction: column; gap: var(--s-2); scroll-margin-top: calc(var(--hit) + 2 * var(--s-3)); }
 .st-panel + .st-panel { padding-top: var(--s-3); border-top: var(--border); }
-.st-app .st-panel-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--s-8); text-align: start; border-radius: var(--r-1); font-size: var(--fs-2); line-height: var(--lh-2); }
+.st-panel-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--s-8); text-align: start; border-radius: var(--r-1); font-size: var(--fs-2); line-height: var(--lh-2); }
 .st-panel-head[aria-pressed="true"] .st-panel-mark { color: var(--k-board); }
 .st-panel-mark { font-weight: var(--w-3); }
 .st-panel-at { font-family: var(--font-mono); font-size: var(--fs-1); color: var(--text-2); font-variant-numeric: tabular-nums slashed-zero; }
 .st-panel-state { margin-left: auto; font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-3); }
 .st-tries { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: 2px; }
-.st-app .st-try-btn { position: relative; flex: none; border-radius: var(--r-1); line-height: 0; }
+.st-try-btn { position: relative; flex: none; border-radius: var(--r-1); line-height: 0; }
 .st-try-n { position: absolute; right: 3px; bottom: 3px; min-width: 16px; padding: 0 3px; border-radius: var(--r-1); background: var(--surface-1); color: var(--text-1); font-family: var(--font-mono); font-size: var(--fs-1); line-height: 16px; text-align: center; }
 .st-try { height: 48px; width: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-1); background: var(--surface-2); display: block; }
 .st-try-btn[data-kept="true"] .st-try, .st-panel > .st-try[data-kept="true"] { box-shadow: 0 0 0 2px var(--k-board); }
@@ -297,8 +298,8 @@ export const INSPECTOR_CSS = `
 .st-try-said { font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
 /* A panel's notes still open, each a press that opens it in Notes and asks. */
 .st-panel-notes { display: flex; flex-direction: column; gap: var(--s-1); margin: 0; padding: 0; list-style: none; }
-.st-app .st-panel-note { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: var(--s-8); text-align: start; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
-.st-app .st-panel-note:hover { color: var(--text-1); }
+.st-panel-note { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: var(--s-8); text-align: start; font-size: var(--fs-2); line-height: var(--lh-2); color: var(--text-2); }
+.st-panel-note:hover { color: var(--text-1); }
 .st-panel-note-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Mark up: the try shown with the sketch surface over it, the tools under it, the words, Tweak or Note, Save. */
 .st-markup-open { align-self: flex-start; }
@@ -354,7 +355,7 @@ export const INSPECTOR_CSS = `
 /* The recorder over the page: a dialog on a laptop, a sheet from the bottom on a phone. */
 /* Edits (laptop): a Script clip carried lifts to 60%, a white line marks the gap it lands in; each edge
    is a grip that shows on hover or selection, and a trim's readout floats over its beat. */
-.st-app .st-clip[data-lifted="true"] { opacity: 0.6; cursor: grabbing; }
+.st-clip[data-lifted="true"] { opacity: 0.6; cursor: grabbing; }
 .st-grip { position: absolute; top: 0; bottom: 0; width: 9px; cursor: ew-resize; z-index: 4; touch-action: none; }
 .st-grip[data-edge="lead"] { left: 0; }
 .st-grip[data-edge="tail"] { right: 0; }
@@ -376,10 +377,10 @@ export const INSPECTOR_CSS = `
 .st-readout[data-edge="lead"] { translate: 0 0; }
 .st-readout[data-edge="tail"] { translate: -100% 0; }
 .st-readout[data-role="drop-tag"] { border-color: var(--accent); color: var(--accent); }
-.st-app .st-key[data-look="note"] { flex: none; width: auto; padding: 0 var(--s-3); gap: var(--s-1); display: inline-flex; border: var(--border); border-radius: var(--r-pill); }
+.st-key[data-look="note"] { flex: none; width: auto; padding: 0 var(--s-3); gap: var(--s-1); display: inline-flex; border: var(--border); border-radius: var(--r-pill); }
 /* The Script key: apart at the row's right end, raised while its pane is open. */
-.st-app .st-key[data-look="pane"] { flex: none; border: var(--border); border-radius: var(--r-pill); }
-.st-app .st-key[data-look="pane"][aria-pressed="true"] { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.st-key[data-look="pane"] { flex: none; border: var(--border); border-radius: var(--r-pill); }
+.st-key[data-look="pane"][aria-pressed="true"] { background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); }
 /* Drawing on the frame: the red ink over the viewer; the note bar in the transport's row. */
 .st-draw-over { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 3; }
 /* While the frame is drawn on: a crosshair and a ring in the note's colour say it takes a drawing; the tag says so over it. */
@@ -391,7 +392,7 @@ export const INSPECTOR_CSS = `
 /* Move…: the beats to pick, a finger's height each. */
 .st-picker { position: fixed; z-index: 41; top: 50%; left: 50%; translate: -50% -50%; width: min(400px, calc(100vw - 2 * var(--st-gutter))); max-height: calc(100dvh - 2 * var(--st-gutter)); overflow-y: auto; display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); border-radius: var(--r-panel); border: var(--border); background: var(--surface-1); box-shadow: var(--shadow-pop); color: var(--text-1); }
 .st-picker-list { display: flex; flex-direction: column; }
-.st-app .st-picker-row, .st-picker .st-picker-row { min-height: 44px; padding: 0 var(--s-3); border-radius: var(--r-1); text-align: start; font: inherit; background: none; border: 0; color: var(--text-1); cursor: pointer; }
+.st-picker-row { min-height: 44px; padding: 0 var(--s-3); border-radius: var(--r-1); text-align: start; color: var(--text-1); }
 .st-picker .st-picker-row:hover { background: var(--surface-3); }
 .st-picker .st-picker-close { align-self: flex-end; }
 .st-record-backdrop { position: fixed; inset: 0; z-index: 40; background: var(--backdrop); pointer-events: auto; }
@@ -409,7 +410,7 @@ export const INSPECTOR_CSS = `
 .st-record-panel { position: relative; align-self: flex-start; width: var(--visual-viewport-width, 100%); height: auto; }
 .st-record.st-record-sheet { position: static; top: auto; left: auto; translate: none; width: 100%; max-height: 85dvh; border-radius: var(--r-panel) var(--r-panel) 0 0; border-width: 1px 0 0; pointer-events: auto; padding-bottom: env(safe-area-inset-bottom); }
 @media ${PHONE} {
-  .st-app .st-panel-head, .st-app .st-panel-note, .st-note > summary, .st-ask { min-height: var(--hit); }
+  .st-panel-head, .st-panel-note, .st-note > summary, .st-ask { min-height: var(--hit); }
   .st-markup-text, .st-words-text, .lab-sketch-input { font-size: var(--fs-5); line-height: var(--lh-5); }
 }
 `;
@@ -437,11 +438,10 @@ export const CODE_CSS = `
 /* Three rows of it at a time, the live chip's row on top (\`Band\`); the rest scrolls under a hand. A row is as
    tall as a chip (its line and its border), and a chip stands centred in its row, so three rows fit the box whole. */
 .st-code-said { --chip-h: calc(var(--lh-1) + 2px); --said-row: max(var(--lh-2), var(--chip-h)); position: relative; margin: 0; max-height: calc(3 * var(--said-row)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; font-family: var(--font); font-size: var(--fs-2); line-height: var(--said-row); color: var(--text-1); text-wrap: pretty; }
-/* A chip names a \`{mark}\` as the code does, in the mono face, a button's as a plain one's: the rule outranks the bare
-   button's reset. */
-.st-app .st-code-chip { display: inline-block; box-sizing: border-box; height: var(--chip-h); margin: calc((var(--said-row) - var(--chip-h)) / 2) 0.3em; padding: 0 var(--s-1); border-radius: var(--r-1); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); vertical-align: top; overflow: clip; }
-.st-app button.st-code-chip:hover { color: var(--text-1); border-color: var(--text-2); }
-.st-app button.st-code-chip[data-live="true"] { color: var(--state-live); border-color: var(--state-live); }
+/* A chip names a \`{mark}\` as the code does, in the mono face, a button's as a plain one's. */
+.st-code-chip { display: inline-block; box-sizing: border-box; height: var(--chip-h); margin: calc((var(--said-row) - var(--chip-h)) / 2) 0.3em; padding: 0 var(--s-1); border-radius: var(--r-1); border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); vertical-align: top; overflow: clip; }
+button.st-code-chip:hover { color: var(--text-1); border-color: var(--text-2); }
+button.st-code-chip[data-live="true"] { color: var(--state-live); border-color: var(--state-live); }
 .st-code-live { flex: 1 1 auto; text-align: right; color: var(--state-live); }
 .st-code-live[data-empty="true"] { color: var(--text-3); }
 /* Lit, the code stands a step back, so a held row reads brighter than the code around it. Unlit, the status
@@ -454,8 +454,7 @@ export const CODE_CSS = `
 .st-code-line[data-seeks="true"] { cursor: pointer; }
 /* A wrapped line's number stays on its first row, a button's as a plain one's. */
 .st-code-n { align-self: start; padding: 0 var(--s-2) 0 var(--s-3); text-align: right; user-select: none; -webkit-user-select: none; color: color-mix(in srgb, var(--state-live) calc(var(--glow, 0) * 100%), var(--text-3)); }
-.st-app button.st-code-n { width: auto; height: auto; min-height: 0; padding: 0 var(--s-2) 0 var(--s-3); border: 0; border-radius: 0; background: none; font: inherit; cursor: pointer; }
-.st-app button.st-code-n:hover { color: var(--text-1); text-decoration: underline; }
+button.st-code-n:hover { color: var(--text-1); text-decoration: underline; }
 .st-code-t { padding: 0 var(--s-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 /* A live row's percent, or when the next row starts, at the right of its line's first row. */
 .st-code-st { align-self: start; overflow: hidden; padding-right: var(--s-3); text-align: right; white-space: nowrap; color: var(--text-2); font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none; }
