@@ -1,7 +1,7 @@
 {
   "number": 23,
   "title": "Now the Joyful Bells A-Ringing",
-  "print": "the owner's photo of his 1985 book (023.jpg), each line read off the page at its system and row; the rulings (data/crops/023/rulings.json) put in what the page prints where the base row differs: \"ring\" -> \"ringing\" (words, crop 023-303.jpg, judge-006 (Opus, effort max)); \"of\" -> \"praise\" (words, crop 023-303.jpg, judge-006 (Opus, effort max)); \"hearts\" -> \"hearths\" (words, crop 023-303.jpg, judge-006 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (023.jpg), each line read off the page at its system and row; the rulings (data/crops/023/rulings.json) put in what the page prints where the base row differs: \"ring\" -> \"ringing\" (words, crops 023-303.jpg, judge-006 (Opus, effort max)); \"of\" -> \"praise\" (words, crops 023-303.jpg, judge-006 (Opus, effort max)); \"hearts\" -> \"hearths\" (words, crops 023-303.jpg, judge-006 (Opus, effort max)).",
   "stanzas": [
     [
       {

@@ -1,0 +1,29 @@
+{
+  "number": 536,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 19
+        }
+      ],
+      "row": "silent",
+      "readings": ["lent"],
+      "printed": "silent",
+      "sung": "silent",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "536.png",
+          "crop": "536-483.jpg",
+          "box": [0, 483, 1274, 242],
+          "sha": "1abbd5db23be4171",
+          "shows": "silent"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "536-483.jpg row 1 prints 'Through the si-lent fields of space'; the OCR kept only 'lent'."
+    }
+  ]
+}

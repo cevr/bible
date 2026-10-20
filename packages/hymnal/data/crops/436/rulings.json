@@ -4,26 +4,353 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 11
+        }
+      ],
+      "row": "no",
+      "readings": [""],
+      "printed": "no",
+      "sung": "no",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b.jpg",
+          "crop": "436-b-191.jpg",
+          "box": [0, 191, 2268, 1318],
+          "sha": "f7377cbce7236578",
+          "shows": "no"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-191.jpg, second system row 1 begins 'no night in the home-land' after the first system's 'There's'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 31
+        }
+      ],
+      "row": "there",
+      "readings": [""],
+      "printed": "there",
+      "sung": "there",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-1778.jpg",
+          "box": [0, 1778, 2268, 632],
+          "sha": "52cf6a0ffb19f43d",
+          "shows": "there"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-c-1778.jpg, row 1 begins 'There is no pain in the home-land'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 45
+        }
+      ],
+      "row": "no pain in the homeland to which im drawing near",
+      "readings": [""],
+      "printed": "no pain in the homeland To which I'm drawing near.",
+      "sung": "no pain in the homeland To which I'm drawing near.",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436.jpg",
+          "crop": "436-1838.jpg",
+          "box": [0, 1838, 2268, 544],
+          "sha": "89556171085248e0",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-577.jpg",
+          "box": [0, 577, 2268, 436],
+          "sha": "32b9595964d415b5",
+          "shows": "no pain in the homeland To which I'm drawing near."
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-p2-577.jpg, the hymn's last system, prints row 1 'There is no pain in the home-land To which I'm draw-ing near.' again after 436-1838.jpg's line ending 'near;'; the reader left out the repeat."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 54
+        }
+      ],
+      "row": "near",
+      "readings": [""],
+      "printed": "near.",
+      "sung": "near.",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436.jpg",
+          "crop": "436-1838.jpg",
+          "box": [0, 1838, 2268, 544],
+          "sha": "89556171085248e0",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-577.jpg",
+          "box": [0, 577, 2268, 436],
+          "sha": "32b9595964d415b5",
+          "shows": "near."
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-p2-577.jpg row 1 ends the repeated line 'draw-ing near.' (436-1838.jpg's 'near;' closes the line before it); the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "no sin in",
+      "readings": [""],
+      "printed": "no sin in",
+      "sung": "no sin in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b.jpg",
+          "crop": "436-b-191.jpg",
+          "box": [0, 191, 2268, 1318],
+          "sha": "f7377cbce7236578",
+          "shows": "no sin in"
+        },
+        {
+          "image": "436.jpg",
+          "crop": "436-879.jpg",
+          "box": [0, 879, 2268, 416],
+          "sha": "89b66d70c2b3dd75",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-191.jpg, second system row 2 begins 'no sin in the home-land'; 436-879.jpg shows that row again."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 28
+        }
+      ],
+      "row": "in my ears",
+      "readings": [""],
+      "printed": "in my ears",
+      "sung": "in my ears",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-1169.jpg",
+          "box": [0, 1169, 2268, 780],
+          "sha": "18f9e994a8369da7",
+          "shows": "in my ears"
+        },
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-1778.jpg",
+          "box": [0, 1778, 2268, 632],
+          "sha": "52cf6a0ffb19f43d",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-c-1169.jpg, third system row 2 ends 'Is ring-ing in my ears;'; 436-c-1778.jpg does not show that row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 46
+        }
+      ],
+      "row": "i think of the homeland my eyes are filled with tears",
+      "readings": [""],
+      "printed": "I think of the homeland My eyes are filled with tears.",
+      "sung": "I think of the homeland My eyes are filled with tears.",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436.jpg",
+          "crop": "436-1838.jpg",
+          "box": [0, 1838, 2268, 544],
+          "sha": "89556171085248e0",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-577.jpg",
+          "box": [0, 577, 2268, 436],
+          "sha": "32b9595964d415b5",
+          "shows": "I think of the homeland My eyes are filled with tears."
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-p2-577.jpg row 2 prints 'And when I think of the home-land My eyes are filled with tears.' again after 436-1838.jpg's line ending 'tears;'; the reader left out the repeat."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 56
+        }
+      ],
+      "row": "tears",
+      "readings": [""],
+      "printed": "tears.",
+      "sung": "tears.",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436.jpg",
+          "crop": "436-1838.jpg",
+          "box": [0, 1838, 2268, 544],
+          "sha": "89556171085248e0",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-577.jpg",
+          "box": [0, 577, 2268, 436],
+          "sha": "32b9595964d415b5",
+          "shows": "tears."
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-p2-577.jpg row 2 ends the repeated line 'filled with tears.' (436-1838.jpg's 'tears;' closes the line before it); the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 2
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b.jpg",
+          "crop": "436-b-191.jpg",
+          "box": [0, 191, 2268, 1318],
+          "sha": "f7377cbce7236578",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-191.jpg, row 3 prints 'The dwell-ers in the home-land'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 10
         }
       ],
       "row": "where",
       "readings": ["when"],
-      "printed": "When",
-      "sung": "When",
+      "printed": "Where",
+      "sung": "Where",
       "kind": "words",
       "crops": [
         {
-          "image": "436.png",
-          "crop": "436-0.jpg",
-          "box": [0, 0, 1275, 361],
-          "sha": "fe3c54bdf126af7a",
-          "shows": "When"
+          "image": "436-b.jpg",
+          "crop": "436-b-191.jpg",
+          "box": [0, 191, 2268, 1318],
+          "sha": "f7377cbce7236578",
+          "shows": "Where"
+        },
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-963.jpg",
+          "box": [0, 963, 2268, 432],
+          "sha": "faca24c0ab53fc15",
+          "shows": ""
         }
       ],
-      "judge": "judge-422 (Opus, effort max)",
-      "why": "Row 3. of the first system of the SDAHImages re-engraving ends 'Are beckon-ing me to come, When', and system 2 goes on 'nei-ther death nor sor-row'."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-191.jpg row 3 ends 'Are beckon-ing me to come, Where'; 436-c-963.jpg row 3 goes on 'nei-ther death'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-963.jpg",
+          "box": [0, 963, 2268, 432],
+          "sha": "faca24c0ab53fc15",
+          "shows": ""
+        },
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-1169.jpg",
+          "box": [0, 1169, 2268, 780],
+          "sha": "18f9e994a8369da7",
+          "shows": "O"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-c-1169.jpg, third system row 3 begins 'O dear, dear na-tive coun-try!'; 436-c-963.jpg holds only the system before."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 42
+        }
+      ],
+      "row": "us all to the homeland of thy redeeming love",
+      "readings": [""],
+      "printed": "us all to the homeland Of Thy redeeming love.",
+      "sung": "us all to the homeland Of Thy redeeming love.",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-c.jpg",
+          "crop": "436-c-1778.jpg",
+          "box": [0, 1778, 2268, 632],
+          "sha": "52cf6a0ffb19f43d",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-577.jpg",
+          "box": [0, 577, 2268, 436],
+          "sha": "32b9595964d415b5",
+          "shows": "us all to the homeland Of Thy redeeming love."
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-p2-577.jpg row 3 prints 'Christ bring us all to the home-land Of Thy re-deem-ing love.' again after 436-c-1778.jpg's line ending 'love;'; the reader left out the repeat."
     }
   ]
 }

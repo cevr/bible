@@ -4,6 +4,123 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 24
+        }
+      ],
+      "row": "till",
+      "readings": ["estill"],
+      "printed": "Till",
+      "sung": "Till",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-386.jpg",
+          "box": [0, 386, 2268, 856],
+          "sha": "d09629fb92b51eef",
+          "shows": "Till"
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1092.jpg",
+          "box": [0, 1092, 2268, 494],
+          "sha": "1be0c98c054bee11",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "362-386.jpg refrain row ends 'pro-claim Till' and 362-1092.jpg goes on 'all the world'; the OCR garbled 'Till'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "in",
+      "readings": ["din"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-1326.jpg",
+          "box": [0, 1326, 2268, 1370],
+          "sha": "05db76610626955a",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "362-1326.jpg lower system row 2 prints 'The hosts of God in con-qu'ring ranks com-bine'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "till",
+      "readings": ["estill"],
+      "printed": "Till",
+      "sung": "Till",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-386.jpg",
+          "box": [0, 386, 2268, 856],
+          "sha": "d09629fb92b51eef",
+          "shows": "Till"
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1092.jpg",
+          "box": [0, 1092, 2268, 494],
+          "sha": "1be0c98c054bee11",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "The refrain is printed once (D.C.): 362-386.jpg row ends 'pro-claim Till' and 362-1092.jpg goes on 'all the world'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 25
+        }
+      ],
+      "row": "till",
+      "readings": ["estill"],
+      "printed": "Till",
+      "sung": "Till",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-386.jpg",
+          "box": [0, 386, 2268, 856],
+          "sha": "d09629fb92b51eef",
+          "shows": "Till"
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1092.jpg",
+          "box": [0, 1092, 2268, 494],
+          "sha": "1be0c98c054bee11",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "The refrain is printed once (D.C.): 362-386.jpg row ends 'pro-claim Till' and 362-1092.jpg goes on 'all the world'."
+    },
+    {
+      "sites": [
+        {
           "unit": 4,
           "at": 13
         }
@@ -24,6 +141,106 @@
       ],
       "judge": "judge-336 (Opus, effort max)",
       "why": "Row 4 of the second system (362-1944, under 'Bear on their brows' and sloping up with the photo) prints 'As Thou hast prom-ised, draw us all to Thee.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 13
+        }
+      ],
+      "row": "men unto thee",
+      "readings": [""],
+      "printed": "us all to Thee",
+      "sung": "us all to Thee",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-386.jpg",
+          "box": [0, 386, 2268, 856],
+          "sha": "d09629fb92b51eef",
+          "shows": ""
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1092.jpg",
+          "box": [0, 1092, 2268, 494],
+          "sha": "1be0c98c054bee11",
+          "shows": ""
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1326.jpg",
+          "box": [0, 1326, 2268, 1370],
+          "sha": "05db76610626955a",
+          "shows": "us all to Thee"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "362-1326.jpg lower system row 4 prints 'As Thou hast prom-ised, draw us all to Thee.', not 'men unto thee'; the refrain crops hold none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 25
+        }
+      ],
+      "row": "till",
+      "readings": ["estill"],
+      "printed": "Till",
+      "sung": "Till",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-386.jpg",
+          "box": [0, 386, 2268, 856],
+          "sha": "d09629fb92b51eef",
+          "shows": "Till"
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1092.jpg",
+          "box": [0, 1092, 2268, 494],
+          "sha": "1be0c98c054bee11",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "The refrain is printed once (D.C.): 362-386.jpg row ends 'pro-claim Till' and 362-1092.jpg goes on 'all the world'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 23
+        }
+      ],
+      "row": "till",
+      "readings": ["estill"],
+      "printed": "Till",
+      "sung": "Till",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "362.jpg",
+          "crop": "362-386.jpg",
+          "box": [0, 386, 2268, 856],
+          "sha": "d09629fb92b51eef",
+          "shows": "Till"
+        },
+        {
+          "image": "362.jpg",
+          "crop": "362-1092.jpg",
+          "box": [0, 1092, 2268, 494],
+          "sha": "1be0c98c054bee11",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "The refrain is printed once (D.C.): 362-386.jpg row ends 'pro-claim Till' and 362-1092.jpg goes on 'all the world'."
     }
   ]
 }

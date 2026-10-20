@@ -1,0 +1,97 @@
+{
+  "number": 102,
+  "title": "Unto the Hills",
+  "print": "the owner's photo of his 1985 book (102-b-p2.jpg, 102-b.jpg, 102-c.jpg, 102.jpg), each line read off the page at its system and row; the rulings (data/crops/102/rulings.json) put in what the page prints where the base row differs: \"\" -> \"we\" (words, crops 102-b-1771.jpg, 102-b-p2-347.jpg, judge-100 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Unto the hills around shall I lift up my longing eyes?",
+        "from": "102-b.jpg system 1, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "O whence for me shall my salvation come, from whence arise?",
+        "from": "102-b.jpg system 2, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "From God the Lord doth come my certain aid,",
+        "from": "102-b.jpg system 3, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "From God the Lord, who heav'n and earth hath made.",
+        "from": "102-b-p2.jpg system 1, row 1. (placed off the page by from-again-102 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "He will not suffer that thy foot be moved; safe shalt Thou be",
+        "from": "102-b.jpg system 1, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "No careless slumber shall His eyelids close, who keepeth thee.",
+        "from": "102-b.jpg system 2, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Behold our God, the Lord, He slumbereth ne'er,",
+        "from": "102-b.jpg system 3, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Who keepeth Israel in His holy care.",
+        "from": "102-b-p2.jpg system 1, row 2. (placed off the page by from-again-102 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Jehovah is Himself thy keeper true, thy changeless shade.",
+        "from": "102-b.jpg system 1, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Jehovah thy defense on thy right hand Himself hath made",
+        "from": "102-b.jpg system 2, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "And thee no sun by day shall ever smite,",
+        "from": "102-b.jpg system 3, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "No moon shall harm thee in the silent night.",
+        "from": "102-b-p2.jpg system 1, row 3. (placed off the page by from-again-102 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "From every evil shall He keep thy soul, from every sin;",
+        "from": "102-b.jpg system 1, row 4. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Jehovah shall preserve thy going out, thy coming in.",
+        "from": "102-b.jpg system 2, row 4. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Above thee watching, He, whom we adore,",
+        "from": "102-b.jpg system 3, row 4. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Shall keep thee henceforth, yea, forevermore.",
+        "from": "102-b-p2.jpg system 1, row 4. (placed off the page by from-again-102 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Unto the hills around shall I lift up my longing eyes?\nO whence for me shall my salvation come, from whence arise?\nFrom God the Lord doth come my certain aid,\nFrom God the Lord, who heav'n and earth hath made."
+    },
+    {
+      "id": 1,
+      "text": "He will not suffer that thy foot be moved; safe shalt Thou be\nNo careless slumber shall His eyelids close, who keepeth thee.\nBehold our God, the Lord, He slumbereth ne'er,\nWho keepeth Israel in His holy care."
+    },
+    {
+      "id": 2,
+      "text": "Jehovah is Himself thy keeper true, thy changeless shade.\nJehovah thy defense on thy right hand Himself hath made\nAnd thee no sun by day shall ever smite,\nNo moon shall harm thee in the silent night."
+    },
+    {
+      "id": 3,
+      "text": "From every evil shall He keep thy soul, from every sin;\nJehovah shall preserve thy going out, thy coming in.\nAbove thee watching, He, whom adore,\nShall keep thee henceforth, yea, forevermore."
+    }
+  ]
+}

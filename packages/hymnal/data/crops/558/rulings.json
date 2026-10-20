@@ -1,0 +1,29 @@
+{
+  "number": 558,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 3
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "558.png",
+          "crop": "558-115.jpg",
+          "box": [0, 115, 1274, 242],
+          "sha": "a6c9bc7a95db00f8",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "558-115.jpg row 1 prints 'For the fruits of His cre-a-tion', the 'of' touching a note stem."
+    }
+  ]
+}

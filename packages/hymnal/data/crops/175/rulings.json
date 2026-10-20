@@ -1,0 +1,67 @@
+{
+  "number": 175,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "He",
+      "sung": "He",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "175.jpg",
+          "crop": "175-48.jpg",
+          "box": [0, 48, 2268, 1410],
+          "sha": "bfbcef40f948bd21",
+          "shows": ""
+        },
+        {
+          "image": "175.jpg",
+          "crop": "175-1495.jpg",
+          "box": [0, 1495, 2268, 558],
+          "sha": "0a22ec4ae951faa3",
+          "shows": "He"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "175-1495.jpg row 2 begins 'He would nev-er wake a-gain'; 175-48.jpg row 2 ends at 'Think-ing that'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 12
+        }
+      ],
+      "row": "call",
+      "readings": [""],
+      "printed": "call",
+      "sung": "call",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "175.jpg",
+          "crop": "175-48.jpg",
+          "box": [0, 48, 2268, 1410],
+          "sha": "bfbcef40f948bd21",
+          "shows": ""
+        },
+        {
+          "image": "175.jpg",
+          "crop": "175-1495.jpg",
+          "box": [0, 1495, 2268, 558],
+          "sha": "0a22ec4ae951faa3",
+          "shows": "call"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "175-1495.jpg row 4 begins 'call us back to life a-gain'; 175-48.jpg row 4 ends at 'Your touch can'."
+    }
+  ]
+}

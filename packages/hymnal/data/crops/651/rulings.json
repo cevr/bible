@@ -1,0 +1,204 @@
+{
+  "number": 651,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "happy",
+      "readings": [""],
+      "printed": "happy",
+      "sung": "happy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-27.jpg",
+          "box": [0, 27, 2268, 1010],
+          "sha": "65e26b65f5ee891e",
+          "shows": "happy"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-27.jpg row 1 prints '1. Hap-py the home'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 29
+        }
+      ],
+      "row": "wishes",
+      "readings": [""],
+      "printed": "wishes",
+      "sung": "wishes",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-1981.jpg",
+          "box": [0, 1981, 2268, 562],
+          "sha": "923e66237b1dd59d",
+          "shows": "wishes"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-1981.jpg row 1 prints 'Your light-est wish-es ea-ger'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "happy",
+      "readings": [""],
+      "printed": "happy",
+      "sung": "happy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-27.jpg",
+          "box": [0, 27, 2268, 1010],
+          "sha": "65e26b65f5ee891e",
+          "shows": "happy"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-27.jpg row 2 prints '2. Hap-py the home'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 17
+        }
+      ],
+      "row": "love and pain prosperity and hardship through",
+      "readings": [""],
+      "printed": "love and pain prosperity and hardship Through",
+      "sung": "love and pain prosperity and hardship Through",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-989.jpg",
+          "box": [0, 989, 2268, 1082],
+          "sha": "5c82aedf223f5d2a",
+          "shows": "love and pain prosperity and hardship"
+        },
+        {
+          "image": "651.jpg",
+          "crop": "651-1981.jpg",
+          "box": [0, 1981, 2268, 562],
+          "sha": "923e66237b1dd59d",
+          "shows": "Through"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-989.jpg lower system row 2 prints 'Through love and pain, pros-per-i-ty and hard-ship,' and 651-1981.jpg row 2 begins 'Through good'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "and evil",
+      "readings": ["wish vil"],
+      "printed": "and evil",
+      "sung": "and evil",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-1981.jpg",
+          "box": [0, 1981, 2268, 562],
+          "sha": "923e66237b1dd59d",
+          "shows": "and evil"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-1981.jpg row 2 prints 'Through good and e-vil days'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "happy",
+      "readings": [""],
+      "printed": "happy",
+      "sung": "happy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-27.jpg",
+          "box": [0, 27, 2268, 1010],
+          "sha": "65e26b65f5ee891e",
+          "shows": "happy"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-27.jpg row 3 prints '3. Hap-py the home,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 3
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-27.jpg",
+          "box": [0, 27, 2268, 1010],
+          "sha": "65e26b65f5ee891e",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-27.jpg row 3 prints 'home, O lov-ing Friend'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 32
+        }
+      ],
+      "row": "",
+      "readings": ["and and e"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "651.jpg",
+          "crop": "651-1981.jpg",
+          "box": [0, 1981, 2268, 562],
+          "sha": "923e66237b1dd59d",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "651-1981.jpg row 3 prints 'words, and thank You' with nothing between 'and' and 'thank'; the OCR took 'and e-' from row 2."
+    }
+  ]
+}

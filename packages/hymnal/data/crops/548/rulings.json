@@ -15,15 +15,87 @@
       "kind": "words",
       "crops": [
         {
-          "image": "548.png",
-          "crop": "548-113.jpg",
-          "box": [0, 113, 1275, 277],
-          "sha": "fca016110475f894",
+          "image": "548.jpg",
+          "crop": "548-301.jpg",
+          "box": [0, 301, 2268, 916],
+          "sha": "10e843e040dff76a",
           "shows": "we"
         }
       ],
-      "judge": "judge-509 (Opus, effort max)",
-      "why": "Row 2. prints 'Who chal - lenged us, when we were young To', with 'we' between 'when' and 'were'."
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "548-301.jpg row 2 prints 'when we were young'; the database drops 'we'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "bids",
+      "readings": ["challenged"],
+      "printed": "bids",
+      "sung": "bids",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "548.jpg",
+          "crop": "548-301.jpg",
+          "box": [0, 301, 2268, 916],
+          "sha": "10e843e040dff76a",
+          "shows": "bids"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "548-301.jpg row 3 prints 'Who bids us'; the OCR's 'challenged' is from row 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 3
+        }
+      ],
+      "row": "never",
+      "readings": ["when"],
+      "printed": "never",
+      "sung": "never",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "548.jpg",
+          "crop": "548-301.jpg",
+          "box": [0, 301, 2268, 916],
+          "sha": "10e843e040dff76a",
+          "shows": "never"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "548-301.jpg row 3 prints 'us nev-er lose our zest'; the OCR's 'when' is from row 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 26
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "548.jpg",
+          "crop": "548-1045.jpg",
+          "box": [0, 1045, 2268, 666],
+          "sha": "aaf82f3491f81c60",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "548-1045.jpg row 3 prints 'A work to do, a place to fill.'"
     }
   ]
 }

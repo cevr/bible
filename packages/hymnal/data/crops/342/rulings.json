@@ -1,0 +1,122 @@
+{
+  "number": 342,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "remember",
+      "readings": [""],
+      "printed": "remember",
+      "sung": "remember",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-418.jpg",
+          "box": [0, 418, 2268, 1168],
+          "sha": "27136e9e7432b360",
+          "shows": "re-"
+        },
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-1482.jpg",
+          "box": [0, 1482, 2268, 886],
+          "sha": "77b3ac59e9ecec15",
+          "shows": "member"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "341-p2-418.jpg row 1 ends 'Time to re -' and 341-p2-1482.jpg row 1 goes on 'mem - ber and move on': one word, 'remember', split over the line break."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-1482.jpg",
+          "box": [0, 1482, 2268, 886],
+          "sha": "77b3ac59e9ecec15",
+          "shows": "a"
+        },
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-2126.jpg",
+          "box": [0, 2126, 2268, 798],
+          "sha": "649973b108debcec",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "341-p2-1482.jpg row 3 ends 'Can make for us a', and 341-p2-2126.jpg row 3 goes on 'world of dif - ference'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 10
+        }
+      ],
+      "row": "",
+      "readings": ["f3"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-418.jpg",
+          "box": [0, 418, 2268, 1168],
+          "sha": "27136e9e7432b360",
+          "shows": ""
+        },
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-1482.jpg",
+          "box": [0, 1482, 2268, 886],
+          "sha": "77b3ac59e9ecec15",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "341-p2-418.jpg row 4 ends 'Step from the' and 341-p2-1482.jpg row 4 begins 'past and leave be - hind'; the page prints no word between them."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 29
+        }
+      ],
+      "row": "",
+      "readings": ["new"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "341-p2.jpg",
+          "crop": "341-p2-2126.jpg",
+          "box": [0, 2126, 2268, 798],
+          "sha": "649973b108debcec",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "341-p2-2126.jpg row 5 ends 'mak - ing all things new.' at the final bar; nothing follows, so the OCR's extra 'new' is a slip."
+    }
+  ]
+}

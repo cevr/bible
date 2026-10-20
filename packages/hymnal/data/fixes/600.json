@@ -1,7 +1,7 @@
 {
   "number": 600,
   "title": "Hold Fast Till I Come",
-  "print": "the 1985 book's hymnary.org scan (p585.jpg), each line read off the page at its system and row; the rulings (data/crops/600/rulings.json) put in what the page prints where the base row differs: \"other\" -> \"others\" (words, crop p585-171.jpg, judge-583 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p585.jpg), each line read off the page at its system and row; the rulings (data/crops/600/rulings.json) put in what the page prints where the base row differs: \"other\" -> \"others\" (words, crops p585-171.jpg, judge-583 (Opus, effort max)).",
   "stanzas": [
     [
       {

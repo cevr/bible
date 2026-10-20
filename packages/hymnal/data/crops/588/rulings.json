@@ -24,6 +24,109 @@
       ],
       "judge": "judge-583 (Opus, effort max)",
       "why": "Row 1 of this system (stanza 1) prints 'My kin - dred loved, re - deemed by Thee.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "588.jpg",
+          "crop": "588-1432.jpg",
+          "box": [0, 1432, 2268, 754],
+          "sha": "e786ee48955a5e3f",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "588-1432.jpg row 3 prints 'wrong I do' plainly; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 5
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "588.jpg",
+          "crop": "588-461.jpg",
+          "box": [0, 461, 2268, 642],
+          "sha": "8d5141e69fc65043",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "588-461.jpg row 5 prints 'love may I be filled' plainly; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 16
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "588.jpg",
+          "crop": "588-1044.jpg",
+          "box": [0, 1044, 2268, 508],
+          "sha": "31028d4eefb4c3a8",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "588-1044.jpg row 5 prints 'That all I touch' plainly; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 18
+        }
+      ],
+      "row": "whereer",
+      "readings": [""],
+      "printed": "where'er",
+      "sung": "where'er",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "588.jpg",
+          "crop": "588-1044.jpg",
+          "box": [0, 1044, 2268, 508],
+          "sha": "31028d4eefb4c3a8",
+          "shows": "wher-"
+        },
+        {
+          "image": "588.jpg",
+          "crop": "588-1432.jpg",
+          "box": [0, 1432, 2268, 754],
+          "sha": "e786ee48955a5e3f",
+          "shows": "e'er"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "588-1044.jpg row 5 ends 'wher-' and 588-1432.jpg row 5 begins 'e'er I be', printing where'er as the database has it."
     }
   ]
 }

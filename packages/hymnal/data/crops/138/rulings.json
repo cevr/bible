@@ -1,0 +1,115 @@
+{
+  "number": 138,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 55
+        }
+      ],
+      "row": "rise up shepherd and follow follow",
+      "readings": ["continues on"],
+      "printed": "Rise up shepherd and follow Follow",
+      "sung": "Rise up shepherd and follow Follow",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-1052.jpg",
+          "box": [0, 1052, 1274, 184],
+          "sha": "c79538b89faa1145",
+          "shows": "Rise up shepherd and"
+        },
+        {
+          "image": "138.png",
+          "crop": "138-1220.jpg",
+          "box": [0, 1220, 1274, 430],
+          "sha": "0c76d2f819997c13",
+          "shows": "follow Follow"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "138-1052.jpg's refrain row ends 'Fol-low, Fol-low, Rise up shep-herd, and' and 138-1220.jpg's row goes on 'fol-low. Fol-low the star'; 'continues on' is the reader's note, not words."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 62
+        }
+      ],
+      "row": "star of bethlehem rise up shepherd and follow",
+      "readings": ["next page not shown"],
+      "printed": "star of bethlehem rise up shepherd and follow",
+      "sung": "star of bethlehem rise up shepherd and follow",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-1220.jpg",
+          "box": [0, 1220, 1274, 430],
+          "sha": "0c76d2f819997c13",
+          "shows": "star of bethlehem rise up shepherd and follow"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "138-1220.jpg's refrain row prints 'the star of Beth-le-hem, Rise up, shep-herd, and fol-low.' to the final bar."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 53
+        }
+      ],
+      "row": "rise up shepherd and follow follow",
+      "readings": ["continues on"],
+      "printed": "Rise up shepherd and follow Follow",
+      "sung": "Rise up shepherd and follow Follow",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-1052.jpg",
+          "box": [0, 1052, 1274, 184],
+          "sha": "c79538b89faa1145",
+          "shows": "Rise up shepherd and"
+        },
+        {
+          "image": "138.png",
+          "crop": "138-1220.jpg",
+          "box": [0, 1220, 1274, 430],
+          "sha": "0c76d2f819997c13",
+          "shows": "follow Follow"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "The one refrain row, sung after each stanza: 138-1052.jpg ends 'Rise up shep-herd, and' and 138-1220.jpg goes on 'fol-low. Fol-low the star'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 60
+        }
+      ],
+      "row": "star of bethlehem rise up shepherd and follow",
+      "readings": ["next page not shown"],
+      "printed": "star of bethlehem rise up shepherd and follow",
+      "sung": "star of bethlehem rise up shepherd and follow",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-1220.jpg",
+          "box": [0, 1220, 1274, 430],
+          "sha": "0c76d2f819997c13",
+          "shows": "star of bethlehem rise up shepherd and follow"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "138-1220.jpg's one refrain row prints 'the star of Beth-le-hem, Rise up, shep-herd, and fol-low.' to the final bar."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "number": 460,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 4
+        }
+      ],
+      "row": "thirsty",
+      "readings": ["thirst у"],
+      "printed": "thirsty",
+      "sung": "thirsty",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "460.png",
+          "crop": "460-117.jpg",
+          "box": [0, 117, 1274, 238],
+          "sha": "20b131f06edd0af1",
+          "shows": "thirsty"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "460-117.jpg, row 1 prints 'thirst - y', the one word 'thirsty'; the OCR split its syllables."
+    }
+  ]
+}

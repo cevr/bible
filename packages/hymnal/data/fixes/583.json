@@ -1,0 +1,123 @@
+{
+  "number": 583,
+  "title": "You That Know the Lord",
+  "print": "the owner's photo of his 1985 book (583-p2.jpg, 583.jpg, 584.jpg), each line read off the page at its system and row; the rulings (data/crops/583/rulings.json) put in what the page prints where the base row differs: \"\" -> \"a\" (words, crops 583-374.jpg, judge-again-497 (Opus, effort max)); \"alotted\" -> \"allotted\" (words, crops 583-374.jpg, judge-562 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "You that know the Lord is gracious,",
+        "from": "583.jpg system 1, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "You for whom a cornerstone",
+        "from": "583.jpg system 1, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Stands, of God, elect and precious,",
+        "from": "583.jpg system 2, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Laid that you may build thereon,",
+        "from": "583.jpg system 3, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "See that on that sure foundation",
+        "from": "583.jpg system 3, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "You a living temple raise.",
+        "from": "583.jpg system 4, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Towers that may tell forth salvation",
+        "from": "583-p2.jpg system 1, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Walls that may re-echo praise.",
+        "from": "583-p2.jpg system 1, row 1. (placed off the page by from-581 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Living stones by God appointed",
+        "from": "583.jpg system 1, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Each to his allotted place,",
+        "from": "583.jpg system 1, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Kings and priests, by God anointed,",
+        "from": "583.jpg system 2, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Shall you not declare His grace?",
+        "from": "583.jpg system 3, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "You a royal generation",
+        "from": "583.jpg system 3, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Tell the tidings of your birth,",
+        "from": "583.jpg system 4, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Tidings of a new creation",
+        "from": "583-p2.jpg system 1, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "To an old and weary earth.",
+        "from": "583-p2.jpg system 1, row 2. (placed off the page by from-581 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Tell the praise of Him who called you",
+        "from": "583.jpg system 1, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Out of darkness into light,",
+        "from": "583.jpg system 1, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Broke the fetters that enthralled you,",
+        "from": "583.jpg system 2, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Gave you freedom, peace, and sight:",
+        "from": "583.jpg system 3, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Tell the tale of sins forgiven",
+        "from": "583.jpg system 3, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Strength renewed and hope restored.",
+        "from": "583.jpg system 4, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Till the earth, in tune with heaven,",
+        "from": "583-p2.jpg system 1, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Praise and magnify the Lord.",
+        "from": "583-p2.jpg system 1, row 3. (placed off the page by from-581 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "You that know the Lord is gracious,\nYou for whom cornerstone\nStands, of God, elect and precious,\nLaid that you may build thereon,\nSee that on that sure foundation\nYou a living temple raise.\nTowers that may tell forth salvation\nWalls that may re-echo praise."
+    },
+    {
+      "id": 1,
+      "text": "Living stones by God appointed\nEach to his alotted place,\nKings and priests, by God anointed,\nShall you not declare His grace?\nYou a royal generation\nTell the tidings of your birth,\nTidings of a new creation\nTo an old and weary earth."
+    },
+    {
+      "id": 2,
+      "text": "Tell the praise of Him who called you\nOut of darkness into light,\nBroke the fetters that enthralled you,\nGave you freedom, peace, and sight:\nTell the tale of sins forgiven\nStrength renewed and hope restored.\nTill the earth, in tune with heaven,\nPraise and magnify the Lord."
+    }
+  ]
+}

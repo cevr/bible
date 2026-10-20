@@ -1,7 +1,7 @@
 {
   "number": 6,
   "title": "O Worship the Lord",
-  "print": "the 1985 book's hymnary.org scan (p007.jpg), each line read off the page at its system and row; the rulings (data/crops/006/rulings.json) put in what the page prints where the base row differs: \"ihese\" -> \"These\" (words, crop p007-1933.jpg, judge-006-2 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p007.jpg), each line read off the page at its system and row; the rulings (data/crops/006/rulings.json) put in what the page prints where the base row differs: \"ihese\" -> \"These\" (words, crops p007-1933.jpg, judge-006-2 (Opus, effort max)).",
   "stanzas": [
     [
       {

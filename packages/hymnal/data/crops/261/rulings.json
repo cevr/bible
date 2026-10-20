@@ -24,6 +24,140 @@
       ],
       "judge": "judge-261 (Opus, effort max)",
       "why": "Row 1 (stanza 1) of the crop prints 'Their heart and mind and lips un-sealed' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 22
+        }
+      ],
+      "row": "",
+      "readings": ["me now"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "261.jpg",
+          "crop": "261-945.jpg",
+          "box": [0, 945, 2268, 748],
+          "sha": "e02390b6e661d61c",
+          "shows": ""
+        },
+        {
+          "image": "261.jpg",
+          "crop": "261-1621.jpg",
+          "box": [0, 1621, 2268, 512],
+          "sha": "f1b7c68f37216c4f",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "261-945.jpg row 1 ends 'to un-fold.' and 261-1621.jpg row 1 opens 'A-mid the gloom'; the 'me now' at their left edges is the facing page's hymn."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 38
+        }
+      ],
+      "row": "father",
+      "readings": [""],
+      "printed": "father",
+      "sung": "father",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "261.jpg",
+          "crop": "261-2164.jpg",
+          "box": [0, 2164, 2268, 754],
+          "sha": "5ba7f477e5d6607e",
+          "shows": "father"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "261-2164.jpg row 2 prints 'at last The Fa-ther to our sight', so 'Father'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "",
+      "readings": ["fill me now"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "261.jpg",
+          "crop": "261-165.jpg",
+          "box": [0, 165, 2268, 982],
+          "sha": "08e3137598d2b45a",
+          "shows": ""
+        },
+        {
+          "image": "261.jpg",
+          "crop": "261-945.jpg",
+          "box": [0, 945, 2268, 748],
+          "sha": "e02390b6e661d61c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "261-165.jpg row 3 ends 'con-science still,' and 261-945.jpg row 3 opens 'That we in'; the 'fill me now' at the left edge is the facing page's hymn."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 43
+        }
+      ],
+      "row": "",
+      "readings": ["fa"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "261.jpg",
+          "crop": "261-2164.jpg",
+          "box": [0, 2164, 2268, 754],
+          "sha": "5ba7f477e5d6607e",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "261-2164.jpg row 3 prints 'To hear and to o-bey' with nothing between 'hear' and 'and'; 'Fa-' is row 2's."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 45
+        }
+      ],
+      "row": "obey",
+      "readings": ["bey"],
+      "printed": "obey",
+      "sung": "obey",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "261.jpg",
+          "crop": "261-2164.jpg",
+          "box": [0, 2164, 2268, 754],
+          "sha": "5ba7f477e5d6607e",
+          "shows": "obey"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "261-2164.jpg row 3 prints 'and to o-bey', so 'obey'."
     }
   ]
 }

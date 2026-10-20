@@ -1,0 +1,139 @@
+{
+  "number": 111,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 2
+        }
+      ],
+      "row": "is",
+      "readings": ["1s"],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "111.png",
+          "crop": "111-116.jpg",
+          "box": [0, 116, 1274, 242],
+          "sha": "d101741bdad418fb",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "111-116.jpg row 1 prints 'Fa-ther is om-nip-o-tent'; the OCR's '1s' is a misread of 'is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "A",
+      "sung": "A",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "111.png",
+          "crop": "111-116.jpg",
+          "box": [0, 116, 1274, 242],
+          "sha": "d101741bdad418fb",
+          "shows": "A"
+        },
+        {
+          "image": "111.png",
+          "crop": "111-221.jpg",
+          "box": [0, 221, 1274, 220],
+          "sha": "5abe2ddd4bd1b0bf",
+          "shows": ""
+        },
+        {
+          "image": "111.png",
+          "crop": "111-440.jpg",
+          "box": [0, 440, 1274, 240],
+          "sha": "d99767c694f384b1",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "111-116.jpg row 1 ends 'can't de-ny; A'; 111-221.jpg only repeats those same rows and 111-440.jpg row 1 begins 'God of might', so 'A' is printed once."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 53
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "111.png",
+          "crop": "111-1305.jpg",
+          "box": [0, 1305, 1274, 182],
+          "sha": "5fddc87bad8c2f7c",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "111-1305.jpg's refrain row prints 'It took a mir-a-cle of love and grace!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 55
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "111.png",
+          "crop": "111-1305.jpg",
+          "box": [0, 1305, 1274, 182],
+          "sha": "5fddc87bad8c2f7c",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "111-1305.jpg's refrain row prints 'It took a mir-a-cle', the refrain sung after stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 54
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "111.png",
+          "crop": "111-1305.jpg",
+          "box": [0, 1305, 1274, 182],
+          "sha": "5fddc87bad8c2f7c",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "111-1305.jpg's refrain row prints 'It took a mir-a-cle', the refrain sung after stanza 3."
+    }
+  ]
+}

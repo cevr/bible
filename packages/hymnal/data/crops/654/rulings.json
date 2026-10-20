@@ -5,6 +5,37 @@
       "sites": [
         {
           "unit": 2,
+          "at": 6
+        }
+      ],
+      "row": "spirit",
+      "readings": [""],
+      "printed": "spirit",
+      "sung": "spirit",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "654.jpg",
+          "crop": "654-190.jpg",
+          "box": [0, 190, 2268, 1034],
+          "sha": "fdea4b4a29796eb5",
+          "shows": "spirit"
+        },
+        {
+          "image": "654.jpg",
+          "crop": "654-1129.jpg",
+          "box": [0, 1129, 2268, 706],
+          "sha": "0b93a15e0fcce189",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "654-190.jpg row 2 ends 'lov-ing spir-it' and 654-1129.jpg row 2 begins 'And know'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
           "at": 23
         }
       ],
@@ -24,6 +55,109 @@
       ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 2 prints 'Then, in that spir-it may we live u-nit-ed,' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 23
+        }
+      ],
+      "row": "untied",
+      "readings": [""],
+      "printed": "united",
+      "sung": "united",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "654.jpg",
+          "crop": "654-1763.jpg",
+          "box": [0, 1763, 2268, 656],
+          "sha": "b13c20c6d1fa2447",
+          "shows": "united"
+        },
+        {
+          "image": "654-p2.jpg",
+          "crop": "654-p2-246.jpg",
+          "box": [0, 246, 2268, 526],
+          "sha": "bcf425e0610c6d94",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "654-1763.jpg row 2 prints 'may we live u-nit-ed,' (united, not untied); 654-p2-246.jpg row 2 begins 'And find'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "security",
+      "readings": [""],
+      "printed": "security",
+      "sung": "security",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "654-p2.jpg",
+          "crop": "654-p2-246.jpg",
+          "box": [0, 246, 2268, 526],
+          "sha": "bcf425e0610c6d94",
+          "shows": "security"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "654-p2-246.jpg row 2 prints 'our deep se-cur-i-ty.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "and rest",
+      "readings": [""],
+      "printed": "and rest",
+      "sung": "and rest",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "654-p2.jpg",
+          "crop": "654-p2-246.jpg",
+          "box": [0, 246, 2268, 526],
+          "sha": "bcf425e0610c6d94",
+          "shows": "and rest"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "654-p2-246.jpg row 3 prints 'peace and joy and rest.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 32
+        }
+      ],
+      "row": "find",
+      "readings": [""],
+      "printed": "find",
+      "sung": "find",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "654-p2.jpg",
+          "crop": "654-p2-246.jpg",
+          "box": [0, 246, 2268, 526],
+          "sha": "bcf425e0610c6d94",
+          "shows": "find"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "654-p2-246.jpg row 4 prints 'our con-cord find.'"
     }
   ]
 }

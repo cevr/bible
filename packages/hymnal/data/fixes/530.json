@@ -1,7 +1,7 @@
 {
   "number": 530,
   "title": "It Is Well With My Soul",
-  "print": "the 1985 book's hymnary.org scan (p519.jpg), each line read off the page at its system and row; the rulings (data/crops/530/rulings.json) put in what the page prints where the base row differs: \"roll\" -> \"rolled\" (words, crop p519-293.jpg, judge-509 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p519.jpg), each line read off the page at its system and row; the rulings (data/crops/530/rulings.json) put in what the page prints where the base row differs: \"roll\" -> \"rolled\" (words, crops p519-293.jpg, judge-509 (Opus, effort max)).",
   "stanzas": [
     [
       {

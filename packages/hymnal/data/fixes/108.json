@@ -1,7 +1,7 @@
 {
   "number": 108,
   "title": "Amazing Grace",
-  "print": "the owner's photo of his 1985 book (108.jpg), each line read off the page at its system and row; the rulings (data/crops/108/rulings.json) put in what the page prints where the base row differs: \"we\" -> \"we'd\" (words, crop 108-1053.jpg, judge-095 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (108.jpg), each line read off the page at its system and row; the rulings (data/crops/108/rulings.json) put in what the page prints where the base row differs: \"we\" -> \"we'd\" (words, crops 108-1053.jpg, judge-095 (Opus, effort max)).",
   "stanzas": [
     [
       {

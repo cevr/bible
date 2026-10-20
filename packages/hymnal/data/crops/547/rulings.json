@@ -4,6 +4,92 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 3
+        }
+      ],
+      "row": "vision o",
+      "readings": [""],
+      "printed": "vision o",
+      "sung": "vision o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-455.jpg",
+          "box": [0, 455, 2268, 548],
+          "sha": "7d414100e606cff1",
+          "shows": "vision o"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "547-455.jpg row 1 prints 'Be Thou my vi-sion, O Lord'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-455.jpg",
+          "box": [0, 455, 2268, 548],
+          "sha": "7d414100e606cff1",
+          "shows": ""
+        },
+        {
+          "image": "547.jpg",
+          "crop": "547-761.jpg",
+          "box": [0, 761, 2268, 334],
+          "sha": "a0ee3043436fde78",
+          "shows": ""
+        },
+        {
+          "image": "547.jpg",
+          "crop": "547-933.jpg",
+          "box": [0, 933, 2268, 646],
+          "sha": "965526f804c069ea",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "547-455.jpg row 2 ends at 'true word;' and 547-761.jpg holds no row 2; 547-933.jpg row 2 begins 'I ev-er with Thee'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-455.jpg",
+          "box": [0, 455, 2268, 548],
+          "sha": "7d414100e606cff1",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "547-455.jpg row 3 prints 'Rich-es I heed not'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 9
         }
@@ -24,6 +110,78 @@
       ],
       "judge": "judge-509 (Opus, effort max)",
       "why": "Row 3 of the second system prints 'Thou my in - her - it - ance, Now and al - ways:' with 'my', not 'mine'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 9
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-933.jpg",
+          "box": [0, 933, 2268, 646],
+          "sha": "965526f804c069ea",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "547-933.jpg row 4 prints 'May I reach heav-en's joys'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 13
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-933.jpg",
+          "box": [0, 933, 2268, 646],
+          "sha": "965526f804c069ea",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "547-933.jpg row 4 prints 'joys, O bright heaven's Sun!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 28
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "547.jpg",
+          "crop": "547-1683.jpg",
+          "box": [0, 1683, 2268, 736],
+          "sha": "68d1958485abde36",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "547-1683.jpg lower system row 4 prints 'Still be my vi-sion, O rul-er of all.'"
     }
   ]
 }

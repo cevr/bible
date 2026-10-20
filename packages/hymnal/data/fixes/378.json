@@ -1,7 +1,7 @@
 {
   "number": 378,
   "title": "Go, Preach My Gospel",
-  "print": "the 1985 book's hymnary.org scan (p368.jpg), each line read off the page at its system and row; the rulings (data/crops/378/rulings.json) put in what the page prints where the base row differs: \"brigh\" -> \"bright\" (words, crop p368-266.jpg, judge-284 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p368.jpg), each line read off the page at its system and row; the rulings (data/crops/378/rulings.json) put in what the page prints where the base row differs: \"brigh\" -> \"bright\" (words, crops p368-266.jpg, judge-284 (Opus, effort max)).",
   "stanzas": [
     [
       {

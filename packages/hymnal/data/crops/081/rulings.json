@@ -1,0 +1,232 @@
+{
+  "number": 81,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 10
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "081.png",
+          "crop": "081-407.jpg",
+          "box": [0, 407, 1274, 406],
+          "sha": "d813ed4f737f4e43",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "081-407.jpg row 1 prints 'Though I have the proph-et's gift'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 13
+        }
+      ],
+      "row": "prophets",
+      "readings": ["proph"],
+      "printed": "prophets",
+      "sung": "prophets",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "081.png",
+          "crop": "081-407.jpg",
+          "box": [0, 407, 1274, 406],
+          "sha": "d813ed4f737f4e43",
+          "shows": "prophets"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "081-407.jpg row 1 prints 'proph-et's', that is 'prophet's'; the OCR caught only 'proph'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 16
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "081.png",
+          "crop": "081-848.jpg",
+          "box": [0, 848, 1274, 240],
+          "sha": "4bd7deed2c993d74",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "081-848.jpg row 1 prints 'Though I hold the keys'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 31
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-86.jpg",
+          "box": [0, 86, 1274, 238],
+          "sha": "f234d16781d1489d",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "Though_I_Speak_With_Tongues2-86.jpg row 1 prints 'With-out love I am no bet-ter'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "others",
+      "readings": ["oth"],
+      "printed": "others",
+      "sung": "others",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "081.png",
+          "crop": "081-407.jpg",
+          "box": [0, 407, 1274, 406],
+          "sha": "d813ed4f737f4e43",
+          "shows": "others"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "081-407.jpg row 2 prints 'gloats when oth-ers sin', that is 'others'; the OCR caught only 'oth'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 44
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-845.jpg",
+          "box": [0, 845, 1274, 242],
+          "sha": "06870eb487e2960f",
+          "shows": ""
+        },
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-969.jpg",
+          "box": [0, 969, 1274, 206],
+          "sha": "a8d3ea05392239cf",
+          "shows": ""
+        },
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-1103.jpg",
+          "box": [0, 1103, 1274, 184],
+          "sha": "5d31d2997567869c",
+          "shows": ""
+        },
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-1226.jpg",
+          "box": [0, 1226, 1274, 240],
+          "sha": "f566e782394d3a71",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "Though_I_Speak_With_Tongues2-1226.jpg row 2 prints 'I shall fail with-out Your grace'; the other three crops hold no words of the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "prophecy",
+      "readings": [""],
+      "printed": "prophecy",
+      "sung": "prophecy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "081.png",
+          "crop": "081-407.jpg",
+          "box": [0, 407, 1274, 406],
+          "sha": "d813ed4f737f4e43",
+          "shows": "prophecy"
+        },
+        {
+          "image": "081.png",
+          "crop": "081-755.jpg",
+          "box": [0, 755, 1274, 228],
+          "sha": "80b603e6f79d69cb",
+          "shows": ""
+        },
+        {
+          "image": "081.png",
+          "crop": "081-848.jpg",
+          "box": [0, 848, 1274, 240],
+          "sha": "4bd7deed2c993d74",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "081-407.jpg row 3 prints 'Vi-sions, rap-tures, proph-e-cy:'; 081-755.jpg and 081-848.jpg hold no words of the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 27
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "Though_I_Speak_With_Tongues2.png",
+          "crop": "Though_I_Speak_With_Tongues2-86.jpg",
+          "box": [0, 86, 1274, 238],
+          "sha": "f234d16781d1489d",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "Though_I_Speak_With_Tongues2-86.jpg row 3 prints 'With-out love I am no bet-ter'."
+    }
+  ]
+}

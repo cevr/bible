@@ -1,0 +1,139 @@
+{
+  "number": 122,
+  "title": "Hark! the Herald Angels Sing",
+  "print": "the owner's photo of his 1985 book (122-b-p2.jpg, 122-b.jpg, 122-c.jpg, 122.jpg), each line read off the page at its system and row; the rulings (data/crops/122/rulings.json) put in what the page prints where the base row differs: \"light\" -> \"Life\" (words, crops 122-c-492.jpg, 122-b-1118.jpg, judge-again-122 (Opus, effort max)); \"light and\" -> \"Life and\" (words, crops 122-c-492.jpg, 122-b-1118.jpg, judge-again-122 (Opus, effort max)); \"life\" -> \"light\" (words, crops 122-c-492.jpg, 122-b-1118.jpg, judge-again-122 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Hark! the herald angels sing,",
+        "from": "122-b.jpg system 1, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "\"Glory to the newborn King;",
+        "from": "122-b.jpg system 1, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Peace on earth, and mercy mild,",
+        "from": "122-b.jpg system 2, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "God and sinners reconciled!\"",
+        "from": "122-b.jpg system 2, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Joyful, all ye nations, rise,",
+        "from": "122-b.jpg system 3, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Join the triumph of the skies;",
+        "from": "122-b.jpg system 3, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "With th'angelic host proclaim,",
+        "from": "122-b.jpg system 4, row 1. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "\"Christ is born in Bethlehem!\"",
+        "from": "122-b.jpg system 4, row 1. (placed off the page by from-again-102 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Christ, by highest heaven adored;",
+        "from": "122-b.jpg system 1, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Christ, the everlasting Lord!",
+        "from": "122-b.jpg system 1, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "In the manger born a king,",
+        "from": "122-b.jpg system 2, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "While adoring angels sing,",
+        "from": "122-b.jpg system 2, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "\"Peace on earth, to men good will;\"",
+        "from": "122-b.jpg system 3, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Bid the trembling soul be still,",
+        "from": "122-b.jpg system 3, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Christ on earth has come to dwell,",
+        "from": "122-b.jpg system 4, row 2. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Jesus, our Immanuel!",
+        "from": "122-b.jpg system 4, row 2. (placed off the page by from-again-102 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Hail, the heaven-born Prince of Peace!",
+        "from": "122-b.jpg system 1, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Hail, the Sun of Righteousness!",
+        "from": "122-b.jpg system 1, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Life and light to all He brings,",
+        "from": "122-b.jpg system 2, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Risen with healing in His wings.",
+        "from": "122-b.jpg system 2, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Mild He lays His glory by,",
+        "from": "122-b.jpg system 3, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Born that man no more may die,",
+        "from": "122-b.jpg system 3, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Born to raise the sons of earth,",
+        "from": "122-b.jpg system 4, row 3. (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "Born to give them second birth.",
+        "from": "122-b.jpg system 4, row 3. (placed off the page by from-again-102 (Opus))"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "Hark! the herald angels sing,",
+        "from": "122-b-p2.jpg system 1, the refrain row (placed off the page by from-again-102 (Opus))"
+      },
+      {
+        "text": "\"Glory to the newborn King.\"",
+        "from": "122-b-p2.jpg system 1, the refrain row (placed off the page by from-again-102 (Opus))"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "Hark! the herald angels sing,\n\"Glory to the newborn King.\""
+    },
+    {
+      "id": 0,
+      "text": "Hark! the herald angels sing,\n\"Glory to the newborn King;\nPeace on earth, and mercy mild,\nGod and sinners reconciled!\"\nJoyful, all ye nations, rise,\nJoin the triumph of the skies;\nWith th'angelic host proclaim,\n\"Christ is born in Bethlehem!\""
+    },
+    {
+      "id": 1,
+      "text": "Christ, by highest heaven adored;\nChrist, the everlasting Lord!\nIn the manger born a king,\nWhile adoring angels sing,\n\"Peace on earth, to men good will;\"\nBid the trembling soul be still,\nChrist on earth has come to dwell,\nJesus, our Immanuel!"
+    },
+    {
+      "id": 2,
+      "text": "Hail, the heaven-born Prince of Peace!\nHail, the Sun of Righteousness!\nLight and life to all He brings,\nRisen with healing in His wings.\nMild He lays His glory by,\nBorn that man no more may die,\nBorn to raise the sons of earth,\nBorn to give them second birth."
+    }
+  ]
+}

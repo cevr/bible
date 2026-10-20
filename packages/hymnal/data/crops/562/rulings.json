@@ -4,6 +4,54 @@
     {
       "sites": [
         {
+          "unit": 2,
+          "at": 18
+        }
+      ],
+      "row": "to",
+      "readings": ["geat"],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "562.jpg",
+          "crop": "562-1853.jpg",
+          "box": [0, 1853, 2268, 838],
+          "sha": "99e0ab71daebabe0",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "562-1853.jpg row 2 prints 'to' between 'it' and 'the'; the OCR's 'geat' is a misread."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 20
+        }
+      ],
+      "row": "priest",
+      "readings": [""],
+      "printed": "priest",
+      "sung": "priest",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "562.jpg",
+          "crop": "562-1853.jpg",
+          "box": [0, 1853, 2268, 838],
+          "sha": "99e0ab71daebabe0",
+          "shows": "priest"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "562-1853.jpg row 2 ends with 'priest'; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
           "unit": 4,
           "at": 11
         }
@@ -15,15 +63,39 @@
       "kind": "words",
       "crops": [
         {
-          "image": "562.png",
-          "crop": "562-610.jpg",
-          "box": [0, 610, 1275, 185],
-          "sha": "571c28f2dad9bba6",
+          "image": "562.jpg",
+          "crop": "562-1853.jpg",
+          "box": [0, 1853, 2268, 838],
+          "sha": "99e0ab71daebabe0",
           "shows": "these"
         }
       ],
-      "judge": "judge-554 (Opus, effort max)",
-      "why": "The fourth row of the second system (stanza 4, after 'Ac-' ending stanza 4's row in 562-200.jpg) prints 'cept these gifts we of - fer' plainly."
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "562-1853.jpg row 4 prints 'these' before 'gifts', not 'this'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 14
+        }
+      ],
+      "row": "offer",
+      "readings": [""],
+      "printed": "offer",
+      "sung": "offer",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "562.jpg",
+          "crop": "562-1853.jpg",
+          "box": [0, 1853, 2268, 838],
+          "sha": "99e0ab71daebabe0",
+          "shows": "offer"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "562-1853.jpg row 4 prints 'of - fer' (offer) after 'we'."
     },
     {
       "sites": [
@@ -39,15 +111,39 @@
       "kind": "words",
       "crops": [
         {
-          "image": "562.png",
-          "crop": "562-200.jpg",
-          "box": [0, 200, 1275, 185],
-          "sha": "46364ad1a366ef18",
+          "image": "562.jpg",
+          "crop": "562-1298.jpg",
+          "box": [0, 1298, 2268, 672],
+          "sha": "608a4a6ca3d7bb68",
           "shows": "we"
         }
       ],
-      "judge": "judge-554 (Opus, effort max)",
-      "why": "Row 5. of the first system prints 'hun - gry While we our - selves are fed' plainly."
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "562-1298.jpg row 5 prints 'we' between 'While' and 'our-selves'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 15
+        }
+      ],
+      "row": "ready",
+      "readings": [""],
+      "printed": "ready",
+      "sung": "ready",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "562.jpg",
+          "crop": "562-1853.jpg",
+          "box": [0, 1853, 2268, 838],
+          "sha": "99e0ab71daebabe0",
+          "shows": "ready"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "562-1853.jpg row 5 prints 'read - y' (ready) after 'more'."
     }
   ]
 }

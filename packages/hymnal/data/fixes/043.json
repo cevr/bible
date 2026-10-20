@@ -1,7 +1,7 @@
 {
   "number": 43,
   "title": "When Morning Gilds the Skies",
-  "print": "the 1985 book's hymnary.org scan (p043.jpg), each line read off the page at its system and row; the rulings (data/crops/043/rulings.json) put in what the page prints where the base row differs: \"powrs\" -> \"powers\" (words, crop p043-787.jpg, judge-006 (Opus, effort max)); \"song\" -> \"chant\" (words, crop p043-1580.jpg, judge-006 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p043.jpg), each line read off the page at its system and row; the rulings (data/crops/043/rulings.json) put in what the page prints where the base row differs: \"powrs\" -> \"powers\" (words, crops p043-787.jpg, judge-006 (Opus, effort max)); \"song\" -> \"chant\" (words, crops p043-1580.jpg, judge-006 (Opus, effort max)).",
   "stanzas": [
     [
       {

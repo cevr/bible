@@ -1,7 +1,7 @@
 {
   "number": 165,
   "title": "Look, You Saints! the Sight Is Glorious",
-  "print": "the 1985 book's hymnary.org scan (p161.jpg), each line read off the page at its system and row; the rulings (data/crops/165/rulings.json) put in what the page prints where the base row differs: \"bring\" -> \"brings\" (words, crop p161-312.jpg, judge-158 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p161.jpg), each line read off the page at its system and row; the rulings (data/crops/165/rulings.json) put in what the page prints where the base row differs: \"bring\" -> \"brings\" (words, crops p161-312.jpg, judge-158 (Opus, effort max)).",
   "stanzas": [
     [
       {

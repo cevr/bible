@@ -1,7 +1,7 @@
 {
   "number": 362,
   "title": "Lift High the Cross",
-  "print": "the owner's photo of his 1985 book (362.jpg), each line read off the page at its system and row; the rulings (data/crops/362/rulings.json) put in what the page prints where the base row differs: \"men unto\" -> \"us all to\" (words, crop 362-1944.jpg, judge-336 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (362.jpg), each line read off the page at its system and row; the rulings (data/crops/362/rulings.json) put in what the page prints where the base row differs: \"men unto\" -> \"us all to\" (words, crops 362-1944.jpg, judge-336 (Opus, effort max)); \"men unto thee\" -> \"us all to Thee\" (words, crops 362-386.jpg, 362-1092.jpg, 362-1326.jpg, judge-362 (Opus, effort max)).",
   "stanzas": [
     [
       {

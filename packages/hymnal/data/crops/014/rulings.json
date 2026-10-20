@@ -1,0 +1,29 @@
+{
+  "number": 14,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 11
+        }
+      ],
+      "row": "amen",
+      "readings": [""],
+      "printed": "amen",
+      "sung": "amen",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "014.jpg",
+          "crop": "014-1693.jpg",
+          "box": [0, 1693, 2268, 504],
+          "sha": "ae559f7073695e33",
+          "shows": "amen"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "014-1693.jpg's shared Amen row (parts 3 and 4) prints four amens, 'A - men, a - men, A - men, a - men.', the last at this place; stanza 2's own row, where a fifth would stand, is above the crop."
+    }
+  ]
+}

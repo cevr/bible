@@ -1,7 +1,7 @@
 {
   "number": 52,
   "title": "Now the Day Is Over",
-  "print": "the 1985 book's hymnary.org scan (p051.jpg), each line read off the page at its system and row; the rulings (data/crops/052/rulings.json) put in what the page prints where the base row differs: \"your\" -> \"Thy\" (words, crop p051-736.jpg, judge-006-2 (Opus, effort max)); \"your\" -> \"Thine\" (words, crop p051-252.jpg, judge-006 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p051.jpg), each line read off the page at its system and row; the rulings (data/crops/052/rulings.json) put in what the page prints where the base row differs: \"your\" -> \"Thy\" (words, crops p051-736.jpg, judge-006-2 (Opus, effort max)); \"your\" -> \"Thine\" (words, crops p051-252.jpg, judge-006 (Opus, effort max)).",
   "stanzas": [
     [
       {

@@ -1,7 +1,7 @@
 {
   "number": 509,
   "title": "How Firm A Foundation",
-  "print": "the owner's photo of his 1985 book (509.jpg), each line read off the page at its system and row; the rulings (data/crops/509/rulings.json) put in what the page prints where the base row differs: \"has\" -> \"hath\" (words, crop 509-1286.jpg, judge-509 (Opus, effort max)); \"rightious\" -> \"righteous\" (words, crop 509-1593.jpg, judge-509 (Opus, effort max)); \"\" -> \"I\" (words, crop 509-125.jpg, judge-509 (Opus, effort max)); \"go\" -> \"\" (words, crop 509-125.jpg, judge-509 (Opus, effort max)); \"destress\" -> \"distress\" (words, crop 509-1593.jpg, judge-509 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (509.jpg), each line read off the page at its system and row; the rulings (data/crops/509/rulings.json) put in what the page prints where the base row differs: \"has\" -> \"hath\" (words, crops 509-1286.jpg, judge-509 (Opus, effort max)); \"rightious\" -> \"righteous\" (words, crops 509-1593.jpg, judge-509 (Opus, effort max)); \"\" -> \"I\" (words, crops 509-125.jpg, judge-509 (Opus, effort max)); \"go\" -> \"\" (words, crops 509-125.jpg, judge-509 (Opus, effort max)); \"destress\" -> \"distress\" (words, crops 509-1593.jpg, judge-509 (Opus, effort max)).",
   "stanzas": [
     [
       {

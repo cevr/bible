@@ -1,0 +1,434 @@
+{
+  "number": 251,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "today i",
+      "readings": ["to"],
+      "printed": "today I",
+      "sung": "today I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-116.jpg",
+          "box": [0, 116, 1274, 242],
+          "sha": "1ecae6374ac72540",
+          "shows": "to-"
+        },
+        {
+          "image": "251.png",
+          "crop": "251-244.jpg",
+          "box": [0, 244, 1274, 204],
+          "sha": "2de41d2bfca5c831",
+          "shows": ""
+        },
+        {
+          "image": "251.png",
+          "crop": "251-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "46c520ac07e76582",
+          "shows": "day I"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-116.jpg row 1 ends 'in the world to-' and 251-484.jpg row 1 opens 'day; I know', so 'today I'; 251-244.jpg shows that system again with row 1 cut at its top edge."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 22
+        }
+      ],
+      "row": "his",
+      "readings": [""],
+      "printed": "his",
+      "sung": "his",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-849.jpg",
+          "box": [0, 849, 1274, 240],
+          "sha": "e6dc8b67b0e438d4",
+          "shows": "his"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-849.jpg row 1 prints 'I see His hand of mer-cy'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 25
+        }
+      ],
+      "row": "mercy i",
+      "readings": ["mer"],
+      "printed": "mercy i",
+      "sung": "mercy i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-849.jpg",
+          "box": [0, 849, 1274, 240],
+          "sha": "e6dc8b67b0e438d4",
+          "shows": "mercy i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-849.jpg row 1 prints 'mer-cy, I hear', so 'mercy I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 36
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-1215.jpg",
+          "box": [0, 1215, 1274, 240],
+          "sha": "33e8cfa066ae68c0",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-1215.jpg row 1 prints 'just the time I need Him'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 64
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-815.jpg",
+          "box": [0, 815, 1274, 220],
+          "sha": "3d1e9b8cc609e52a",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "He_Lives2-815.jpg main lyric row prints 'lives, He lives, sal-va-tion', the second 'He'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 73
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-1189.jpg",
+          "box": [0, 1189, 1274, 184],
+          "sha": "97b0dc3bab377115",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "He_Lives2-1189.jpg prints 'ask me how I know He lives'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 6
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-116.jpg",
+          "box": [0, 116, 1274, 242],
+          "sha": "1ecae6374ac72540",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-116.jpg row 2 prints 'a-round me I see'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 17
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "46c520ac07e76582",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-484.jpg row 2 prints 'wea-ry I nev-er will'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 20
+        }
+      ],
+      "row": "despair i",
+      "readings": [""],
+      "printed": "despair I",
+      "sung": "despair I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "46c520ac07e76582",
+          "shows": "de-"
+        },
+        {
+          "image": "251.png",
+          "crop": "251-849.jpg",
+          "box": [0, 849, 1274, 240],
+          "sha": "e6dc8b67b0e438d4",
+          "shows": "spair I"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-484.jpg row 2 ends 'will de-' and 251-849.jpg row 2 opens 'spair; I know', so 'despair I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-849.jpg",
+          "box": [0, 849, 1274, 240],
+          "sha": "e6dc8b67b0e438d4",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-849.jpg row 2 prints 'that He is lead-ing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 36
+        }
+      ],
+      "row": "appearing",
+      "readings": ["арpearing"],
+      "printed": "appearing",
+      "sung": "appearing",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-1215.jpg",
+          "box": [0, 1215, 1274, 240],
+          "sha": "33e8cfa066ae68c0",
+          "shows": "appearing"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-1215.jpg row 2 prints 'His ap-pear-ing', so 'appearing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 63
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-815.jpg",
+          "box": [0, 815, 1274, 220],
+          "sha": "3d1e9b8cc609e52a",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "He_Lives2-815.jpg main lyric row prints 'lives, He lives, sal-va-tion', the second 'He'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 72
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-1189.jpg",
+          "box": [0, 1189, 1274, 184],
+          "sha": "97b0dc3bab377115",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "He_Lives2-1189.jpg prints 'how I know He lives'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 2
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-116.jpg",
+          "box": [0, 116, 1274, 242],
+          "sha": "1ecae6374ac72540",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-116.jpg row 3 prints 're-joice, O Chris-tian'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "hallelujahs",
+      "readings": [""],
+      "printed": "hallelujahs",
+      "sung": "hallelujahs",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "251.png",
+          "crop": "251-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "46c520ac07e76582",
+          "shows": "hallelujahs"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "251-484.jpg row 3 prints 'E-ter-nal hal-le-lu-jahs', so 'hallelujahs'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 61
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-815.jpg",
+          "box": [0, 815, 1274, 220],
+          "sha": "3d1e9b8cc609e52a",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "He_Lives2-815.jpg main lyric row prints 'lives, He lives, sal-va-tion', the second 'He'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 70
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "He_Lives2.png",
+          "crop": "He_Lives2-1189.jpg",
+          "box": [0, 1189, 1274, 184],
+          "sha": "97b0dc3bab377115",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "He_Lives2-1189.jpg prints 'how I know He lives'."
+    }
+  ]
+}

@@ -4,26 +4,821 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 3
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-601.jpg",
+          "box": [0, 601, 2268, 500],
+          "sha": "8022814c5397048e",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-601.jpg row 1 prints 'Let us sing a song'; the OCR missed the 'a'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 13
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-601.jpg",
+          "box": [0, 601, 2268, 500],
+          "sha": "8022814c5397048e",
+          "shows": "a"
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-822.jpg",
+          "box": [0, 822, 2268, 562],
+          "sha": "6e4d2927616865ed",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-601.jpg row 1 ends 'by the way, In a'; 626-822.jpg shows only row 4 of that system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 26
+        }
+      ],
+      "row": "everlasting day",
+      "readings": [""],
+      "printed": "everlasting day",
+      "sung": "everlasting day",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-247.jpg",
+          "box": [0, 247, 2268, 366],
+          "sha": "6f62a7a8b3c8de90",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-822.jpg",
+          "box": [0, 822, 2268, 562],
+          "sha": "6e4d2927616865ed",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "everlasting day"
+        }
+      ],
+      "judge": "judge-again-013-2 (Opus, effort max)",
+      "why": "626-822.jpg row 1 ends 'in the', and 626-1208.jpg row 1 of the next system prints 'ev-er-last-ing day,' plainly; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 35
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "In a",
+      "sung": "In a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-247.jpg",
+          "box": [0, 247, 2268, 366],
+          "sha": "6f62a7a8b3c8de90",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "In a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints 'In a lit-tle while,' first; 626-b-247.jpg holds only the title."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 39
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "in a",
+      "sung": "in a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "in a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints the second 'In a lit-tle while,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 43
+        }
+      ],
+      "row": "we shall cross the billows foam we shall meet at last when the stormy winds are past in a little while were going home",
+      "readings": [""],
+      "printed": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "sung": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": ""
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-547.jpg",
+          "box": [0, 547, 2268, 380],
+          "sha": "ee75287af5eb6110",
+          "shows": "We shall cross the billow's foam We shall meet at last When the"
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "stormy winds are past In a little while we're going home"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "The refrain runs on over the page: 626-b-p2-547.jpg prints 'We shall cross the bil-low's foam; We shall meet at last, When the', 626-b-p2-770.jpg 'storm-y winds are past, In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 61
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-p2-770.jpg refrain row prints 'In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "we will do",
+      "readings": [""],
+      "printed": "we will do",
+      "sung": "we will do",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-284.jpg",
+          "box": [0, 284, 2268, 716],
+          "sha": "76ebe15a6648f1f4",
+          "shows": "we will do"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-284.jpg row 2 prints 'We will do the work'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 13
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-284.jpg",
+          "box": [0, 284, 2268, 716],
+          "sha": "76ebe15a6648f1f4",
+          "shows": "a"
+        },
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-909.jpg",
+          "box": [0, 909, 2268, 608],
+          "sha": "3d13b329a88f6853",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-284.jpg row 2 ends 'find to do, In a'; 626-b-909.jpg shows only row 4 of that system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 36
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "In a",
+      "sung": "In a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-247.jpg",
+          "box": [0, 247, 2268, 366],
+          "sha": "6f62a7a8b3c8de90",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "In a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints 'In a lit-tle while,' first; 626-b-247.jpg holds only the title."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 40
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "in a",
+      "sung": "in a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "in a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints the second 'In a lit-tle while,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 44
+        }
+      ],
+      "row": "we shall cross the billows foam we shall meet at last when the stormy winds are past in a little while were going home",
+      "readings": [""],
+      "printed": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "sung": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": ""
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-547.jpg",
+          "box": [0, 547, 2268, 380],
+          "sha": "ee75287af5eb6110",
+          "shows": "We shall cross the billow's foam We shall meet at last When the"
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "stormy winds are past In a little while we're going home"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "The refrain runs on over the page: 626-b-p2-547.jpg prints 'We shall cross the bil-low's foam; We shall meet at last, When the', 626-b-p2-770.jpg 'storm-y winds are past, In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 62
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-p2-770.jpg refrain row prints 'In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-284.jpg",
+          "box": [0, 284, 2268, 716],
+          "sha": "76ebe15a6648f1f4",
+          "shows": "a"
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-822.jpg",
+          "box": [0, 822, 2268, 562],
+          "sha": "6e4d2927616865ed",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-284.jpg row 3 ends 'way-worn feet, In a'; 626-822.jpg shows only row 4 of that system."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 18
         }
       ],
       "row": "may",
       "readings": ["my"],
-      "printed": "my",
-      "sung": "my",
+      "printed": "may",
+      "sung": "may",
       "kind": "words",
       "crops": [
         {
-          "image": "626.png",
-          "crop": "626-560.jpg",
-          "box": [0, 560, 1275, 170],
-          "sha": "712020be0ddf225d",
-          "shows": "my"
+          "image": "626.jpg",
+          "crop": "626-822.jpg",
+          "box": [0, 822, 2268, 562],
+          "sha": "6e4d2927616865ed",
+          "shows": "may"
         }
       ],
-      "judge": "judge-580 (Opus, effort max)",
-      "why": "Crop 626-560, row 3 of the second system (re-engraved page), prints 'And my lov - ing hearts' plainly: two letters, 'my', not 'may'."
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "626-822.jpg, lower system, row 3 prints 'And may lov-ing hearts spread a-': 'may', not 'my'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 22
+        }
+      ],
+      "row": "around an influence sweet",
+      "readings": [""],
+      "printed": "around an influence sweet",
+      "sung": "around an influence sweet",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-247.jpg",
+          "box": [0, 247, 2268, 366],
+          "sha": "6f62a7a8b3c8de90",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-822.jpg",
+          "box": [0, 822, 2268, 562],
+          "sha": "6e4d2927616865ed",
+          "shows": "a-"
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "round an influence sweet"
+        }
+      ],
+      "judge": "judge-again-013-2 (Opus, effort max)",
+      "why": "626-822.jpg row 3 ends 'spread a-' and 626-1208.jpg row 3 of the next system prints 'round an in-fluence sweet!' plainly; the OCR missed them."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "In a",
+      "sung": "In a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-247.jpg",
+          "box": [0, 247, 2268, 366],
+          "sha": "6f62a7a8b3c8de90",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "In a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints 'In a lit-tle while,' first; 626-b-247.jpg holds only the title."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "in a",
+      "sung": "in a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "in a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints the second 'In a lit-tle while,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 41
+        }
+      ],
+      "row": "we shall cross the billows foam we shall meet at last when the stormy winds are past in a little while were going home",
+      "readings": [""],
+      "printed": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "sung": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": ""
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-547.jpg",
+          "box": [0, 547, 2268, 380],
+          "sha": "ee75287af5eb6110",
+          "shows": "We shall cross the billow's foam We shall meet at last When the"
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "stormy winds are past In a little while we're going home"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "The refrain runs on over the page: 626-b-p2-547.jpg prints 'We shall cross the bil-low's foam; We shall meet at last, When the', 626-b-p2-770.jpg 'storm-y winds are past, In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 59
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-p2-770.jpg refrain row prints 'In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 2
+        }
+      ],
+      "row": "rest",
+      "readings": [""],
+      "printed": "rest",
+      "sung": "rest",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-284.jpg",
+          "box": [0, 284, 2268, 716],
+          "sha": "76ebe15a6648f1f4",
+          "shows": "rest"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-284.jpg row 4 prints 'There's a rest be-yond'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 10
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-284.jpg",
+          "box": [0, 284, 2268, 716],
+          "sha": "76ebe15a6648f1f4",
+          "shows": ""
+        },
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-909.jpg",
+          "box": [0, 909, 2268, 608],
+          "sha": "3d13b329a88f6853",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-909.jpg top row (row 4) ends 'ev-ery care, In a'; 626-284.jpg shows it again."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-909.jpg",
+          "box": [0, 909, 2268, 608],
+          "sha": "3d13b329a88f6853",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-909.jpg row 4 prints 'shall fall in that'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 23
+        }
+      ],
+      "row": "city",
+      "readings": [""],
+      "printed": "city",
+      "sung": "city",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-909.jpg",
+          "box": [0, 909, 2268, 608],
+          "sha": "3d13b329a88f6853",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "city"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg row 4 prints 'cit-y bright and fair'; 626-b-909.jpg row 4 ends at 'that'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 34
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "In a",
+      "sung": "In a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b.jpg",
+          "crop": "626-b-247.jpg",
+          "box": [0, 247, 2268, 366],
+          "sha": "6f62a7a8b3c8de90",
+          "shows": ""
+        },
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "In a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints 'In a lit-tle while,' first; 626-b-247.jpg holds only the title."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 38
+        }
+      ],
+      "row": "in a",
+      "readings": [""],
+      "printed": "in a",
+      "sung": "in a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": "in a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-1208.jpg refrain row prints the second 'In a lit-tle while,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 42
+        }
+      ],
+      "row": "we shall cross the billows foam we shall meet at last when the stormy winds are past in a little while were going home",
+      "readings": [""],
+      "printed": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "sung": "We shall cross the billow's foam We shall meet at last When the stormy winds are past In a little while we're going home",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626.jpg",
+          "crop": "626-1208.jpg",
+          "box": [0, 1208, 2268, 1250],
+          "sha": "f7e6c4a74d7fad8a",
+          "shows": ""
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-547.jpg",
+          "box": [0, 547, 2268, 380],
+          "sha": "ee75287af5eb6110",
+          "shows": "We shall cross the billow's foam We shall meet at last When the"
+        },
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "stormy winds are past In a little while we're going home"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "The refrain runs on over the page: 626-b-p2-547.jpg prints 'We shall cross the bil-low's foam; We shall meet at last, When the', 626-b-p2-770.jpg 'storm-y winds are past, In a lit-tle while we're go-ing home.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 60
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-770.jpg",
+          "box": [0, 770, 2268, 926],
+          "sha": "ab5adb473088e1fb",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-p2-770.jpg refrain row prints 'In a lit-tle while we're go-ing home.'"
     }
   ]
 }

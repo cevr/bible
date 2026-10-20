@@ -1,0 +1,383 @@
+{
+  "number": 311,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-308.jpg",
+          "box": [0, 308, 1758, 592],
+          "sha": "2a15b33f3a420e23",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-308.jpg row 1 prints 'call me; I would be like Je-sus;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 19
+        }
+      ],
+      "row": "jesus",
+      "readings": [""],
+      "printed": "Jesus",
+      "sung": "Jesus",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-907.jpg",
+          "box": [0, 907, 1758, 456],
+          "sha": "8c449ab632fb32bb",
+          "shows": "Jesus"
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-1340.jpg",
+          "box": [0, 1340, 1758, 300],
+          "sha": "b59600c19ee8219f",
+          "shows": ""
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-1545.jpg",
+          "box": [0, 1545, 1758, 298],
+          "sha": "efa032d1c28c8389",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-907.jpg row 1 ends 'I would be like Je-sus.'; p303-1340.jpg prints no lyrics and p303-1545.jpg's refrain row starts after the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 33
+        }
+      ],
+      "row": "be",
+      "readings": [""],
+      "printed": "Be",
+      "sung": "Be",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-1545.jpg",
+          "box": [0, 1545, 1758, 298],
+          "sha": "efa032d1c28c8389",
+          "shows": ""
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "Be"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row opens 'Be like Je-sus, all day long!'; p303-1545.jpg's row ends at 'the throng;', before the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 39
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row prints 'all day long! I would be like Je-sus.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 5
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-308.jpg",
+          "box": [0, 308, 1758, 592],
+          "sha": "2a15b33f3a420e23",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-308.jpg row 2 prints 'fet-ter, I would be like Je-sus;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 17
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-907.jpg",
+          "box": [0, 907, 1758, 456],
+          "sha": "8c449ab632fb32bb",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-907.jpg row 2 prints 'bet-ter, I would be like Je-sus.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 35
+        }
+      ],
+      "row": "be",
+      "readings": [""],
+      "printed": "Be",
+      "sung": "Be",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-1545.jpg",
+          "box": [0, 1545, 1758, 298],
+          "sha": "efa032d1c28c8389",
+          "shows": ""
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "Be"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row opens 'Be like Je-sus, all day long!'; p303-1545.jpg's row ends at 'the throng;', before the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 41
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row prints 'all day long! I would be like Je-sus.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-907.jpg",
+          "box": [0, 907, 1758, 456],
+          "sha": "8c449ab632fb32bb",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-907.jpg row 3 prints 'sto-ry, I would be like Je-sus.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 36
+        }
+      ],
+      "row": "be",
+      "readings": [""],
+      "printed": "Be",
+      "sung": "Be",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-1545.jpg",
+          "box": [0, 1545, 1758, 298],
+          "sha": "efa032d1c28c8389",
+          "shows": ""
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "Be"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row opens 'Be like Je-sus, all day long!'; p303-1545.jpg's row ends at 'the throng;', before the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 42
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row prints 'all day long! I would be like Je-sus.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 3
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-308.jpg",
+          "box": [0, 308, 1758, 592],
+          "sha": "2a15b33f3a420e23",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-308.jpg row 4 prints 'That in heav-en He may meet me'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 38
+        }
+      ],
+      "row": "be",
+      "readings": [""],
+      "printed": "Be",
+      "sung": "Be",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-1545.jpg",
+          "box": [0, 1545, 1758, 298],
+          "sha": "efa032d1c28c8389",
+          "shows": ""
+        },
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "Be"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row opens 'Be like Je-sus, all day long!'; p303-1545.jpg's row ends at 'the throng;', before the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 44
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p303.jpg",
+          "crop": "p303-2040.jpg",
+          "box": [0, 2040, 1758, 296],
+          "sha": "6d791d6344d06127",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p303-2040.jpg's refrain row prints 'all day long! I would be like Je-sus.'"
+    }
+  ]
+}

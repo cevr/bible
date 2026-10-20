@@ -1,0 +1,184 @@
+{
+  "number": 62,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "the",
+      "readings": [""],
+      "printed": "The",
+      "sung": "The",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-1553.jpg",
+          "box": [0, 1553, 2268, 570],
+          "sha": "7a49ab71d80cb015",
+          "shows": ""
+        },
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-2146.jpg",
+          "box": [0, 2146, 2268, 770],
+          "sha": "13ba77c45fc43c94",
+          "shows": "The"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-p2-1553.jpg row 1 ends 'hosts to me!' and 061-p2-2146.jpg row 1 begins 'The tab-er-na-cles'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 11
+        }
+      ],
+      "row": "my",
+      "readings": [""],
+      "printed": "My",
+      "sung": "My",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-1553.jpg",
+          "box": [0, 1553, 2268, 570],
+          "sha": "7a49ab71d80cb015",
+          "shows": ""
+        },
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-2146.jpg",
+          "box": [0, 2146, 2268, 770],
+          "sha": "13ba77c45fc43c94",
+          "shows": "My"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-p2-1553.jpg row 2 ends 'courts to see;' and 061-p2-2146.jpg row 2 begins 'My ver-y heart'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "the",
+      "readings": [""],
+      "printed": "The",
+      "sung": "The",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-1553.jpg",
+          "box": [0, 1553, 2268, 570],
+          "sha": "7a49ab71d80cb015",
+          "shows": ""
+        },
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-2146.jpg",
+          "box": [0, 2146, 2268, 770],
+          "sha": "13ba77c45fc43c94",
+          "shows": "The"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-p2-1553.jpg row 3 ends 'where-in to rest;' and 061-p2-2146.jpg row 3 begins 'The swal-low al-so'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 13
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-1553.jpg",
+          "box": [0, 1553, 2268, 570],
+          "sha": "7a49ab71d80cb015",
+          "shows": ""
+        },
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-2146.jpg",
+          "box": [0, 2146, 2268, 770],
+          "sha": "13ba77c45fc43c94",
+          "shows": "O"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-p2-1553.jpg row 4 ends 'forth may bring,' and 061-p2-2146.jpg row 4 begins 'O Thou, al-might-y'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 20
+        }
+      ],
+      "row": "",
+      "readings": ["blest"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-2146.jpg",
+          "box": [0, 2146, 2268, 770],
+          "sha": "13ba77c45fc43c94",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-p2-2146.jpg row 4 prints 'hosts, Who art my God' with nothing between 'Who' and 'art'; the OCR's 'blest' is 'Blest', the first word of row 5 (stanza 5), where the database has it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 13
+        }
+      ],
+      "row": "blest is",
+      "readings": [""],
+      "printed": "Blest is",
+      "sung": "Blest is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-1553.jpg",
+          "box": [0, 1553, 2268, 570],
+          "sha": "7a49ab71d80cb015",
+          "shows": ""
+        },
+        {
+          "image": "061-p2.jpg",
+          "crop": "061-p2-2146.jpg",
+          "box": [0, 2146, 2268, 770],
+          "sha": "13ba77c45fc43c94",
+          "shows": "Blest is"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-p2-1553.jpg row 5 ends 'give Thee praise.' and 061-p2-2146.jpg row 5 begins 'Blest is the man'."
+    }
+  ]
+}

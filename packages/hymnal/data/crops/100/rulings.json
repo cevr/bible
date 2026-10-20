@@ -1,0 +1,172 @@
+{
+  "number": 100,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "compassions",
+      "readings": [""],
+      "printed": "compassions",
+      "sung": "compassions",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "100.jpg",
+          "crop": "100-974.jpg",
+          "box": [0, 974, 2268, 510],
+          "sha": "c3e336b8611b50fd",
+          "shows": "com-"
+        },
+        {
+          "image": "100.jpg",
+          "crop": "100-1387.jpg",
+          "box": [0, 1387, 2268, 736],
+          "sha": "eb0bfeb3d7f3958c",
+          "shows": "passions"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "100-974.jpg row 1 ends 'Thy com-' and 100-1387.jpg row 1 begins 'pas-sions', together 'compassions'; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 46
+        }
+      ],
+      "row": "see all",
+      "readings": [""],
+      "printed": "see all",
+      "sung": "see all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p100.jpg",
+          "crop": "p100-95.jpg",
+          "box": [0, 95, 1758, 294],
+          "sha": "e42114b75cf87276",
+          "shows": "see all"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p100-95.jpg's refrain row prints 'mer-cies I see; All I have'; the OCR missed 'see All'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 29
+        }
+      ],
+      "row": "",
+      "readings": ["d4"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "100.jpg",
+          "crop": "100-1387.jpg",
+          "box": [0, 1387, 2268, 736],
+          "sha": "eb0bfeb3d7f3958c",
+          "shows": ""
+        },
+        {
+          "image": "100.jpg",
+          "crop": "100-1973.jpg",
+          "box": [0, 1973, 2268, 342],
+          "sha": "d2fa4ee46677caf4",
+          "shows": ""
+        },
+        {
+          "image": "100.jpg",
+          "crop": "100-2074.jpg",
+          "box": [0, 2074, 2268, 878],
+          "sha": "969356988b474afb",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "100-1387.jpg row 2 ends 'and love.', 100-1973.jpg holds no lyric row, and the refrain row on 100-2074.jpg begins 'Great is Thy', so nothing is printed between them; the OCR's 'd4' is no lyric."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 43
+        }
+      ],
+      "row": "see all",
+      "readings": [""],
+      "printed": "see all",
+      "sung": "see all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p100.jpg",
+          "crop": "p100-95.jpg",
+          "box": [0, 95, 1758, 294],
+          "sha": "e42114b75cf87276",
+          "shows": "see all"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p100-95.jpg's refrain row prints 'I see; All I have', the refrain sung after stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 46
+        }
+      ],
+      "row": "see all",
+      "readings": [""],
+      "printed": "see all",
+      "sung": "see all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p100.jpg",
+          "crop": "p100-95.jpg",
+          "box": [0, 95, 1758, 294],
+          "sha": "e42114b75cf87276",
+          "shows": "see all"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p100-95.jpg's refrain row prints 'I see; All I have', the refrain sung after stanza 3."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": [
+        "praise great is thy faithfulness great is thy faithfulness morning by morning new mercies i i have needed thy hand hath provided great is thy faithfulness lord unto me"
+      ],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "100.jpg",
+          "crop": "100-1387.jpg",
+          "box": [0, 1387, 2268, 736],
+          "sha": "eb0bfeb3d7f3958c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "100-1387.jpg prints only three stanza rows for this hymn; the '4. Praise' at its right edge is a row of the facing page's next hymn."
+    }
+  ]
+}

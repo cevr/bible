@@ -1,7 +1,7 @@
 {
   "number": 137,
   "title": "We Three Kings of Orient Are",
-  "print": "the 1985 book's hymnary.org scan (p134.jpg), each line read off the page at its system and row; the rulings (data/crops/137/rulings.json) put in what the page prints where the base row differs: \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crop p134-1547.jpg, judge-074 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p134.jpg), each line read off the page at its system and row; the rulings (data/crops/137/rulings.json) put in what the page prints where the base row differs: \"oh\" -> \"O\" (words, crops p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crops p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crops p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crops p134-1547.jpg, judge-074 (Opus, effort max)); \"oh\" -> \"O\" (words, crops p134-1547.jpg, judge-074 (Opus, effort max)).",
   "stanzas": [
     [
       {

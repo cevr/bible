@@ -1,0 +1,98 @@
+{
+  "number": 262,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 18
+        }
+      ],
+      "row": "sweet holy",
+      "readings": [""],
+      "printed": "Sweet Holy",
+      "sung": "Sweet Holy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-439.jpg",
+          "box": [0, 439, 1274, 212],
+          "sha": "dabf591f1d14fe28",
+          "shows": "Sweet Holy"
+        },
+        {
+          "image": "262.png",
+          "crop": "262-511.jpg",
+          "box": [0, 511, 1274, 496],
+          "sha": "cd6d83375fda53d1",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "262-439.jpg row 1 prints 'Sweet Ho-ly' after the double bar, the refrain's opening; 262-511.jpg shows that row again at its top, and its own system opens 'Spir-it'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "there are",
+      "readings": [""],
+      "printed": "",
+      "sung": "there are",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-126.jpg",
+          "box": [0, 126, 1274, 212],
+          "sha": "06c99fae8555af7b",
+          "shows": ""
+        },
+        {
+          "image": "262.png",
+          "crop": "262-439.jpg",
+          "box": [0, 439, 1274, 212],
+          "sha": "dabf591f1d14fe28",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "262-126.jpg row 2 prints nothing under the opening pickup, because 'There are' stands at the end of row 1 on 262-439.jpg, the first ending before the repeat sign that leads into stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 16
+        }
+      ],
+      "row": "lord sweet holy",
+      "readings": [""],
+      "printed": "Lord Sweet Holy",
+      "sung": "Lord Sweet Holy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "262.png",
+          "crop": "262-439.jpg",
+          "box": [0, 439, 1274, 212],
+          "sha": "dabf591f1d14fe28",
+          "shows": "Lord Sweet Holy"
+        },
+        {
+          "image": "262.png",
+          "crop": "262-511.jpg",
+          "box": [0, 511, 1274, 496],
+          "sha": "cd6d83375fda53d1",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "262-439.jpg row 2 ends 'pres-ence of the', and after the repeat sign the second ending prints 'Lord.' then 'Sweet Ho-ly' on the lyric line; 262-511.jpg shows that row again at its top."
+    }
+  ]
+}

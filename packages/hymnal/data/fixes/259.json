@@ -1,7 +1,7 @@
 {
   "number": 259,
   "title": "Draw Us in the Spirits Tether",
-  "print": "the owner's photo of his 1985 book (259.jpg), each line read off the page at its system and row; the rulings (data/crops/259/rulings.json) put in what the page prints where the base row differs: \"us\" -> \"as\" (words, crop 259-337.jpg, judge-209 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (259.jpg), each line read off the page at its system and row; the rulings (data/crops/259/rulings.json) put in what the page prints where the base row differs: \"us\" -> \"as\" (words, crops 259-337.jpg, judge-209 (Opus, effort max)); \"us sacraments\" -> \"as sacraments\" (words, crops 259-336.jpg, 259-939.jpg, judge-234 (Opus, effort max)).",
   "stanzas": [
     [
       {

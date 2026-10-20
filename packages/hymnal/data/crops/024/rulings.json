@@ -1,0 +1,149 @@
+{
+  "number": 24,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 28
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "024.png",
+          "crop": "024-857.jpg",
+          "box": [0, 857, 1274, 182],
+          "sha": "25d888909b8692e3",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "024-857.jpg's refrain row prints 'Ho - ly is the name I know.'; the OCR missed 'is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 31
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "024.png",
+          "crop": "024-857.jpg",
+          "box": [0, 857, 1274, 182],
+          "sha": "25d888909b8692e3",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "024-857.jpg's refrain row prints 'the name I know.'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 27
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "024.png",
+          "crop": "024-857.jpg",
+          "box": [0, 857, 1274, 182],
+          "sha": "25d888909b8692e3",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "024-857.jpg's refrain row, sung after each stanza, prints 'Ho - ly is the name'; the OCR missed 'is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "024.png",
+          "crop": "024-857.jpg",
+          "box": [0, 857, 1274, 182],
+          "sha": "25d888909b8692e3",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "024-857.jpg's refrain row, sung after each stanza, prints 'the name I know.'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 27
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "024.png",
+          "crop": "024-857.jpg",
+          "box": [0, 857, 1274, 182],
+          "sha": "25d888909b8692e3",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "024-857.jpg's refrain row, sung after each stanza, prints 'Ho - ly is the name'; the OCR missed 'is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 30
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "024.png",
+          "crop": "024-857.jpg",
+          "box": [0, 857, 1274, 182],
+          "sha": "25d888909b8692e3",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "024-857.jpg's refrain row, sung after each stanza, prints 'the name I know.'; the OCR missed 'I'."
+    }
+  ]
+}

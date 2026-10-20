@@ -1,0 +1,194 @@
+{
+  "number": 498,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 19
+        }
+      ],
+      "row": "lovelier",
+      "readings": [""],
+      "printed": "lovelier",
+      "sung": "lovelier",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-1733.jpg",
+          "box": [0, 1733, 2268, 530],
+          "sha": "3b61ceb322a022f8",
+          "shows": "loveli-"
+        },
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-2209.jpg",
+          "box": [0, 2209, 2268, 778],
+          "sha": "edabd7daad38d4dc",
+          "shows": "er"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-1733.jpg row 1 ends 'love - li -' and 497-b-p2-2209.jpg row 1 begins 'er than day-light': lovelier."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "hush of",
+      "readings": [""],
+      "printed": "hush of",
+      "sung": "hush of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-1206.jpg",
+          "box": [0, 1206, 2268, 652],
+          "sha": "67a5968d1c422e28",
+          "shows": ""
+        },
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-1733.jpg",
+          "box": [0, 1733, 2268, 530],
+          "sha": "3b61ceb322a022f8",
+          "shows": "hush of"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-1206.jpg row 2 ends 'The sol - emn'; 497-b-p2-1733.jpg row 2 begins 'hush of na - ture'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 20
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-2209.jpg",
+          "box": [0, 2209, 2268, 778],
+          "sha": "edabd7daad38d4dc",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-2209.jpg row 2 prints 'ad - o - ra - tion, In the calm dew'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 27
+        }
+      ],
+      "row": "",
+      "readings": ["er"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-2209.jpg",
+          "box": [0, 2209, 2268, 778],
+          "sha": "edabd7daad38d4dc",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-2209.jpg row 2 prints 'fresh-ness of the morn' with nothing between 'of' and 'the'; the OCR's 'er' is not there."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 21
+        }
+      ],
+      "row": "consciousness awaking",
+      "readings": [""],
+      "printed": "consciousness awaking",
+      "sung": "consciousness awaking",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-1733.jpg",
+          "box": [0, 1733, 2268, 530],
+          "sha": "3b61ceb322a022f8",
+          "shows": "conscious-"
+        },
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-2209.jpg",
+          "box": [0, 2209, 2268, 778],
+          "sha": "edabd7daad38d4dc",
+          "shows": "ness awaking"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-1733.jpg row 3 ends 'con - scious -' and 497-b-p2-2209.jpg row 3 begins 'ness, a - wak - ing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 25
+        }
+      ],
+      "row": "day",
+      "readings": ["duy"],
+      "printed": "day",
+      "sung": "day",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-2209.jpg",
+          "box": [0, 2209, 2268, 778],
+          "sha": "edabd7daad38d4dc",
+          "shows": "day"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-2209.jpg row 3 prints 'Breathe each day near-ness'; the OCR's 'duy' is a misreading."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 18
+        }
+      ],
+      "row": "o in",
+      "readings": [""],
+      "printed": "o in",
+      "sung": "o in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-1733.jpg",
+          "box": [0, 1733, 2268, 530],
+          "sha": "3b61ceb322a022f8",
+          "shows": "o in"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-1733.jpg row 4 prints 'flee; O in that hour'."
+    }
+  ]
+}

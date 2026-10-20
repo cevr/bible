@@ -4,6 +4,54 @@
     {
       "sites": [
         {
+          "unit": 2,
+          "at": 23
+        }
+      ],
+      "row": "his",
+      "readings": [""],
+      "printed": "his",
+      "sung": "his",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-1775.jpg",
+          "box": [0, 1775, 2268, 970],
+          "sha": "0127df1bedda7b7a",
+          "shows": "his"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-1775.jpg row 2 prints 'His' before 'pow'r'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "his",
+      "readings": [""],
+      "printed": "his",
+      "sung": "his",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-1775.jpg",
+          "box": [0, 1775, 2268, 970],
+          "sha": "0127df1bedda7b7a",
+          "shows": "his"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-1775.jpg row 4 prints 'His' before 'pow'r'."
+    },
+    {
+      "sites": [
+        {
           "unit": 5,
           "at": 4
         }
@@ -15,15 +63,65 @@
       "kind": "words",
       "crops": [
         {
-          "image": "584.png",
-          "crop": "584-114.jpg",
-          "box": [0, 114, 1275, 362],
-          "sha": "4853c7308f964487",
+          "image": "583-p2.jpg",
+          "crop": "583-p2-1310.jpg",
+          "box": [0, 1310, 2268, 672],
+          "sha": "e14a257564e954fd",
           "shows": ""
         }
       ],
-      "judge": "judge-583 (Opus, effort max)",
-      "why": "Row 5. prints 'not a - lone,': that 'a' is the first syllable of 'alone', and no separate 'a' stands before it."
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-1310.jpg row 5 prints 'not a - lone', the syllables of 'alone', with no separate 'a'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 6,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": [
+        "may his spirit fill our praise calling people everywhere d in see istih power toda stay living working in our world we can see his power today"
+      ],
+      "printed": "",
+      "sung": "",
+      "kind": "unreadable",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-1775.jpg",
+          "box": [0, 1775, 2268, 970],
+          "sha": "0127df1bedda7b7a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-1775.jpg clearly prints a whole stanza 6 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book."
+    },
+    {
+      "sites": [
+        {
+          "unit": 7,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["theres a spirit in the air"],
+      "printed": "",
+      "sung": "",
+      "kind": "unreadable",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-1775.jpg",
+          "box": [0, 1775, 2268, 970],
+          "sha": "0127df1bedda7b7a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-1775.jpg clearly prints a whole stanza 7 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book."
     }
   ]
 }

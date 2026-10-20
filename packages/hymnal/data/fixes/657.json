@@ -1,0 +1,97 @@
+{
+  "number": 657,
+  "title": "O God From Whom Mankind",
+  "print": "the owner's photo of his 1985 book (657.jpg), each line read off the page at its system and row; the rulings (data/crops/657/rulings.json) put in what the page prints where the base row differs: \"there\" -> \"these\" (words, crops 657-1476.jpg, judge-657 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O God from whom mankind derives its name;",
+        "from": "657.jpg system 1, row 1. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Whose covenant of grace remains the same,",
+        "from": "657.jpg system 2, row 1. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Be with these two who now before You wait;",
+        "from": "657.jpg system 3, row 1. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Enlarge the love they come to consecrate.",
+        "from": "657.jpg system 4, row 1. (placed off the page by from-657 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "May through their union other lives be blessed;",
+        "from": "657.jpg system 1, row 2. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Their door be wide to stranger and to guest,",
+        "from": "657.jpg system 2, row 2. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Give them the understanding that is kind,",
+        "from": "657.jpg system 3, row 2. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Grant them the blessing of an open mind.",
+        "from": "657.jpg system 4, row 2. (placed off the page by from-657 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Preserve their days from inwardness of heart;",
+        "from": "657.jpg system 1, row 3. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "To each the gift of truthful speech impart.",
+        "from": "657.jpg system 2, row 3. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Their bond be strong against all strain and strife",
+        "from": "657.jpg system 3, row 3. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Amid the changes of this earthly life.",
+        "from": "657.jpg system 4, row 3. (placed off the page by from-657 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "From stage to stage on life's unfolding way",
+        "from": "657.jpg system 1, row 4. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Bring to their mind the vows they make this day,",
+        "from": "657.jpg system 2, row 4. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Your Spirit be their Guide in every move,",
+        "from": "657.jpg system 3, row 4. (placed off the page by from-657 (Opus))"
+      },
+      {
+        "text": "Their faith in Christ the basis of their love.",
+        "from": "657.jpg system 4, row 4. (placed off the page by from-657 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O God from whom mankind derives its name;\nWhose covenant of grace remains the same,\nBe with there two who now before You wait;\nEnlarge the love they come to consecrate."
+    },
+    {
+      "id": 1,
+      "text": "May through their union other lives be blessed;\nTheir door be wide to stranger and to guest,\nGive them the understanding that is kind,\nGrant them the blessing of an open mind."
+    },
+    {
+      "id": 2,
+      "text": "Preserve their days from inwardness of heart;\nTo each the gift of truthful speech impart.\nTheir bond be strong against all strain and strife\nAmid the changes of this earthly life."
+    },
+    {
+      "id": 3,
+      "text": "From stage to stage on life's unfolding way\nBring to their mind the vows they make this day,\nYour Spirit be their Guide in every move,\nTheir faith in Christ the basis of their love."
+    }
+  ]
+}

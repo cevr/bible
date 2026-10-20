@@ -1,7 +1,7 @@
 {
   "number": 493,
   "title": "Fill My Cup Lord",
-  "print": "the owner's photo of his 1985 book (493.jpg), each line read off the page at its system and row; the rulings (data/crops/493/rulings.json) put in what the page prints where the base row differs: \"shall\" -> \"\" (words, crop 493-0.jpg, judge-471 (Opus, effort max)); \"\" -> \"shall\" (words, crop 493-0.jpg, judge-471 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (493.jpg), each line read off the page at its system and row; the rulings (data/crops/493/rulings.json) put in what the page prints where the base row differs: \"shall\" -> \"\" (words, crops 493-0.jpg, judge-471 (Opus, effort max)); \"\" -> \"shall\" (words, crops 493-0.jpg, judge-471 (Opus, effort max)).",
   "stanzas": [
     [
       {

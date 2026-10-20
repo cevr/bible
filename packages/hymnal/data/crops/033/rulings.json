@@ -4,26 +4,288 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 11
+        }
+      ],
+      "row": "belong",
+      "readings": [""],
+      "printed": "belong",
+      "sung": "belong",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-512.jpg",
+          "box": [0, 512, 2268, 494],
+          "sha": "0f39dd9b44f0e0b8",
+          "shows": "be-"
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": "long"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-512.jpg row 1 ends 'won-ders be-' and 033-1080.jpg row 1 begins 'long.', together 'belong'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 21
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-140.jpg",
+          "box": [0, 140, 2268, 546],
+          "sha": "951e844e173c405e",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-512.jpg",
+          "box": [0, 512, 2268, 494],
+          "sha": "0f39dd9b44f0e0b8",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1583.jpg",
+          "box": [0, 1583, 2268, 490],
+          "sha": "7b082e8048c3ba05",
+          "shows": "O"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-1583.jpg row 1 prints 'power. O sing a new'; 033-140.jpg, 033-512.jpg and 033-1080.jpg hold no words of the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 14
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-1080.jpg row 2 prints 'And still He re-mem-bers His'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 17
+        }
+      ],
+      "row": "mercy",
+      "readings": [""],
+      "printed": "mercy",
+      "sung": "mercy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1583.jpg",
+          "box": [0, 1583, 2268, 490],
+          "sha": "7b082e8048c3ba05",
+          "shows": "mercy"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-1080.jpg row 2 ends at 'His' and 033-1583.jpg row 2 begins 'mer-cy and truth'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "abroad",
+      "readings": [""],
+      "printed": "abroad",
+      "sung": "abroad",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-512.jpg",
+          "box": [0, 512, 2268, 494],
+          "sha": "0f39dd9b44f0e0b8",
+          "shows": "a-"
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": "broad"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-512.jpg row 3 ends 'prais-es a-' and 033-1080.jpg row 3 begins 'broad.', together 'abroad'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 11
+        }
+      ],
+      "row": "prolong",
+      "readings": [""],
+      "printed": "prolong",
+      "sung": "prolong",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-512.jpg",
+          "box": [0, 512, 2268, 494],
+          "sha": "0f39dd9b44f0e0b8",
+          "shows": "pro-"
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": "long"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-512.jpg row 4 ends 'praise to pro-' and 033-1080.jpg row 4 begins 'long.', together 'prolong'."
+    },
+    {
+      "sites": [
+        {
           "unit": 4,
           "at": 13
         }
       ],
       "row": "judgment",
       "readings": ["judgement"],
-      "printed": "judgement",
-      "sung": "judgement",
+      "printed": "judgment",
+      "sung": "judgment",
       "kind": "words",
       "crops": [
         {
-          "image": "033.png",
-          "crop": "033-492.jpg",
-          "box": [0, 492, 1275, 279],
-          "sha": "82b2b6d295735c4d",
-          "shows": "judgement"
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": "judgment"
         }
       ],
-      "judge": "judge-006-2 (Opus, effort max)",
-      "why": "Row 4 of the second system prints 'In judg - - - - - ement and', the syllables joining to 'judgement' with an e before 'ment'."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "033-1080.jpg row 4 prints 'In judg-ment and jus-tice He': 'judgment', with no e."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 19
+        }
+      ],
+      "row": "",
+      "readings": ["g"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-1583.jpg",
+          "box": [0, 1583, 2268, 490],
+          "sha": "7b082e8048c3ba05",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-1583.jpg row 4 prints 'comes to the earth.' with nothing between 'to' and 'the'; there is only faint show-through from the reverse page there."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "O",
+      "sung": "O",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "033.jpg",
+          "crop": "033-140.jpg",
+          "box": [0, 140, 2268, 546],
+          "sha": "951e844e173c405e",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-512.jpg",
+          "box": [0, 512, 2268, 494],
+          "sha": "0f39dd9b44f0e0b8",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1080.jpg",
+          "box": [0, 1080, 2268, 480],
+          "sha": "163a40a44ee7e9e3",
+          "shows": ""
+        },
+        {
+          "image": "033.jpg",
+          "crop": "033-1583.jpg",
+          "box": [0, 1583, 2268, 490],
+          "sha": "7b082e8048c3ba05",
+          "shows": "O"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "033-1583.jpg row 4 prints 'earth. O sing a new'; 033-140.jpg, 033-512.jpg and 033-1080.jpg hold no words of the place."
     }
   ]
 }

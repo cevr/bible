@@ -1,0 +1,97 @@
+{
+  "number": 641,
+  "title": "God in His Love For Us",
+  "print": "the owner's photo of his 1985 book (641.jpg), each line read off the page at its system and row; the rulings (data/crops/641/rulings.json) put in what the page prints where the base row differs: \"forced\" -> \"force\" (words, crops 641-730.jpg, 641-1446.jpg, 641-1572.jpg, judge-634 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "God in His love for us lent us this planet,",
+        "from": "641.jpg system 1, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Gave it a purpose in time and in space:",
+        "from": "641.jpg system 2, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Small as a spark from the fire of creation,",
+        "from": "641.jpg system 3, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Cradle of life and the home of our race.",
+        "from": "641.jpg system 4, row 1. (placed off the page by from-634 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Thanks be to God for its bounty and beauty,",
+        "from": "641.jpg system 1, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Life that sustains us in body and mind:",
+        "from": "641.jpg system 2, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Plenty for all, if we learn how to share it,",
+        "from": "641.jpg system 3, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Riches undreamed of to fathom and find.",
+        "from": "641.jpg system 4, row 2. (placed off the page by from-634 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Long have our human wars ruined its harvest;",
+        "from": "641.jpg system 1, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Long has earth bowed to the terror of force;",
+        "from": "641.jpg system 2, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Long have we wasted what others have need of,",
+        "from": "641.jpg system 3, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Poisoned the fountain of life at its source.",
+        "from": "641.jpg system 4, row 3. (placed off the page by from-634 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Earth is the Lord's: it is ours to enjoy it,",
+        "from": "641.jpg system 1, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Ours, as His stewards, to farm and defend.",
+        "from": "641.jpg system 2, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "From its pollution, misuse, and destruction,",
+        "from": "641.jpg system 3, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Good Lord, deliver us, world without end!",
+        "from": "641.jpg system 4, row 4. (placed off the page by from-634 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "God in His love for us lent us this planet,\nGave it a purpose in time and in space:\r\nSmall as a spark from the fire of creation,\nCradle of life and the home of our race."
+    },
+    {
+      "id": 1,
+      "text": "Thanks be to God for its bounty and beauty,\nLife that sustains us in body and mind:\nPlenty for all, if we learn how to share it,\nRiches undreamed of to fathom and find."
+    },
+    {
+      "id": 2,
+      "text": "Long have our human wars ruined its harvest;\nLong has earth bowed to the terror of forced;\nLong have we wasted what others have need of,\nPoisoned the fountain of life at its source."
+    },
+    {
+      "id": 3,
+      "text": "Earth is the Lord's: it is ours to enjoy it,\nOurs, as His stewards, to farm and defend.\nFrom its pollution, misuse, and destruction,\nGood Lord, deliver us, world without end!"
+    }
+  ]
+}

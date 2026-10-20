@@ -1,5 +1,5 @@
 {
-  "print": "Every hymn 1-695 of the 1985 Seventh-day Adventist Hymnal held against its printed page (2026-10-19). A hymn's deciding page comes from the page inventory (data/pages.json) alone: the owner's photo when his photos show the hymn whole; else the hymnary.org scan of the 1985 book, when it shows every page of the hymn; else the SDAHImages engraving at its pinned commit. Readings only find: blind readers (shown the page, never the row) transcribed each deciding page, and where they would not transcribe the words (a copyright notice, or the API's content filter) two proofreaders each marked every row line against the page; a script compares each reading with the base row (origin/main's hymnal.db, `base`) in sung units (each stanza with the refrain after it). Crops decide: every run where a reading differs is ruled by a fresh judge (an Opus subagent at max effort that never saw the reading) on a 1:1 crop of the deciding page, committed beside its rulings under data/crops/NNN/. Applying the rulings to the base row gives the row. `matches`: no ruling changes a word (`rulings.all` counts the rulings that kept the row). `fixed`: rulings on a photo or a scan change words (`rulings.changes`); the row is written from data/fixes/NNN.json, which keeps the base row as `replaces`. `unsettled`: a ruling could not read its crop, or rulings on an engraving change words (an engraving never fixes a row); the row stays the base row and the note says why. `nopage`: no reading of the deciding page could be made (the note says why); the row stays the base row. `unsettled` and `nopage` hymns wait on the owner's photo (owner-photos.md). `readings` counts the blind readings and the proofs of the deciding page; `stanzas` and `refrain` are the row's; the witness digest pins the hunks between the row and the csycms witness, which is not committed.",
+  "print": "Every hymn 1-695 of the 1985 Seventh-day Adventist Hymnal held against its printed page (2026-10-19). A hymn's deciding page comes from the page inventory (data/pages.json) alone: the owner's photo when his photos show the hymn whole; else the hymnary.org scan of the 1985 book, when it shows every page of the hymn; else the SDAHImages engraving at its pinned commit, unless its credit line dates a words revision after 1985; else none. A photo that shows part of a hymn stands beside its deciding page and rules the places it shows. Readings only find: each deciding page was transcribed blind (never shown the row), for comparison only, by a model reader (`readings.reader`) or by machine OCR (Apple Vision, `readings.ocr`); a proof shown the row is no reading. A script compares each reading with the base row (the hymnal.db at `base.commit`, which the plain census run reads from git) in sung units (each stanza with the refrain after it). Crops decide: every run where a reading differs is ruled by a fresh judge (an Opus subagent at max effort that never read the page whole) on 1:1 crops of the deciding page, one for each system the run lies on, committed beside its rulings under data/crops/NNN/; each ruling names its crops by digest and the words each shows, and a place no crop holds is `unreadable`. Applying the rulings to the base row gives the row. `matches`: no ruling changes a word (`rulings.all` counts the rulings that kept the row). `fixed`: rulings on crops of a photo or a scan change words (`rulings.changes`); the row is written from data/fixes/NNN.json, which keeps the base row as `replaces` and names in each line's `from` a deciding image, its system and its row. `unsettled`: a ruling could not read its crops, or rulings on an engraving change words (an engraving never fixes a row); the row stays the base row and the note says why. `nopage`: no 1985 page of it is known or none could be read (the note says why); the row stays the base row. `unsettled` and `nopage` hymns wait on the owner's photo (owner-photos.md). `stanzas` and `refrain` are the row's; the witness digest pins the hunks between the row and the csycms witness, every refrain block compared, which is not committed.",
   "base": {
     "repo": "github.com/cevr/manna",
     "commit": "aff965cbc19577767977e310179bc41a8ec13623"
@@ -58,10 +58,10 @@
       "pages": ["003.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 3,
@@ -263,16 +263,16 @@
     },
     {
       "number": 13,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["013.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["013-c.jpg", "013-p2.jpg", "013.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 9,
+        "changes": 0
       },
       "stanzas": 3,
       "refrain": false,
@@ -280,20 +280,19 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"Now\" where the row has \"new\" (unit 1, 013-112.jpg); an engraving never fixes a row"
+      }
     },
     {
       "number": 14,
       "row": "matches",
       "source": "photo",
-      "pages": ["014.jpg"],
+      "pages": ["013-p2.jpg", "014.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 2,
@@ -458,10 +457,10 @@
       "pages": ["022.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 4,
@@ -500,10 +499,10 @@
       "pages": ["024.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 3,
@@ -647,10 +646,10 @@
       "pages": ["031.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 4,
@@ -668,10 +667,10 @@
       "pages": ["032.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 8,
         "changes": 0
       },
       "stanzas": 4,
@@ -684,16 +683,16 @@
     },
     {
       "number": 33,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["033.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["033.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 9,
+        "changes": 0
       },
       "stanzas": 4,
       "refrain": false,
@@ -701,8 +700,7 @@
       "witness": {
         "hunks": 1,
         "digest": "c1a7c2caf7d23a3a"
-      },
-      "note": "the engraving prints \"judgement\" where the row has \"judgment\" (unit 4, 033-492.jpg); an engraving never fixes a row"
+      }
     },
     {
       "number": 34,
@@ -921,7 +919,7 @@
       "pages": ["044.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
         "all": 0,
@@ -1236,10 +1234,10 @@
       "pages": ["059.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 4,
@@ -1273,37 +1271,36 @@
     },
     {
       "number": 61,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["061.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["061-c.jpg", "061-p2.jpg", "061.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 3,
         "changes": 1
       },
       "stanzas": 4,
       "refrain": false,
       "base": "2f744653f9a66d3e",
       "witness": {
-        "hunks": 3,
-        "digest": "525619c9a74ffbab"
-      },
-      "note": "the engraving prints \"an\" where the row has \"\" (unit 4, 061-114.jpg); an engraving never fixes a row"
+        "hunks": 2,
+        "digest": "11ba4d406d18b596"
+      }
     },
     {
       "number": 62,
       "row": "matches",
-      "source": "sdahimages",
-      "pages": ["062.png"],
+      "source": "photo",
+      "pages": ["061-p2.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 5,
@@ -1699,10 +1696,10 @@
       "pages": ["081.png", "Though_I_Speak_With_Tongues2.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 8,
         "changes": 0
       },
       "stanzas": 3,
@@ -1801,14 +1798,14 @@
       "number": 86,
       "row": "unsettled",
       "source": "sdahimages",
-      "pages": ["086.png", "How_Great_Thou_Art2.png"],
+      "pages": ["086.jpg", "086.png", "How_Great_Thou_Art2.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 10,
+        "changes": 2
       },
       "stanzas": 4,
       "refrain": true,
@@ -1817,7 +1814,7 @@
         "hunks": 14,
         "digest": "864e62845d89f9be"
       },
-      "note": "the engraving prints \"worlds\" where the row has \"works\" (unit 1, 086-0.jpg); an engraving never fixes a row"
+      "note": "the engraving prints \"worlds\" where the row has \"works\" (unit 1, 086-0.jpg); an engraving never fixes a row; the engraving prints \"worlds\" where the row has \"works\" (unit 1, 086-1024.jpg, 086-0-388.jpg); an engraving never fixes a row; the owner's photo leaves out the refrain's end, on its second page, which no photo shows"
     },
     {
       "number": 87,
@@ -1826,10 +1823,10 @@
       "pages": ["087.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 3,
@@ -2096,13 +2093,13 @@
       "number": 100,
       "row": "matches",
       "source": "scan",
-      "pages": ["p099.jpg", "p100.jpg"],
+      "pages": ["100.jpg", "p099.jpg", "p100.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 3,
@@ -2120,7 +2117,7 @@
       "pages": ["p100.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
         "all": 1,
@@ -2136,37 +2133,36 @@
     },
     {
       "number": 102,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["102.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["102-b-p2.jpg", "102-b.jpg", "102-c.jpg", "102.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 1,
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 9,
         "changes": 1
       },
       "stanzas": 4,
       "refrain": false,
       "base": "812fbf37bdd036ec",
       "witness": {
-        "hunks": 3,
-        "digest": "cfa15509f5435763"
-      },
-      "note": "the engraving prints \"we\" where the row has \"\" (unit 4, 102-882.jpg); an engraving never fixes a row; the owner's photo leaves out the end of each stanza, on the facing page the photo cuts off"
+        "hunks": 2,
+        "digest": "893e56f9a759684a"
+      }
     },
     {
       "number": 103,
       "row": "matches",
-      "source": "sdahimages",
-      "pages": ["103.png"],
+      "source": "photo",
+      "pages": ["102-b-p2.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 5,
@@ -2268,10 +2264,10 @@
       "pages": ["108.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 10,
         "changes": 1
       },
       "stanzas": 5,
@@ -2289,10 +2285,10 @@
       "pages": ["p107.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -2331,10 +2327,10 @@
       "pages": ["111.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 5,
         "changes": 0
       },
       "stanzas": 3,
@@ -2541,10 +2537,10 @@
       "pages": ["p118.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -2557,31 +2553,30 @@
     },
     {
       "number": 122,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["122.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["122-b-p2.jpg", "122-b.jpg", "122-c.jpg", "122.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
-        "changes": 2
+        "all": 8,
+        "changes": 3
       },
       "stanzas": 3,
       "refrain": true,
       "base": "2e08add62d1d6504",
       "witness": {
-        "hunks": 9,
-        "digest": "3566074e99ddc663"
-      },
-      "note": "the engraving prints \"\" where the row has \"light and\" (unit 3, 122-111.jpg); an engraving never fixes a row; the engraving prints \"and light\" where the row has \"\" (unit 3, 122-111.jpg); an engraving never fixes a row; the owner's photo leaves out the refrain, on the facing page the photo cuts off"
+        "hunks": 11,
+        "digest": "2a9f26157d7ba9df"
+      }
     },
     {
       "number": 123,
       "row": "fixed",
       "source": "photo",
-      "pages": ["123.jpg"],
+      "pages": ["122-b-p2.jpg", "123.jpg"],
       "readings": {
         "reader": 1,
         "ocr": 0
@@ -2626,10 +2621,10 @@
       "pages": ["125.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 4,
@@ -2686,7 +2681,7 @@
       "number": 128,
       "row": "matches",
       "source": "sdahimages",
-      "pages": ["128.png"],
+      "pages": ["128.jpg", "128.png"],
       "readings": {
         "reader": 2,
         "ocr": 0
@@ -2896,13 +2891,13 @@
       "number": 138,
       "row": "matches",
       "source": "sdahimages",
-      "pages": ["138.png"],
+      "pages": ["138.jpg", "138.png"],
       "readings": {
-        "reader": 2,
+        "reader": 3,
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 2,
@@ -2951,8 +2946,8 @@
       "refrain": false,
       "base": "607ae73341c475d5",
       "witness": {
-        "hunks": 4,
-        "digest": "753c610190e509a1"
+        "hunks": 5,
+        "digest": "8ce7010c5897b3f9"
       }
     },
     {
@@ -3083,9 +3078,9 @@
     },
     {
       "number": 147,
-      "row": "matches",
-      "source": "sdahimages",
-      "pages": ["147.png"],
+      "row": "nopage",
+      "source": "none",
+      "pages": [],
       "readings": {
         "reader": 0,
         "ocr": 0
@@ -3100,7 +3095,8 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      }
+      },
+      "note": "no 1985 page of it is known: no owner's photo, no shown scan page, and its engraving (147.png) prints a later words revision (\"Words © 1977, Rev. 1995 Hope Publishing Co.\")"
     },
     {
       "number": 148,
@@ -3676,10 +3672,10 @@
       "pages": ["175.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 4,
@@ -3739,10 +3735,10 @@
       "pages": ["178-p2.jpg", "178.jpg", "179.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 3,
         "changes": 0
       },
       "stanzas": 3,
@@ -3818,9 +3814,9 @@
     },
     {
       "number": 182,
-      "row": "matches",
-      "source": "sdahimages",
-      "pages": ["182.png"],
+      "row": "nopage",
+      "source": "none",
+      "pages": [],
       "readings": {
         "reader": 0,
         "ocr": 0
@@ -3835,7 +3831,8 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      }
+      },
+      "note": "no 1985 page of it is known: no owner's photo, no shown scan page, and its engraving (182.png) prints a later words revision (\"Words © 1975, rev. 1995 Hope Publishing Co.\")"
     },
     {
       "number": 183,
@@ -3928,10 +3925,10 @@
       "pages": ["p182.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 4,
@@ -3970,10 +3967,10 @@
       "pages": ["p184.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 4,
@@ -4070,25 +4067,24 @@
     },
     {
       "number": 194,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["194.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["194.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 2,
         "changes": 1
       },
       "stanzas": 3,
       "refrain": false,
       "base": "fa8cd4cb33701fb7",
       "witness": {
-        "hunks": 1,
-        "digest": "cf2de956d47c4ebd"
-      },
-      "note": "the engraving prints \"nameless\" where the row has \"namelss\" (unit 1, 194-375.jpg); an engraving never fixes a row"
+        "hunks": 0,
+        "digest": "4f53cda18c2baa0c"
+      }
     },
     {
       "number": 195,
@@ -4260,16 +4256,16 @@
     },
     {
       "number": 203,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["203.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["203.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 6,
+        "changes": 0
       },
       "stanzas": 3,
       "refrain": true,
@@ -4277,8 +4273,7 @@
       "witness": {
         "hunks": 1,
         "digest": "531eacbd1ca636c0"
-      },
-      "note": "the engraving prints \"assails\" where the row has \"assail\" (unit 2, 203-114.jpg); an engraving never fixes a row"
+      }
     },
     {
       "number": 204,
@@ -4497,11 +4492,11 @@
       "pages": ["214.jpg", "215.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 13,
+        "changes": 2
       },
       "stanzas": 2,
       "refrain": false,
@@ -4618,24 +4613,25 @@
     },
     {
       "number": 220,
-      "row": "matches",
+      "row": "unsettled",
       "source": "sdahimages",
       "pages": ["220.png", "When_He_Comes2.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 21,
-        "changes": 0
+        "all": 38,
+        "changes": 19
       },
       "stanzas": 3,
-      "refrain": true,
+      "refrain": false,
       "base": "fe3d6dcdcc9022ef",
       "witness": {
         "hunks": 24,
         "digest": "6d132c8355526de7"
-      }
+      },
+      "note": "the engraving prints \"\" where the row has \"to\" (unit 1, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 1, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 1, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to\" (unit 1, 220-1244.jpg, 220-1245.jpg, When_He_Comes2-0-326.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 1, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 1, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"With the alleluias ringing to the sky,\" where the row has \"with the alleluias ringing to the sky to the sky\" (unit 1, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 1, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 2, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 2, When_He_Comes2-0-326.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 2, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to\" (unit 3, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 3, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 3, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to\" (unit 3, 220-1244.jpg, 220-1245.jpg, When_He_Comes2-0-326.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 3, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 3, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"With the alleluias ringing to the sky,\" where the row has \"with the alleluias ringing to the sky to the sky\" (unit 3, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 3, When_He_Comes2-356-458.jpg); an engraving never fixes a row"
     },
     {
       "number": 221,
@@ -4707,10 +4703,10 @@
       "pages": ["224.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 10,
         "changes": 0
       },
       "stanzas": 5,
@@ -4849,25 +4845,24 @@
     },
     {
       "number": 231,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["231.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["231.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 6,
-        "changes": 6
+        "all": 15,
+        "changes": 5
       },
       "stanzas": 4,
       "refrain": false,
       "base": "06def05be70832fb",
       "witness": {
-        "hunks": 6,
-        "digest": "a6d0a013721abf5c"
-      },
-      "note": "the engraving prints \"Blest\" where the row has \"bless\" (unit 1, 231-132.jpg); an engraving never fixes a row; the engraving prints \"Blest\" where the row has \"bless\" (unit 2, 231-132.jpg); an engraving never fixes a row; the engraving prints \"Blest\" where the row has \"bless\" (unit 3, 231-132.jpg); an engraving never fixes a row; the engraving prints \"Blest\" where the row has \"bless\" (unit 4, 231-132.jpg); an engraving never fixes a row; the engraving prints \"humble\" where the row has \"humbled\" (unit 4, 231-839.jpg); an engraving never fixes a row; the engraving prints \"made\" where the row has \"make\" (unit 4, 231-1223.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "bfc1ee1195e0545b"
+      }
     },
     {
       "number": 232,
@@ -4918,10 +4913,10 @@
       "pages": ["234.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 4,
@@ -5275,10 +5270,10 @@
       "pages": ["251.png", "He_Lives2.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 17,
         "changes": 0
       },
       "stanzas": 3,
@@ -5443,11 +5438,11 @@
       "pages": ["259.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 7,
+        "changes": 2
       },
       "stanzas": 3,
       "refrain": false,
@@ -5485,10 +5480,10 @@
       "pages": ["261.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 6,
         "changes": 1
       },
       "stanzas": 3,
@@ -5506,10 +5501,10 @@
       "pages": ["262.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 3,
         "changes": 0
       },
       "stanzas": 2,
@@ -5629,13 +5624,13 @@
       "number": 268,
       "row": "matches",
       "source": "scan",
-      "pages": ["p261.jpg", "p262.jpg"],
+      "pages": ["267.jpg", "268.jpg", "p261.jpg", "p262.jpg"],
       "readings": {
-        "reader": 1,
+        "reader": 2,
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 4,
@@ -5779,10 +5774,10 @@
       "pages": ["275.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 4,
@@ -5795,25 +5790,24 @@
     },
     {
       "number": 276,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["276.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["276.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 11,
         "changes": 1
       },
       "stanzas": 3,
       "refrain": false,
       "base": "cb36b0289a79b808",
       "witness": {
-        "hunks": 2,
-        "digest": "15f38aa8596b150d"
-      },
-      "note": "the engraving prints \"within\" where the row has \"wihin\" (unit 3, 276-112.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "ec88432612d7dac8"
+      }
     },
     {
       "number": 277,
@@ -5966,14 +5960,14 @@
       "number": 284,
       "row": "fixed",
       "source": "scan",
-      "pages": ["p277.jpg", "p278.jpg"],
+      "pages": ["284.jpg", "p277.jpg", "p278.jpg"],
       "readings": {
-        "reader": 0,
+        "reader": 1,
         "ocr": 0
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 7,
+        "changes": 2
       },
       "stanzas": 4,
       "refrain": true,
@@ -6048,9 +6042,9 @@
     },
     {
       "number": 288,
-      "row": "matches",
-      "source": "sdahimages",
-      "pages": ["288.png"],
+      "row": "nopage",
+      "source": "none",
+      "pages": [],
       "readings": {
         "reader": 0,
         "ocr": 0
@@ -6065,7 +6059,8 @@
       "witness": {
         "hunks": 2,
         "digest": "c1a561a43efb0bd6"
-      }
+      },
+      "note": "no 1985 page of it is known: no owner's photo, no shown scan page, and its engraving (288.png) prints a later words revision (\"Words © 1983, rev. 1996 Hope Publishing Co.\")"
     },
     {
       "number": 289,
@@ -6536,10 +6531,10 @@
       "pages": ["p303.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 14,
         "changes": 0
       },
       "stanzas": 4,
@@ -6662,10 +6657,10 @@
       "pages": ["p308.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 4,
@@ -6725,10 +6720,10 @@
       "pages": ["320.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 29,
         "changes": 0
       },
       "stanzas": 4,
@@ -6858,7 +6853,7 @@
         "changes": 1
       },
       "stanzas": 3,
-      "refrain": false,
+      "refrain": true,
       "base": "09d75edef8bcc826",
       "witness": {
         "hunks": 0,
@@ -6872,10 +6867,10 @@
       "pages": ["p317.jpg", "p318.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -7187,10 +7182,10 @@
       "pages": ["341-p2.jpg", "342.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 5,
@@ -7418,10 +7413,10 @@
       "pages": ["353.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 4,
@@ -7481,10 +7476,10 @@
       "pages": ["356.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 4,
@@ -7607,11 +7602,11 @@
       "pages": ["362.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 8,
+        "changes": 2
       },
       "stanzas": 5,
       "refrain": true,
@@ -7649,10 +7644,10 @@
       "pages": ["364.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 5,
         "changes": 0
       },
       "stanzas": 3,
@@ -7922,10 +7917,10 @@
       "pages": ["p367.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -8321,10 +8316,10 @@
       "pages": ["396.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 5,
@@ -8337,31 +8332,30 @@
     },
     {
       "number": 397,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["397.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["397.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 6,
         "changes": 1
       },
       "stanzas": 4,
       "refrain": false,
       "base": "333d9416f0164bfc",
       "witness": {
-        "hunks": 0,
-        "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"He\" where the row has \"\" (unit 1, 397-113.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "ffda10ab80f69e66"
+      }
     },
     {
       "number": 398,
       "row": "matches",
       "source": "sdahimages",
-      "pages": ["398.png"],
+      "pages": ["397.jpg", "398.png"],
       "readings": {
         "reader": 1,
         "ocr": 0
@@ -8401,9 +8395,9 @@
     },
     {
       "number": 400,
-      "row": "matches",
-      "source": "sdahimages",
-      "pages": ["400.png"],
+      "row": "nopage",
+      "source": "none",
+      "pages": [],
       "readings": {
         "reader": 0,
         "ocr": 0
@@ -8418,7 +8412,8 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      }
+      },
+      "note": "no 1985 page of it is known: no owner's photo, no shown scan page, and its engraving (400.png) prints a later words revision (\"Words © 1971, Rev. 1995 Hope Publishing Co.\")"
     },
     {
       "number": 401,
@@ -8490,10 +8485,10 @@
       "pages": ["404.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 4,
@@ -8700,10 +8695,10 @@
       "pages": ["414.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 4,
@@ -8952,10 +8947,10 @@
       "pages": ["p413.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 3,
@@ -9157,16 +9152,16 @@
     },
     {
       "number": 436,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["436.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["436-b-p2.jpg", "436-b.jpg", "436-c.jpg", "436.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 1,
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 12,
+        "changes": 0
       },
       "stanzas": 3,
       "refrain": false,
@@ -9174,20 +9169,19 @@
       "witness": {
         "hunks": 3,
         "digest": "718f78c79a419b72"
-      },
-      "note": "the engraving prints \"When\" where the row has \"where\" (unit 3, 436-0.jpg); an engraving never fixes a row; the owner's photo leaves out its last system, on the facing page the photo cuts off"
+      }
     },
     {
       "number": 437,
       "row": "matches",
-      "source": "scan",
-      "pages": ["p424.jpg"],
+      "source": "photo",
+      "pages": ["436-b-p2.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 10,
         "changes": 0
       },
       "stanzas": 3,
@@ -9667,10 +9661,10 @@
       "pages": ["460.png", "As_Water_to_the_Thirsty2.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -9688,10 +9682,10 @@
       "pages": ["461.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 5,
         "changes": 1
       },
       "stanzas": 3,
@@ -9814,11 +9808,11 @@
       "pages": ["467.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 18,
+        "changes": 2
       },
       "stanzas": 5,
       "refrain": false,
@@ -10003,10 +9997,10 @@
       "pages": ["476.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 3,
@@ -10234,10 +10228,10 @@
       "pages": ["p475.jpg", "p476.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 9,
         "changes": 0
       },
       "stanzas": 3,
@@ -10339,10 +10333,10 @@
       "pages": ["p480.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 9,
         "changes": 0
       },
       "stanzas": 4,
@@ -10360,10 +10354,10 @@
       "pages": ["493.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
+        "all": 8,
         "changes": 2
       },
       "stanzas": 3,
@@ -10439,37 +10433,36 @@
     },
     {
       "number": 497,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["497.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["497-b-p2.jpg", "497-b.jpg", "497.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 1,
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
-        "changes": 2
+        "all": 26,
+        "changes": 4
       },
       "stanzas": 4,
       "refrain": false,
       "base": "5933293fce436051",
       "witness": {
-        "hunks": 19,
-        "digest": "e273a1bc1f10383e"
-      },
-      "note": "the engraving prints \"or\" where the row has \"our\" (unit 2, 497-497.jpg); an engraving never fixes a row; the engraving prints \"with\" where the row has \"to\" (unit 3, 497-881.jpg); an engraving never fixes a row; the owner's photo leaves out its last system, on the facing page the photo cuts off"
+        "hunks": 18,
+        "digest": "3224c6de76ab183d"
+      }
     },
     {
       "number": 498,
       "row": "matches",
-      "source": "sdahimages",
-      "pages": ["498.png"],
+      "source": "photo",
+      "pages": ["497-b-p2.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 4,
@@ -10571,10 +10564,10 @@
       "pages": ["503.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 1,
@@ -10613,18 +10606,18 @@
       "pages": ["505.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 12,
         "changes": 0
       },
       "stanzas": 3,
       "refrain": true,
       "base": "4c7839ee1ed42101",
       "witness": {
-        "hunks": 2,
-        "digest": "691bafd5d5cb1926"
+        "hunks": 6,
+        "digest": "8b3df9bfcb222184"
       }
     },
     {
@@ -10634,10 +10627,10 @@
       "pages": ["506.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 12,
         "changes": 0
       },
       "stanzas": 4,
@@ -10760,10 +10753,10 @@
       "pages": ["p500.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 4,
@@ -11054,7 +11047,7 @@
       "pages": ["526.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
         "all": 0,
@@ -11175,37 +11168,36 @@
     },
     {
       "number": 532,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["532.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["532-b-p2.jpg", "532-b.jpg", "532.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 1,
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 16,
         "changes": 1
       },
       "stanzas": 3,
       "refrain": false,
       "base": "e71620908c32fde2",
       "witness": {
-        "hunks": 3,
-        "digest": "fd141996f032fbf0"
-      },
-      "note": "the engraving prints \"Counsellor\" where the row has \"counselor\" (unit 2, 532-520.jpg); an engraving never fixes a row; the owner's photo leaves out the end of each stanza, on the facing page the photo cuts off"
+        "hunks": 4,
+        "digest": "fe882f2d8aa14e35"
+      }
     },
     {
       "number": 533,
       "row": "matches",
-      "source": "sdahimages",
-      "pages": ["533.png"],
+      "source": "photo",
+      "pages": ["532-b-p2.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 10,
         "changes": 0
       },
       "stanzas": 5,
@@ -11265,10 +11257,10 @@
       "pages": ["536.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -11496,10 +11488,10 @@
       "pages": ["547.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 7,
         "changes": 1
       },
       "stanzas": 4,
@@ -11512,37 +11504,36 @@
     },
     {
       "number": 548,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["548.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["548.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 4,
         "changes": 1
       },
       "stanzas": 4,
       "refrain": false,
       "base": "347103605f6aff38",
       "witness": {
-        "hunks": 0,
-        "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"we\" where the row has \"\" (unit 2, 548-113.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "677270e6a7af79b0"
+      }
     },
     {
       "number": 549,
       "row": "matches",
-      "source": "sdahimages",
-      "pages": ["549.png"],
+      "source": "photo",
+      "pages": ["548.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -11686,10 +11677,10 @@
       "pages": ["556.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -11728,10 +11719,10 @@
       "pages": ["558.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -11788,7 +11779,7 @@
       "number": 561,
       "row": "matches",
       "source": "sdahimages",
-      "pages": ["561.png"],
+      "pages": ["562.jpg", "561.png"],
       "readings": {
         "reader": 1,
         "ocr": 0
@@ -11807,25 +11798,24 @@
     },
     {
       "number": 562,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["562.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["562.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
+        "all": 6,
         "changes": 2
       },
       "stanzas": 5,
       "refrain": false,
       "base": "97cbd016a0ed1b54",
       "witness": {
-        "hunks": 3,
-        "digest": "48b684beefe5a308"
-      },
-      "note": "the engraving prints \"these\" where the row has \"this\" (unit 4, 562-610.jpg); an engraving never fixes a row; the engraving prints \"we\" where the row has \"\" (unit 5, 562-200.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "40099fe48661c7af"
+      }
     },
     {
       "number": 563,
@@ -12002,10 +11992,10 @@
       "pages": ["571.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 3,
         "changes": 0
       },
       "stanzas": 3,
@@ -12086,10 +12076,10 @@
       "pages": ["575.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 5,
         "changes": 1
       },
       "stanzas": 5,
@@ -12191,10 +12181,10 @@
       "pages": ["580.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 6,
+        "all": 17,
         "changes": 0
       },
       "stanzas": 3,
@@ -12207,25 +12197,24 @@
     },
     {
       "number": 581,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["581.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["581.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 2,
         "changes": 1
       },
       "stanzas": 3,
       "refrain": false,
       "base": "dda468635dbef3aa",
       "witness": {
-        "hunks": 2,
-        "digest": "75b78f53f7e05c30"
-      },
-      "note": "the engraving prints \"we\" where the row has \"\" (unit 1, 581-1213.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "23157c9f49598820"
+      }
     },
     {
       "number": 582,
@@ -12250,37 +12239,36 @@
     },
     {
       "number": 583,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["583.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["583-p2.jpg", "583.jpg", "584.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
+        "all": 7,
         "changes": 2
       },
       "stanzas": 3,
       "refrain": false,
       "base": "31417385e1699841",
       "witness": {
-        "hunks": 2,
-        "digest": "d9780c828e279703"
-      },
-      "note": "the engraving prints \"a\" where the row has \"\" (unit 1, 583-114.jpg); an engraving never fixes a row; the engraving prints \"allotted\" where the row has \"alotted\" (unit 2, 583-114.jpg); an engraving never fixes a row"
+        "hunks": 0,
+        "digest": "4f53cda18c2baa0c"
+      }
     },
     {
       "number": 584,
       "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["584.png"],
+      "source": "photo",
+      "pages": ["583-p2.jpg", "584.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 5,
         "changes": 1
       },
       "stanzas": 5,
@@ -12290,7 +12278,7 @@
         "hunks": 3,
         "digest": "b36cd72198bbebab"
       },
-      "note": "the engraving prints \"\" where the row has \"a\" (unit 5, 584-114.jpg); an engraving never fixes a row"
+      "note": "unreadable at unit 6 (583-p2-1775.jpg): 583-p2-1775.jpg clearly prints a whole stanza 6 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book.; unreadable at unit 7 (583-p2-1775.jpg): 583-p2-1775.jpg clearly prints a whole stanza 7 as four text lines under the music, which the database lacks; it is not transcribed here (copyrighted lyrics), so the owner should type it from his book."
     },
     {
       "number": 585,
@@ -12299,10 +12287,10 @@
       "pages": ["585.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 5,
         "changes": 1
       },
       "stanzas": 4,
@@ -12317,13 +12305,13 @@
       "number": 586,
       "row": "matches",
       "source": "sdahimages",
-      "pages": ["586.png"],
+      "pages": ["585.jpg", "586.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 2,
@@ -12362,10 +12350,10 @@
       "pages": ["588.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 5,
         "changes": 1
       },
       "stanzas": 5,
@@ -12467,14 +12455,14 @@
       "pages": ["593.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 8,
         "changes": 0
       },
       "stanzas": 3,
-      "refrain": true,
+      "refrain": false,
       "base": "a4c5727dfa6e6938",
       "witness": {
         "hunks": 5,
@@ -12761,10 +12749,10 @@
       "pages": ["p592.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 9,
         "changes": 0
       },
       "stanzas": 4,
@@ -13155,16 +13143,16 @@
     },
     {
       "number": 626,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["626.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["626-b-p2.jpg", "626-b.jpg", "626.jpg"],
       "readings": {
-        "reader": 2,
-        "ocr": 0
+        "reader": 1,
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 28,
+        "changes": 0
       },
       "stanzas": 4,
       "refrain": true,
@@ -13172,20 +13160,19 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"my\" where the row has \"may\" (unit 3, 626-560.jpg); an engraving never fixes a row; the owner's photo leaves out the refrain's end, on the facing page the photo cuts off"
+      }
     },
     {
       "number": 627,
       "row": "matches",
-      "source": "sdahimages",
-      "pages": ["627.png"],
+      "source": "photo",
+      "pages": ["626-b-p2.jpg"],
       "readings": {
-        "reader": 1,
-        "ocr": 0
+        "reader": 0,
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 4,
@@ -13266,10 +13253,10 @@
       "pages": ["631.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 3,
@@ -13282,16 +13269,16 @@
     },
     {
       "number": 632,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["632.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["632-p2.jpg", "632.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 14,
+        "changes": 0
       },
       "stanzas": 2,
       "refrain": true,
@@ -13299,14 +13286,13 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"brings\" where the row has \"bring\" (unit 2, 632-759.jpg); an engraving never fixes a row"
+      }
     },
     {
       "number": 633,
       "row": "matches",
       "source": "scan",
-      "pages": ["p619.jpg"],
+      "pages": ["634.jpg", "p619.jpg"],
       "readings": {
         "reader": 1,
         "ocr": 0
@@ -13325,25 +13311,24 @@
     },
     {
       "number": 634,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["634.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["634.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
+        "all": 6,
         "changes": 2
       },
       "stanzas": 4,
       "refrain": false,
       "base": "3fcbb926006e5b21",
       "witness": {
-        "hunks": 0,
-        "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"\" where the row has \"one\" (unit 3, 634-403.jpg); an engraving never fixes a row; the engraving prints \"on\" where the row has \"in\" (unit 4, 634-114.jpg); an engraving never fixes a row"
+        "hunks": 2,
+        "digest": "1786fc541021d6a0"
+      }
     },
     {
       "number": 635,
@@ -13352,10 +13337,10 @@
       "pages": ["635.png"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 3,
@@ -13373,7 +13358,7 @@
       "pages": ["636.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
         "all": 0,
@@ -13436,10 +13421,10 @@
       "pages": ["639.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 6,
         "changes": 1
       },
       "stanzas": 4,
@@ -13473,25 +13458,24 @@
     },
     {
       "number": 641,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["641.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["641.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 7,
         "changes": 1
       },
       "stanzas": 4,
       "refrain": false,
       "base": "800ab2e7a4a26ea4",
       "witness": {
-        "hunks": 0,
-        "digest": "4f53cda18c2baa0c"
-      },
-      "note": "the engraving prints \"force\" where the row has \"forced\" (unit 3, 641-498.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "ac893c44bb504407"
+      }
     },
     {
       "number": 642,
@@ -13668,10 +13652,10 @@
       "pages": ["650.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 2,
+        "all": 8,
         "changes": 2
       },
       "stanzas": 3,
@@ -13689,10 +13673,10 @@
       "pages": ["651.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 8,
         "changes": 0
       },
       "stanzas": 3,
@@ -13752,11 +13736,11 @@
       "pages": ["654-p2.jpg", "654.jpg", "655.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
-        "changes": 1
+        "all": 6,
+        "changes": 2
       },
       "stanzas": 4,
       "refrain": false,
@@ -13810,25 +13794,24 @@
     },
     {
       "number": 657,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["657.png"],
+      "row": "fixed",
+      "source": "photo",
+      "pages": ["657.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 1,
+        "all": 9,
         "changes": 1
       },
       "stanzas": 4,
       "refrain": false,
       "base": "84ec57905d7642e8",
       "witness": {
-        "hunks": 2,
-        "digest": "fd4a7642baa7a23f"
-      },
-      "note": "the engraving prints \"these\" where the row has \"there\" (unit 1, 657-883.jpg); an engraving never fixes a row"
+        "hunks": 1,
+        "digest": "1f2bfd6b5effff22"
+      }
     },
     {
       "number": 658,
@@ -14065,9 +14048,9 @@
       "number": 669,
       "row": "matches",
       "source": "sdahimages",
-      "pages": ["669.png", "The_Lord_Bless_You_and_Keep_You2.png"],
+      "pages": ["669.jpg", "669.png", "The_Lord_Bless_You_and_Keep_You2.png"],
       "readings": {
-        "reader": 0,
+        "reader": 1,
         "ocr": 0
       },
       "rulings": {
@@ -14236,10 +14219,10 @@
       "pages": ["677.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 1,
@@ -14467,10 +14450,10 @@
       "pages": ["687.jpg"],
       "readings": {
         "reader": 0,
-        "ocr": 0
+        "ocr": 1
       },
       "rulings": {
-        "all": 0,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 1,

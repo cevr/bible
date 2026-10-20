@@ -4,26 +4,191 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "planet gave it a",
+      "readings": [""],
+      "printed": "planet gave it a",
+      "sung": "planet gave it a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "641.jpg",
+          "crop": "641-730.jpg",
+          "box": [0, 730, 2268, 896],
+          "sha": "f3e1d9bfe1d95da9",
+          "shows": "planet gave it a"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "641-730.jpg first system row 1 ends 'lent us this plan-et,' and second system row 1 begins 'Gave it a pur-pose'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 28
+        }
+      ],
+      "row": "cradle",
+      "readings": [""],
+      "printed": "Cradle",
+      "sung": "Cradle",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "641.jpg",
+          "crop": "641-1572.jpg",
+          "box": [0, 1572, 2268, 528],
+          "sha": "9649258910d359ae",
+          "shows": ""
+        },
+        {
+          "image": "641.jpg",
+          "crop": "641-1966.jpg",
+          "box": [0, 1966, 2268, 666],
+          "sha": "f600dadd53419a9b",
+          "shows": "Cradle"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "641-1572.jpg row 1 ends at 'cre-a-tion,' and 641-1966.jpg row 1 begins 'Cra-dle of life'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 14
+        }
+      ],
+      "row": "body",
+      "readings": ["bod"],
+      "printed": "body",
+      "sung": "body",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "641.jpg",
+          "crop": "641-730.jpg",
+          "box": [0, 730, 2268, 896],
+          "sha": "f3e1d9bfe1d95da9",
+          "shows": "body"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "641-730.jpg second system row 2 prints 'us in bod-y and mind'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "641.jpg",
+          "crop": "641-1966.jpg",
+          "box": [0, 1966, 2268, 666],
+          "sha": "f600dadd53419a9b",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "641-1966.jpg row 2 prints 'un-dreamed of to fath-om and find'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 16
         }
       ],
       "row": "forced",
-      "readings": ["force"],
+      "readings": [""],
       "printed": "force",
       "sung": "force",
       "kind": "words",
       "crops": [
         {
-          "image": "641.png",
-          "crop": "641-498.jpg",
-          "box": [0, 498, 1275, 277],
-          "sha": "e96d730ba757079d",
+          "image": "641.jpg",
+          "crop": "641-730.jpg",
+          "box": [0, 730, 2268, 896],
+          "sha": "f3e1d9bfe1d95da9",
           "shows": "force"
+        },
+        {
+          "image": "641.jpg",
+          "crop": "641-1446.jpg",
+          "box": [0, 1446, 2268, 386],
+          "sha": "8b4fdffdb6c954bf",
+          "shows": ""
+        },
+        {
+          "image": "641.jpg",
+          "crop": "641-1572.jpg",
+          "box": [0, 1572, 2268, 528],
+          "sha": "9649258910d359ae",
+          "shows": ""
         }
       ],
       "judge": "judge-634 (Opus, effort max)",
-      "why": "Row 3 prints 'Long has earth bowed to the ter-ror of force;' plainly."
+      "why": "641-730.jpg second system row 3 prints 'ter-ror of force;' with no 'd' (641-1446.jpg shows the same line again)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "source",
+      "readings": [""],
+      "printed": "source",
+      "sung": "source",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "641.jpg",
+          "crop": "641-1966.jpg",
+          "box": [0, 1966, 2268, 666],
+          "sha": "f600dadd53419a9b",
+          "shows": "source"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "641-1966.jpg row 3 prints 'life at its source.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 26
+        }
+      ],
+      "row": "deliver",
+      "readings": ["de liv"],
+      "printed": "deliver",
+      "sung": "deliver",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "641.jpg",
+          "crop": "641-1966.jpg",
+          "box": [0, 1966, 2268, 666],
+          "sha": "f600dadd53419a9b",
+          "shows": "deliver"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "641-1966.jpg row 4 prints 'Good Lord, de-liv-er us'."
     }
   ]
 }

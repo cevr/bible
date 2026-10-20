@@ -5,6 +5,61 @@
       "sites": [
         {
           "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "086.jpg",
+          "crop": "086-57.jpg",
+          "box": [0, 57, 2268, 1082],
+          "sha": "96edf584eb953a31",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-57.jpg row 1 prints '1. O Lord my God!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "consider",
+      "readings": [""],
+      "printed": "Consider",
+      "sung": "Consider",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "086.jpg",
+          "crop": "086-57.jpg",
+          "box": [0, 57, 2268, 1082],
+          "sha": "96edf584eb953a31",
+          "shows": "Consider"
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-1024.jpg",
+          "box": [0, 1024, 2268, 496],
+          "sha": "86714477531f2084",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-57.jpg row 1 ends 'won-der Con-sid-er' and 086-1024.jpg row 1 begins 'all the worlds'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 12
         }
       ],
@@ -24,6 +79,244 @@
       ],
       "judge": "judge-006-2 (Opus, effort max)",
       "why": "Row 1. prints 'Con-sid-er all the worlds Thy hands have' plainly, w-o-r-l-d-s."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "works",
+      "readings": ["worids"],
+      "printed": "worlds",
+      "sung": "worlds",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "086.jpg",
+          "crop": "086-1024.jpg",
+          "box": [0, 1024, 2268, 496],
+          "sha": "86714477531f2084",
+          "shows": "worlds"
+        },
+        {
+          "image": "086.png",
+          "crop": "086-0-388.jpg",
+          "box": [0, 0, 1274, 388],
+          "sha": "70fdd72bc1ebb1d3",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-1024.jpg row 1 prints 'all the worlds Thy hands have made' plainly, with an asterisk (footnote mark) above 'worlds'; 086-0-388.jpg row 1 also prints 'worlds'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 32
+        }
+      ],
+      "row": "",
+      "readings": ["sin sin breeze breeze"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-884.jpg",
+          "box": [0, 884, 1274, 380],
+          "sha": "15ce89d84470acc8",
+          "shows": ""
+        },
+        {
+          "image": "086.jpg",
+          "crop": "086-1616.jpg",
+          "box": [0, 1616, 2268, 662],
+          "sha": "6449ea69d4297ff3",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-1616.jpg row 1 and 086-884.jpg row 1 run from 'dis-played,' straight into the refrain 'Then sings my'; 'breeze' and 'sin' are the stanza 2 and 3 endings printed in rows 2 and 3."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 33
+        }
+      ],
+      "row": "",
+      "readings": ["sin sin"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-498.jpg",
+          "box": [0, 498, 1274, 378],
+          "sha": "5584f065d8026aa7",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-751.jpg",
+          "box": [0, 751, 1274, 184],
+          "sha": "787ddd9c2846df1f",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-884.jpg",
+          "box": [0, 884, 1274, 380],
+          "sha": "15ce89d84470acc8",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-498.jpg row 2 ends 'feel the gen-tle' and 086-884.jpg row 2 goes on 'breeze;' with nothing between; 'sin' is stanza 3's ending, printed in row 3."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "",
+      "readings": ["breeze"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-498.jpg",
+          "box": [0, 498, 1274, 378],
+          "sha": "5584f065d8026aa7",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-751.jpg",
+          "box": [0, 751, 1274, 184],
+          "sha": "787ddd9c2846df1f",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-884.jpg",
+          "box": [0, 884, 1274, 380],
+          "sha": "15ce89d84470acc8",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-884.jpg row 2 prints 'breeze;' once, then the refrain 'Then sings my soul'; 086-498.jpg and 086-751.jpg hold no words of the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "it",
+      "readings": [""],
+      "printed": "it",
+      "sung": "it",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-0-388.jpg",
+          "box": [0, 0, 1274, 388],
+          "sha": "70fdd72bc1ebb1d3",
+          "shows": "it"
+        },
+        {
+          "image": "086.png",
+          "crop": "086-498.jpg",
+          "box": [0, 498, 1274, 378],
+          "sha": "5584f065d8026aa7",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-0-388.jpg row 3 ends 'I scarce can take it' and 086-498.jpg row 3 begins 'in;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "",
+      "readings": ["sin breeze breeze"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "086.png",
+          "crop": "086-498.jpg",
+          "box": [0, 498, 1274, 378],
+          "sha": "5584f065d8026aa7",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-751.jpg",
+          "box": [0, 751, 1274, 184],
+          "sha": "787ddd9c2846df1f",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-884.jpg",
+          "box": [0, 884, 1274, 380],
+          "sha": "15ce89d84470acc8",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-884.jpg row 3 prints 'sin;' then the refrain 'Then sings my soul' with nothing between; 'breeze' is stanza 2's ending, printed in row 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 33
+        }
+      ],
+      "row": "art",
+      "readings": ["sin sin breeze breeze"],
+      "printed": "art",
+      "sung": "art",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "How_Great_Thou_Art2.png",
+          "crop": "How_Great_Thou_Art2-527.jpg",
+          "box": [0, 527, 1274, 188],
+          "sha": "a7d0d1946d106110",
+          "shows": ""
+        },
+        {
+          "image": "086.png",
+          "crop": "086-884.jpg",
+          "box": [0, 884, 1274, 380],
+          "sha": "15ce89d84470acc8",
+          "shows": "art"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "086-884.jpg row 4 prints 'art!' as stanza 4's last word; How_Great_Thou_Art2-527.jpg's row stops at 'how great Thou'."
     }
   ]
 }

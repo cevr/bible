@@ -1,0 +1,97 @@
+{
+  "number": 397,
+  "title": "An Upper Room",
+  "print": "the owner's photo of his 1985 book (397.jpg), each line read off the page at its system and row; the rulings (data/crops/397/rulings.json) put in what the page prints where the base row differs: \"\" -> \"He\" (words, crops 397-518.jpg, 397-994.jpg, judge-again-013 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "An upper room did our Lord prepare",
+        "from": "397.jpg system 1, row 1. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "For those He loved until the end:",
+        "from": "397.jpg system 1, row 1. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "And His disciples still gather there,",
+        "from": "397.jpg system 2, row 1. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "To celebrate their risen Friend.",
+        "from": "397.jpg system 3, row 1. (placed off the page by from-397 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "And after supper He washed their feet,",
+        "from": "397.jpg system 1, row 2. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "For service, too, is sacrament.",
+        "from": "397.jpg system 1, row 2. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "In Him our joy shall be made complete",
+        "from": "397.jpg system 2, row 2. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "Sent out to serve, as He was sent.",
+        "from": "397.jpg system 3, row 2. (placed off the page by from-397 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "A lasting gift Jesus gave His own:",
+        "from": "397.jpg system 1, row 3. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "To share His bread, His loving cup.",
+        "from": "397.jpg system 1, row 3. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "Whatever burdens may bow us down,",
+        "from": "397.jpg system 2, row 3. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "He by His cross shall lift us up.",
+        "from": "397.jpg system 3, row 3. (placed off the page by from-397 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "No end there is! we depart in peace.",
+        "from": "397.jpg system 1, row 4. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "He loves beyond our uttermost:",
+        "from": "397.jpg system 1, row 4. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "In every room in our Father's house,",
+        "from": "397.jpg system 2, row 4. (placed off the page by from-397 (Opus))"
+      },
+      {
+        "text": "He will be there, as Lord and host.",
+        "from": "397.jpg system 3, row 4. (placed off the page by from-397 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "An upper room did our Lord prepare\nFor those loved until the end:\nAnd His disciples still gather there,\nTo celebrate their risen Friend."
+    },
+    {
+      "id": 1,
+      "text": "And after supper He washed their feet,\nFor service, too, is sacrament.\nIn Him our joy shall be made complete\nSent out to serve, as He was sent."
+    },
+    {
+      "id": 2,
+      "text": "A lasting gift Jesus gave His own:\nTo share His bread, His loving cup.\nWhatever burdens may bow us down,\nHe by His cross shall lift us up."
+    },
+    {
+      "id": 3,
+      "text": "No end there is! we depart in peace.\nHe loves beyond our uttermost:\nIn every room in our Father's house,\nHe will be there, as Lord and host."
+    }
+  ]
+}

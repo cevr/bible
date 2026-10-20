@@ -10,7 +10,7 @@
  * fixed case the census must refuse, with the problem line it must print.
  */
 
-import { Effect, Exit, FileSystem, Option, Schema } from 'effect';
+import { Effect, Exit, FileSystem, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {
@@ -180,12 +180,7 @@ describe('census', () => {
         expect(
           [...states].every((state) => ['matches', 'fixed', 'unsettled', 'nopage'].includes(state)),
         ).toBe(true);
-        // Red until the data is read again: the new checks over 6004746d3's data.
-        const fs = yield* FileSystem.FileSystem;
-        const red = yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Array(Schema.String)))(
-          yield* fs.readFileString(new URL('census.red.json', import.meta.url).pathname),
-        );
-        expect(problemsOf(census, sources)).toEqual([...red]);
+        expect(problemsOf(census, sources)).toEqual([]);
       }).pipe(Effect.provide(censusLayer)),
   );
 

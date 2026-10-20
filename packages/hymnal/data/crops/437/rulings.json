@@ -5,25 +5,304 @@
       "sites": [
         {
           "unit": 1,
+          "at": 14
+        }
+      ],
+      "row": "its",
+      "readings": [""],
+      "printed": "Its",
+      "sung": "Its",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": "Its"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-2049.jpg, second system row 1 begins 'Its glit-t'ring tow'rs'; 436-b-p2-1691.jpg holds only the first system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 15
         }
       ],
       "row": "glittring",
-      "readings": ["glitring"],
+      "readings": ["glittring"],
       "printed": "glitt'ring",
       "sung": "glitt'ring",
       "kind": "words",
       "crops": [
         {
-          "image": "p424.jpg",
-          "crop": "p424-1772.jpg",
-          "box": [0, 1772, 1759, 607],
-          "sha": "03b6335dde24b9b1",
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
           "shows": "glitt'ring"
         }
       ],
-      "judge": "judge-422 (Opus, effort max)",
-      "why": "Row 1 of the second system prints 'Its glit-t'ring tow'rs', which joins to 'glitt'ring' with two t's, as the database has it."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "436-b-p2-2049.jpg row 1 prints 'Its glit-t'ring tow'rs the sun out-shine'; 436-b-p2-1691.jpg holds the system before it, ending 'en-ter there;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 26
+        }
+      ],
+      "row": "im",
+      "readings": [""],
+      "printed": "I'm",
+      "sung": "I'm",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": "I'm"
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-1691.jpg, the Ref. row begins 'I'm go-ing home'; 436-b-p2-2049.jpg shows that row again at its top."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 39
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "To",
+      "sung": "To",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": "To"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-2049.jpg, the second system's last row (the refrain's second line) begins 'To die no more; to die no more'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["ing here"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-1691.jpg prints nothing before '2. My Fa-ther's house'; the OCR's 'ing here' is hymn 436's 'ach-ing here;' at the crop's left edge."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "im",
+      "readings": [""],
+      "printed": "I'm",
+      "sung": "I'm",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": "I'm"
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-1691.jpg, the Ref. row sung after each stanza begins 'I'm go-ing home'; 436-b-p2-2049.jpg shows that row again at its top."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 38
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "To",
+      "sung": "To",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": "To"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-2049.jpg, the second system's last row (the refrain's second line) begins 'To die no more; to die no more'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 12
+        }
+      ],
+      "row": "be",
+      "readings": ["to"],
+      "printed": "Be",
+      "sung": "Be",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": "Be"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-2049.jpg, second system row 3 begins 'Be mine a hap-pier lot'; the OCR's 'to' is a misreading."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 25
+        }
+      ],
+      "row": "im",
+      "readings": [""],
+      "printed": "I'm",
+      "sung": "I'm",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": "I'm"
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-1691.jpg, the Ref. row sung after each stanza begins 'I'm go-ing home'; 436-b-p2-2049.jpg shows that row again at its top."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 38
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "To",
+      "sung": "To",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-1691.jpg",
+          "box": [0, 1691, 2268, 530],
+          "sha": "430f5d84024d21f9",
+          "shows": ""
+        },
+        {
+          "image": "436-b-p2.jpg",
+          "crop": "436-b-p2-2049.jpg",
+          "box": [0, 2049, 2268, 708],
+          "sha": "49dd732d197d0f48",
+          "shows": "To"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "436-b-p2-2049.jpg, the second system's last row (the refrain's second line) begins 'To die no more; to die no more'."
     }
   ]
 }

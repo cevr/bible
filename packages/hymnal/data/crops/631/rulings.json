@@ -1,0 +1,60 @@
+{
+  "number": 631,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 2
+        }
+      ],
+      "row": "life",
+      "readings": ["lite"],
+      "printed": "life",
+      "sung": "life",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "631.png",
+          "crop": "631-115.jpg",
+          "box": [0, 115, 1274, 240],
+          "sha": "bc736d19dad88ca6",
+          "shows": "life"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "631-115.jpg row 1 prints 'When on life a dark-ness falls'; the OCR's 'lite' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "open",
+      "readings": [""],
+      "printed": "Open",
+      "sung": "Open",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "631.png",
+          "crop": "631-115.jpg",
+          "box": [0, 115, 1274, 240],
+          "sha": "bc736d19dad88ca6",
+          "shows": ""
+        },
+        {
+          "image": "631.png",
+          "crop": "631-483.jpg",
+          "box": [0, 483, 1274, 240],
+          "sha": "80e2e42513fe7253",
+          "shows": "Open"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "631-483.jpg row 3 begins 'O-pen door to life'; 631-115.jpg row 3 ends at 'sto-ry:'."
+    }
+  ]
+}

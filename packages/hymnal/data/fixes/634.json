@@ -1,0 +1,161 @@
+{
+  "number": 634,
+  "title": "Come All Christians Be Committed",
+  "print": "the owner's photo of his 1985 book (634.jpg), each line read off the page at its system and row; the rulings (data/crops/634/rulings.json) put in what the page prints where the base row differs: \"one\" -> \"\" (words, crops 634-1063.jpg, judge-634 (Opus, effort max)); \"in\" -> \"on\" (words, crops 634-242.jpg, judge-634 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Come, all Christians, be committed",
+        "from": "634.jpg system 1, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "To the service of the lord;",
+        "from": "634.jpg system 1, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Make your lives for him more fitted,",
+        "from": "634.jpg system 2, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Tune your hearts with one accord.",
+        "from": "634.jpg system 2, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Come into His courts with gladness,",
+        "from": "634.jpg system 3, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Each his sacred vows renew,",
+        "from": "634.jpg system 3, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Turn away from sin and sadness,",
+        "from": "634.jpg system 4, row 1. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Be transformed with life anew.",
+        "from": "634.jpg system 4, row 1. (placed off the page by from-634 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Of your time and talents give ye,",
+        "from": "634.jpg system 1, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "They are gifts from God above;",
+        "from": "634.jpg system 1, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "To be used by Christians freely",
+        "from": "634.jpg system 2, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "To proclaim His wondrous love.",
+        "from": "634.jpg system 2, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Come again to serve the Savior,",
+        "from": "634.jpg system 3, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Tithes and off'rings with you bring.",
+        "from": "634.jpg system 3, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "In your work, with Him find favor,",
+        "from": "634.jpg system 4, row 2. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "And with joy His praises sing.",
+        "from": "634.jpg system 4, row 2. (placed off the page by from-634 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "God's command to love each other",
+        "from": "634.jpg system 1, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Is required of every one;",
+        "from": "634.jpg system 1, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Showing mercy to another",
+        "from": "634.jpg system 2, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Mirrors His redemptive plan.",
+        "from": "634.jpg system 2, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "In compassion He has given",
+        "from": "634.jpg system 3, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Of His love that is divine;",
+        "from": "634.jpg system 3, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "On the cross sins were forgiven;",
+        "from": "634.jpg system 4, row 3. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Joy and peace are fully thine.",
+        "from": "634.jpg system 4, row 3. (placed off the page by from-634 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Come in praise and adoration,",
+        "from": "634.jpg system 1, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "All who on Christ's name believe;",
+        "from": "634.jpg system 1, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Worship Him with consecration,",
+        "from": "634.jpg system 2, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Grace and love you will receive.",
+        "from": "634.jpg system 2, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "For His grace give Him the glory,",
+        "from": "634.jpg system 3, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "For the Spirit and the Word,",
+        "from": "634.jpg system 3, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "And repeat the gospel story",
+        "from": "634.jpg system 4, row 4. (placed off the page by from-634 (Opus))"
+      },
+      {
+        "text": "Till mankind His name has heard.",
+        "from": "634.jpg system 4, row 4. (placed off the page by from-634 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Come, all Christians, be committed\nTo the service of the lord;\nMake your lives for him more fitted,\nTune your hearts with one accord.\nCome into His courts with gladness,\nEach his sacred vows renew,\nTurn away from sin and sadness,\nBe transformed with life anew."
+    },
+    {
+      "id": 1,
+      "text": "Of your time and talents give ye,\nThey are gifts from God above;\nTo be used by Christians freely\nTo proclaim His wondrous love.\nCome again to serve the Savior,\nTithes and off'rings with you bring.\nIn your work, with Him find favor,\nAnd with joy His praises sing."
+    },
+    {
+      "id": 2,
+      "text": "God's command to love each other\nIs required of every one;\nShowing mercy to one another\nMirrors His redemptive plan.\nIn compassion He has given\nOf His love that is divine;\nOn the cross sins were forgiven;\nJoy and peace are fully thine."
+    },
+    {
+      "id": 3,
+      "text": "Come in praise and adoration,\nAll who in Christ's name believe;\nWorship Him with consecration,\nGrace and love you will receive.\nFor His grace give Him the glory,\nFor the Spirit and the Word,\nAnd repeat the gospel story\nTill mankind His name has heard."
+    }
+  ]
+}

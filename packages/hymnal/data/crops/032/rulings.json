@@ -1,0 +1,288 @@
+{
+  "number": 32,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 8
+        }
+      ],
+      "row": "adoration",
+      "readings": [""],
+      "printed": "adoration",
+      "sung": "adoration",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-115.jpg",
+          "box": [0, 115, 1274, 270],
+          "sha": "9adeaa7d3182b7da",
+          "shows": "ado-"
+        },
+        {
+          "image": "032.png",
+          "crop": "032-252.jpg",
+          "box": [0, 252, 1274, 218],
+          "sha": "1d6472f3b12906ed",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-376.jpg",
+          "box": [0, 376, 1274, 186],
+          "sha": "39c650d726b39464",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-501.jpg",
+          "box": [0, 501, 1274, 270],
+          "sha": "01dcbebe8a863f8b",
+          "shows": "ration"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-115.jpg row 1 ends 'And ad - o -' and 032-501.jpg row 1 begins 'ra - tion leaves', joined 'adoration'; 032-252.jpg lacks row 1 and 032-376.jpg has no lyrics."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "creation cried alleluia",
+      "readings": [""],
+      "printed": "creation cried: Alleluia!",
+      "sung": "creation cried: Alleluia!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-501.jpg",
+          "box": [0, 501, 1274, 270],
+          "sha": "01dcbebe8a863f8b",
+          "shows": "cre-"
+        },
+        {
+          "image": "032.png",
+          "crop": "032-885.jpg",
+          "box": [0, 885, 1274, 238],
+          "sha": "61350adbff4dbd70",
+          "shows": "ation cried: Alleluia!"
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "032-501.jpg row 1 ends 'cre-' and 032-885.jpg row 1 prints 'a-tion cried: Al-le-lu-ia!'; the OCR missed them."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 10
+        }
+      ],
+      "row": "dimension",
+      "readings": [""],
+      "printed": "dimension",
+      "sung": "dimension",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-115.jpg",
+          "box": [0, 115, 1274, 270],
+          "sha": "9adeaa7d3182b7da",
+          "shows": "di-"
+        },
+        {
+          "image": "032.png",
+          "crop": "032-252.jpg",
+          "box": [0, 252, 1274, 218],
+          "sha": "1d6472f3b12906ed",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-376.jpg",
+          "box": [0, 376, 1274, 186],
+          "sha": "39c650d726b39464",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-501.jpg",
+          "box": [0, 501, 1274, 270],
+          "sha": "01dcbebe8a863f8b",
+          "shows": "mension"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-115.jpg row 2 ends 'A new di -' (032-252.jpg shows it again) and 032-501.jpg row 2 begins 'men - sion in the world', joined 'dimension'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "alleluia",
+      "readings": [""],
+      "printed": "alleluia",
+      "sung": "alleluia",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-885.jpg",
+          "box": [0, 885, 1274, 238],
+          "sha": "61350adbff4dbd70",
+          "shows": "alleluia"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-885.jpg row 2 prints 'more pro - found Al - le - lu - ia!', joined 'Alleluia'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "evil",
+      "readings": [""],
+      "printed": "evil",
+      "sung": "evil",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-115.jpg",
+          "box": [0, 115, 1274, 270],
+          "sha": "9adeaa7d3182b7da",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-252.jpg",
+          "box": [0, 252, 1274, 218],
+          "sha": "1d6472f3b12906ed",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-376.jpg",
+          "box": [0, 376, 1274, 186],
+          "sha": "39c650d726b39464",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-501.jpg",
+          "box": [0, 501, 1274, 270],
+          "sha": "01dcbebe8a863f8b",
+          "shows": "evil"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-115.jpg and 032-252.jpg row 3 end 'When ut - most' and 032-501.jpg row 3 begins 'e - vil strove', joined 'evil'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 26
+        }
+      ],
+      "row": "alleluia",
+      "readings": [""],
+      "printed": "alleluia",
+      "sung": "alleluia",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-885.jpg",
+          "box": [0, 885, 1274, 238],
+          "sha": "61350adbff4dbd70",
+          "shows": "alleluia"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-885.jpg row 3 prints 'won the fight: Al - le - lu - ia!', joined 'Alleluia'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 9
+        }
+      ],
+      "row": "rejoice",
+      "readings": [""],
+      "printed": "rejoice",
+      "sung": "rejoice",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-115.jpg",
+          "box": [0, 115, 1274, 270],
+          "sha": "9adeaa7d3182b7da",
+          "shows": "re-"
+        },
+        {
+          "image": "032.png",
+          "crop": "032-252.jpg",
+          "box": [0, 252, 1274, 218],
+          "sha": "1d6472f3b12906ed",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-376.jpg",
+          "box": [0, 376, 1274, 186],
+          "sha": "39c650d726b39464",
+          "shows": ""
+        },
+        {
+          "image": "032.png",
+          "crop": "032-501.jpg",
+          "box": [0, 501, 1274, 270],
+          "sha": "01dcbebe8a863f8b",
+          "shows": "joice"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-115.jpg row 4 ends 'Let all re -' (032-252.jpg shows it again) and 032-501.jpg row 4 begins 'joice who have a voice', joined 'rejoice'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 25
+        }
+      ],
+      "row": "alleluia",
+      "readings": [""],
+      "printed": "alleluia",
+      "sung": "alleluia",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "032.png",
+          "crop": "032-1283.jpg",
+          "box": [0, 1283, 1274, 184],
+          "sha": "9a85b52bd4fb0657",
+          "shows": "alleluia"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "032-1283.jpg, the last ending, prints 'sing al - ways: Al - le - lu - ia!', joined 'Alleluia'."
+    }
+  ]
+}

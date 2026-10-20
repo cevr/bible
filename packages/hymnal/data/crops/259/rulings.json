@@ -4,6 +4,123 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 6
+        }
+      ],
+      "row": "",
+      "readings": ["teth"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-0.jpg",
+          "box": [0, 0, 2268, 542],
+          "sha": "23012e5c942dca8d",
+          "shows": ""
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-336.jpg",
+          "box": [0, 336, 2268, 512],
+          "sha": "dfa63f86d7c4eaac",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "259-336.jpg row 1 prints 'teth-er, For when' with nothing between, and 259-0.jpg holds only the title and a staff, no lyric row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 26
+        }
+      ],
+      "row": "alleluia",
+      "readings": [""],
+      "printed": "Alleluia",
+      "sung": "Alleluia",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-1481.jpg",
+          "box": [0, 1481, 2268, 636],
+          "sha": "a83aeb2a3d83c435",
+          "shows": "Alle-"
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-1984.jpg",
+          "box": [0, 1984, 2268, 532],
+          "sha": "438c15ee1ed9a5d8",
+          "shows": "luia"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "259-1481.jpg row 1 prints 'them; Al-le-lu-ia! Al-le-' and 259-1984.jpg row 1 goes on 'lu-ia! Touch', a second 'Alleluia'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 27
+        }
+      ],
+      "row": "alleluia alleluia",
+      "readings": [""],
+      "printed": "Alleluia Alleluia",
+      "sung": "Alleluia Alleluia",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-1481.jpg",
+          "box": [0, 1481, 2268, 636],
+          "sha": "a83aeb2a3d83c435",
+          "shows": "Alleluia Alle-"
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-1984.jpg",
+          "box": [0, 1984, 2268, 532],
+          "sha": "438c15ee1ed9a5d8",
+          "shows": "luia"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "259-1481.jpg row 2 prints 'cup, Al-le-lu-ia! Al-le-' and 259-1984.jpg row 2 goes on 'lu-ia! So knit'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 6
+        }
+      ],
+      "row": "living",
+      "readings": ["liv"],
+      "printed": "living",
+      "sung": "living",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-336.jpg",
+          "box": [0, 336, 2268, 512],
+          "sha": "dfa63f86d7c4eaac",
+          "shows": "living"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "259-336.jpg row 3 prints 'and all our liv-ing', so 'living'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 8
         }
@@ -24,6 +141,68 @@
       ],
       "judge": "judge-209 (Opus, effort max)",
       "why": "Row 3. of 259-337 prints 'Make as sac-ra-', the word after 'Make' an 'a' with a closed bowl, not 'us'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 8
+        }
+      ],
+      "row": "us sacraments",
+      "readings": [""],
+      "printed": "as sacraments",
+      "sung": "as sacraments",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-336.jpg",
+          "box": [0, 336, 2268, 512],
+          "sha": "dfa63f86d7c4eaac",
+          "shows": "as sacra-"
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-939.jpg",
+          "box": [0, 939, 2268, 492],
+          "sha": "5abaf8537ea783f6",
+          "shows": "ments"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "259-336.jpg row 3 prints 'Make as sac-ra-' (as, not us) and 259-939.jpg row 3 goes on 'ments of Thee'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 23
+        }
+      ],
+      "row": "alleluia",
+      "readings": [""],
+      "printed": "Alleluia",
+      "sung": "Alleluia",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "259.jpg",
+          "crop": "259-1481.jpg",
+          "box": [0, 1481, 2268, 636],
+          "sha": "a83aeb2a3d83c435",
+          "shows": "Alle-"
+        },
+        {
+          "image": "259.jpg",
+          "crop": "259-1984.jpg",
+          "box": [0, 1984, 2268, 532],
+          "sha": "438c15ee1ed9a5d8",
+          "shows": "luia"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "259-1481.jpg row 3 prints 'be. Al-le-lu-ia! Al-le-' and 259-1984.jpg row 3 goes on 'lu-ia! We will serve', a second 'Alleluia'."
     }
   ]
 }

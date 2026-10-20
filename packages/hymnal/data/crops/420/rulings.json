@@ -10,20 +10,20 @@
       ],
       "row": "the",
       "readings": ["thy"],
-      "printed": "Thy",
-      "sung": "Thy",
+      "printed": "thy",
+      "sung": "thy",
       "kind": "words",
       "crops": [
         {
           "image": "419.jpg",
-          "crop": "419-2095.jpg",
-          "box": [0, 2095, 2268, 818],
-          "sha": "558bab58c4624901",
-          "shows": "Thy"
+          "crop": "419-2096.jpg",
+          "box": [0, 2096, 2268, 566],
+          "sha": "ea8db2b733e960f6",
+          "shows": "thy"
         }
       ],
-      "judge": "judge-284 (Opus, effort max)",
-      "why": "Row 1 of the second system prints 'have an end, Thy joys when shall I see?' plainly."
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "419-2096.jpg row 1 prints 'have an end, Thy joys when shall I see?': 'Thy', not 'the'."
     },
     {
       "sites": [
@@ -34,20 +34,20 @@
       ],
       "row": "the",
       "readings": ["thy"],
-      "printed": "Thy",
-      "sung": "Thy",
+      "printed": "thy",
+      "sung": "thy",
       "kind": "words",
       "crops": [
         {
           "image": "419.jpg",
-          "crop": "419-1176.jpg",
-          "box": [0, 1176, 2268, 1114],
-          "sha": "f221787e1a4d7d30",
-          "shows": "Thy"
+          "crop": "419-1177.jpg",
+          "box": [0, 1177, 2268, 1112],
+          "sha": "f6f35224643d0ac2",
+          "shows": "thy"
         }
       ],
-      "judge": "judge-284 (Opus, effort max)",
-      "why": "Row 2. of the first system begins '2. Thy walls are all' plainly."
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "419-1177.jpg row 2 begins '2. Thy walls are all of pre-cious stone': 'Thy', not 'the'."
     },
     {
       "sites": [
@@ -64,14 +64,14 @@
       "crops": [
         {
           "image": "419.jpg",
-          "crop": "419-2095.jpg",
-          "box": [0, 2095, 2268, 818],
-          "sha": "558bab58c4624901",
+          "crop": "419-2096.jpg",
+          "box": [0, 2096, 2268, 566],
+          "sha": "ea8db2b733e960f6",
           "shows": "blest"
         }
       ],
-      "judge": "judge-284 (Opus, effort max)",
-      "why": "The named crop 419-1176.jpg holds only stanza 4's first line; row 4 of 419-2095.jpg prints 'To that blest par - a - dise.' plainly."
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "419-2096.jpg row 4 prints 'To that blest par-a-dise.': 'blest', not 'blessed'."
     }
   ]
 }

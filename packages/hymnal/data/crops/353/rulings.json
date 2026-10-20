@@ -1,0 +1,156 @@
+{
+  "number": 353,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "353.png",
+          "crop": "353-886.jpg",
+          "box": [0, 886, 1274, 268],
+          "sha": "da55b892ea211870",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "353-886.jpg row 1 prints 'Lead us to dis - cov - er'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 21
+        }
+      ],
+      "row": "us",
+      "readings": [""],
+      "printed": "us",
+      "sung": "us",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "353.png",
+          "crop": "353-886.jpg",
+          "box": [0, 886, 1274, 268],
+          "sha": "da55b892ea211870",
+          "shows": "us"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "353-886.jpg row 2 prints 'Give us grace to lis - ten'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "clarity",
+      "readings": ["clar ty"],
+      "printed": "clarity",
+      "sung": "clarity",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "353.png",
+          "crop": "353-886.jpg",
+          "box": [0, 886, 1274, 268],
+          "sha": "da55b892ea211870",
+          "shows": "clarity"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "353-886.jpg row 2 prints 'clar - i - ty of speech', clarity; the OCR's 'clar ty' dropped a syllable."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "holy",
+      "readings": [""],
+      "printed": "holy",
+      "sung": "holy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "353.png",
+          "crop": "353-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "fcd68a9dbfa30bb4",
+          "shows": "holy"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "353-116.jpg row 3 begins '3. Ho - ly is the set - ting'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "lecture hall",
+      "readings": [""],
+      "printed": "Lecture-hall",
+      "sung": "Lecture-hall",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "353.png",
+          "crop": "353-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "fcd68a9dbfa30bb4",
+          "shows": ""
+        },
+        {
+          "image": "353.png",
+          "crop": "353-500.jpg",
+          "box": [0, 500, 1274, 270],
+          "sha": "9eaa911da9266785",
+          "shows": "Lecture-hall"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "353-116.jpg row 3 ends 'room and yard,' and 353-500.jpg row 3 begins 'Lec - ture - hall and kitch - en'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "353.png",
+          "crop": "353-886.jpg",
+          "box": [0, 886, 1274, 268],
+          "sha": "da55b892ea211870",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "353-886.jpg row 3 prints 'Ho - ly is the rhy - thm'."
+    }
+  ]
+}

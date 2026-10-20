@@ -1,0 +1,122 @@
+{
+  "number": 356,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 17
+        }
+      ],
+      "row": "retreating",
+      "readings": [""],
+      "printed": "retreating",
+      "sung": "retreating",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "356.jpg",
+          "crop": "356-1117.jpg",
+          "box": [0, 1117, 2268, 480],
+          "sha": "3b134ba627ebb514",
+          "shows": "re-"
+        },
+        {
+          "image": "356.jpg",
+          "crop": "356-1447.jpg",
+          "box": [0, 1447, 2268, 764],
+          "sha": "6d626c7b776e5d1e",
+          "shows": "treating"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "356-1117.jpg row 2 ends 'and love re -' and 356-1447.jpg row 2 of its lower system goes on 'treat - ing, Seek the Lord': one word, 'retreating', split over the line break."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 5
+        }
+      ],
+      "row": "city",
+      "readings": ["cit"],
+      "printed": "city",
+      "sung": "city",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "356.jpg",
+          "crop": "356-256.jpg",
+          "box": [0, 256, 2268, 762],
+          "sha": "0715bb95fddfe382",
+          "shows": "city"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "356-256.jpg row 4 prints 'shall yet the cit - y Be the', city; the OCR kept only 'cit'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 8
+        }
+      ],
+      "row": "city",
+      "readings": [""],
+      "printed": "city",
+      "sung": "city",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "356.jpg",
+          "crop": "356-256.jpg",
+          "box": [0, 256, 2268, 762],
+          "sha": "0715bb95fddfe382",
+          "shows": ""
+        },
+        {
+          "image": "356.jpg",
+          "crop": "356-788.jpg",
+          "box": [0, 788, 2268, 430],
+          "sha": "1667990015b0f69c",
+          "shows": ""
+        },
+        {
+          "image": "356.jpg",
+          "crop": "356-1117.jpg",
+          "box": [0, 1117, 2268, 480],
+          "sha": "3b134ba627ebb514",
+          "shows": "city"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "356-256.jpg row 4 (repeated at the top of 356-788.jpg) ends 'Be the', and 356-1117.jpg row 4 goes on 'cit - y of de - spair?'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 23
+        }
+      ],
+      "row": "there",
+      "readings": [""],
+      "printed": "there",
+      "sung": "there",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "356.jpg",
+          "crop": "356-1447.jpg",
+          "box": [0, 1447, 2268, 764],
+          "sha": "6d626c7b776e5d1e",
+          "shows": "there"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "356-1447.jpg row 4 of its lower system ends '\"The Lord is there!\"'."
+    }
+  ]
+}

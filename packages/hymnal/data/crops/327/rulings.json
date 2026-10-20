@@ -1,0 +1,43 @@
+{
+  "number": 327,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "nail pierced hand",
+      "readings": [""],
+      "printed": "nail-pierced hand",
+      "sung": "nail-pierced hand",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p317.jpg",
+          "crop": "p317-1463.jpg",
+          "box": [0, 1463, 1758, 384],
+          "sha": "1c166c0cf8016aaa",
+          "shows": "nail-pierced hand"
+        },
+        {
+          "image": "p317.jpg",
+          "crop": "p317-1853.jpg",
+          "box": [0, 1853, 1758, 302],
+          "sha": "fc5c7b59795c0f7d",
+          "shows": ""
+        },
+        {
+          "image": "p317.jpg",
+          "crop": "p317-2031.jpg",
+          "box": [0, 2031, 1758, 310],
+          "sha": "5f506d62b2db02c0",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "p317-1463.jpg row 1 prints 'by His nail-pierced hand.'; p317-1853.jpg and p317-2031.jpg hold no stanza row of it."
+    }
+  ]
+}

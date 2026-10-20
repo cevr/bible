@@ -15,15 +15,39 @@
       "kind": "words",
       "crops": [
         {
-          "image": "194.png",
-          "crop": "194-375.jpg",
-          "box": [0, 375, 1275, 354],
-          "sha": "8c1a801ddd140029",
+          "image": "194.jpg",
+          "crop": "194-1131.jpg",
+          "box": [0, 1131, 2268, 560],
+          "sha": "5c91034777a1a6a6",
           "shows": "nameless"
         }
       ],
-      "judge": "judge-183-2 (Opus, effort max)",
-      "why": "The first row (stanza 1) of 194-375.jpg prints 'Sing we of its name - less peo - ple' plainly; the database's 'namelss' drops the second e."
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "194-1131.jpg row 1 plainly prints 'Sing we of its name-less peo-ple', so the word is 'nameless'; the database's 'namelss' drops an 'e'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 40
+        }
+      ],
+      "row": "city",
+      "readings": ["cit"],
+      "printed": "city",
+      "sung": "city",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "194.jpg",
+          "crop": "194-1967.jpg",
+          "box": [0, 1967, 2268, 808],
+          "sha": "facefd9fba456508",
+          "shows": "city"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "194-1967.jpg row 2 prints 'In the bus-tle of the cit-y'; the OCR dropped the last syllable 'y'."
     }
   ]
 }

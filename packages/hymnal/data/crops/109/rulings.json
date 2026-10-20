@@ -1,0 +1,101 @@
+{
+  "number": 109,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 48
+        }
+      ],
+      "row": "all",
+      "readings": [""],
+      "printed": "all",
+      "sung": "all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p107.jpg",
+          "crop": "p107-2023.jpg",
+          "box": [0, 2023, 1758, 344],
+          "sha": "fddb6da147ff4c1c",
+          "shows": "all"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p107-2023.jpg's refrain row prints 'great-er than all our sin!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "loss",
+      "readings": [""],
+      "printed": "loss",
+      "sung": "loss",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p107.jpg",
+          "crop": "p107-528.jpg",
+          "box": [0, 528, 1758, 496],
+          "sha": "a0634cd3032f4a6a",
+          "shows": "loss"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p107-528.jpg row 2 prints 'in-fi-nite loss;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 47
+        }
+      ],
+      "row": "all",
+      "readings": [""],
+      "printed": "all",
+      "sung": "all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p107.jpg",
+          "crop": "p107-2023.jpg",
+          "box": [0, 2023, 1758, 344],
+          "sha": "fddb6da147ff4c1c",
+          "shows": "all"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p107-2023.jpg's refrain row prints 'than all our sin!', the refrain sung after stanza 2."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 45
+        }
+      ],
+      "row": "all",
+      "readings": [""],
+      "printed": "all",
+      "sung": "all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p107.jpg",
+          "crop": "p107-2023.jpg",
+          "box": [0, 2023, 1758, 344],
+          "sha": "fddb6da147ff4c1c",
+          "shows": "all"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p107-2023.jpg's refrain row prints 'than all our sin!', the refrain sung after stanza 3."
+    }
+  ]
+}

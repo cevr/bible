@@ -1,0 +1,149 @@
+{
+  "number": 275,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "275.jpg",
+          "crop": "275-54.jpg",
+          "box": [0, 54, 2268, 1854],
+          "sha": "97afd4916658362d",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "275-54.jpg row 1 prints '1. O God of light'; the OCR missed the 'O'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 20
+        }
+      ],
+      "row": "apostles",
+      "readings": ["postles"],
+      "printed": "apostles",
+      "sung": "apostles",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "275.jpg",
+          "crop": "275-54.jpg",
+          "box": [0, 54, 2268, 1854],
+          "sha": "97afd4916658362d",
+          "shows": "apostles"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "275-54.jpg third system, row 2 prints 'a-pos-tles'; the OCR dropped the 'a'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "your grace and",
+      "readings": [""],
+      "printed": "your grace and",
+      "sung": "your grace and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "275.jpg",
+          "crop": "275-54.jpg",
+          "box": [0, 54, 2268, 1854],
+          "sha": "97afd4916658362d",
+          "shows": "your grace and"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "275-54.jpg row 3 prints 'jus-tice and Your grace;' then 'And quest-ing' on the next system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 16
+        }
+      ],
+      "row": "and race that",
+      "readings": [""],
+      "printed": "and race that",
+      "sung": "and race that",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "275.jpg",
+          "crop": "275-54.jpg",
+          "box": [0, 54, 2268, 1854],
+          "sha": "97afd4916658362d",
+          "shows": "and race that"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "275-54.jpg row 4 prints 'land and race,' then 'That myr-iad tongues' on the next system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "in",
+      "readings": ["uiin"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "275.jpg",
+          "crop": "275-54.jpg",
+          "box": [0, 54, 2268, 1854],
+          "sha": "97afd4916658362d",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "275-54.jpg third system, row 4 prints 'tongues, in one great'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 32
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "275.jpg",
+          "crop": "275-1749.jpg",
+          "box": [0, 1749, 2268, 948],
+          "sha": "42f74f613d9d59c5",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "275-1749.jpg row 4 prints 'Your gift of grace.'"
+    }
+  ]
+}

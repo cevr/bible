@@ -5,6 +5,37 @@
       "sites": [
         {
           "unit": 1,
+          "at": 8
+        }
+      ],
+      "row": "door",
+      "readings": [""],
+      "printed": "door",
+      "sung": "door",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "581.jpg",
+          "crop": "581-667.jpg",
+          "box": [0, 667, 2268, 444],
+          "sha": "8507633f971d7207",
+          "shows": "door"
+        },
+        {
+          "image": "581.jpg",
+          "crop": "581-1142.jpg",
+          "box": [0, 1142, 2268, 580],
+          "sha": "2a1087f23fdd1633",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "581-667.jpg row 1 ends 'out - er door'; 581-1142.jpg row 1 starts at the next line."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 32
         }
       ],
@@ -15,15 +46,15 @@
       "kind": "words",
       "crops": [
         {
-          "image": "581.png",
-          "crop": "581-1213.jpg",
-          "box": [0, 1213, 1275, 248],
-          "sha": "e0d26b8adb0227f8",
+          "image": "581.jpg",
+          "crop": "581-1950.jpg",
+          "box": [0, 1950, 2268, 584],
+          "sha": "9937050a0774f255",
           "shows": "we"
         }
       ],
-      "judge": "judge-554 (Opus, effort max)",
-      "why": "The first row of the last system (stanza 1's ending) prints 'That the world we ban - ish Is our Chris - tian care.' plainly."
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "581-1950.jpg row 1 prints 'we' between 'world' and 'ban - ish'."
     }
   ]
 }

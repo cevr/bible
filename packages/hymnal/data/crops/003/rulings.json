@@ -1,0 +1,156 @@
+{
+  "number": 3,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 13
+        }
+      ],
+      "row": "appear",
+      "readings": [""],
+      "printed": "appear",
+      "sung": "appear",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-127.jpg",
+          "box": [0, 127, 2268, 842],
+          "sha": "956314e695dc2949",
+          "shows": "ap-"
+        },
+        {
+          "image": "003.jpg",
+          "crop": "003-852.jpg",
+          "box": [0, 852, 2268, 1084],
+          "sha": "8114fb92243734a1",
+          "shows": "pear"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "003-127.jpg row 1 ends 'And with awe ap-' and 003-852.jpg row 1 begins 'pear be-fore Him', joined 'appear'; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 8
+        }
+      ],
+      "row": "mary",
+      "readings": ["ma"],
+      "printed": "mary",
+      "sung": "mary",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-127.jpg",
+          "box": [0, 127, 2268, 842],
+          "sha": "956314e695dc2949",
+          "shows": "mary"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "003-127.jpg row 2 prints 'like Ma - ry', joined 'Mary'; the OCR caught only 'Ma'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-852.jpg",
+          "box": [0, 852, 2268, 1084],
+          "sha": "8114fb92243734a1",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "003-852.jpg, third system, row 2 prints 'will I ren - der' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 31
+        }
+      ],
+      "row": "let",
+      "readings": [""],
+      "printed": "let",
+      "sung": "let",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-1833.jpg",
+          "box": [0, 1833, 2268, 580],
+          "sha": "7abf9d27beb89090",
+          "shows": "let"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "003-1833.jpg row 2 prints 'here be-low, Let me bow' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "forever",
+      "readings": [""],
+      "printed": "forever",
+      "sung": "forever",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-852.jpg",
+          "box": [0, 852, 2268, 1084],
+          "sha": "8114fb92243734a1",
+          "shows": "forever"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "003-852.jpg row 3 ends the second system 'to be for-' and begins the third 'ev - er,', joined 'forever'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "all our",
+      "readings": [""],
+      "printed": "all our",
+      "sung": "all our",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "003.jpg",
+          "crop": "003-1833.jpg",
+          "box": [0, 1833, 2268, 580],
+          "sha": "7abf9d27beb89090",
+          "shows": "all our"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "003-1833.jpg row 3 prints 'Lord of all our be-ing' plainly."
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "number": 87,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 23
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "He",
+      "sung": "He",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "087.png",
+          "crop": "087-483.jpg",
+          "box": [0, 483, 1274, 240],
+          "sha": "b7cf89a2f46c77ec",
+          "shows": ""
+        },
+        {
+          "image": "087.png",
+          "crop": "087-849.jpg",
+          "box": [0, 849, 1274, 240],
+          "sha": "683ac023acb6eb60",
+          "shows": "He"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "087-483.jpg row 1 ends 'dis-tant star;' and 087-849.jpg row 1 begins 'He who calls the earth'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 23
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "He",
+      "sung": "He",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "087.png",
+          "crop": "087-483.jpg",
+          "box": [0, 483, 1274, 240],
+          "sha": "b7cf89a2f46c77ec",
+          "shows": ""
+        },
+        {
+          "image": "087.png",
+          "crop": "087-849.jpg",
+          "box": [0, 849, 1274, 240],
+          "sha": "683ac023acb6eb60",
+          "shows": "He"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "087-483.jpg row 2 ends 'through His Son;' and 087-849.jpg row 2 begins 'He who calls the earth'."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "number": 654,
   "title": "Lord Bless Our Homes",
-  "print": "the owner's photo of his 1985 book (654-p2.jpg, 654.jpg, 655.jpg), each line read off the page at its system and row; the rulings (data/crops/654/rulings.json) put in what the page prints where the base row differs: \"untied\" -> \"united\" (words, crop 654-1752.jpg, judge-634 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (654-p2.jpg, 654.jpg, 655.jpg), each line read off the page at its system and row; the rulings (data/crops/654/rulings.json) put in what the page prints where the base row differs: \"untied\" -> \"united\" (words, crops 654-1752.jpg, judge-634 (Opus, effort max)); \"untied\" -> \"united\" (words, crops 654-1763.jpg, 654-p2-246.jpg, judge-634 (Opus, effort max)).",
   "stanzas": [
     [
       {

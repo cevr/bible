@@ -1,7 +1,7 @@
 {
   "number": 326,
   "title": "Open My Eyes That I May See",
-  "print": "the 1985 book's hymnary.org scan (p316.jpg), each line read off the page at its system and row; the rulings (data/crops/326/rulings.json) put in what the page prints where the base row differs: \"evrywhere\" -> \"everywhere\" (words, crop p316-310.jpg, judge-220-2 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p316.jpg), each line read off the page at its system and row; the rulings (data/crops/326/rulings.json) put in what the page prints where the base row differs: \"evrywhere\" -> \"everywhere\" (words, crops p316-310.jpg, judge-220-2 (Opus, effort max)).",
   "stanzas": [
     [
       {
@@ -19,22 +19,6 @@
       {
         "text": "That shall unclasp and set me free.",
         "from": "p316.jpg system 2, row 1. (placed off the page by from-314 (Opus))"
-      },
-      {
-        "text": "Silently now I wait for Thee,",
-        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
-      },
-      {
-        "text": "Ready, my God, Thy will to see;",
-        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
-      },
-      {
-        "text": "Open my eyes, illumine me,",
-        "from": "p316.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
-      },
-      {
-        "text": "Spirit divine!",
-        "from": "p316.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
       }
     ],
     [
@@ -53,22 +37,6 @@
       {
         "text": "Everything false will disappear.",
         "from": "p316.jpg system 2, row 2. (placed off the page by from-314 (Opus))"
-      },
-      {
-        "text": "Silently now I wait for Thee,",
-        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
-      },
-      {
-        "text": "Ready, my God, Thy will to see;",
-        "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
-      },
-      {
-        "text": "Open my ears, illumine me,",
-        "from": "p316.jpg system 4, row 2. (placed off the page by from-314 (Opus))"
-      },
-      {
-        "text": "Spirit divine!",
-        "from": "p316.jpg system 4, row 2. (placed off the page by from-314 (Opus))"
       }
     ],
     [
@@ -87,7 +55,11 @@
       {
         "text": "Love with Thy children thus to share.",
         "from": "p316.jpg system 2, row 3. (placed off the page by from-314 (Opus))"
-      },
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
       {
         "text": "Silently now I wait for Thee,",
         "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
@@ -97,15 +69,42 @@
         "from": "p316.jpg system 3, the refrain row (placed off the page by from-314 (Opus): refrain's first system prints one row shared by all stanzas)"
       },
       {
-        "text": "Open my heart, illumine me,",
-        "from": "p316.jpg system 4, row 3. (placed off the page by from-314 (Opus))"
+        "varies": [
+          {
+            "after": [1],
+            "lines": [
+              {
+                "text": "Open my eyes, illumine me,",
+                "from": "p316.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
+              }
+            ]
+          },
+          {
+            "after": [2],
+            "lines": [
+              {
+                "text": "Open my ears, illumine me,",
+                "from": "p316.jpg system 4, row 2. (placed off the page by from-314 (Opus))"
+              }
+            ]
+          },
+          {
+            "after": [3],
+            "lines": [
+              {
+                "text": "Open my heart, illumine me,",
+                "from": "p316.jpg system 4, row 3. (placed off the page by from-314 (Opus))"
+              }
+            ]
+          }
+        ]
       },
       {
         "text": "Spirit divine!",
-        "from": "p316.jpg system 4, row 3. (placed off the page by from-314 (Opus))"
+        "from": "p316.jpg system 4, row 1. (placed off the page by from-314 (Opus))"
       }
     ]
-  ],
+  },
   "replaces": [
     {
       "id": 0,

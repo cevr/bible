@@ -1,0 +1,277 @@
+{
+  "number": 492,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 23
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-882.jpg",
+          "box": [0, 882, 1758, 422],
+          "sha": "9d8d07ceccf3f0b6",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1295.jpg",
+          "box": [0, 1295, 1758, 298],
+          "sha": "5027a1c2f007060b",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row, begins 'I would be like Je-sus'; p480-882.jpg ends the stanza rows at 'Je-sus.' and p480-1295.jpg holds no lyric row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 28
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row, prints the second 'I would be like Je-sus!'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-882.jpg",
+          "box": [0, 882, 1758, 422],
+          "sha": "9d8d07ceccf3f0b6",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1295.jpg",
+          "box": [0, 1295, 1758, 298],
+          "sha": "5027a1c2f007060b",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row sung after each stanza, begins 'I would be like Je-sus'; p480-882.jpg and p480-1295.jpg hold none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row, prints the second 'I would be like Je-sus!'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 25
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-882.jpg",
+          "box": [0, 882, 1758, 422],
+          "sha": "9d8d07ceccf3f0b6",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1295.jpg",
+          "box": [0, 1295, 1758, 298],
+          "sha": "5027a1c2f007060b",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row sung after each stanza, begins 'I would be like Je-sus'; p480-882.jpg and p480-1295.jpg hold none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 30
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row, prints the second 'I would be like Je-sus!'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 16
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-882.jpg",
+          "box": [0, 882, 1758, 422],
+          "sha": "9d8d07ceccf3f0b6",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-882.jpg row 4 prints 'And when all is o-ver-come'; the OCR missed 'is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 23
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-882.jpg",
+          "box": [0, 882, 1758, 422],
+          "sha": "9d8d07ceccf3f0b6",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1295.jpg",
+          "box": [0, 1295, 1758, 298],
+          "sha": "5027a1c2f007060b",
+          "shows": ""
+        },
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row sung after each stanza, begins 'I would be like Je-sus'; p480-882.jpg and p480-1295.jpg hold none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 28
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p480.jpg",
+          "crop": "p480-1494.jpg",
+          "box": [0, 1494, 1758, 296],
+          "sha": "1e6d392a3bb1680a",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p480-1494.jpg, the refrain row, prints the second 'I would be like Je-sus!'; the OCR missed 'I'."
+    }
+  ]
+}

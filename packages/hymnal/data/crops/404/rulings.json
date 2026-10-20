@@ -1,0 +1,177 @@
+{
+  "number": 404,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 7
+        }
+      ],
+      "row": "renewed in body",
+      "readings": [""],
+      "printed": "Renewed in body",
+      "sung": "Renewed in body",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "404.png",
+          "crop": "404-0.jpg",
+          "box": [0, 0, 1274, 172],
+          "sha": "8114dfcb4b3ee314",
+          "shows": ""
+        },
+        {
+          "image": "404.png",
+          "crop": "404-116.jpg",
+          "box": [0, 116, 1274, 272],
+          "sha": "e44c781ec0fac954",
+          "shows": ""
+        },
+        {
+          "image": "404.png",
+          "crop": "404-499.jpg",
+          "box": [0, 499, 1274, 274],
+          "sha": "aebfc623b5bbdf9f",
+          "shows": "Renewed in body"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "404-0.jpg holds only the title, 404-116.jpg row 1 ends 'ta-ble', and 404-499.jpg row 1 prints 'rise Re-newed in bod-y, mind'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 19
+        }
+      ],
+      "row": "again",
+      "readings": ["a"],
+      "printed": "again",
+      "sung": "again",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "404.png",
+          "crop": "404-884.jpg",
+          "box": [0, 884, 1274, 272],
+          "sha": "26c0c8d8e1bca046",
+          "shows": "a-"
+        },
+        {
+          "image": "404.png",
+          "crop": "404-1267.jpg",
+          "box": [0, 1267, 1274, 272],
+          "sha": "2986a6a7e17edb2b",
+          "shows": "gain"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "404-884.jpg row 1 ends 'die and live a-' and 404-1267.jpg row 1 begins 'gain, His self-less love'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "404.png",
+          "crop": "404-116.jpg",
+          "box": [0, 116, 1274, 272],
+          "sha": "e44c781ec0fac954",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "404-116.jpg row 3 begins '3. To fill each hu-man house'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 16
+        }
+      ],
+      "row": "accept with",
+      "readings": [""],
+      "printed": "accept with",
+      "sung": "accept with",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "404.png",
+          "crop": "404-884.jpg",
+          "box": [0, 884, 1274, 272],
+          "sha": "26c0c8d8e1bca046",
+          "shows": "accept with"
+        },
+        {
+          "image": "404.png",
+          "crop": "404-1267.jpg",
+          "box": [0, 1267, 1274, 272],
+          "sha": "2986a6a7e17edb2b",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "404-884.jpg row 4 ends 'help us to ac-cept with' and 404-1267.jpg row 4 begins 'joy The chal-lenge'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "404.png",
+          "crop": "404-1267.jpg",
+          "box": [0, 1267, 1274, 272],
+          "sha": "2986a6a7e17edb2b",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "404-1267.jpg row 4 prints 'The chal-lenge of to-mor-row's'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 23
+        }
+      ],
+      "row": "day",
+      "readings": [""],
+      "printed": "day",
+      "sung": "day",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "404.png",
+          "crop": "404-1267.jpg",
+          "box": [0, 1267, 1274, 272],
+          "sha": "2986a6a7e17edb2b",
+          "shows": "day"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "404-1267.jpg row 4 ends 'to-mor-row's day.'"
+    }
+  ]
+}

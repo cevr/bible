@@ -4,6 +4,54 @@
     {
       "sites": [
         {
+          "unit": 2,
+          "at": 26
+        }
+      ],
+      "row": "honesty",
+      "readings": ["ty"],
+      "printed": "honesty",
+      "sung": "honesty",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-c.jpg",
+          "crop": "061-c-856.jpg",
+          "box": [0, 856, 2268, 1682],
+          "sha": "cacbcefca1faba0e",
+          "shows": "honesty"
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-c-856.jpg row 2 prints 'Here in hon-es-' at the end of one system and 'ty of preach-ing' at the start of the next, that is 'honesty'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 28
+        }
+      ],
+      "row": "",
+      "readings": ["1б"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "061-c.jpg",
+          "crop": "061-c-856.jpg",
+          "box": [0, 856, 2268, 1682],
+          "sha": "cacbcefca1faba0e",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-c-856.jpg row 3 runs 'Here the ser-vants' into 'of the Ser-vant' on the next system with nothing between; the OCR's '1б' is noise."
+    },
+    {
+      "sites": [
+        {
           "unit": 4,
           "at": 8
         }
@@ -15,15 +63,15 @@
       "kind": "words",
       "crops": [
         {
-          "image": "061.png",
-          "crop": "061-114.jpg",
-          "box": [0, 114, 1275, 278],
-          "sha": "82c96643d4304cca",
+          "image": "061-c.jpg",
+          "crop": "061-c-458.jpg",
+          "box": [0, 458, 2268, 498],
+          "sha": "31998f48d9dadd02",
           "shows": "an"
         }
       ],
-      "judge": "judge-006-2 (Opus, effort max)",
-      "why": "Row 4. prints 'king-dom, in an age of change and doubt', so 'an' stands between 'in' and 'age'."
+      "judge": "judge-033 (Opus, effort max)",
+      "why": "061-c-458.jpg row 4 prints 'king-dom, In an age of' plainly; the database lacks 'an'."
     }
   ]
 }

@@ -1,0 +1,53 @@
+{
+  "number": 635,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 31
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "635.png",
+          "crop": "635-1215.jpg",
+          "box": [0, 1215, 1274, 240],
+          "sha": "46d31ade31267fbb",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "635-1215.jpg row 1 prints 'of-fered to Your will'; the OCR missed 'to'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 28
+        }
+      ],
+      "row": "glory",
+      "readings": ["glo"],
+      "printed": "glory",
+      "sung": "glory",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "635.png",
+          "crop": "635-1215.jpg",
+          "box": [0, 1215, 1274, 240],
+          "sha": "46d31ade31267fbb",
+          "shows": "glory"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "635-1215.jpg row 2 prints 'for Your glo-ry all'; the OCR kept only 'glo'."
+    }
+  ]
+}

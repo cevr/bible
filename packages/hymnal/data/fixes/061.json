@@ -1,0 +1,161 @@
+{
+  "number": 61,
+  "title": "God Is Here",
+  "print": "the owner's photo of his 1985 book (061-c.jpg, 061-p2.jpg, 061.jpg), each line read off the page at its system and row; the rulings (data/crops/061/rulings.json) put in what the page prints where the base row differs: \"\" -> \"an\" (words, crops 061-c-458.jpg, judge-033 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "God is here! As we His people",
+        "from": "061-c.jpg system 1, row 1. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Meet to offer praise and prayer,",
+        "from": "061-c.jpg system 1, row 1. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "May we find in fuller measure",
+        "from": "061-c.jpg system 2, row 1. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "What it is in Christ we share.",
+        "from": "061-c.jpg system 3, row 1. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here, as in the world around us,",
+        "from": "061-c.jpg system 3, row 1. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "All our varied skills and arts",
+        "from": "061-c.jpg system 4, row 1. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Wait the coming of the Spirit",
+        "from": "061-p2.jpg system 4, row 1. (placed off the page by from-again-061 (Opus): begins in page 61's last system, cut at this image's left edge (systems counted left page first: page 61's four are 1-4, page 62's top is 5); ends in system 5. 061-c.jpg cuts off the line's end)"
+      },
+      {
+        "text": "Into open minds and hearts.",
+        "from": "061-p2.jpg system 5, row 1. (placed off the page by from-again-061 (Opus): system 5 is page 62's top system; page 61's four systems at this image's left edge count first (1-4))"
+      }
+    ],
+    [
+      {
+        "text": "Here are symbols to remind us",
+        "from": "061-c.jpg system 1, row 2. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Of our lifelong need of grace;",
+        "from": "061-c.jpg system 1, row 2. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here are table, font, and pulpit;",
+        "from": "061-c.jpg system 2, row 2. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here the Word has central place.",
+        "from": "061-c.jpg system 3, row 2. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here in honesty of preaching,",
+        "from": "061-c.jpg system 3, row 2. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here in silence, as in speech,",
+        "from": "061-c.jpg system 4, row 2. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here, in newness and renewal,",
+        "from": "061-p2.jpg system 4, row 2. (placed off the page by from-again-061 (Opus): begins in page 61's last system, cut at this image's left edge (systems counted left page first: page 61's four are 1-4, page 62's top is 5); ends in system 5. 061-c.jpg cuts off the line's end)"
+      },
+      {
+        "text": "God the Spirit comes to each.",
+        "from": "061-p2.jpg system 5, row 2. (placed off the page by from-again-061 (Opus): system 5 is page 62's top system; page 61's four systems at this image's left edge count first (1-4))"
+      }
+    ],
+    [
+      {
+        "text": "Here our children find a welcome",
+        "from": "061-c.jpg system 1, row 3. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "In the Shepherd's flock and fold,",
+        "from": "061-c.jpg system 1, row 3. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here, as bread and wine are taken",
+        "from": "061-c.jpg system 2, row 3. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Christ sustains us as of old.",
+        "from": "061-c.jpg system 3, row 3. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here the servants of the Servant",
+        "from": "061-c.jpg system 3, row 3. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Seek in worship to explore",
+        "from": "061-c.jpg system 4, row 3. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "What it means in daily living",
+        "from": "061-p2.jpg system 4, row 3. (placed off the page by from-again-061 (Opus): begins in page 61's last system, cut at this image's left edge (systems counted left page first: page 61's four are 1-4, page 62's top is 5); ends in system 5. 061-c.jpg cuts off the line's end)"
+      },
+      {
+        "text": "To believe and to adore.",
+        "from": "061-p2.jpg system 5, row 3. (placed off the page by from-again-061 (Opus): system 5 is page 62's top system; page 61's four systems at this image's left edge count first (1-4))"
+      }
+    ],
+    [
+      {
+        "text": "Lord of all, of church and kingdom,",
+        "from": "061-c.jpg system 1, row 4. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "In an age of change and doubt",
+        "from": "061-c.jpg system 1, row 4. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Keep us faithful to the gospel,",
+        "from": "061-c.jpg system 2, row 4. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Help us work Your purpose out.",
+        "from": "061-c.jpg system 3, row 4. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "Here, in this day's dedication,",
+        "from": "061-c.jpg system 3, row 4. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "All we have to give, receive,",
+        "from": "061-c.jpg system 4, row 4. (placed off the page by from-again-061 (Opus))"
+      },
+      {
+        "text": "We, who cannot live without You,",
+        "from": "061-p2.jpg system 4, row 4. (placed off the page by from-again-061 (Opus): begins in page 61's last system, cut at this image's left edge (systems counted left page first: page 61's four are 1-4, page 62's top is 5); ends in system 5. 061-c.jpg cuts off the line's end)"
+      },
+      {
+        "text": "We adore You! we believe!",
+        "from": "061-p2.jpg system 5, row 4. (placed off the page by from-again-061 (Opus): system 5 is page 62's top system; page 61's four systems at this image's left edge count first (1-4))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "God is here! As we His people\nMeet to offer praise and prayer,\nMay we find in fuller measure\nWhat it is in Christ we share.\nHere, as in the world around us,\nAll our varied skills and arts\r\nWait the coming of the Spirit\nInto open minds and hearts."
+    },
+    {
+      "id": 1,
+      "text": "Here are symbols to remind us\nOf our lifelong need of grace;\nHere are table, font, and pulpit;\nHere the Word has central place.\nHere in honesty of preaching,\nHere in silence, as in speech,\nHere, in newness and renewal,\nGod the Spirit comes to each."
+    },
+    {
+      "id": 2,
+      "text": "Here our children find a welcome\nIn the Shepherd's flock and fold,\nHere, as bread and wine are taken\nChrist sustains us as of old.\nHere the servants of the Servant\nSeek in worship to explore\nWhat it means in daily living\nTo believe and to adore."
+    },
+    {
+      "id": 3,
+      "text": "Lord of all, of church and kingdom,\nIn age of change and doubt\nKeep us faithful to the gospel,\nHelp us work Your purpose out.\nHere, in this day's dedication,\nAll we have to give, receive,\nWe, who cannot live without You,\nWe adore You! we believe!"
+    }
+  ]
+}

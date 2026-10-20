@@ -4,6 +4,171 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "all fatherhood is known",
+      "readings": [""],
+      "printed": "all fatherhood is known",
+      "sung": "all fatherhood is known",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "650.jpg",
+          "crop": "650-54.jpg",
+          "box": [0, 54, 2268, 1246],
+          "sha": "943f0925f79457b4",
+          "shows": "all fatherhood is known"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "650-54.jpg first system row 1 prints 'All fa-ther-hood is known,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 13
+        }
+      ],
+      "row": "proclaim each family thine own",
+      "readings": [""],
+      "printed": "proclaim Each family Thine own",
+      "sung": "proclaim Each family Thine own",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "650.jpg",
+          "crop": "650-54.jpg",
+          "box": [0, 54, 2268, 1246],
+          "sha": "943f0925f79457b4",
+          "shows": "proclaim Each family Thine own"
+        },
+        {
+          "image": "650.jpg",
+          "crop": "650-1337.jpg",
+          "box": [0, 1337, 2268, 536],
+          "sha": "8283825b03ede158",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "650-54.jpg second system row 1 prints 'pro-claim Each fam-i-ly Thine own,' and 650-1337.jpg row 1 begins 'Bless Thou'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 28
+        }
+      ],
+      "row": "sentinel the",
+      "readings": ["hold"],
+      "printed": "sentinel The",
+      "sung": "sentinel The",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "650.jpg",
+          "crop": "650-1337.jpg",
+          "box": [0, 1337, 2268, 536],
+          "sha": "8283825b03ede158",
+          "shows": ""
+        },
+        {
+          "image": "650.jpg",
+          "crop": "650-1795-468.jpg",
+          "box": [0, 1795, 2268, 468],
+          "sha": "1b43095c245bfd44",
+          "shows": "sentinel The"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "650-1337.jpg row 1 ends 'con-stant love as' and 650-1795-468.jpg row 1 begins 'sen-ti-nel, The homes'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "o christ",
+      "readings": [""],
+      "printed": "o christ",
+      "sung": "o christ",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "650.jpg",
+          "crop": "650-54.jpg",
+          "box": [0, 54, 2268, 1246],
+          "sha": "943f0925f79457b4",
+          "shows": "o christ"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "650-54.jpg first system row 2 prints '2. O Christ, Thy-self'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 3
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "650.jpg",
+          "crop": "650-54.jpg",
+          "box": [0, 54, 2268, 1246],
+          "sha": "943f0925f79457b4",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "650-54.jpg first system row 2 prints 'Thy-self a child'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 28
+        }
+      ],
+      "row": "behold",
+      "readings": [""],
+      "printed": "behold",
+      "sung": "behold",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "650.jpg",
+          "crop": "650-1337.jpg",
+          "box": [0, 1337, 2268, 536],
+          "sha": "8283825b03ede158",
+          "shows": "be-"
+        },
+        {
+          "image": "650.jpg",
+          "crop": "650-1795-468.jpg",
+          "box": [0, 1795, 2268, 468],
+          "sha": "1b43095c245bfd44",
+          "shows": "hold"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "650-1337.jpg row 2 ends 'may all be-' and 650-1795-468.jpg row 2 begins 'hold Thy face'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 10
         }

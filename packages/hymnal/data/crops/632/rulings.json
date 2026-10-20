@@ -4,26 +4,352 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "A",
+      "sung": "A",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-628.jpg",
+          "box": [0, 628, 2268, 386],
+          "sha": "f2e8a71e414048ce",
+          "shows": ""
+        },
+        {
+          "image": "632.jpg",
+          "crop": "632-935.jpg",
+          "box": [0, 935, 2268, 344],
+          "sha": "7870044731cc84ba",
+          "shows": ""
+        },
+        {
+          "image": "632.jpg",
+          "crop": "632-1058.jpg",
+          "box": [0, 1058, 2268, 394],
+          "sha": "a7f97ccb2ef4268a",
+          "shows": "A"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1058.jpg row 1 begins 'A heart-ache here'; 632-628.jpg row 1 ends at 're-mem-ber' and 632-935.jpg holds no stanza words."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "",
+      "readings": ["ie"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1058.jpg",
+          "box": [0, 1058, 2268, 394],
+          "sha": "a7f97ccb2ef4268a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1058.jpg row 1 prints 'here is' with nothing between; the OCR's 'ie' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 14
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1058.jpg",
+          "box": [0, 1058, 2268, 394],
+          "sha": "a7f97ccb2ef4268a",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1058.jpg row 1 prints 'is but a step-ping stone'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 18
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1309.jpg",
+          "box": [0, 1309, 2268, 696],
+          "sha": "19f78fce0da58805",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1309.jpg row 1 prints 'A-long a trail'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 27
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1958.jpg",
+          "box": [0, 1958, 2268, 480],
+          "sha": "d9d16dcff6942ff0",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1958.jpg row 1 prints 'This trou-bled world is not'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "final",
+      "readings": ["nal"],
+      "printed": "final",
+      "sung": "final",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1958.jpg",
+          "box": [0, 1958, 2268, 480],
+          "sha": "d9d16dcff6942ff0",
+          "shows": "final"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1958.jpg row 1 prints 'fi-nal home'; the OCR dropped the 'fi'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 45
+        }
+      ],
+      "row": "ill",
+      "readings": [""],
+      "printed": "ill",
+      "sung": "ill",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632-p2.jpg",
+          "crop": "632-p2-1018.jpg",
+          "box": [0, 1018, 2268, 478],
+          "sha": "990af82cc95de666",
+          "shows": "ill"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-p2-1018.jpg refrain row prints 'with joy I'll car-ry on'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 55
+        }
+      ],
+      "row": "city",
+      "readings": [""],
+      "printed": "city",
+      "sung": "city",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632-p2.jpg",
+          "crop": "632-p2-1375.jpg",
+          "box": [0, 1375, 2268, 1248],
+          "sha": "586a39676c8706ba",
+          "shows": "city"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-p2-1375.jpg refrain row prints 'be-hold the cit-y'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 2
+        }
+      ],
+      "row": "of",
+      "readings": ["ol"],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-628.jpg",
+          "box": [0, 628, 2268, 386],
+          "sha": "f2e8a71e414048ce",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-628.jpg row 2 prints 'The things of earth'; the OCR's 'ol' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 16
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a-",
+      "sung": "a-",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1058.jpg",
+          "box": [0, 1058, 2268, 394],
+          "sha": "a7f97ccb2ef4268a",
+          "shows": "a-"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1058.jpg row 2 prints 'bor-rowed for a - while;', its 'a' joined by a hyphen to 'while' as one word, 'awhile'."
+    },
+    {
+      "sites": [
+        {
           "unit": 2,
           "at": 32
         }
       ],
       "row": "bring",
       "readings": ["brings"],
-      "printed": "brings",
-      "sung": "brings",
+      "printed": "bring",
+      "sung": "bring",
       "kind": "words",
       "crops": [
         {
-          "image": "632.png",
-          "crop": "632-759.jpg",
-          "box": [0, 759, 1275, 297],
-          "sha": "3e14b2c30f921b1a",
-          "shows": "brings"
+          "image": "632.jpg",
+          "crop": "632-1958.jpg",
+          "box": [0, 1958, 2268, 480],
+          "sha": "d9d16dcff6942ff0",
+          "shows": "bring"
         }
       ],
-      "judge": "judge-583 (Opus, effort max)",
-      "why": "Row 2 (stanza 2) of this re-engraving prints 'will on - ly brings a smile.' with a plain final s; odd after 'will', but a real word, so not a misprint."
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "632-1958.jpg row 2 prints 'Re-mem-bered there will on-ly bring a smile.': 'bring', not 'brings'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 33
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632.jpg",
+          "crop": "632-1958.jpg",
+          "box": [0, 1958, 2268, 480],
+          "sha": "d9d16dcff6942ff0",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-1958.jpg row 2 prints 'on-ly bring a smile'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 48
+        }
+      ],
+      "row": "ill",
+      "readings": [""],
+      "printed": "ill",
+      "sung": "ill",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632-p2.jpg",
+          "crop": "632-p2-1018.jpg",
+          "box": [0, 1018, 2268, 478],
+          "sha": "990af82cc95de666",
+          "shows": "ill"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-p2-1018.jpg refrain row prints 'with joy I'll car-ry on'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 58
+        }
+      ],
+      "row": "city",
+      "readings": [""],
+      "printed": "city",
+      "sung": "city",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "632-p2.jpg",
+          "crop": "632-p2-1375.jpg",
+          "box": [0, 1375, 2268, 1248],
+          "sha": "586a39676c8706ba",
+          "shows": "city"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "632-p2-1375.jpg refrain row prints 'be-hold the cit-y'."
     }
   ]
 }

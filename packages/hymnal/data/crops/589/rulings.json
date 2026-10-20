@@ -20,6 +20,13 @@
           "box": [0, 1728, 2268, 568],
           "sha": "46b75d1ee72f4d55",
           "shows": "itself"
+        },
+        {
+          "image": "589.jpg",
+          "crop": "589-978.jpg",
+          "box": [0, 978, 2268, 676],
+          "sha": "129571d1950ba622",
+          "shows": ""
         }
       ],
       "judge": "judge-583 (Opus, effort max)",

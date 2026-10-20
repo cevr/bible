@@ -4,6 +4,78 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 31
+        }
+      ],
+      "row": "will",
+      "readings": ["wil"],
+      "printed": "will",
+      "sung": "will",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "461.jpg",
+          "crop": "461-768.jpg",
+          "box": [0, 768, 2268, 1084],
+          "sha": "d2a62b026b0e6b39",
+          "shows": "will"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "461-768.jpg, third system row 1 prints 'He faith-ful will re-main', 'will' with two l's; the OCR's 'wil' dropped one."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 31
+        }
+      ],
+      "row": "last",
+      "readings": [""],
+      "printed": "last",
+      "sung": "last",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "461.jpg",
+          "crop": "461-768.jpg",
+          "box": [0, 768, 2268, 1084],
+          "sha": "d2a62b026b0e6b39",
+          "shows": "last"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "461-768.jpg, third system row 2 prints 'shall be bright at last.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "my",
+      "readings": [""],
+      "printed": "my",
+      "sung": "my",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "461.jpg",
+          "crop": "461-768.jpg",
+          "box": [0, 768, 2268, 1084],
+          "sha": "d2a62b026b0e6b39",
+          "shows": "my"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "461-768.jpg, third system row 2 prints 'Be still, my soul: the'."
+    },
+    {
+      "sites": [
+        {
           "unit": 2,
           "at": 49
         }
@@ -24,6 +96,37 @@
       ],
       "judge": "judge-443 (Opus, effort max)",
       "why": "Row 2 of the last system prints 'His voice who ruled them while He dwelt be - low' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 13
+        }
+      ],
+      "row": "forever",
+      "readings": [""],
+      "printed": "forever",
+      "sung": "forever",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "461.jpg",
+          "crop": "461-78.jpg",
+          "box": [0, 78, 2268, 786],
+          "sha": "21d0d7300fb8e514",
+          "shows": "for-"
+        },
+        {
+          "image": "461.jpg",
+          "crop": "461-768.jpg",
+          "box": [0, 768, 2268, 1084],
+          "sha": "d2a62b026b0e6b39",
+          "shows": "ever"
+        }
+      ],
+      "judge": "judge-436 (Opus, effort max)",
+      "why": "461-78.jpg row 3 ends 'When we shall be for -' and 461-768.jpg second system row 3 begins 'ev - er with the Lord', together 'forever'."
     }
   ]
 }

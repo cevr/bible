@@ -15,15 +15,15 @@
       "kind": "words",
       "crops": [
         {
-          "image": "225-p2.jpg",
-          "crop": "225-p2-684.jpg",
-          "box": [0, 684, 2268, 1446],
-          "sha": "645f9b2f3a7a7ce2",
+          "image": "225.jpg",
+          "crop": "225-183.jpg",
+          "box": [0, 183, 2268, 1144],
+          "sha": "b752bf44d2eae5f4",
           "shows": "succeeds"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "The stanza 1 row at the crop's left edge ('ear suc-ceeds to') prints 'suc - ceeds' with two c's, as row 1. of 225-170.jpg also does."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "225-183.jpg row 1 prints 'As year suc-ceeds to'; the database's 'suceeds' drops a 'c'."
     },
     {
       "sites": [

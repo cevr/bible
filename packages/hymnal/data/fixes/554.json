@@ -1,7 +1,7 @@
 {
   "number": 554,
   "title": "O Let Me Walk With Thee",
-  "print": "the 1985 book's hymnary.org scan (p539.jpg), each line read off the page at its system and row; the rulings (data/crops/554/rulings.json) put in what the page prints where the base row differs: \"iil\" -> \"I'll\" (words, crop p539-275.jpg, judge-554 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p539.jpg), each line read off the page at its system and row; the rulings (data/crops/554/rulings.json) put in what the page prints where the base row differs: \"iil\" -> \"I'll\" (words, crops p539-275.jpg, judge-554 (Opus, effort max)).",
   "stanzas": [
     [
       {

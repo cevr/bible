@@ -5,6 +5,68 @@
       "sites": [
         {
           "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-723.jpg",
+          "box": [0, 723, 2268, 438],
+          "sha": "952bcec49299abaf",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-723.jpg row 1 prints '1. O God from whom'; the OCR missed the 'O'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 8
+        }
+      ],
+      "row": "whose covenant",
+      "readings": [""],
+      "printed": "Whose covenant",
+      "sung": "Whose covenant",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-723.jpg",
+          "box": [0, 723, 2268, 438],
+          "sha": "952bcec49299abaf",
+          "shows": ""
+        },
+        {
+          "image": "657.jpg",
+          "crop": "657-991.jpg",
+          "box": [0, 991, 2268, 436],
+          "sha": "9886fc49692a0d17",
+          "shows": "Whose covenant"
+        },
+        {
+          "image": "657.jpg",
+          "crop": "657-1154.jpg",
+          "box": [0, 1154, 2268, 514],
+          "sha": "ee7d07cd0784ade2",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-991.jpg's bottom lyric row (stanza 1 of the second system) prints 'Whose cov-e-nant', shown again on 657-1154.jpg row 1; 657-723.jpg ends at 'its name;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 17
         }
       ],
@@ -15,15 +77,159 @@
       "kind": "words",
       "crops": [
         {
-          "image": "657.png",
-          "crop": "657-883.jpg",
-          "box": [0, 883, 1275, 344],
-          "sha": "cd021d00c210d0cf",
+          "image": "657.jpg",
+          "crop": "657-1476.jpg",
+          "box": [0, 1476, 2268, 568],
+          "sha": "c60bab1b4254ea27",
           "shows": "these"
         }
       ],
-      "judge": "judge-634 (Opus, effort max)",
-      "why": "Row 1 prints 'Be with these two who now be-fore You wait;' plainly."
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1476.jpg row 1 prints 'Be with these two', not 'there'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 22
+        }
+      ],
+      "row": "is",
+      "readings": ["conis"],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-1476.jpg",
+          "box": [0, 1476, 2268, 568],
+          "sha": "c60bab1b4254ea27",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1476.jpg row 2 prints 'stand-ing that is kind,'; the OCR's 'conis' is a garble."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 29
+        }
+      ],
+      "row": "an open mind",
+      "readings": [""],
+      "printed": "an open mind",
+      "sung": "an open mind",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-1984.jpg",
+          "box": [0, 1984, 2268, 696],
+          "sha": "4c54123e0cae62f2",
+          "shows": "an open mind"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1984.jpg row 2 prints 'bless-ing of an o-pen mind.'; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 17
+        }
+      ],
+      "row": "be strong against",
+      "readings": [""],
+      "printed": "be strong against",
+      "sung": "be strong against",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-1476.jpg",
+          "box": [0, 1476, 2268, 568],
+          "sha": "c60bab1b4254ea27",
+          "shows": "be strong against"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1476.jpg row 3 prints 'Their bond be strong a-gainst all strain'; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 26
+        }
+      ],
+      "row": "changes",
+      "readings": [""],
+      "printed": "changes",
+      "sung": "changes",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-1984.jpg",
+          "box": [0, 1984, 2268, 696],
+          "sha": "4c54123e0cae62f2",
+          "shows": "changes"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1984.jpg row 3 prints 'A-mid the chang-es of this earth-ly life.'; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "",
+      "readings": ["strong"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-1476.jpg",
+          "box": [0, 1476, 2268, 568],
+          "sha": "c60bab1b4254ea27",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1476.jpg row 4 prints 'Your Spir-it be their Guide' with nothing between 'be' and 'their'; the OCR's 'strong' is row 3's word on the tilted photo."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 31
+        }
+      ],
+      "row": "",
+      "readings": ["es"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "657.jpg",
+          "crop": "657-1984.jpg",
+          "box": [0, 1984, 2268, 696],
+          "sha": "4c54123e0cae62f2",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "657-1984.jpg row 4 prints 'in Christ the ba-sis of their love.' with nothing between 'the' and 'basis'; the OCR's 'es' is row 3's 'chang-es'."
     }
   ]
 }

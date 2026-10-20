@@ -1,0 +1,74 @@
+{
+  "number": 396,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "half free half bound",
+      "readings": [""],
+      "printed": "half free half bound",
+      "sung": "half free half bound",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "396.png",
+          "crop": "396-114.jpg",
+          "box": [0, 114, 1274, 298],
+          "sha": "a62d34728371a65c",
+          "shows": ""
+        },
+        {
+          "image": "396.png",
+          "crop": "396-278.jpg",
+          "box": [0, 278, 1274, 210],
+          "sha": "3175596f8bd976ac",
+          "shows": ""
+        },
+        {
+          "image": "396.png",
+          "crop": "396-435.jpg",
+          "box": [0, 435, 1274, 386],
+          "sha": "6beedda2a7272139",
+          "shows": "half free half bound"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "396-114.jpg row 2 ends 'chos-en wrong,' (396-278.jpg shows only rows 3-5), and 396-435.jpg row 2 begins 'Half-free, half-bound by in-ner chains'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 27
+        }
+      ],
+      "row": "alone",
+      "readings": [""],
+      "printed": "alone",
+      "sung": "alone",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "396.png",
+          "crop": "396-435.jpg",
+          "box": [0, 435, 1274, 386],
+          "sha": "6beedda2a7272139",
+          "shows": "alone"
+        },
+        {
+          "image": "396.png",
+          "crop": "396-928.jpg",
+          "box": [0, 928, 1274, 298],
+          "sha": "a7c1a4f3cd6a8c98",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "396-435.jpg row 3 ends 'gra-cious love a-lone.' and 396-928.jpg row 3 begins 'We strain to glimpse'."
+    }
+  ]
+}

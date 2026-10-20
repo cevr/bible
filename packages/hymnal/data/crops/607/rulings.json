@@ -1,0 +1,277 @@
+{
+  "number": 607,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 7
+        }
+      ],
+      "row": "on thy people",
+      "readings": ["ple"],
+      "printed": "On Thy people",
+      "sung": "On Thy people",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-338.jpg",
+          "box": [0, 338, 1758, 426],
+          "sha": "9c31082ac7d183a9",
+          "shows": "On Thy people"
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-338.jpg row 1 ends 'On Thy peo-ple' plainly; the OCR caught only 'ple'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 17
+        }
+      ],
+      "row": "story",
+      "readings": [""],
+      "printed": "story",
+      "sung": "story",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": "story"
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-1425.jpg",
+          "box": [0, 1425, 1758, 424],
+          "sha": "22ae67dd06ba4fb1",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-701.jpg row 1 ends 'Thy church's sto-ry,' plainly; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 10
+        }
+      ],
+      "row": "assail",
+      "readings": [""],
+      "printed": "assail",
+      "sung": "assail",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-338.jpg",
+          "box": [0, 338, 1758, 426],
+          "sha": "9c31082ac7d183a9",
+          "shows": "as-"
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": "sail"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-338.jpg row 2 ends 'Scorn Thy Christ, as-' and p592-701.jpg row 2 begins 'sail His ways', printing assail."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 18
+        }
+      ],
+      "row": "have bound us",
+      "readings": [""],
+      "printed": "have bound us",
+      "sung": "have bound us",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": "have bound us"
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-1425.jpg",
+          "box": [0, 1425, 1758, 424],
+          "sha": "22ae67dd06ba4fb1",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-701.jpg row 2 prints 'the fears that long have bound us' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "thy control",
+      "readings": [""],
+      "printed": "Thy control",
+      "sung": "Thy control",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-338.jpg",
+          "box": [0, 338, 1758, 426],
+          "sha": "9c31082ac7d183a9",
+          "shows": ""
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": "Thy control"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-338.jpg row 3 ends 'Bend our pride to' and p592-701.jpg row 3 begins 'Thy con-trol;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "selfish gladness",
+      "readings": [""],
+      "printed": "selfish gladness",
+      "sung": "selfish gladness",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": "selfish gladness"
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-1425.jpg",
+          "box": [0, 1425, 1758, 424],
+          "sha": "22ae67dd06ba4fb1",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-701.jpg row 3 prints 'Shame our wan-ton, self-ish glad-ness' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 21
+        }
+      ],
+      "row": "in",
+      "readings": ["nin"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-1425.jpg",
+          "box": [0, 1425, 1758, 424],
+          "sha": "22ae67dd06ba4fb1",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-1425.jpg row 3 prints 'and poor in soul' plainly; the OCR's 'nin' garbles 'in'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 26
+        }
+      ],
+      "row": "grant us courage",
+      "readings": [""],
+      "printed": "grant us courage",
+      "sung": "grant us courage",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-1425.jpg",
+          "box": [0, 1425, 1758, 424],
+          "sha": "22ae67dd06ba4fb1",
+          "shows": ""
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-1650.jpg",
+          "box": [0, 1650, 1758, 714],
+          "sha": "8d0f4266419534c1",
+          "shows": "grant us courage"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-1425.jpg row 3 ends 'Grant us wis-dom,' and p592-1650.jpg's lower system, row 3, begins 'grant us cour-age, Lest we miss'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 9
+        }
+      ],
+      "row": "that they may",
+      "readings": [""],
+      "printed": "that they may",
+      "sung": "that they may",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p592.jpg",
+          "crop": "p592-338.jpg",
+          "box": [0, 338, 1758, 426],
+          "sha": "9c31082ac7d183a9",
+          "shows": "that"
+        },
+        {
+          "image": "p592.jpg",
+          "crop": "p592-701.jpg",
+          "box": [0, 701, 1758, 606],
+          "sha": "25baf1984b5de5bf",
+          "shows": "they may"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "p592-338.jpg row 4 ends 'Gird our lives that' and p592-701.jpg row 4 begins 'they may be'."
+    }
+  ]
+}

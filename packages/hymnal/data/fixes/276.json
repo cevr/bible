@@ -1,0 +1,99 @@
+{
+  "number": 276,
+  "title": "Thanks to God",
+  "print": "the owner's photo of his 1985 book (276.jpg), each line read off the page at its system and row; the rulings (data/crops/276/rulings.json) put in what the page prints where the base row differs: \"wihin\" -> \"within\" (words, crops 276-952.jpg, judge-275 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Thanks to God whose Word was spoken",
+        "from": "276.jpg system 1, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "In the deed that made the earth.",
+        "from": "276.jpg system 1, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "His the voice that called a nation;",
+        "from": "276.jpg system 2, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "His the fires that tried her worth.",
+        "from": "276.jpg system 3, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "God has spoken;",
+        "from": "276.jpg system 3, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Praise Him for His open Word.",
+        "from": "276.jpg system 4, row 1. (placed off the page by from-231 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Thanks to God whose Word incarnate",
+        "from": "276.jpg system 1, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Glorified the flesh of man.",
+        "from": "276.jpg system 1, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Deeds and words and death and rising",
+        "from": "276.jpg system 2, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Tell the grace in heaven's plan.",
+        "from": "276.jpg system 3, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "God has spoken;",
+        "from": "276.jpg system 3, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Praise Him for His open Word.",
+        "from": "276.jpg system 4, row 2. (placed off the page by from-231 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Thanks to God whose Word is answered",
+        "from": "276.jpg system 1, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "By the Spirit's voice within.",
+        "from": "276.jpg system 1, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Here we drink of joy unmeasured,",
+        "from": "276.jpg system 2, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Life redeemed from death and sin.",
+        "from": "276.jpg system 3, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "God is speaking;",
+        "from": "276.jpg system 3, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Praise Him for His open Word.",
+        "from": "276.jpg system 4, row 3. (placed off the page by from-231 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Thanks to God whose Word was spoken\nIn the deed that made the earth.\nHis the voice that called a nation;\nHis the fires that tried her worth.\nGod has spoken;\r\nPraise Him for His open Word."
+    },
+    {
+      "id": 1,
+      "text": "Thanks to God whose Word incarnate\nGlorified the flesh of man.\nDeeds and words and death and rising\nTell the grace in heaven's plan.\nGod has spoken;\nPraise Him for His open Word."
+    },
+    {
+      "id": 2,
+      "text": "Thanks to God whose Word is answered\nBy the Spirit's voice wihin.\nHere we drink of joy unmeasured,\nLife redeemed from death and sin.\nGod is speaking;\nPraise Him for His open Word."
+    }
+  ]
+}

@@ -4,26 +4,195 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 39
+        }
+      ],
+      "row": "bethlehem",
+      "readings": [""],
+      "printed": "Bethlehem",
+      "sung": "Bethlehem",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-287.jpg",
+          "box": [0, 287, 2268, 918],
+          "sha": "658422eae6bfe88c",
+          "shows": ""
+        },
+        {
+          "image": "122.jpg",
+          "crop": "122-1283.jpg",
+          "box": [0, 1283, 2268, 1084],
+          "sha": "df2656930075759e",
+          "shows": "Bethlehem"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "122-1283.jpg lower system, row 1 prints 'Christ is born in Beth-le-hem!'; 122-b-287.jpg holds only the first system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 26
+        }
+      ],
+      "row": "",
+      "readings": ["i"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "122.jpg",
+          "crop": "122-1283.jpg",
+          "box": [0, 1283, 2268, 1084],
+          "sha": "df2656930075759e",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "122-1283.jpg upper system, row 2 prints 'men good will;\" Bid the trem-bling' with nothing between 'will' and 'Bid'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 41
+        }
+      ],
+      "row": "immanuel",
+      "readings": [""],
+      "printed": "Immanuel",
+      "sung": "Immanuel",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-287.jpg",
+          "box": [0, 287, 2268, 918],
+          "sha": "658422eae6bfe88c",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-966.jpg",
+          "box": [0, 966, 2268, 402],
+          "sha": "a75c25c70935cf06",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-1118.jpg",
+          "box": [0, 1118, 2268, 516],
+          "sha": "1a752863b6ee4340",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-1439.jpg",
+          "box": [0, 1439, 2268, 1090],
+          "sha": "65f77765dc17057d",
+          "shows": "Immanuel"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "122-b-1439.jpg lower system, row 2 prints 'Je-sus, our Im-man-u-el!'; the other crops hold earlier systems."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 12
+        }
+      ],
+      "row": "light",
+      "readings": [""],
+      "printed": "Life",
+      "sung": "Life",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "122-c.jpg",
+          "crop": "122-c-492.jpg",
+          "box": [0, 492, 2268, 520],
+          "sha": "e0ef48fb0eb2d731",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-1118.jpg",
+          "box": [0, 1118, 2268, 516],
+          "sha": "1a752863b6ee4340",
+          "shows": "Life"
+        }
+      ],
+      "judge": "judge-again-122 (Opus, effort max)",
+      "why": "122-b-1118.jpg, third (stanza 3) row prints 'Life and light to all He brings,', so 'Life' stands where the database has 'light'; 122-c-492.jpg's stanza 3 row ends at 'Righteousness!'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 12
         }
       ],
       "row": "light and",
       "readings": [""],
-      "printed": "",
-      "sung": "",
+      "printed": "Life and",
+      "sung": "Life and",
       "kind": "words",
       "crops": [
         {
-          "image": "122.png",
-          "crop": "122-111.jpg",
-          "box": [0, 111, 1275, 247],
-          "sha": "e850e3d49ff117ac",
+          "image": "122-c.jpg",
+          "crop": "122-c-492.jpg",
+          "box": [0, 492, 2268, 520],
+          "sha": "e0ef48fb0eb2d731",
           "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-1118.jpg",
+          "box": [0, 1118, 2268, 516],
+          "sha": "1a752863b6ee4340",
+          "shows": "Life and"
         }
       ],
-      "judge": "judge-095 (Opus, effort max)",
-      "why": "Row 3. prints 'Hail! the Sun of Righ-teous-ness! Life and light to', so nothing stands between 'Righteousness' and 'Life'."
+      "judge": "judge-again-122 (Opus, effort max)",
+      "why": "122-b-1118.jpg, stanza 3 row prints 'Life and' where the database has 'light and', the same first word as the 3:12 'light' ruling."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "life",
+      "readings": ["light"],
+      "printed": "light",
+      "sung": "light",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "122-c.jpg",
+          "crop": "122-c-492.jpg",
+          "box": [0, 492, 2268, 520],
+          "sha": "e0ef48fb0eb2d731",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-1118.jpg",
+          "box": [0, 1118, 2268, 516],
+          "sha": "1a752863b6ee4340",
+          "shows": "light"
+        }
+      ],
+      "judge": "judge-again-122 (Opus, effort max)",
+      "why": "122-b-1118.jpg, stanza 3 row prints 'light' as the third word ('Life and light to'), so the database has 'light' and 'life' swapped."
     },
     {
       "sites": [
@@ -34,20 +203,58 @@
       ],
       "row": "",
       "readings": ["and light"],
-      "printed": "and light",
-      "sung": "and light",
+      "printed": "",
+      "sung": "",
       "kind": "words",
       "crops": [
         {
-          "image": "122.png",
-          "crop": "122-111.jpg",
-          "box": [0, 111, 1275, 247],
-          "sha": "e850e3d49ff117ac",
-          "shows": "and light"
+          "image": "122-c.jpg",
+          "crop": "122-c-492.jpg",
+          "box": [0, 492, 2268, 520],
+          "sha": "e0ef48fb0eb2d731",
+          "shows": ""
+        },
+        {
+          "image": "122-b.jpg",
+          "crop": "122-b-1118.jpg",
+          "box": [0, 1118, 2268, 516],
+          "sha": "1a752863b6ee4340",
+          "shows": ""
         }
       ],
-      "judge": "judge-095 (Opus, effort max)",
-      "why": "Row 3. prints 'Life and light to', so 'and light' stands between 'Life' and 'to'."
+      "judge": "judge-again-122 (Opus, effort max)",
+      "why": "122-b-1118.jpg, stanza 3 row prints 'to' straight after 'light' (the word ruled at 3:14), so nothing more stands here; the reading's 'and light' is the swap the 3:12 and 3:14 rulings already make."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 38
+        }
+      ],
+      "row": "born to raise the",
+      "readings": [""],
+      "printed": "Born to raise the",
+      "sung": "Born to raise the",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "122-c.jpg",
+          "crop": "122-c-927.jpg",
+          "box": [0, 927, 2268, 1176],
+          "sha": "4161775d900d760c",
+          "shows": ""
+        },
+        {
+          "image": "122-c.jpg",
+          "crop": "122-c-2072.jpg",
+          "box": [0, 2072, 2268, 778],
+          "sha": "806ef47746437fe7",
+          "shows": "Born to raise the"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "122-c-2072.jpg row 3 prints 'Born to raise the sons of earth'; 122-c-927.jpg ends the line before at 'more may die'."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "number": 54,
   "title": "O Gladsome Light",
-  "print": "the owner's photo of his 1985 book (054.jpg, 055.jpg), each line read off the page at its system and row; the rulings (data/crops/054/rulings.json) put in what the page prints where the base row differs: \"\" -> \"O grace\" (words, crop 054-153.jpg, judge-006-2 (Opus, effort max)); \"ourpouring\" -> \"outpouring\" (words, crop 054-153.jpg, judge-006-2 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (054.jpg, 055.jpg), each line read off the page at its system and row; the rulings (data/crops/054/rulings.json) put in what the page prints where the base row differs: \"\" -> \"O grace\" (words, crops 054-153.jpg, judge-006-2 (Opus, effort max)); \"ourpouring\" -> \"outpouring\" (words, crops 054-153.jpg, judge-006-2 (Opus, effort max)).",
   "stanzas": [
     [
       {

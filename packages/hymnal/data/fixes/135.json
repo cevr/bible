@@ -1,7 +1,7 @@
 {
   "number": 135,
   "title": "O Little Town of Bethlehem",
-  "print": "the 1985 book's hymnary.org scan (p132.jpg), each line read off the page at its system and row; the rulings (data/crops/135/rulings.json) put in what the page prints where the base row differs: \"o\" -> \"Oh\" (words, crop p132-1817.jpg, judge-095 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p132.jpg), each line read off the page at its system and row; the rulings (data/crops/135/rulings.json) put in what the page prints where the base row differs: \"o\" -> \"Oh\" (words, crops p132-1817.jpg, judge-095 (Opus, effort max)).",
   "stanzas": [
     [
       {

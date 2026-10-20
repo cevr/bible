@@ -1,0 +1,281 @@
+{
+  "number": 593,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 38
+        }
+      ],
+      "row": "this rock is jesus the only one",
+      "readings": [""],
+      "printed": "This Rock is Jesus, The only One!",
+      "sung": "This Rock is Jesus, The only One!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-438.jpg",
+          "box": [0, 438, 1274, 360],
+          "sha": "688c1a66b4517c20",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-760.jpg",
+          "box": [0, 760, 1274, 274],
+          "sha": "96e04e9a39f15fe3",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1018.jpg",
+          "box": [0, 1018, 1274, 214],
+          "sha": "b143c2e3d6df84c3",
+          "shows": "This Rock is Jesus, The only One!"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "593-1018.jpg's refrain row prints 'This Rock is Je-sus, The on-ly One!'; 593-760.jpg holds only the line before it ('This Rock is Je-sus, Yes, He's the One;') and 593-438.jpg only stanza rows."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 57
+        }
+      ],
+      "row": "solid rock",
+      "readings": [""],
+      "printed": "solid Rock!",
+      "sung": "solid Rock!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-438.jpg",
+          "box": [0, 438, 1274, 360],
+          "sha": "688c1a66b4517c20",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1018.jpg",
+          "box": [0, 1018, 1274, 214],
+          "sha": "b143c2e3d6df84c3",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1297.jpg",
+          "box": [0, 1297, 1274, 212],
+          "sha": "fb3072a7d301c792",
+          "shows": "solid Rock!"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "593-1297.jpg row 1 (the refrain's '1, 2.' ending) ends 'and grips the sol-id Rock!'; 593-438.jpg and 593-1018.jpg print none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 12
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-116.jpg",
+          "box": [0, 116, 1274, 240],
+          "sha": "12a39cdee6807604",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "593-116.jpg row 2 prints 'In times like these O be not' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 38
+        }
+      ],
+      "row": "this rock is jesus the only one",
+      "readings": [""],
+      "printed": "This Rock is Jesus, The only One!",
+      "sung": "This Rock is Jesus, The only One!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-438.jpg",
+          "box": [0, 438, 1274, 360],
+          "sha": "688c1a66b4517c20",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-760.jpg",
+          "box": [0, 760, 1274, 274],
+          "sha": "96e04e9a39f15fe3",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1018.jpg",
+          "box": [0, 1018, 1274, 214],
+          "sha": "b143c2e3d6df84c3",
+          "shows": "This Rock is Jesus, The only One!"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "593-1018.jpg's refrain row, sung after every stanza, prints 'This Rock is Je-sus, The on-ly One!'; 593-760.jpg holds only the line before it and 593-438.jpg only stanza rows."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 57
+        }
+      ],
+      "row": "solid rock",
+      "readings": [""],
+      "printed": "solid Rock!",
+      "sung": "solid Rock!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-438.jpg",
+          "box": [0, 438, 1274, 360],
+          "sha": "688c1a66b4517c20",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1018.jpg",
+          "box": [0, 1018, 1274, 214],
+          "sha": "b143c2e3d6df84c3",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1297.jpg",
+          "box": [0, 1297, 1274, 212],
+          "sha": "fb3072a7d301c792",
+          "shows": "solid Rock!"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "593-1297.jpg row 1 (the refrain's '1, 2.' ending) ends 'and grips the sol-id Rock!'; 593-438.jpg and 593-1018.jpg print none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 4
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-116.jpg",
+          "box": [0, 116, 1274, 240],
+          "sha": "12a39cdee6807604",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-588 (Opus, effort max)",
+      "why": "593-116.jpg row 3 prints 'In times like these I have a Savior' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 38
+        }
+      ],
+      "row": "this rock is jesus the only one",
+      "readings": [""],
+      "printed": "This Rock is Jesus, The only One!",
+      "sung": "This Rock is Jesus, The only One!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-438.jpg",
+          "box": [0, 438, 1274, 360],
+          "sha": "688c1a66b4517c20",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-760.jpg",
+          "box": [0, 760, 1274, 274],
+          "sha": "96e04e9a39f15fe3",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1018.jpg",
+          "box": [0, 1018, 1274, 214],
+          "sha": "b143c2e3d6df84c3",
+          "shows": "This Rock is Jesus, The only One!"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "593-1018.jpg's refrain row, sung after every stanza, prints 'This Rock is Je-sus, The on-ly One!'; 593-760.jpg holds only the line before it and 593-438.jpg only stanza rows."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 57
+        }
+      ],
+      "row": "solid rock",
+      "readings": [""],
+      "printed": "solid Rock!",
+      "sung": "solid Rock!",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-438.jpg",
+          "box": [0, 438, 1274, 360],
+          "sha": "688c1a66b4517c20",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1018.jpg",
+          "box": [0, 1018, 1274, 214],
+          "sha": "b143c2e3d6df84c3",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-1297.jpg",
+          "box": [0, 1297, 1274, 212],
+          "sha": "fb3072a7d301c792",
+          "shows": "solid Rock!"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "593-1297.jpg row 2 (the refrain's stanza-3 ending, 'I'm ver-y sure My an-chor holds') ends 'and grips the sol-id Rock!'; 593-438.jpg and 593-1018.jpg print none of it."
+    }
+  ]
+}

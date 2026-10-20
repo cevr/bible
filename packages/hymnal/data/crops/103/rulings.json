@@ -1,0 +1,180 @@
+{
+  "number": 103,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1249.jpg",
+          "box": [0, 1249, 2268, 742],
+          "sha": "413768352012aadf",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1249.jpg row 1 prints '1. O God, our help'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "from everlasting",
+      "readings": [""],
+      "printed": "From everlasting",
+      "sung": "From everlasting",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1249.jpg",
+          "box": [0, 1249, 2268, 742],
+          "sha": "413768352012aadf",
+          "shows": ""
+        },
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1972.jpg",
+          "box": [0, 1972, 2268, 642],
+          "sha": "99d4f017772c9203",
+          "shows": "From everlasting"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1249.jpg row 3 ends 'her frame,' and 102-b-p2-1972.jpg row 3 begins 'From ev-er-last-ing Thou art God'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 12
+        }
+      ],
+      "row": "as",
+      "readings": ["me"],
+      "printed": "as",
+      "sung": "as",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1972.jpg",
+          "box": [0, 1972, 2268, 642],
+          "sha": "99d4f017772c9203",
+          "shows": "as"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1972.jpg row 4 prints 'Short as the watch'; the OCR's 'me' is a misread."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 19
+        }
+      ],
+      "row": "before the",
+      "readings": [""],
+      "printed": "before the",
+      "sung": "before the",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1972.jpg",
+          "box": [0, 1972, 2268, 642],
+          "sha": "99d4f017772c9203",
+          "shows": "before the"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1972.jpg row 4 prints 'the night, Be-fore the ris-ing sun.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1249.jpg",
+          "box": [0, 1249, 2268, 742],
+          "sha": "413768352012aadf",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1249.jpg row 5 prints '5. O God, our help'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 21
+        }
+      ],
+      "row": "and",
+      "readings": [""],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1972.jpg",
+          "box": [0, 1972, 2268, 642],
+          "sha": "99d4f017772c9203",
+          "shows": "and"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1972.jpg row 5 prints 'life shall last, And our e-ter-nal home!'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 24
+        }
+      ],
+      "row": "home",
+      "readings": [""],
+      "printed": "home",
+      "sung": "home",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "102-b-p2.jpg",
+          "crop": "102-b-p2-1972.jpg",
+          "box": [0, 1972, 2268, 642],
+          "sha": "99d4f017772c9203",
+          "shows": "home"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "102-b-p2-1972.jpg row 5 ends 'e-ter-nal home!'"
+    }
+  ]
+}

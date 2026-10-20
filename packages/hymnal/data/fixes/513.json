@@ -1,7 +1,7 @@
 {
   "number": 513,
   "title": "In Heavenly Love Abiding",
-  "print": "the 1985 book's hymnary.org scan (p501.jpg), each line read off the page at its system and row; the rulings (data/crops/513/rulings.json) put in what the page prints where the base row differs: \"the\" -> \"\" (words, crop p501-892.jpg, judge-509 (Opus, effort max)); \"the\" -> \"My\" (words, crop p501-1416.jpg, judge-509 (Opus, effort max)); \"saviour\" -> \"Savior\" (words, crop p501-1978.jpg, judge-509 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p501.jpg), each line read off the page at its system and row; the rulings (data/crops/513/rulings.json) put in what the page prints where the base row differs: \"the\" -> \"\" (words, crops p501-892.jpg, judge-509 (Opus, effort max)); \"the\" -> \"My\" (words, crops p501-1416.jpg, judge-509 (Opus, effort max)); \"saviour\" -> \"Savior\" (words, crops p501-1978.jpg, judge-509 (Opus, effort max)).",
   "stanzas": [
     [
       {

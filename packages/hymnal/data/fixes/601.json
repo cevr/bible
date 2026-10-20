@@ -1,7 +1,7 @@
 {
   "number": 601,
   "title": "Watchmen, on the Walls of Zion",
-  "print": "the 1985 book's hymnary.org scan (p586.jpg), each line read off the page at its system and row; the rulings (data/crops/601/rulings.json) put in what the page prints where the base row differs: \"our\" -> \"your\" (words, crop p586-1401.jpg, judge-583 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p586.jpg), each line read off the page at its system and row; the rulings (data/crops/601/rulings.json) put in what the page prints where the base row differs: \"our\" -> \"your\" (words, crops p586-1401.jpg, judge-583 (Opus, effort max)).",
   "stanzas": [
     [
       {

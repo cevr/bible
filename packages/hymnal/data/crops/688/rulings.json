@@ -1,0 +1,53 @@
+{
+  "number": 688,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "i hear music",
+      "readings": [""],
+      "printed": "i hear music",
+      "sung": "i hear music",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "687.jpg",
+          "crop": "687-1223.jpg",
+          "box": [0, 1223, 2268, 1096],
+          "sha": "f0188290fb67911b",
+          "shows": "i hear music"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "687-1223.jpg, right-hand page, second system's row prints 'lin-ger near; I hear mu-sic'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 18
+        }
+      ],
+      "row": "ear",
+      "readings": [""],
+      "printed": "ear",
+      "sung": "ear",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "687.jpg",
+          "crop": "687-1223.jpg",
+          "box": [0, 1223, 2268, 1096],
+          "sha": "f0188290fb67911b",
+          "shows": "ear"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "687-1223.jpg, right-hand page, third system's row prints 'soft on my ear,'."
+    }
+  ]
+}

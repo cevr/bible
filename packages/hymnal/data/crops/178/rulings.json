@@ -1,0 +1,77 @@
+{
+  "number": 178,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 25
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "178.jpg",
+          "crop": "178-340.jpg",
+          "box": [0, 340, 2268, 1372],
+          "sha": "d977250e9594bffc",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "178-340.jpg's Refrain row begins plainly 'O be-hold the Man of Sor-rows!'; the OCR missed 'O'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "178.jpg",
+          "crop": "178-340.jpg",
+          "box": [0, 340, 2268, 1372],
+          "sha": "d977250e9594bffc",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "178-340.jpg's one Refrain row, sung after each stanza, begins 'O be-hold the Man of Sor-rows!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 24
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "178.jpg",
+          "crop": "178-340.jpg",
+          "box": [0, 340, 2268, 1372],
+          "sha": "d977250e9594bffc",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "178-340.jpg's one Refrain row, sung after each stanza, begins 'O be-hold the Man of Sor-rows!'."
+    }
+  ]
+}

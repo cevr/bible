@@ -1,0 +1,184 @@
+{
+  "number": 426,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 32
+        }
+      ],
+      "row": "glory i shall",
+      "readings": [""],
+      "printed": "glory I shall",
+      "sung": "glory I shall",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1137.jpg",
+          "box": [0, 1137, 1758, 382],
+          "sha": "a76c6a443c7bb1fc",
+          "shows": "glory I shall"
+        },
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1460.jpg",
+          "box": [0, 1460, 1758, 668],
+          "sha": "1c24da88b7ee1f9a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p413-1137.jpg prints the refrain's 'In His glo-ry, I shall' once, on the second row's line after 'light.', and p413-1460.jpg goes on 'see the King'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "where there never",
+      "readings": [""],
+      "printed": "Where there never",
+      "sung": "Where there never",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p413.jpg",
+          "crop": "p413-201.jpg",
+          "box": [0, 201, 1758, 386],
+          "sha": "d1c7d9406aa09577",
+          "shows": "Where there never"
+        },
+        {
+          "image": "p413.jpg",
+          "crop": "p413-520.jpg",
+          "box": [0, 520, 1758, 526],
+          "sha": "706b909120b9c0ec",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p413-201.jpg row 2 ends 'glo-ry throng, Where there nev-er' and p413-520.jpg row 2 begins 'comes a night'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 28
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1137.jpg",
+          "box": [0, 1137, 1758, 382],
+          "sha": "a76c6a443c7bb1fc",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p413-1137.jpg row 2 prints 'In the glo-ry land of light.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 32
+        }
+      ],
+      "row": "glory i shall",
+      "readings": [""],
+      "printed": "glory I shall",
+      "sung": "glory I shall",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1137.jpg",
+          "box": [0, 1137, 1758, 382],
+          "sha": "a76c6a443c7bb1fc",
+          "shows": "glory I shall"
+        },
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1460.jpg",
+          "box": [0, 1460, 1758, 668],
+          "sha": "1c24da88b7ee1f9a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p413-1137.jpg row 2 goes on after 'light.' with the refrain 'In His glo-ry, I shall', and p413-1460.jpg goes on 'see the King'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 12
+        }
+      ],
+      "row": "upon",
+      "readings": [""],
+      "printed": "upon",
+      "sung": "upon",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p413.jpg",
+          "crop": "p413-201.jpg",
+          "box": [0, 201, 1758, 386],
+          "sha": "d1c7d9406aa09577",
+          "shows": "up-"
+        },
+        {
+          "image": "p413.jpg",
+          "crop": "p413-520.jpg",
+          "box": [0, 520, 1758, 526],
+          "sha": "706b909120b9c0ec",
+          "shows": "on"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p413-201.jpg row 3 ends 'And shall look up-' and p413-520.jpg row 3 begins 'on His face'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "glory i shall",
+      "readings": [""],
+      "printed": "glory I shall",
+      "sung": "glory I shall",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1137.jpg",
+          "box": [0, 1137, 1758, 382],
+          "sha": "a76c6a443c7bb1fc",
+          "shows": "glory I shall"
+        },
+        {
+          "image": "p413.jpg",
+          "crop": "p413-1460.jpg",
+          "box": [0, 1460, 1758, 668],
+          "sha": "1c24da88b7ee1f9a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p413-1137.jpg prints the refrain's 'In His glo-ry, I shall' once, on the second row's line after 'light.', and p413-1460.jpg goes on 'see the King'."
+    }
+  ]
+}

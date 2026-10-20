@@ -12,20 +12,41 @@
       "readings": [
         "surely this lord jesus shall return again with his fathers glory with his angel train for all wreaths of empire meet upon his brow and our hearts confess him king of glory now"
       ],
-      "printed": "Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now.",
-      "sung": "Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now.",
+      "printed": "Surely this Lord Jesus Shall return again With His Father's glory With His angel train For all wreaths of empire Meet upon His brow And our hearts confess Him King of glory now",
+      "sung": "Surely this Lord Jesus Shall return again With His Father's glory With His angel train For all wreaths of empire Meet upon His brow And our hearts confess Him King of glory now",
       "kind": "words",
       "crops": [
         {
           "image": "232.jpg",
-          "crop": "232-817.jpg",
-          "box": [0, 817, 2268, 826],
-          "sha": "7f3ce52f6ae4f8bb",
-          "shows": "Surely, this Lord Jesus Shall return again, With His Father's glory, With His angel train; For all wreaths of empire Meet upon His brow, And our hearts confess Him King of glory now."
+          "crop": "232-496.jpg",
+          "box": [0, 496, 2268, 530],
+          "sha": "fcce5ce0101bd222",
+          "shows": "Surely this Lord Jesus Shall return again"
+        },
+        {
+          "image": "232.jpg",
+          "crop": "232-823.jpg",
+          "box": [0, 823, 2268, 820],
+          "sha": "97045ad3fd073dbe",
+          "shows": "With His Father's glory With His angel train"
+        },
+        {
+          "image": "232.jpg",
+          "crop": "232-1443.jpg",
+          "box": [0, 1443, 2268, 726],
+          "sha": "611b23a1f5c4fdb5",
+          "shows": "For all wreaths of empire Meet upon His brow"
+        },
+        {
+          "image": "232.jpg",
+          "crop": "232-2068.jpg",
+          "box": [0, 2068, 2268, 820],
+          "sha": "a023763bbaf9368b",
+          "shows": "And our hearts confess Him King of glory now"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "The page prints a numbered fifth stanza in full-size type: row 5. of systems 1-2 on 232-817.jpg and row 5 of systems 3-4 on page 232.jpg."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "Row 5 on each crop prints a numbered fifth stanza, from '5. Sure-ly, this Lord Je-sus' on 232-496.jpg to 'King of glo-ry now.' on 232-2068.jpg; the database lacks it. The repeat of 232-496.jpg's row 5 at the top of 232-823.jpg is given to 232-496.jpg only."
     }
   ]
 }

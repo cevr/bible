@@ -5,6 +5,30 @@
       "sites": [
         {
           "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583.jpg",
+          "crop": "583-374.jpg",
+          "box": [0, 374, 2268, 1636],
+          "sha": "b9621adbf5278d72",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-374.jpg first system row 1 prints 'is' between 'Lord' and 'gra - cious'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 10
         }
       ],
@@ -15,15 +39,63 @@
       "kind": "words",
       "crops": [
         {
-          "image": "583.png",
-          "crop": "583-114.jpg",
-          "box": [0, 114, 1275, 246],
-          "sha": "8b2e991ba6adb607",
+          "image": "583.jpg",
+          "crop": "583-374.jpg",
+          "box": [0, 374, 2268, 1636],
+          "sha": "b9621adbf5278d72",
           "shows": "a"
         }
       ],
-      "judge": "judge-583 (Opus, effort max)",
-      "why": "Row 1. prints 'You for whom a cor - ner - stone', with 'a' between 'whom' and 'cornerstone'."
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "583-374.jpg, first system, row 1 ends 'You for whom a' and the next system's row 1 begins 'cor-ner-stone'; the database drops the 'a'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583.jpg",
+          "crop": "583-1805.jpg",
+          "box": [0, 1805, 2268, 974],
+          "sha": "0a8da7f602d30ade",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-1805.jpg lower system row 1 prints 'a' between 'You' and 'liv - ing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 43
+        }
+      ],
+      "row": "re echo praise",
+      "readings": [""],
+      "printed": "re echo praise",
+      "sung": "re echo praise",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-336.jpg",
+          "box": [0, 336, 2268, 734],
+          "sha": "bdcbc110c479879f",
+          "shows": "re echo praise"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-336.jpg row 1 ends 're - ech - o praise' (re-echo praise)."
     },
     {
       "sites": [
@@ -33,21 +105,69 @@
         }
       ],
       "row": "alotted",
-      "readings": ["allotted"],
+      "readings": [""],
       "printed": "allotted",
       "sung": "allotted",
       "kind": "words",
       "crops": [
         {
-          "image": "583.png",
-          "crop": "583-114.jpg",
-          "box": [0, 114, 1275, 246],
-          "sha": "8b2e991ba6adb607",
+          "image": "583.jpg",
+          "crop": "583-374.jpg",
+          "box": [0, 374, 2268, 1636],
+          "sha": "b9621adbf5278d72",
           "shows": "allotted"
         }
       ],
-      "judge": "judge-583 (Opus, effort max)",
-      "why": "Row 2. prints 'Each to his al - lot - ted place', double l: 'allotted'."
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-374.jpg row 2 breaks 'al -' / 'lot - ted' over the first two systems: 'allotted' with two l's, not 'alotted'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "a new",
+      "readings": [""],
+      "printed": "a new",
+      "sung": "a new",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-336.jpg",
+          "box": [0, 336, 2268, 734],
+          "sha": "bdcbc110c479879f",
+          "shows": "a new"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-336.jpg row 2 prints 'a new' after 'Tid - ings of'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 39
+        }
+      ],
+      "row": "old",
+      "readings": ["ạạạiold"],
+      "printed": "old",
+      "sung": "old",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "583-p2.jpg",
+          "crop": "583-p2-336.jpg",
+          "box": [0, 336, 2268, 734],
+          "sha": "bdcbc110c479879f",
+          "shows": "old"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "583-p2-336.jpg row 2 prints 'old' between 'an' and 'and'; the OCR's reading is garbled."
     }
   ]
 }

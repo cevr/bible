@@ -1,0 +1,156 @@
+{
+  "number": 512,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 2
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-29.jpg",
+          "box": [0, 29, 1758, 670],
+          "sha": "efca653fe78973a6",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "p500-29.jpg row 1 prints 'Just when I need Him'; the OCR missed the 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 14
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-736.jpg",
+          "box": [0, 736, 1758, 572],
+          "sha": "b858ba21daa175a8",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "p500-736.jpg row 1 prints 'just when I fear;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 2
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-29.jpg",
+          "box": [0, 29, 1758, 670],
+          "sha": "efca653fe78973a6",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "p500-29.jpg row 2 prints 'Just when I need Him'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 2
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-29.jpg",
+          "box": [0, 29, 1758, 670],
+          "sha": "efca653fe78973a6",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "p500-29.jpg row 3 prints 'Just when I need Him'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 7
+        }
+      ],
+      "row": "my all",
+      "readings": [""],
+      "printed": "my all",
+      "sung": "my all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-29.jpg",
+          "box": [0, 29, 1758, 670],
+          "sha": "efca653fe78973a6",
+          "shows": "my all"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "p500-29.jpg row 4 prints 'He is my all,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 11
+        }
+      ],
+      "row": "upon",
+      "readings": [""],
+      "printed": "upon",
+      "sung": "upon",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p500.jpg",
+          "crop": "p500-29.jpg",
+          "box": [0, 29, 1758, 670],
+          "sha": "efca653fe78973a6",
+          "shows": "up-"
+        },
+        {
+          "image": "p500.jpg",
+          "crop": "p500-736.jpg",
+          "box": [0, 736, 1758, 572],
+          "sha": "b858ba21daa175a8",
+          "shows": "on"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "p500-29.jpg row 4 ends 'An-swer-ing when up -' and p500-736.jpg row 4 goes on 'on Him I call;'."
+    }
+  ]
+}

@@ -9,21 +9,69 @@
         }
       ],
       "row": "bless",
-      "readings": ["blest"],
+      "readings": [""],
       "printed": "Blest",
       "sung": "Blest",
-      "kind": "shared",
+      "kind": "words",
       "crops": [
         {
-          "image": "231.png",
-          "crop": "231-132.jpg",
-          "box": [0, 132, 1275, 195],
-          "sha": "c45a5b6edb7b7eaa",
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
           "shows": "Blest"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "The first system prints 'Blest be the King whose com - ing Is in the name of God!' once, unnumbered, before the numbered stanza rows, and every stanza sings it; it reads 'Blest'."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Blest be the King whose com-ing Is in the name of God!' once above the stanzas, the line every stanza sings; the word is 'Blest', not 'bless'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 7
+        }
+      ],
+      "row": "in",
+      "readings": ["inre"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Is in the name of God!'; the OCR's 'inre' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 36
+        }
+      ],
+      "row": "as are the poorest such his",
+      "readings": [""],
+      "printed": "as are the poorest Such His",
+      "sung": "as are the poorest Such His",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-1960.jpg",
+          "box": [0, 1960, 2268, 542],
+          "sha": "2dc3023d51f61076",
+          "shows": "as are the poorest Such His"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-1960.jpg row 1 prints 'But clad as are the poor-est, Such His hu-mil-i-ty.'; the OCR missed these words."
     },
     {
       "sites": [
@@ -33,21 +81,45 @@
         }
       ],
       "row": "bless",
-      "readings": ["blest"],
+      "readings": [""],
       "printed": "Blest",
       "sung": "Blest",
-      "kind": "shared",
+      "kind": "words",
       "crops": [
         {
-          "image": "231.png",
-          "crop": "231-132.jpg",
-          "box": [0, 132, 1275, 195],
-          "sha": "c45a5b6edb7b7eaa",
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
           "shows": "Blest"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "The shared unnumbered row of the first system, sung before stanza 2's row, prints 'Blest be the King'."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Blest be the King' once above the stanzas, the line every stanza sings; the word is 'Blest', not 'bless'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 7
+        }
+      ],
+      "row": "in",
+      "readings": ["inre"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Is in the name of God!' in the line every stanza sings; the OCR's 'inre' is a slip."
     },
     {
       "sites": [
@@ -57,21 +129,93 @@
         }
       ],
       "row": "bless",
-      "readings": ["blest"],
+      "readings": [""],
       "printed": "Blest",
       "sung": "Blest",
-      "kind": "shared",
+      "kind": "words",
       "crops": [
         {
-          "image": "231.png",
-          "crop": "231-132.jpg",
-          "box": [0, 132, 1275, 195],
-          "sha": "c45a5b6edb7b7eaa",
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
           "shows": "Blest"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "The shared unnumbered row of the first system, sung before stanza 3's row, prints 'Blest be the King'."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Blest be the King' once above the stanzas, the line every stanza sings; the word is 'Blest', not 'bless'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 7
+        }
+      ],
+      "row": "in",
+      "readings": ["inre"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Is in the name of God!' in the line every stanza sings; the OCR's 'inre' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 31
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-1335.jpg",
+          "box": [0, 1335, 2268, 706],
+          "sha": "2b2ea298494de1d6",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-1335.jpg row 3 prints 'All things are in His hand,'; the OCR missed 'in'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "all peoples till time",
+      "readings": ["peo"],
+      "printed": "all peoples Till time",
+      "sung": "all peoples Till time",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-1960.jpg",
+          "box": [0, 1960, 2268, 542],
+          "sha": "2dc3023d51f61076",
+          "shows": "all peoples Till time"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-1960.jpg row 3 prints 'All a-ges and all peo-ples, Till time it-self shall end.'; the OCR kept only 'peo'."
     },
     {
       "sites": [
@@ -81,21 +225,69 @@
         }
       ],
       "row": "bless",
-      "readings": ["blest"],
+      "readings": [""],
       "printed": "Blest",
       "sung": "Blest",
-      "kind": "shared",
+      "kind": "words",
       "crops": [
         {
-          "image": "231.png",
-          "crop": "231-132.jpg",
-          "box": [0, 132, 1275, 195],
-          "sha": "c45a5b6edb7b7eaa",
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
           "shows": "Blest"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "The shared unnumbered row of the first system, sung before stanza 4's row, prints 'Blest be the King'."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Blest be the King' once above the stanzas, the line every stanza sings; the word is 'Blest', not 'bless'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 7
+        }
+      ],
+      "row": "in",
+      "readings": ["inre"],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-315.jpg",
+          "box": [0, 315, 2268, 1242],
+          "sha": "9fd631c6dc5c5ee4",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-315.jpg prints 'Is in the name of God!' in the line every stanza sings; the OCR's 'inre' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 24
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-1335.jpg",
+          "box": [0, 1335, 2268, 706],
+          "sha": "2b2ea298494de1d6",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-1335.jpg row 4 prints 'Gen-tle is He and hum-ble!'; the OCR missed 'is'."
     },
     {
       "sites": [
@@ -105,21 +297,45 @@
         }
       ],
       "row": "humbled",
-      "readings": ["humble"],
+      "readings": ["hum ble"],
       "printed": "humble",
       "sung": "humble",
       "kind": "words",
       "crops": [
         {
-          "image": "231.png",
-          "crop": "231-839.jpg",
-          "box": [0, 839, 1275, 277],
-          "sha": "b3a9694ce42ac277",
+          "image": "231.jpg",
+          "crop": "231-1335.jpg",
+          "box": [0, 1335, 2268, 706],
+          "sha": "2b2ea298494de1d6",
           "shows": "humble"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "Row 4 (stanza 4) of the third system prints 'tle is He and hum - ble! And light His Yoke shall be'."
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-1335.jpg row 4 prints 'hum-ble! And light His yoke'; the word is 'humble', not 'humbled'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 38
+        }
+      ],
+      "row": "us bear it so he can",
+      "readings": [""],
+      "printed": "us bear it So He can",
+      "sung": "us bear it So He can",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "231.jpg",
+          "crop": "231-1960.jpg",
+          "box": [0, 1960, 2268, 542],
+          "sha": "2dc3023d51f61076",
+          "shows": "us bear it So He can"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "231-1960.jpg row 4 prints 'For He would have us bear it, So He can make us free!'; the OCR missed these words."
     },
     {
       "sites": [
@@ -130,20 +346,20 @@
       ],
       "row": "make",
       "readings": ["made"],
-      "printed": "made",
-      "sung": "made",
+      "printed": "make",
+      "sung": "make",
       "kind": "words",
       "crops": [
         {
-          "image": "231.png",
-          "crop": "231-1223.jpg",
-          "box": [0, 1223, 1275, 272],
-          "sha": "13ffd7661211e2ff",
-          "shows": "made"
+          "image": "231.jpg",
+          "crop": "231-1960.jpg",
+          "box": [0, 1960, 2268, 542],
+          "sha": "2dc3023d51f61076",
+          "shows": "make"
         }
       ],
-      "judge": "judge-225 (Opus, effort max)",
-      "why": "Row 4 (stanza 4) of the last system of this re-engraving plainly prints 'So He can made us free!'; 'made' is a real word, so it is not ruled a misprint."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "231-1960.jpg row 4 prints 'So He can make us free!': 'make', not 'made'."
     }
   ]
 }

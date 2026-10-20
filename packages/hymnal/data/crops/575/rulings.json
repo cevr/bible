@@ -4,6 +4,30 @@
     {
       "sites": [
         {
+          "unit": 2,
+          "at": 8
+        }
+      ],
+      "row": "expression god",
+      "readings": [""],
+      "printed": "expression god",
+      "sung": "expression god",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "575.jpg",
+          "crop": "575-79.jpg",
+          "box": [0, 79, 2268, 1478],
+          "sha": "bf263402b670cbdc",
+          "shows": "expression god"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "575-79.jpg row 2 breaks 'ex-' / 'pres - sion' across its two systems, then prints 'God'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 5
         }
@@ -24,6 +48,85 @@
       ],
       "judge": "judge-554 (Opus, effort max)",
       "why": "Row 3. of the first system prints 'bless-ing, Priv - i-leged to care,' with the final 'd', joined as 'Privileged'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "need apparent",
+      "readings": [""],
+      "printed": "need apparent",
+      "sung": "need apparent",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "575.jpg",
+          "crop": "575-79.jpg",
+          "box": [0, 79, 2268, 1478],
+          "sha": "bf263402b670cbdc",
+          "shows": "need apparent"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "575-79.jpg second system row 3 begins 'need' then 'Ap - par - ent'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 0
+        }
+      ],
+      "row": "let",
+      "readings": [""],
+      "printed": "let",
+      "sung": "let",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "575.jpg",
+          "crop": "575-79.jpg",
+          "box": [0, 79, 2268, 1478],
+          "sha": "bf263402b670cbdc",
+          "shows": "let"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "575-79.jpg first system row 5 begins '5. Let'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 25
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "575.jpg",
+          "crop": "575-79.jpg",
+          "box": [0, 79, 2268, 1478],
+          "sha": "bf263402b670cbdc",
+          "shows": "a"
+        },
+        {
+          "image": "575.jpg",
+          "crop": "575-1500.jpg",
+          "box": [0, 1500, 2268, 888],
+          "sha": "d38eabeff5de8f86",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "575-79.jpg second system row 5 ends 'By a'; 575-1500.jpg row 5 starts at the next word."
     }
   ]
 }

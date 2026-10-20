@@ -1,7 +1,7 @@
 {
   "number": 650,
   "title": "Our Father By Whose Name",
-  "print": "the owner's photo of his 1985 book (650.jpg), each line read off the page at its system and row; the rulings (data/crops/650/rulings.json) put in what the page prints where the base row differs: \"teaches\" -> \"teachest\" (words, crop 650-45.jpg, judge-634 (Opus, effort max)); \"\" -> \"the\" (words, crop 650-1795.jpg, judge-634 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (650.jpg), each line read off the page at its system and row; the rulings (data/crops/650/rulings.json) put in what the page prints where the base row differs: \"teaches\" -> \"teachest\" (words, crops 650-45.jpg, judge-634 (Opus, effort max)); \"\" -> \"the\" (words, crops 650-1795.jpg, judge-634 (Opus, effort max)).",
   "stanzas": [
     [
       {

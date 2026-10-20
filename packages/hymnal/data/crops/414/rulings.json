@@ -1,0 +1,101 @@
+{
+  "number": 414,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 13
+        }
+      ],
+      "row": "eternal",
+      "readings": ["ter nal"],
+      "printed": "eternal",
+      "sung": "eternal",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "414.png",
+          "crop": "414-500.jpg",
+          "box": [0, 500, 1274, 270],
+          "sha": "23eedeab7a836d8d",
+          "shows": "eternal"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "414-500.jpg row 1 prints 'Fruit to life e-ter-nal grow-ing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 11
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "414.png",
+          "crop": "414-500.jpg",
+          "box": [0, 500, 1274, 270],
+          "sha": "23eedeab7a836d8d",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "414-500.jpg row 2 prints 'Here is fruit that grows'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 20
+        }
+      ],
+      "row": "faith",
+      "readings": [""],
+      "printed": "faith",
+      "sung": "faith",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "414.png",
+          "crop": "414-500.jpg",
+          "box": [0, 500, 1274, 270],
+          "sha": "23eedeab7a836d8d",
+          "shows": "faith"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "414-500.jpg row 3 prints 'Good-ness, faith, and'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 22
+        }
+      ],
+      "row": "self",
+      "readings": [""],
+      "printed": "self",
+      "sung": "self",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "414.png",
+          "crop": "414-500.jpg",
+          "box": [0, 500, 1274, 270],
+          "sha": "23eedeab7a836d8d",
+          "shows": "self"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "414-500.jpg row 3 ends 'and self-con-trol.', the compound self-control."
+    }
+  ]
+}

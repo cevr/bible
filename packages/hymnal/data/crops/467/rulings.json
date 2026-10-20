@@ -5,6 +5,37 @@
       "sites": [
         {
           "unit": 1,
+          "at": 11
+        }
+      ],
+      "row": "as we should shop and buses towns and people",
+      "readings": [""],
+      "printed": "as we should Shops and buses towns and people",
+      "sung": "as we should Shops and buses towns and people",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-0.jpg",
+          "box": [0, 0, 2268, 1250],
+          "sha": "959d90b3f190927b",
+          "shows": "as we should Shops and buses towns and people"
+        },
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-0.jpg, second system row 1, prints 'as we should— Shops and bus-es, towns and peo-ple' (Shops, not shop); 467-1222.jpg shows none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 14
         }
       ],
@@ -24,6 +55,418 @@
       ],
       "judge": "judge-443 (Opus, effort max)",
       "why": "Row 1 of the second system prints 'Shops and bus - es, towns and peo - ple' with a plain final 's'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 32
+        }
+      ],
+      "row": "life",
+      "readings": [""],
+      "printed": "life",
+      "sung": "life",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": "life"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1677.jpg row 1 prints 'life is giv-en; Life is love-ly', so 'Life' stands; the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 34
+        }
+      ],
+      "row": "lovely",
+      "readings": ["lovey"],
+      "printed": "lovely",
+      "sung": "lovely",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": "lovely"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1677.jpg row 1 prints 'love - ly' (lovely); the OCR's 'lovey' is a misread."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 18
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1222.jpg row 2 prints 'Suf-fering that I can't ex-plain'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 20
+        }
+      ],
+      "row": "explain",
+      "readings": ["ex"],
+      "printed": "explain",
+      "sung": "explain",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": "explain"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1222.jpg row 2 prints 'ex - plain' (explain); the OCR took only 'ex'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 25
+        }
+      ],
+      "row": "",
+      "readings": ["if"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": ""
+        },
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1222.jpg row 2 ends 'Life is great if' and 467-1677.jpg row 2 begins 'some-one', so 'if' is printed once with nothing between."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 32
+        }
+      ],
+      "row": "calls",
+      "readings": [""],
+      "printed": "calls",
+      "sung": "calls",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": "calls"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1677.jpg row 2 prints 'Holds my hand and calls my name'; the OCR missed 'calls'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 17
+        }
+      ],
+      "row": "cradle",
+      "readings": [""],
+      "printed": "cradle",
+      "sung": "cradle",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-0.jpg",
+          "box": [0, 0, 2268, 1250],
+          "sha": "959d90b3f190927b",
+          "shows": "cradle"
+        },
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-0.jpg, second system row 3, prints 'at the cra - dle'; 467-1222.jpg shows none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 23
+        }
+      ],
+      "row": "lies",
+      "readings": [""],
+      "printed": "lies",
+      "sung": "lies",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": "lies"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1222.jpg row 3 prints 'Where a child of lov-ing lies'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 35
+        }
+      ],
+      "row": "never",
+      "readings": ["nev"],
+      "printed": "never",
+      "sung": "never",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": "never"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1677.jpg row 3 prints 'nev - er dies' (never); the OCR took only 'nev'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 16
+        }
+      ],
+      "row": "forgiving",
+      "readings": [""],
+      "printed": "forgiving",
+      "sung": "forgiving",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-0.jpg",
+          "box": [0, 0, 2268, 1250],
+          "sha": "959d90b3f190927b",
+          "shows": "forgiving"
+        },
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-0.jpg, second system row 4, prints 'and for-giv-ing'; 467-1222.jpg shows none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 23
+        }
+      ],
+      "row": "send",
+      "readings": [""],
+      "printed": "send",
+      "sung": "send",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": "send"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1222.jpg row 4 prints 'All the hurts that hate can send'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 32
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1677.jpg row 4 prints 'Hop-ing, trust-ing to the end'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 7
+        }
+      ],
+      "row": "us",
+      "readings": [""],
+      "printed": "us",
+      "sung": "us",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-0.jpg",
+          "box": [0, 0, 2268, 1250],
+          "sha": "959d90b3f190927b",
+          "shows": "us"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-0.jpg, first system row 5, prints 'in Christ He loved us'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 19
+        }
+      ],
+      "row": "trusted",
+      "readings": [""],
+      "printed": "trusted",
+      "sung": "trusted",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-0.jpg",
+          "box": [0, 0, 2268, 1250],
+          "sha": "959d90b3f190927b",
+          "shows": "trusted"
+        },
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-0.jpg, second system row 5, prints 'hoped and trust - ed'; 467-1222.jpg shows none of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 24
+        }
+      ],
+      "row": "ran",
+      "readings": [""],
+      "printed": "ran",
+      "sung": "ran",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1222.jpg",
+          "box": [0, 1222, 2268, 512],
+          "sha": "8b92f96dd24259e9",
+          "shows": "ran"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1222.jpg row 5 prints 'When dis-ci-ples turned and ran'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 34
+        }
+      ],
+      "row": "living",
+      "readings": ["ing"],
+      "printed": "living",
+      "sung": "living",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "467.jpg",
+          "crop": "467-1677.jpg",
+          "box": [0, 1677, 2268, 552],
+          "sha": "9fe88567cd17840a",
+          "shows": "living"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "467-1677.jpg row 5 prints 'Praise that lov-ing, liv - ing Man' (living); the OCR took only 'ing'."
     }
   ]
 }

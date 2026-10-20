@@ -1,0 +1,173 @@
+{
+  "number": 187,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 1
+        }
+      ],
+      "row": "what",
+      "readings": ["whạt"],
+      "printed": "what",
+      "sung": "what",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-284.jpg",
+          "box": [0, 284, 1758, 428],
+          "sha": "85107a39ea2f452e",
+          "shows": "what"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-284.jpg row 1 prints 'Je-sus! what a Friend for sin-ners!'; the OCR's 'whạt' is a garble of 'what'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 18
+        }
+      ],
+      "row": "he my",
+      "readings": ["не ту"],
+      "printed": "he my",
+      "sung": "he my",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-920.jpg",
+          "box": [0, 920, 1758, 582],
+          "sha": "45f8894f21e5b9d5",
+          "shows": "he my"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-920.jpg row 1 prints 'He, my Sav-ior, makes me whole'; the OCR's 'не ту' is a garble of 'He, my'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 36
+        }
+      ],
+      "row": "he is",
+      "readings": [""],
+      "printed": "he is",
+      "sung": "he is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-2032.jpg",
+          "box": [0, 2032, 1758, 596],
+          "sha": "9ff225b55187bc8f",
+          "shows": "he is"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-2032.jpg's refrain row prints 'lov-ing, He is with me to the end'; the OCR missed 'He is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 35
+        }
+      ],
+      "row": "he is",
+      "readings": [""],
+      "printed": "he is",
+      "sung": "he is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-2032.jpg",
+          "box": [0, 2032, 1758, 596],
+          "sha": "9ff225b55187bc8f",
+          "shows": "he is"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-2032.jpg's one refrain row, sung after each stanza, prints 'He is with me to the end'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 36
+        }
+      ],
+      "row": "he is",
+      "readings": [""],
+      "printed": "he is",
+      "sung": "he is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-2032.jpg",
+          "box": [0, 2032, 1758, 596],
+          "sha": "9ff225b55187bc8f",
+          "shows": "he is"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-2032.jpg's one refrain row, sung after each stanza, prints 'He is with me to the end'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 18
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-920.jpg",
+          "box": [0, 920, 1758, 582],
+          "sha": "45f8894f21e5b9d5",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-920.jpg row 4 prints 'for-give-ness, I am His, and He is mine'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 37
+        }
+      ],
+      "row": "he is",
+      "readings": [""],
+      "printed": "he is",
+      "sung": "he is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p182.jpg",
+          "crop": "p182-2032.jpg",
+          "box": [0, 2032, 1758, 596],
+          "sha": "9ff225b55187bc8f",
+          "shows": "he is"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p182-2032.jpg's one refrain row, sung after each stanza, prints 'He is with me to the end'."
+    }
+  ]
+}

@@ -22,6 +22,27 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "Each little flower that opens Each little bird that sings He made their glowing colors He"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-28.jpg",
+          "box": [0, 28, 1275, 277],
+          "sha": "a700d05858b03d6e",
+          "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-702.jpg",
+          "box": [0, 702, 1275, 280],
+          "sha": "8a1501d38e23c2e4",
+          "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -46,6 +67,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": "Each little flower that opens Each little bird that sings He made their glowing colors He made their tiny wings"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -70,6 +98,13 @@
           "box": [0, 28, 1275, 277],
           "sha": "a700d05858b03d6e",
           "shows": "their tiny wings"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -118,6 +153,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": "The purple-headed mountain The river running by The sunset and the morning"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -144,6 +186,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": "brightens up the sky"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -168,6 +217,20 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "brightens up the sky All things bright and beautiful All creatures great and small All things wise and wonderful The Lord God"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-28.jpg",
+          "box": [0, 28, 1275, 277],
+          "sha": "a700d05858b03d6e",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -192,6 +255,13 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "them all"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -288,6 +358,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": "pleasant summer sun"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -312,6 +389,13 @@
           "box": [0, 1070, 1275, 279],
           "sha": "8b8c9b05e5c6be67",
           "shows": "ripe fruits in"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-702.jpg",
+          "box": [0, 702, 1275, 280],
+          "sha": "8a1501d38e23c2e4",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -360,6 +444,20 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "garden He made them every one All things bright and beautiful All creatures great and small All things wise"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-28.jpg",
+          "box": [0, 28, 1275, 277],
+          "sha": "a700d05858b03d6e",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -408,6 +506,13 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "Lord God made them all"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -434,6 +539,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -458,6 +570,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": "He gave us eyes to see them And lips that we might tell How great is God Almighty Who has made all things well All things bright and beautiful All creatures great and small All things wise and wonderful"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -482,6 +601,13 @@
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
           "shows": "gave us eyes to see them And lips that we might tell How great is God Almighty Who has"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -532,6 +658,20 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "Lord God"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-702.jpg",
+          "box": [0, 702, 1275, 280],
+          "sha": "8a1501d38e23c2e4",
+          "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -556,6 +696,13 @@
           "box": [0, 409, 1275, 187],
           "sha": "242a9c5fbbad3fbd",
           "shows": "all"
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
+          "shows": ""
         }
       ],
       "judge": "judge-093 (Opus, effort max)",
@@ -582,6 +729,13 @@
           "crop": "093-702.jpg",
           "box": [0, 702, 1275, 280],
           "sha": "8a1501d38e23c2e4",
+          "shows": ""
+        },
+        {
+          "image": "093.png",
+          "crop": "093-1070.jpg",
+          "box": [0, 1070, 1275, 279],
+          "sha": "8b8c9b05e5c6be67",
           "shows": ""
         }
       ],

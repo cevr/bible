@@ -4,6 +4,133 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 4
+        }
+      ],
+      "row": "that",
+      "readings": [""],
+      "printed": "that",
+      "sung": "that",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-0.jpg",
+          "box": [0, 0, 2268, 1616],
+          "sha": "f0c81146f1ded806",
+          "shows": "that"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-0.jpg first system, row 1 prints 'We have this hope that burns with-in our hearts'; the OCR missed 'that'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 37
+        }
+      ],
+      "row": "when the",
+      "readings": [""],
+      "printed": "when the",
+      "sung": "when the",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-1917.jpg",
+          "box": [0, 1917, 2268, 522],
+          "sha": "fecaaf84ddf2bfd9",
+          "shows": "when the"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-1917.jpg row 1 prints 'the time is here, When the na-tions far and near'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 49
+        }
+      ],
+      "row": "hallelujah",
+      "readings": [""],
+      "printed": "hallelujah",
+      "sung": "hallelujah",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "215.jpg",
+          "crop": "215-113.jpg",
+          "box": [0, 113, 2268, 618],
+          "sha": "da42fdff512ed9a5",
+          "shows": "hallelujah"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "215-113.jpg row 1 prints 'shout and sing Hal-le-lu-jah! Christ is King!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 57
+        }
+      ],
+      "row": "that",
+      "readings": [""],
+      "printed": "that",
+      "sung": "that",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-0.jpg",
+          "box": [0, 0, 2268, 1616],
+          "sha": "f0c81146f1ded806",
+          "shows": ""
+        },
+        {
+          "image": "215.jpg",
+          "crop": "215-817.jpg",
+          "box": [0, 817, 2268, 620],
+          "sha": "a80ffa26d2100362",
+          "shows": "that"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-0.jpg's right edge cuts the last system's row 1 after 'We have this hope'; 215-817.jpg, a crop of this hymn, prints that row whole: 'We have this hope that burns with-in our hearts'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 2
+        }
+      ],
+      "row": "united in",
+      "readings": [""],
+      "printed": "united in",
+      "sung": "united in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-0.jpg",
+          "box": [0, 0, 2268, 1616],
+          "sha": "f0c81146f1ded806",
+          "shows": "united in"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-0.jpg first system, row 2 prints 'We are u-ni-ted in Je-sus Christ our Lord'."
+    },
+    {
+      "sites": [
+        {
           "unit": 2,
           "at": 30
         }
@@ -24,6 +151,195 @@
       ],
       "judge": "judge-209 (Opus, effort max)",
       "why": "The second lyric row (stanza 2) of 214-1912 prints 'Soon the heav'ns will o-pen wide' plainly; 'heanns' is not on the page."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "heanns",
+      "readings": ["heavhs"],
+      "printed": "heav'ns",
+      "sung": "heav'ns",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-1917.jpg",
+          "box": [0, 1917, 2268, 522],
+          "sha": "fecaaf84ddf2bfd9",
+          "shows": "heav'ns"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-1917.jpg row 2 plainly prints 'Soon the heav'ns will o-pen wide'; the database's 'heanns' and the OCR's 'heavhs' are both garbles of it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 41
+        }
+      ],
+      "row": "",
+      "readings": ["general conference"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-0.jpg",
+          "box": [0, 0, 2268, 1616],
+          "sha": "f0c81146f1ded806",
+          "shows": ""
+        },
+        {
+          "image": "214.jpg",
+          "crop": "214-1377.jpg",
+          "box": [0, 1377, 2268, 610],
+          "sha": "c8b0fd05f3a2c27f",
+          "shows": ""
+        },
+        {
+          "image": "214.jpg",
+          "crop": "214-1917.jpg",
+          "box": [0, 1917, 2268, 522],
+          "sha": "fecaaf84ddf2bfd9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "'GENERAL CONFERENCE' is the tune name in 214-0.jpg's heading, not lyrics; 214-1917.jpg row 2 ends 'claim His bride,' and the next system, top right on 214-0.jpg, goes on 'All the un-i-verse'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 46
+        }
+      ],
+      "row": "hallelujah",
+      "readings": [""],
+      "printed": "hallelujah",
+      "sung": "hallelujah",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "215.jpg",
+          "crop": "215-113.jpg",
+          "box": [0, 113, 2268, 618],
+          "sha": "da42fdff512ed9a5",
+          "shows": "hallelujah"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "215-113.jpg row 2 prints 'All the un-i-verse will sing Hal-le-lu-jah! Christ is King!'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 54
+        }
+      ],
+      "row": "this faith and gods great love",
+      "readings": [""],
+      "printed": "this faith and God's great love",
+      "sung": "this faith and God's great love",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-0.jpg",
+          "box": [0, 0, 2268, 1616],
+          "sha": "f0c81146f1ded806",
+          "shows": ""
+        },
+        {
+          "image": "215.jpg",
+          "crop": "215-817.jpg",
+          "box": [0, 817, 2268, 620],
+          "sha": "a80ffa26d2100362",
+          "shows": "this faith and God's great love"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "215-817.jpg row 2 prints 'We have this hope, this faith, and God's great love'; 214-0.jpg cuts that row after 'We have this hope,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["o brighter than"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-1377.jpg",
+          "box": [0, 1377, 2268, 610],
+          "sha": "c8b0fd05f3a2c27f",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-1377.jpg's '3. O, bright-er than' is a stanza row of the next hymn (John Brownlie's, its own Unison staff) on the facing page; this hymn prints two stanza rows and no third."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["o brighter than"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-1377.jpg",
+          "box": [0, 1377, 2268, 610],
+          "sha": "c8b0fd05f3a2c27f",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-1377.jpg's '4. O, bright-er than' is a stanza row of the next hymn (John Brownlie's) on the facing page; this hymn has no fourth stanza."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["the king shall com"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "214.jpg",
+          "crop": "214-1377.jpg",
+          "box": [0, 1377, 2268, 610],
+          "sha": "c8b0fd05f3a2c27f",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "214-1377.jpg's '5. The King shall come' is a stanza row of the next hymn (John Brownlie's) on the facing page; this hymn has no fifth stanza."
     }
   ]
 }

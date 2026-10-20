@@ -1,0 +1,97 @@
+{
+  "number": 548,
+  "title": "Now Praise the Hidden God of Love",
+  "print": "the owner's photo of his 1985 book (548.jpg), each line read off the page at its system and row; the rulings (data/crops/548/rulings.json) put in what the page prints where the base row differs: \"\" -> \"we\" (words, crops 548-301.jpg, judge-532 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Now praise the hidden God of love",
+        "from": "548.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "In whom we all must live and move,",
+        "from": "548.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Who shepherds us, at every stage",
+        "from": "548.jpg system 2, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Thro' youth, maturity, and age.",
+        "from": "548.jpg system 2, row 1. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Who challenged us, when we were young",
+        "from": "548.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "To storm the citadels of wrong;",
+        "from": "548.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "In care for others taught us how",
+        "from": "548.jpg system 2, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "God's true community must grow.",
+        "from": "548.jpg system 2, row 2. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Who bids us never lose our zest,",
+        "from": "548.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Tho' age is urging us to rest,",
+        "from": "548.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "But proves to us that we have still",
+        "from": "548.jpg system 2, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "A work to do, a place to fill.",
+        "from": "548.jpg system 2, row 3. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Then talk no more of wasted time,",
+        "from": "548.jpg system 1, row 4. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "But Godward look, and upward climb,",
+        "from": "548.jpg system 1, row 4. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Content to sleep, when day is done,",
+        "from": "548.jpg system 2, row 4. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "And rise refreshed, and travel on.",
+        "from": "548.jpg system 2, row 4. (placed off the page by from-532 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Now praise the hidden God of love\nIn whom we all must live and move,\r\nWho shepherds us, at every stage\r\nThro' youth, maturity, and age.\r"
+    },
+    {
+      "id": 1,
+      "text": "Who challenged us, when were young\r\nTo storm the citadels of wrong;\r\nIn care for others taught us how\r\nGod's true community must grow.\r"
+    },
+    {
+      "id": 2,
+      "text": "Who bids us never lose our zest,\r\nTho' age is urging us to rest,\r\nBut proves to us that we have still\nA work to do, a place to fill.\r"
+    },
+    {
+      "id": 3,
+      "text": "Then talk no more of wasted time,\r\nBut Godward look, and upward climb,\r\nContent to sleep, when day is done,\r\nAnd rise refreshed, and travel on."
+    }
+  ]
+}

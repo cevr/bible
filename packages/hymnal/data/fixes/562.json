@@ -1,0 +1,119 @@
+{
+  "number": 562,
+  "title": "Come Sing A Song of Harvest",
+  "print": "the owner's photo of his 1985 book (562.jpg), each line read off the page at its system and row; the rulings (data/crops/562/rulings.json) put in what the page prints where the base row differs: \"this\" -> \"these\" (words, crops 562-1853.jpg, judge-562 (Opus, effort max)); \"\" -> \"we\" (words, crops 562-1298.jpg, judge-562 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Come, sing a song of harvest,",
+        "from": "562.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Of thanks for daily food!",
+        "from": "562.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "To offer God the first fruits",
+        "from": "562.jpg system 2, row 1. (placed off the page by from-532 (Opus): the page joins first-fruits into one word with a hyphen (stanza 2 prints it the same way); the line splits it into two words, first fruits)"
+      },
+      {
+        "text": "Is old as gratitude.",
+        "from": "562.jpg system 2, row 1. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Long, long ago, the reapers,",
+        "from": "562.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Before they kept the feast,",
+        "from": "562.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Put firstfruits in a basket,",
+        "from": "562.jpg system 2, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "And took it to the priest.",
+        "from": "562.jpg system 2, row 2. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Shall we, sometimes forgetful",
+        "from": "562.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Of where creation starts,",
+        "from": "562.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "With science in our pockets",
+        "from": "562.jpg system 2, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Lose wonder from our hearts?",
+        "from": "562.jpg system 2, row 3. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "May God, the great creator,",
+        "from": "562.jpg system 1, row 4. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "To whom all life belongs,",
+        "from": "562.jpg system 1, row 4. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Accept these gifts we offer,",
+        "from": "562.jpg system 2, row 4. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Our service and our songs.",
+        "from": "562.jpg system 2, row 4. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "And lest the world go hungry",
+        "from": "562.jpg system 1, row 5. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "While we ourselves are fed,",
+        "from": "562.jpg system 1, row 5. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Make each of us more ready",
+        "from": "562.jpg system 2, row 5. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "To share our daily bread.",
+        "from": "562.jpg system 2, row 5. (placed off the page by from-532 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Come, sing a song of harvest,\nOf thanks for daily food!\nTo offer God the first fruits\nIs old as gratitude."
+    },
+    {
+      "id": 1,
+      "text": "Long, long ago, the reapers,\nBefore they kept the feast,\nPut firstfruits in a basket,\nAnd took it to the priest."
+    },
+    {
+      "id": 2,
+      "text": "Shall we, sometimes forgetful\nOf where creation starts,\nWith science in our pockets\nLose wonder from our hearts?"
+    },
+    {
+      "id": 3,
+      "text": "May God, the great creator,\nTo whom all life belongs,\nAccept this gifts we offer,\nOur service and our songs."
+    },
+    {
+      "id": 4,
+      "text": "And lest the world go hungry\nWhile ourselves are fed,\nMake each of us more ready\nTo share our daily bread."
+    }
+  ]
+}

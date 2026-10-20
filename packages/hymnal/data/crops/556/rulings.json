@@ -1,0 +1,115 @@
+{
+  "number": 556,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 37
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "556.png",
+          "crop": "556-1215.jpg",
+          "box": [0, 1215, 1274, 242],
+          "sha": "46fbf91a8cea3f55",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "556-1215.jpg row 2 prints 'true: A world re-deemed'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "in gratitude and humble trust we bring our best today",
+      "readings": [""],
+      "printed": "In gratitude and humble trust We bring our best today",
+      "sung": "In gratitude and humble trust We bring our best today",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "556.png",
+          "crop": "556-114.jpg",
+          "box": [0, 114, 1274, 242],
+          "sha": "aa79d58ddb41261a",
+          "shows": "In gratitude and humble trust We bring our best to-"
+        },
+        {
+          "image": "556.png",
+          "crop": "556-483.jpg",
+          "box": [0, 483, 1274, 240],
+          "sha": "8413dba3be7d2f2e",
+          "shows": "day"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "556-114.jpg row 3 prints '3. In grat-i-tude and hum-ble trust We bring our best to-' and 556-483.jpg row 3 goes on 'day' (556-114.jpg is the earlier system)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 21
+        }
+      ],
+      "row": "lifes",
+      "readings": [""],
+      "printed": "life's",
+      "sung": "life's",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "556.png",
+          "crop": "556-483.jpg",
+          "box": [0, 483, 1274, 240],
+          "sha": "8413dba3be7d2f2e",
+          "shows": "life's"
+        },
+        {
+          "image": "556.png",
+          "crop": "556-848.jpg",
+          "box": [0, 848, 1274, 242],
+          "sha": "6064197761e8bb34",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "556-483.jpg row 3 ends 'With all a-long life's'; 556-848.jpg row 3 begins at 'way.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 23
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "556.png",
+          "crop": "556-848.jpg",
+          "box": [0, 848, 1274, 242],
+          "sha": "6064197761e8bb34",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "556-848.jpg row 3 prints 'way. O God, who gave'."
+    }
+  ]
+}

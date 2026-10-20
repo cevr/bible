@@ -4,26 +4,153 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 7
+        }
+      ],
+      "row": "our",
+      "readings": [""],
+      "printed": "our",
+      "sung": "our",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "203.jpg",
+          "crop": "203-238.jpg",
+          "box": [0, 238, 2268, 984],
+          "sha": "b57fcc27d0137ddd",
+          "shows": "our"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "203-238.jpg row 1 prints 'On which our faith de-pends'; the OCR missed 'our'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "",
+      "readings": ["ci có"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "203.jpg",
+          "crop": "203-238.jpg",
+          "box": [0, 238, 2268, 984],
+          "sha": "b57fcc27d0137ddd",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "203-238.jpg row 2 prints only the number '2.' before 'By this we are up-held'; the OCR's 'ci có' is stray marks."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 7
+        }
+      ],
+      "row": "and",
+      "readings": ["gand"],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "203.jpg",
+          "crop": "203-238.jpg",
+          "box": [0, 238, 2268, 984],
+          "sha": "b57fcc27d0137ddd",
+          "shows": "and"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "203-238.jpg row 2 prints 'When doubt and grief as-sail'; the OCR's 'gand' is a garble of 'and'."
+    },
+    {
+      "sites": [
+        {
           "unit": 2,
           "at": 9
         }
       ],
       "row": "assail",
       "readings": ["assails"],
-      "printed": "assails",
-      "sung": "assails",
+      "printed": "assail",
+      "sung": "assail",
       "kind": "words",
       "crops": [
         {
-          "image": "203.png",
-          "crop": "203-114.jpg",
-          "box": [0, 114, 1275, 246],
-          "sha": "83421d055f8fa47e",
-          "shows": "assails"
+          "image": "203.jpg",
+          "crop": "203-238.jpg",
+          "box": [0, 238, 2268, 984],
+          "sha": "b57fcc27d0137ddd",
+          "shows": "assail"
+        },
+        {
+          "image": "203.jpg",
+          "crop": "203-1180.jpg",
+          "box": [0, 1180, 2268, 412],
+          "sha": "d675370905b51156",
+          "shows": ""
         }
       ],
-      "judge": "judge-183-2 (Opus, effort max)",
-      "why": "Row 2. of 203-114.jpg prints 'When doubt and grief as - sails' plainly, with the final s."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "203-238.jpg row 2 prints 'When doubt and grief as-sail' with no final s; 203-1180.jpg row 2 opens with 'Our'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 14
+        }
+      ],
+      "row": "only",
+      "readings": ["ạồion ly"],
+      "printed": "only",
+      "sung": "only",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "203.jpg",
+          "crop": "203-1180.jpg",
+          "box": [0, 1180, 2268, 412],
+          "sha": "d675370905b51156",
+          "shows": "only"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "203-1180.jpg row 2 prints 'And on-ly grace a-vails'; the OCR's 'ạồion ly' is a garble of 'only'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "this",
+      "readings": [""],
+      "printed": "this",
+      "sung": "this",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "203.jpg",
+          "crop": "203-238.jpg",
+          "box": [0, 238, 2268, 984],
+          "sha": "b57fcc27d0137ddd",
+          "shows": "this"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "203-238.jpg row 3 begins '3. This is the three-fold truth'; the OCR missed 'This'."
     }
   ]
 }

@@ -1,0 +1,123 @@
+{
+  "number": 581,
+  "title": "When the Church of Jesus",
+  "print": "the owner's photo of his 1985 book (581.jpg), each line read off the page at its system and row; the rulings (data/crops/581/rulings.json) put in what the page prints where the base row differs: \"\" -> \"we\" (words, crops 581-1950.jpg, judge-562 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "When the church of Jesus",
+        "from": "581.jpg system 1, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Shuts its outer door,",
+        "from": "581.jpg system 1, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Lest the roar of traffic",
+        "from": "581.jpg system 2, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Drown the voice of prayer:",
+        "from": "581.jpg system 2, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "May our prayers, Lord, make us",
+        "from": "581.jpg system 3, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Ten times more aware",
+        "from": "581.jpg system 3, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "That the world we banish",
+        "from": "581.jpg system 4, row 1. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Is our Christian care.",
+        "from": "581.jpg system 4, row 1. (placed off the page by from-581 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "If our hearts are lifted",
+        "from": "581.jpg system 1, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Where devotion soars",
+        "from": "581.jpg system 1, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "High above this hungry",
+        "from": "581.jpg system 2, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Suffering world of ours;",
+        "from": "581.jpg system 2, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Lest our hymns should drug us",
+        "from": "581.jpg system 3, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "To forget its needs,",
+        "from": "581.jpg system 3, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Forge our Christian worship",
+        "from": "581.jpg system 4, row 2. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Into Christian deeds.",
+        "from": "581.jpg system 4, row 2. (placed off the page by from-581 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Lest the gifts we offer,",
+        "from": "581.jpg system 1, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Money, talents, time,",
+        "from": "581.jpg system 1, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Serve to salve our conscience",
+        "from": "581.jpg system 2, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "To our secret shame;",
+        "from": "581.jpg system 2, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Lord, reprove, inspire us",
+        "from": "581.jpg system 3, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "By the way you give;",
+        "from": "581.jpg system 3, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "Teach us, dying Savior,",
+        "from": "581.jpg system 4, row 3. (placed off the page by from-581 (Opus))"
+      },
+      {
+        "text": "How true Christians live.",
+        "from": "581.jpg system 4, row 3. (placed off the page by from-581 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "When the church of Jesus\nShuts its outer door,\nLest the roar of traffic\nDrown the voice of prayer:\nMay our prayers, Lord, make us\nTen times more aware\nThat the world banish\nIs our Christian care."
+    },
+    {
+      "id": 1,
+      "text": "If our hearts are lifted\nWhere devotion soars\nHigh above this hungry\nSuffering world of ours;\nLest our hymns should drug us\nTo forget its needs,\nForge our Christian worship\nInto Christian deeds."
+    },
+    {
+      "id": 2,
+      "text": "Lest the gifts we offer,\nMoney, talents, time,\nServe to salve our conscience\nTo our secret shame;\nLord, reprove, inspire us\nBy the way you give;\nTeach us, dying Savior,\nHow true Christians live."
+    }
+  ]
+}

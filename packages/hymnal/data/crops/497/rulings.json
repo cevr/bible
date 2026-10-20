@@ -4,6 +4,281 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497.jpg",
+          "crop": "497-89.jpg",
+          "box": [0, 89, 2268, 1262],
+          "sha": "d8bcc11883bb49ef",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-89.jpg, stanza row 1 opens '1. O gra-cious Fa-ther'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 3
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497.jpg",
+          "crop": "497-89.jpg",
+          "box": [0, 89, 2268, 1262],
+          "sha": "d8bcc11883bb49ef",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-89.jpg, stanza row 1 prints 'Fa-ther of man-kind'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 17
+        }
+      ],
+      "row": "thee our",
+      "readings": [""],
+      "printed": "Thee our",
+      "sung": "Thee our",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1142.jpg",
+          "box": [0, 1142, 2268, 582],
+          "sha": "5fa6cb5910149eb4",
+          "shows": ""
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": "Thee our"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1142.jpg row 1 ends 'dear guest, To'; 497-b-1626.jpg row 1 goes on 'Thee our prayers as-cend'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "ascend",
+      "readings": ["cend"],
+      "printed": "ascend",
+      "sung": "ascend",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": "ascend"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 1 prints 'as - cend', ascend; the OCR kept only 'cend'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 26
+        }
+      ],
+      "row": "human",
+      "readings": [""],
+      "printed": "human",
+      "sung": "human",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": ""
+        },
+        {
+          "image": "497.jpg",
+          "crop": "497-1821.jpg",
+          "box": [0, 1821, 2268, 500],
+          "sha": "c3b4ee80f320441c",
+          "shows": "human"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 1 ends 'wait till'; 497-1821.jpg row 1 begins 'hu - man speech'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "divine",
+      "readings": ["vine"],
+      "printed": "divine",
+      "sung": "divine",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497.jpg",
+          "crop": "497-1821.jpg",
+          "box": [0, 1821, 2268, 500],
+          "sha": "c3b4ee80f320441c",
+          "shows": "divine"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-1821.jpg row 1 prints 'Thy gifts di - vine', divine; the OCR kept only 'vine'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 37
+        }
+      ],
+      "row": "work our lives are prayers thou lovest more",
+      "readings": [""],
+      "printed": "work our lives are prayers thou lovest more",
+      "sung": "work our lives are prayers thou lovest more",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": "work our lives are prayers thou lovest more"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-350.jpg row 1 prints 'our work, our lives Are prayers Thou lov-est more.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 44
+        }
+      ],
+      "row": "more",
+      "readings": [""],
+      "printed": "more",
+      "sung": "more",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": "more"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-350.jpg row 1 ends 'Thou lov-est more.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 9
+        }
+      ],
+      "row": "in each",
+      "readings": [""],
+      "printed": "in each",
+      "sung": "in each",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-647.jpg",
+          "box": [0, 647, 2268, 462],
+          "sha": "f99de95c0f9fdfc3",
+          "shows": "in each"
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-905.jpg",
+          "box": [0, 905, 2268, 388],
+          "sha": "db0cddb45bee89fb",
+          "shows": ""
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1142.jpg",
+          "box": [0, 1142, 2268, 582],
+          "sha": "5fa6cb5910149eb4",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-647.jpg row 2 ends 'Deep bur-ied in each' (shown again atop 497-b-905.jpg); 497-b-1142.jpg row 2 begins 'breast'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 19
+        }
+      ],
+      "row": "out our unexpressed o",
+      "readings": [""],
+      "printed": "out or unexpressed O",
+      "sung": "out or unexpressed O",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1142.jpg",
+          "box": [0, 1142, 2268, 582],
+          "sha": "5fa6cb5910149eb4",
+          "shows": ""
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": "out or unexpressed O"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1142.jpg row 2 ends 'Wrought'; 497-b-1626.jpg row 2 prints 'out or un - ex - pressed. O', 'or' where the database has 'our'."
+    },
+    {
+      "sites": [
+        {
           "unit": 2,
           "at": 20
         }
@@ -15,15 +290,235 @@
       "kind": "words",
       "crops": [
         {
-          "image": "497.png",
-          "crop": "497-497.jpg",
-          "box": [0, 497, 1275, 277],
-          "sha": "323920df19fafc35",
+          "image": "497-b.jpg",
+          "crop": "497-b-1142.jpg",
+          "box": [0, 1142, 2268, 582],
+          "sha": "5fa6cb5910149eb4",
+          "shows": ""
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
           "shows": "or"
         }
       ],
-      "judge": "judge-471 (Opus, effort max)",
-      "why": "Row 2 prints 'Wrought out or un - ex - pressed.', with 'or', not 'our'."
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 2 prints 'out or un - ex - pressed': 'or', not 'our'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "our lives",
+      "readings": [""],
+      "printed": "our lives",
+      "sung": "our lives",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497.jpg",
+          "crop": "497-1821.jpg",
+          "box": [0, 1821, 2268, 500],
+          "sha": "c3b4ee80f320441c",
+          "shows": "our lives"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-1821.jpg row 2 prints 'At - tune our lives to Thee'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "until",
+      "readings": [""],
+      "printed": "Until",
+      "sung": "Until",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497.jpg",
+          "crop": "497-1821.jpg",
+          "box": [0, 1821, 2268, 500],
+          "sha": "c3b4ee80f320441c",
+          "shows": "Until"
+        },
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-1821.jpg row 2 ends 'Un-' and 497-b-p2-350.jpg row 2, the next system, begins 'til': 'Until', written whole on 497-1821.jpg because the task lists the later crop first."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 37
+        }
+      ],
+      "row": "for those gifts we ask on bended knee",
+      "readings": [""],
+      "printed": "for those gifts we ask on bended knee",
+      "sung": "for those gifts we ask on bended knee",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": "for those gifts we ask on bended knee"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-350.jpg row 2 prints 'for those gifts We ask on bend-ed knee.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "best is but thyself in us our",
+      "readings": [""],
+      "printed": "best is but thyself in us our",
+      "sung": "best is but thyself in us our",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-647.jpg",
+          "box": [0, 647, 2268, 462],
+          "sha": "f99de95c0f9fdfc3",
+          "shows": "best is but thyself in us our"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-647.jpg row 3 prints 'Our best is but Thy-self in us, Our'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 16
+        }
+      ],
+      "row": "we",
+      "readings": [""],
+      "printed": "we",
+      "sung": "we",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1142.jpg",
+          "box": [0, 1142, 2268, 582],
+          "sha": "5fa6cb5910149eb4",
+          "shows": "we"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1142.jpg row 3 prints 'To hear Thy voice we need'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 22
+        }
+      ],
+      "row": "and be",
+      "readings": [""],
+      "printed": "and be",
+      "sung": "and be",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": "and be"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 3 prints 'lis - ten, and be still'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 30
+        }
+      ],
+      "row": "will to",
+      "readings": [""],
+      "printed": "will to",
+      "sung": "will to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": ""
+        },
+        {
+          "image": "497.jpg",
+          "crop": "497-1821.jpg",
+          "box": [0, 1821, 2268, 500],
+          "sha": "c3b4ee80f320441c",
+          "shows": "will to"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 3 ends 'not bend Thy'; 497-1821.jpg row 3 begins 'will to ours'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 35
+        }
+      ],
+      "row": "our wills to",
+      "readings": [""],
+      "printed": "our wills with",
+      "sung": "our wills with",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": ""
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-2088.jpg",
+          "box": [0, 2088, 2268, 502],
+          "sha": "bc8b6c63654d6cc0",
+          "shows": "our wills with"
+        }
+      ],
+      "judge": "judge-again-497-3 (Opus, effort max)",
+      "why": "497-b-2088.jpg row 3 prints 'But blend our wills with Thine;' (the OCR missed these words), so the page has 'with' where the database has 'to'; 497-b-1626.jpg row 3 ends at 'bend Thy'."
     },
     {
       "sites": [
@@ -39,15 +534,180 @@
       "kind": "words",
       "crops": [
         {
-          "image": "497.png",
-          "crop": "497-881.jpg",
-          "box": [0, 881, 1275, 286],
-          "sha": "322b54e4a03a0d7f",
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": ""
+        },
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-2088.jpg",
+          "box": [0, 2088, 2268, 502],
+          "sha": "bc8b6c63654d6cc0",
           "shows": "with"
         }
       ],
-      "judge": "judge-471 (Opus, effort max)",
-      "why": "Row 3 prints 'But blend our wills with Thine;', with 'with', not 'to'."
+      "judge": "judge-again-497-3 (Opus, effort max)",
+      "why": "497-b-2088.jpg row 3 prints 'wills with Thine;' plainly, so reading A is right and the database's 'to' is wrong; 497-b-1626.jpg row 3 ends at 'bend Thy'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 44
+        }
+      ],
+      "row": "heavens doors but live thy life divine",
+      "readings": [""],
+      "printed": "heavens doors but live thy life divine",
+      "sung": "heavens doors but live thy life divine",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": "heavens doors but live thy life divine"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-350.jpg row 3 prints 'heav-en's doors, But live Thy life di - vine.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 2
+        }
+      ],
+      "row": "us in love",
+      "readings": [""],
+      "printed": "us in love",
+      "sung": "us in love",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-647.jpg",
+          "box": [0, 647, 2268, 462],
+          "sha": "f99de95c0f9fdfc3",
+          "shows": "us in love"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-647.jpg row 4 prints 'Thou seek - est us in love and truth'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 24
+        }
+      ],
+      "row": "the sea",
+      "readings": [""],
+      "printed": "the sea",
+      "sung": "the sea",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": "the sea"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 4 prints 'flood tides from the sea.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 27
+        }
+      ],
+      "row": "more",
+      "readings": [""],
+      "printed": "more",
+      "sung": "more",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": "more"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-1626.jpg row 4 prints 'No more we seek Thee'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 31
+        }
+      ],
+      "row": "from afar nor ask thee for a sign content",
+      "readings": [""],
+      "printed": "from afar, Nor ask Thee for a sign, Content",
+      "sung": "from afar, Nor ask Thee for a sign, Content",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b.jpg",
+          "crop": "497-b-1626.jpg",
+          "box": [0, 1626, 2268, 608],
+          "sha": "e7499e0d8c47e1eb",
+          "shows": ""
+        },
+        {
+          "image": "497.jpg",
+          "crop": "497-1821.jpg",
+          "box": [0, 1821, 2268, 500],
+          "sha": "c3b4ee80f320441c",
+          "shows": "from afar, Nor ask Thee for a sign, Con-"
+        },
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": "tent"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "497-1821.jpg row 4 prints 'from a-far, Nor ask Thee for a sign, Con-' and 497-b-p2-350.jpg row 4 goes on 'tent' (the page reads 497-1821.jpg, then 497-b-p2-350.jpg); 497-b-1626.jpg row 4 stops before it at 'seek Thee'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 43
+        }
+      ],
+      "row": "life and love and toil till all are thine",
+      "readings": [""],
+      "printed": "life and love and toil till all are thine",
+      "sung": "life and love and toil till all are thine",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "497-b-p2.jpg",
+          "crop": "497-b-p2-350.jpg",
+          "box": [0, 350, 2268, 580],
+          "sha": "8d58ae551cc606f4",
+          "shows": "life and love and toil till all are thine"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "497-b-p2-350.jpg row 4 prints 'life and love And toil, till all are Thine.'"
     }
   ]
 }

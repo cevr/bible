@@ -1,0 +1,161 @@
+{
+  "number": 497,
+  "title": "O Gracious Father of Mankind",
+  "print": "the owner's photo of his 1985 book (497-b-p2.jpg, 497-b.jpg, 497.jpg), each line read off the page at its system and row; the rulings (data/crops/497/rulings.json) put in what the page prints where the base row differs: \"out our unexpressed o\" -> \"out or unexpressed O\" (words, crops 497-b-1142.jpg, 497-b-1626.jpg, judge-493 (Opus, effort max)); \"our\" -> \"or\" (words, crops 497-b-1142.jpg, 497-b-1626.jpg, judge-493 (Opus, effort max)); \"our wills to\" -> \"our wills with\" (words, crops 497-b-1626.jpg, 497-b-2088.jpg, judge-again-497-3 (Opus, effort max)); \"to\" -> \"with\" (words, crops 497-b-1626.jpg, 497-b-2088.jpg, judge-again-497-3 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "O gracious Father of mankind,",
+        "from": "497-b.jpg system 1, row 1. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Our spirits' unseen friend;",
+        "from": "497-b.jpg system 1, row 1. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "High heaven's Lord, our hearts' dear guest,",
+        "from": "497-b.jpg system 2, row 1. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "To Thee our prayers ascend.",
+        "from": "497-b.jpg system 2, row 1. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Thou dost not wait till human speech",
+        "from": "497-b.jpg system 3, row 1. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Thy gifts divine implore;",
+        "from": "497-b.jpg system 4, row 1. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Our dreams, our aims, our work, our lives",
+        "from": "497-b-p2.jpg system 4, row 1. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5; the line starts with 'Our' at the end of system 4 and runs on in system 5)"
+      },
+      {
+        "text": "Are prayers Thou lovest more.",
+        "from": "497-b-p2.jpg system 5, row 1. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5)"
+      }
+    ],
+    [
+      {
+        "text": "Thou hearest these, the good and ill,",
+        "from": "497-b.jpg system 1, row 2. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Deep buried in each breast;",
+        "from": "497-b.jpg system 1, row 2. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "The secret thought, the hidden plan,",
+        "from": "497-b.jpg system 2, row 2. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Wrought out or unexpressed.",
+        "from": "497-b.jpg system 2, row 2. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "O cleanse our prayers from human dross,",
+        "from": "497-b.jpg system 3, row 2. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Attune our lives to Thee,",
+        "from": "497-b.jpg system 4, row 2. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Until we labor for those gifts",
+        "from": "497-b-p2.jpg system 4, row 2. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5; the line starts with 'Un-' at the end of system 4 and runs on in system 5)"
+      },
+      {
+        "text": "We ask on bended knee.",
+        "from": "497-b-p2.jpg system 5, row 2. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5)"
+      }
+    ],
+    [
+      {
+        "text": "Our best is but Thyself in us,",
+        "from": "497-b.jpg system 1, row 3. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Our highest thought Thy will;",
+        "from": "497-b.jpg system 1, row 3. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "To hear Thy voice we need but love,",
+        "from": "497-b.jpg system 2, row 3. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "And listen, and be still.",
+        "from": "497-b.jpg system 2, row 3. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "We would not bend Thy will to ours,",
+        "from": "497-b.jpg system 3, row 3. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "But blend our wills with Thine;",
+        "from": "497-b.jpg system 4, row 3. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Not beat with cries on heaven's doors,",
+        "from": "497-b-p2.jpg system 4, row 3. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5; the line starts with 'Not' at the end of system 4 and runs on in system 5)"
+      },
+      {
+        "text": "But live Thy life divine.",
+        "from": "497-b-p2.jpg system 5, row 3. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5)"
+      }
+    ],
+    [
+      {
+        "text": "Thou seekest us in love and truth",
+        "from": "497-b.jpg system 1, row 4. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "More than our minds seek Thee;",
+        "from": "497-b.jpg system 1, row 4. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Through open gates Thy power flows in",
+        "from": "497-b.jpg system 2, row 4. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Like flood tides from the sea.",
+        "from": "497-b.jpg system 2, row 4. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "No more we seek Thee from afar,",
+        "from": "497-b.jpg system 3, row 4. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Nor ask Thee for a sign,",
+        "from": "497-b.jpg system 4, row 4. (placed off the page by from-again-497 (Opus))"
+      },
+      {
+        "text": "Content to pray in life and love",
+        "from": "497-b-p2.jpg system 4, row 4. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5; the line starts with 'Con-' at the end of system 4 and runs on in system 5)"
+      },
+      {
+        "text": "And toil, till all are Thine.",
+        "from": "497-b-p2.jpg system 5, row 4. (placed off the page by from-again-497 (Opus): two-page photo counted left page then right: page 1's four systems (cut at the image's left edge) are 1-4, page 2's first system is 5)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "O gracious Father of mankind,\nOur spirits' unseen friend;\nHigh heaven's Lord, our hearts' dear guest,\nTo Thee our prayers ascend.\nThou dost not wait till human speech\nThy gifts divine implore;\nOur dreams, our aims, our work, our lives\nAre prayers Thou lovest more."
+    },
+    {
+      "id": 1,
+      "text": "Thou hearest these, the good and ill,\nDeep buried in each breast;\nThe secret thought, the hidden plan,\nWrought out our unexpressed.\nO cleanse our prayers from human dross,\nAttune our lives to Thee,\nUntil we labor for those gifts\nWe ask on bended knee."
+    },
+    {
+      "id": 2,
+      "text": "Our best is but Thyself in us,\nOur highest thought Thy will;\nTo hear Thy voice we need but love,\nAnd listen, and be still.\nWe would not bend Thy will to ours,\nBut blend our wills to Thine;\nNot beat with cries on heaven's doors,\nBut live Thy life divine."
+    },
+    {
+      "id": 3,
+      "text": "Thou seekest us in love and truth\nMore than our minds seek Thee;\nThrough open gates Thy power flows in\r\nLike flood tides from the sea.\nNo more we seek Thee from afar,\nNor ask Thee for a sign,\nContent to pray in life and love\nAnd toil, till all are Thine.\r"
+    }
+  ]
+}

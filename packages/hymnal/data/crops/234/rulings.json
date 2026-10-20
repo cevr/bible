@@ -1,0 +1,173 @@
+{
+  "number": 234,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 1
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "341bef8e5d44f2c1",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-116.jpg row 1 prints 'Christ is the world's Light'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 19
+        }
+      ],
+      "row": "unites",
+      "readings": ["nites"],
+      "printed": "unites",
+      "sung": "unites",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-881.jpg",
+          "box": [0, 881, 1274, 270],
+          "sha": "54cc6eb99243e0c9",
+          "shows": "unites"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-881.jpg row 2 prints 'Who else u-nites us', so 'unites'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "341bef8e5d44f2c1",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-116.jpg row 3 prints 'Christ is the world's Life'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 5
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "341bef8e5d44f2c1",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-116.jpg row 3 prints 'Life, He and none oth-er'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 3
+        }
+      ],
+      "row": "glory",
+      "readings": ["glo гу"],
+      "printed": "glory",
+      "sung": "glory",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "341bef8e5d44f2c1",
+          "shows": "glory"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-116.jpg row 4 prints 'Give God the glo-ry', so 'glory'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 11
+        }
+      ],
+      "row": "glory",
+      "readings": ["glo гу"],
+      "printed": "glory",
+      "sung": "glory",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-498.jpg",
+          "box": [0, 498, 1274, 358],
+          "sha": "84367468818f76b0",
+          "shows": "glory"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-498.jpg row 4 prints 'give God the glo-ry', so 'glory'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 19
+        }
+      ],
+      "row": "glory",
+      "readings": ["glo гу"],
+      "printed": "glory",
+      "sung": "glory",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "234.png",
+          "crop": "234-881.jpg",
+          "box": [0, 881, 1274, 270],
+          "sha": "54cc6eb99243e0c9",
+          "shows": "glory"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "234-881.jpg row 4 prints 'Give God the glo-ry', so 'glory'."
+    }
+  ]
+}

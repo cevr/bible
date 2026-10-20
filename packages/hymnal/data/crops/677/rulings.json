@@ -1,0 +1,29 @@
+{
+  "number": 677,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 36
+        }
+      ],
+      "row": "amen",
+      "readings": [""],
+      "printed": "amen",
+      "sung": "amen",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "677.jpg",
+          "crop": "677-1919.jpg",
+          "box": [0, 1919, 2268, 998],
+          "sha": "7a0cb0f4dbf35d50",
+          "shows": "amen"
+        }
+      ],
+      "judge": "judge-657 (Opus, effort max)",
+      "why": "677-1919.jpg's lyric row ends 'may know. A-men.' under the bars after the double bar."
+    }
+  ]
+}

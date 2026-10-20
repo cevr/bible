@@ -1,0 +1,280 @@
+{
+  "number": 224,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "tis",
+      "readings": ["itis"],
+      "printed": "'Tis",
+      "sung": "'Tis",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-374.jpg",
+          "box": [0, 374, 2268, 506],
+          "sha": "9b4ed907f5754791",
+          "shows": "'Tis"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "224-374.jpg row 1 prints \"'Tis your Fa-ther's will.\"; the OCR read the apostrophe as 'i'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "so",
+      "readings": [""],
+      "printed": "So",
+      "sung": "So",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-374.jpg",
+          "box": [0, 374, 2268, 506],
+          "sha": "9b4ed907f5754791",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": "So"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "Row 1 ends 'will.' on 224-374.jpg and goes on 'So the voice of Je-sus' on 224-876.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 8
+        }
+      ],
+      "row": "when at last",
+      "readings": [""],
+      "printed": "When at last",
+      "sung": "When at last",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-374.jpg",
+          "box": [0, 374, 2268, 506],
+          "sha": "9b4ed907f5754791",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": "When at last"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "Row 2 ends 'match-less pearl,' on 224-374.jpg and goes on 'When at last dis-cov-ered,' on 224-876.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 14
+        }
+      ],
+      "row": "sell",
+      "readings": ["hsell"],
+      "printed": "sell",
+      "sung": "sell",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": "sell"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "224-876.jpg row 2 prints 'some will sell their all:'; the OCR's 'hsell' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 2
+        }
+      ],
+      "row": "silent leaven",
+      "readings": ["tender seedling"],
+      "printed": "silent leaven",
+      "sung": "silent leaven",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-374.jpg",
+          "box": [0, 374, 2268, 506],
+          "sha": "9b4ed907f5754791",
+          "shows": "silent leaven"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "224-374.jpg row 3 prints 'As the si-lent leav-en works its se-cret way,'; 'ten-der seed-ling' belongs to row 4."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "as the tender seedling grows up tall",
+      "readings": [""],
+      "printed": "as the tender seedling grows up tall",
+      "sung": "as the tender seedling grows up tall",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": "as the tender seedling grows up tall"
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-374.jpg",
+          "box": [0, 374, 2268, 506],
+          "sha": "9b4ed907f5754791",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "224-374.jpg row 4 prints 'As the ten-der seed-ling grows up tall and strong,'; 224-876.jpg holds none of it (its row 4 starts 'And the birds')."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 8
+        }
+      ],
+      "row": "strong and",
+      "readings": [""],
+      "printed": "strong and",
+      "sung": "strong and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": "strong and"
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-374.jpg",
+          "box": [0, 374, 2268, 506],
+          "sha": "9b4ed907f5754791",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "Row 4 ends 'grows up tall and strong,' on 224-374.jpg and goes on 'And the birds of heav-en' on 224-876.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 19
+        }
+      ],
+      "row": "arrive",
+      "readings": ["arriven"],
+      "printed": "arrive",
+      "sung": "arrive",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": "arrive"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "224-876.jpg, lower system row 5, prints 'Ea-ger hearts ar-rive there'; the OCR's 'arriven' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 25
+        }
+      ],
+      "row": "hail",
+      "readings": [""],
+      "printed": "Hail",
+      "sung": "Hail",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-876.jpg",
+          "box": [0, 876, 2268, 1014],
+          "sha": "826751cc03227a9c",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-1778.jpg",
+          "box": [0, 1778, 2268, 930],
+          "sha": "c7e057358cb164f4",
+          "shows": "Hail"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "Row 5 ends 'pil-grim's road,' on 224-876.jpg and goes on 'Hail! the king-dom' on 224-1778.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 28
+        }
+      ],
+      "row": "glorious",
+      "readings": ["gio rious"],
+      "printed": "glorious",
+      "sung": "glorious",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-1778.jpg",
+          "box": [0, 1778, 2268, 930],
+          "sha": "c7e057358cb164f4",
+          "shows": "glorious"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "224-1778.jpg row 5 prints 'glo-rious' plainly; the OCR split it as 'gio rious'."
+    }
+  ]
+}

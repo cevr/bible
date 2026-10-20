@@ -1,0 +1,53 @@
+{
+  "number": 503,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 48
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "503.png",
+          "crop": "503-1004.jpg",
+          "box": [0, 1004, 1274, 184],
+          "sha": "8993cf1d4ab0ac66",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "503-1004.jpg prints 'cour - age there I find'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 55
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "503.png",
+          "crop": "503-1297.jpg",
+          "box": [0, 1297, 1274, 186],
+          "sha": "e8080ab8a81bd2b9",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-493 (Opus, effort max)",
+      "why": "503-1297.jpg prints 'qui - et place I go pre - pared'."
+    }
+  ]
+}

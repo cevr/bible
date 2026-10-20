@@ -4,6 +4,205 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "was",
+      "readings": [""],
+      "printed": "was",
+      "sung": "was",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-0.jpg",
+          "box": [0, 0, 2268, 882],
+          "sha": "709f1b4b2695e1f4",
+          "shows": "was"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-0.jpg row 1 prints 'whose Word was spo-ken'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 21
+        }
+      ],
+      "row": "his",
+      "readings": [""],
+      "printed": "His",
+      "sung": "His",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-952.jpg",
+          "box": [0, 952, 2268, 534],
+          "sha": "438d2bfa96cef0eb",
+          "shows": ""
+        },
+        {
+          "image": "276.jpg",
+          "crop": "276-1355.jpg",
+          "box": [0, 1355, 2268, 668],
+          "sha": "732312171f7589f7",
+          "shows": "His"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-1355.jpg row 1 opens 'His the fires'; 276-952.jpg row 1 ends at 'na-tion;', before the place."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 35
+        }
+      ],
+      "row": "open",
+      "readings": ["pen"],
+      "printed": "open",
+      "sung": "open",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-1995.jpg",
+          "box": [0, 1995, 2268, 578],
+          "sha": "f91df19d239b4c43",
+          "shows": "open"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-1995.jpg row 1 prints 'for His o-pen Word.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 2
+        }
+      ],
+      "row": "god",
+      "readings": [""],
+      "printed": "god",
+      "sung": "god",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-0.jpg",
+          "box": [0, 0, 2268, 882],
+          "sha": "709f1b4b2695e1f4",
+          "shows": "god"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-0.jpg row 2 prints 'Thanks to God whose Word'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 5
+        }
+      ],
+      "row": "incarnate",
+      "readings": ["carnate"],
+      "printed": "incarnate",
+      "sung": "incarnate",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-0.jpg",
+          "box": [0, 0, 2268, 882],
+          "sha": "709f1b4b2695e1f4",
+          "shows": "incarnate"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-0.jpg row 2 prints 'in-car-nate'; the OCR dropped 'in'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 21
+        }
+      ],
+      "row": "",
+      "readings": ["y"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-1355.jpg",
+          "box": [0, 1355, 2268, 668],
+          "sha": "732312171f7589f7",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-1355.jpg row 2 prints 'Tell the grace in heav-en's plan.' with nothing between 'grace' and 'in'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 31
+        }
+      ],
+      "row": "open word",
+      "readings": [""],
+      "printed": "open word",
+      "sung": "open word",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-1995.jpg",
+          "box": [0, 1995, 2268, 578],
+          "sha": "f91df19d239b4c43",
+          "shows": "open word"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-1995.jpg row 2 prints 'for His o-pen Word.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 7
+        }
+      ],
+      "row": "by",
+      "readings": [""],
+      "printed": "by",
+      "sung": "by",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-0.jpg",
+          "box": [0, 0, 2268, 882],
+          "sha": "709f1b4b2695e1f4",
+          "shows": "by"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-0.jpg row 3 prints 'an-swered By the Spir-it's'."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 11
         }
@@ -15,15 +214,63 @@
       "kind": "words",
       "crops": [
         {
-          "image": "276.png",
-          "crop": "276-112.jpg",
-          "box": [0, 112, 1275, 249],
-          "sha": "34fddff5cff22cc6",
+          "image": "276.jpg",
+          "crop": "276-952.jpg",
+          "box": [0, 952, 2268, 534],
+          "sha": "438d2bfa96cef0eb",
           "shows": "within"
         }
       ],
-      "judge": "judge-261 (Opus, effort max)",
-      "why": "Crop 276-481.jpg does not hold the place; row 3. of crop 276-112.jpg prints 'By the Spir-it's voice with-in' plainly."
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-952.jpg row 3 prints 'voice with-in.', so 'within'; the database's 'wihin' is a typo."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 15
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-952.jpg",
+          "box": [0, 952, 2268, 534],
+          "sha": "438d2bfa96cef0eb",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-952.jpg row 3 prints 'Here we drink of joy'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 31
+        }
+      ],
+      "row": "open word",
+      "readings": [""],
+      "printed": "open word",
+      "sung": "open word",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "276.jpg",
+          "crop": "276-1995.jpg",
+          "box": [0, 1995, 2268, 578],
+          "sha": "f91df19d239b4c43",
+          "shows": "open word"
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "276-1995.jpg row 3 prints 'for His o-pen Word.'"
     }
   ]
 }

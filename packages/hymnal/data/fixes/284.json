@@ -1,7 +1,7 @@
 {
   "number": 284,
   "title": "For You I Am Praying",
-  "print": "the 1985 book's hymnary.org scan (p277.jpg, p278.jpg), each line read off the page at its system and row; the rulings (data/crops/284/rulings.json) put in what the page prints where the base row differs: \"you\" -> \"too\" (words, crop p277-1940.jpg, judge-284 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (284.jpg, p277.jpg, p278.jpg), each line read off the page at its system and row; the rulings (data/crops/284/rulings.json) put in what the page prints where the base row differs: \"you\" -> \"too\" (words, crops p277-1940.jpg, judge-284 (Opus, effort max)); \"you for you i am praying\" -> \"too For you I am praying\" (words, crops 284-1009.jpg, 284-1917.jpg, p277-1940.jpg, judge-again-284 (Opus, effort max)).",
   "stanzas": [
     [
       {

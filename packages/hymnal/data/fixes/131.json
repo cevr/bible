@@ -1,7 +1,7 @@
 {
   "number": 131,
   "title": "Lo, How a Rose E'er Blooming",
-  "print": "the 1985 book's hymnary.org scan (p128.jpg), each line read off the page at its system and row; the rulings (data/crops/131/rulings.json) put in what the page prints where the base row differs: \"behold\" -> \"beheld\" (words, crop p128-896.jpg, judge-095 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p128.jpg), each line read off the page at its system and row; the rulings (data/crops/131/rulings.json) put in what the page prints where the base row differs: \"behold\" -> \"beheld\" (words, crops p128-896.jpg, judge-095 (Opus, effort max)).",
   "stanzas": [
     [
       {

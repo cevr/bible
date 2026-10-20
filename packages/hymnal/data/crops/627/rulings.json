@@ -1,0 +1,53 @@
+{
+  "number": 627,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 15
+        }
+      ],
+      "row": "soldiers",
+      "readings": [""],
+      "printed": "soldiers",
+      "sung": "soldiers",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-1440.jpg",
+          "box": [0, 1440, 2268, 1336],
+          "sha": "5267836b5c32c88e",
+          "shows": "soldiers"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-p2-1440.jpg second system, row 2 prints 'high-er, Sol-diers of the cross.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 25
+        }
+      ],
+      "row": "of the cross",
+      "readings": [""],
+      "printed": "of the cross",
+      "sung": "of the cross",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "626-b-p2.jpg",
+          "crop": "626-b-p2-1440.jpg",
+          "box": [0, 1440, 2268, 1336],
+          "sha": "5267836b5c32c88e",
+          "shows": "of the cross"
+        }
+      ],
+      "judge": "judge-626 (Opus, effort max)",
+      "why": "626-b-p2-1440.jpg second system, row 4 prints 'serve Him? Sol-diers of the cross.'"
+    }
+  ]
+}

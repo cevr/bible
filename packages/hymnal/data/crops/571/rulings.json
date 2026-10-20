@@ -1,0 +1,133 @@
+{
+  "number": 571,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 11
+        }
+      ],
+      "row": "desire",
+      "readings": [""],
+      "printed": "desire",
+      "sung": "desire",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-114.jpg",
+          "box": [0, 114, 1274, 242],
+          "sha": "5332de486f893bb2",
+          "shows": "de-"
+        },
+        {
+          "image": "571.png",
+          "crop": "571-247.jpg",
+          "box": [0, 247, 1274, 192],
+          "sha": "0319480be4746e00",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "a62c2834bebf27e1",
+          "shows": "sire"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "571-114.jpg row 1 ends 'de -' and 571-484.jpg row 1 begins 'sire' (desire); 571-247.jpg does not show row 1."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "mercy walk",
+      "readings": [""],
+      "printed": "mercy Walk",
+      "sung": "mercy Walk",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "a62c2834bebf27e1",
+          "shows": "mercy Walk"
+        },
+        {
+          "image": "571.png",
+          "crop": "571-727.jpg",
+          "box": [0, 727, 1274, 178],
+          "sha": "5b8f5a6937a8f328",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-769.jpg",
+          "box": [0, 769, 1274, 200],
+          "sha": "92ebe816ad71f4d8",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-849.jpg",
+          "box": [0, 849, 1274, 214],
+          "sha": "02b036bc3eab5c7b",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "571-484.jpg row 1 ends 'mer - cy; Walk'; the other crops hold only music or the next system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 23
+        }
+      ],
+      "row": "mercy walk",
+      "readings": [""],
+      "printed": "mercy Walk",
+      "sung": "mercy Walk",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "571.png",
+          "crop": "571-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "a62c2834bebf27e1",
+          "shows": "mercy Walk"
+        },
+        {
+          "image": "571.png",
+          "crop": "571-727.jpg",
+          "box": [0, 727, 1274, 178],
+          "sha": "5b8f5a6937a8f328",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-769.jpg",
+          "box": [0, 769, 1274, 200],
+          "sha": "92ebe816ad71f4d8",
+          "shows": ""
+        },
+        {
+          "image": "571.png",
+          "crop": "571-849.jpg",
+          "box": [0, 849, 1274, 214],
+          "sha": "02b036bc3eab5c7b",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "571-484.jpg row 2 ends 'mer - cy; Walk'; the other crops hold only music or the next system."
+    }
+  ]
+}

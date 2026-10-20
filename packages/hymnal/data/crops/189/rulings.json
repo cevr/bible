@@ -1,0 +1,60 @@
+{
+  "number": 189,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "see",
+      "readings": [""],
+      "printed": "see",
+      "sung": "see",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p184.jpg",
+          "crop": "p184-312.jpg",
+          "box": [0, 312, 1758, 430],
+          "sha": "51bef31dc63792fa",
+          "shows": "see"
+        },
+        {
+          "image": "p184.jpg",
+          "crop": "p184-897.jpg",
+          "box": [0, 897, 1758, 428],
+          "sha": "709ec36314352316",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p184-312.jpg row 3 ends 'Ev-ery good in Him I see;'; p184-897.jpg row 3 begins the next line, 'On His strength'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "by",
+      "readings": [""],
+      "printed": "by",
+      "sung": "by",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p184.jpg",
+          "crop": "p184-312.jpg",
+          "box": [0, 312, 1758, 430],
+          "sha": "51bef31dc63792fa",
+          "shows": "by"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "p184-312.jpg row 4 begins '4. By the crys-tal flow-ing riv-er'; the OCR missed 'By'."
+    }
+  ]
+}

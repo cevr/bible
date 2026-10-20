@@ -1,0 +1,129 @@
+{
+  "number": 268,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 10
+        }
+      ],
+      "row": "chase the shades of night away turn my darkness into day",
+      "readings": [""],
+      "printed": "Chase the shades of night away Turn my darkness into day",
+      "sung": "Chase the shades of night away Turn my darkness into day",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "267.jpg",
+          "crop": "267-908.jpg",
+          "box": [0, 908, 2268, 1362],
+          "sha": "1406edb8afdb0446",
+          "shows": ""
+        },
+        {
+          "image": "p262.jpg",
+          "crop": "p262-89.jpg",
+          "box": [0, 89, 1758, 430],
+          "sha": "0ad098f9bb1793cc",
+          "shows": "Chase the shades of night away Turn my darkness into day"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "p262-89.jpg row 1 prints 'Chase the shades of night a-way, Turn my dark-ness in-to day.', and 267-908.jpg holds only the first system, which ends 'heart of mine,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 10
+        }
+      ],
+      "row": "long has sin without control held dominion oer my soul",
+      "readings": [""],
+      "printed": "Long has sin without control Held dominion o'er my soul",
+      "sung": "Long has sin without control Held dominion o'er my soul",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "267.jpg",
+          "crop": "267-908.jpg",
+          "box": [0, 908, 2268, 1362],
+          "sha": "1406edb8afdb0446",
+          "shows": ""
+        },
+        {
+          "image": "p262.jpg",
+          "crop": "p262-89.jpg",
+          "box": [0, 89, 1758, 430],
+          "sha": "0ad098f9bb1793cc",
+          "shows": "Long has sin without control Held dominion o'er my soul"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "p262-89.jpg row 2 prints 'Long has sin, with-out con-trol, Held do-min-ion o'er my soul.', and 267-908.jpg holds only the first system, which ends 'heart of mine;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 11
+        }
+      ],
+      "row": "bid my many woes depart heal my wounded bleeding heart",
+      "readings": [""],
+      "printed": "Bid my many woes depart Heal my wounded bleeding heart",
+      "sung": "Bid my many woes depart Heal my wounded bleeding heart",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "267.jpg",
+          "crop": "267-908.jpg",
+          "box": [0, 908, 2268, 1362],
+          "sha": "1406edb8afdb0446",
+          "shows": ""
+        },
+        {
+          "image": "p262.jpg",
+          "crop": "p262-89.jpg",
+          "box": [0, 89, 1758, 430],
+          "sha": "0ad098f9bb1793cc",
+          "shows": "Bid my many woes depart Heal my wounded bleeding heart"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "p262-89.jpg row 3 prints 'Bid my man-y woes de-part, Heal my wound-ed, bleed-ing heart.', and 267-908.jpg holds only the first system, which ends 'heart of mine,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 10
+        }
+      ],
+      "row": "cast down every idol throne reign supreme and reign alone",
+      "readings": [""],
+      "printed": "Cast down every idol throne Reign supreme and reign alone",
+      "sung": "Cast down every idol throne Reign supreme and reign alone",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p261.jpg",
+          "crop": "p261-1946.jpg",
+          "box": [0, 1946, 1758, 426],
+          "sha": "b7cc48d8b725d3d4",
+          "shows": ""
+        },
+        {
+          "image": "p262.jpg",
+          "crop": "p262-89.jpg",
+          "box": [0, 89, 1758, 430],
+          "sha": "0ad098f9bb1793cc",
+          "shows": "Cast down every idol throne Reign supreme and reign alone"
+        }
+      ],
+      "judge": "judge-234 (Opus, effort max)",
+      "why": "p262-89.jpg row 4 prints 'Cast down ev-ery i-dol throne, Reign su-preme, and reign a-lone.', and p261-1946.jpg holds only the first system, which ends 'heart of mine,'."
+    }
+  ]
+}

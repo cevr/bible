@@ -44,6 +44,13 @@
           "box": [0, 113, 1275, 248],
           "sha": "f03b2dbc3f7e2371",
           "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-482.jpg",
+          "box": [0, 482, 1275, 247],
+          "sha": "96089dced923d39f",
+          "shows": ""
         }
       ],
       "judge": "judge-220 (Opus, effort max)",
@@ -77,6 +84,30 @@
       "sites": [
         {
           "unit": 1,
+          "at": 26
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-484.jpg",
+          "box": [0, 484, 1274, 240],
+          "sha": "f83dd19c2b2df7f0",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "220-484.jpg row 1 prints 'As I read the gos-pel sto-ry'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 48
         }
       ],
@@ -104,22 +135,205 @@
           "at": 58
         }
       ],
-      "row": "to the sky",
-      "readings": [""],
+      "row": "to",
+      "readings": ["with"],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "220.png",
-          "crop": "220-1180.jpg",
-          "box": [0, 1180, 1275, 260],
-          "sha": "63a906852e6e7fcc",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
           "shows": ""
         }
       ],
-      "judge": "judge-220-2 (Opus, effort max)",
-      "why": "The refrain row of 220-1180.jpg prints nothing between 'sky,' and 'With the', while the alto answers the held 'sky,' there: an echo this re-engraving prints no words for."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's one refrain row prints 'ring-ing to the sky, With the' with no echoed 'to the sky' after 'sky' (220-1245.jpg is the same row again); the OCR's 'with' is that row's closing 'With'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 58
+        }
+      ],
+      "row": "to the sky",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's refrain row goes from 'ring-ing to the sky,' straight to 'With the', and no echo row stands under either staff (220-1245.jpg shows the same row)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 60
+        }
+      ],
+      "row": "sky",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "No echoed 'to the sky' is printed after 'ring-ing to the sky,' on 220-1244.jpg's refrain row (220-1245.jpg repeats that row)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 63
+        }
+      ],
+      "row": "alleluias",
+      "readings": ["leluias"],
+      "printed": "alleluias",
+      "sung": "alleluias",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": "alleluias"
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's row prints 'al-le-lu-ias' (220-1245.jpg repeats the row, and the line's next 'al-le-lu-ias' stands on When_He_Comes2-0-326.jpg's middle row), never 'leluias'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 65
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": "to"
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's row prints 'ring-ing to the sky' (220-1245.jpg repeats it, and When_He_Comes2-0-326.jpg's middle row ends the next line 'ring-ing to the sky!'); the OCR missed 'to'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 68
+        }
+      ],
+      "row": "to",
+      "readings": ["with"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "No echoed 'to the sky' is printed on 220-1244.jpg's row (repeated on 220-1245.jpg) or after When_He_Comes2-0-326.jpg's 'ring-ing to the sky!'; the OCR's 'with' is the row's closing 'With'."
     },
     {
       "sites": [
@@ -131,19 +345,150 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "When_He_Comes2.png",
-          "crop": "When_He_Comes2-0.jpg",
-          "box": [0, 0, 1275, 328],
-          "sha": "5128313599827537",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
           "shows": ""
         }
       ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-0-326.jpg's middle row ends 'ring-ing to the sky!' and row 1 goes on 'As I read', with no echoed 'to the sky'; 220-1244.jpg and 220-1245.jpg print none either."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 70
+        }
+      ],
+      "row": "sky",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "No echoed 'to the sky' follows 'ring-ing to the sky!' on When_He_Comes2-0-326.jpg's middle row, nor stands on 220-1244.jpg or 220-1245.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 72
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": "I"
+        }
+      ],
       "judge": "judge-220 (Opus, effort max)",
-      "why": "When_He_Comes2-0.jpg prints nothing between the shared 'to the sky!' and row 1's 'As I read' while the lower staff moves under the held chord, an unworded echo."
+      "why": "When_He_Comes2-0-326.jpg row 1 prints 'As I read the gos-pel sto-ry'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 79
+        }
+      ],
+      "row": "see",
+      "readings": [""],
+      "printed": "see",
+      "sung": "see",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-356-458.jpg",
+          "box": [0, 356, 1274, 458],
+          "sha": "da81940669ba9a68",
+          "shows": "see"
+        }
+      ],
+      "judge": "judge-220 (Opus, effort max)",
+      "why": "Row 1 ends 'We shall' on When_He_Comes2-0-326.jpg and goes on 'see the Lord in glo-ry,' on When_He_Comes2-356-458.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 84
+        }
+      ],
+      "row": "with the alleluias ringing to the sky to the sky",
+      "readings": [""],
+      "printed": "With the alleluias ringing to the sky,",
+      "sung": "with the alleluias ringing to the sky",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-356-458.jpg",
+          "box": [0, 356, 1274, 458],
+          "sha": "da81940669ba9a68",
+          "shows": "With the alleluias ringing to the sky,"
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-356-458.jpg prints 'With the al-le-lu-ias ring-ing to the sky,' once, on the middle row after row 1's 'see the Lord in glo-ry,', for every stanza, with no echo after it."
     },
     {
       "sites": [
@@ -155,19 +500,19 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "When_He_Comes2.png",
-          "crop": "When_He_Comes2-356.jpg",
-          "box": [0, 356, 1275, 459],
-          "sha": "21230e697f509fc5",
+          "crop": "When_He_Comes2-356-458.jpg",
+          "box": [0, 356, 1274, 458],
+          "sha": "da81940669ba9a68",
           "shows": ""
         }
       ],
-      "judge": "judge-220 (Opus, effort max)",
-      "why": "The place is on When_He_Comes2-356.jpg (not When_He_Comes2-0.jpg): the shared row 2 ends 'to the sky,' and prints nothing after it while the alto and tenor move under the held note, an unworded echo."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-356-458.jpg prints no echoed 'to the sky' after the closing 'ring-ing to the sky,'."
     },
     {
       "sites": [
@@ -211,6 +556,13 @@
           "crop": "220-113.jpg",
           "box": [0, 113, 1275, 248],
           "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-482.jpg",
+          "box": [0, 482, 1275, 247],
+          "sha": "96089dced923d39f",
           "shows": ""
         }
       ],
@@ -275,19 +627,33 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        },
+        {
           "image": "220.png",
-          "crop": "220-1180.jpg",
-          "box": [0, 1180, 1275, 260],
-          "sha": "63a906852e6e7fcc",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
           "shows": ""
         }
       ],
-      "judge": "judge-220-2 (Opus, effort max)",
-      "why": "The one refrain row of 220-1180.jpg prints nothing between 'sky,' and 'With the', while the alto answers the held 'sky,' there: an echo this re-engraving prints no words for."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's refrain row goes from 'ring-ing to the sky,' straight to 'With the' with no echo (220-1245.jpg repeats the row; When_He_Comes2-0-326.jpg prints none)."
     },
     {
       "sites": [
@@ -299,19 +665,19 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "When_He_Comes2.png",
-          "crop": "When_He_Comes2-0.jpg",
-          "box": [0, 0, 1275, 328],
-          "sha": "5128313599827537",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
           "shows": ""
         }
       ],
-      "judge": "judge-220 (Opus, effort max)",
-      "why": "When_He_Comes2-0.jpg prints nothing between the shared 'to the sky!' and row 2's 'We shall hear' while the lower staff moves under the held chord, an unworded echo."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-0-326.jpg's middle row ends 'ring-ing to the sky!' and row 2 goes on 'We shall hear', with no echoed 'to the sky'."
     },
     {
       "sites": [
@@ -323,19 +689,19 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "When_He_Comes2.png",
-          "crop": "When_He_Comes2-356.jpg",
-          "box": [0, 356, 1275, 459],
-          "sha": "21230e697f509fc5",
+          "crop": "When_He_Comes2-356-458.jpg",
+          "box": [0, 356, 1274, 458],
+          "sha": "da81940669ba9a68",
           "shows": ""
         }
       ],
-      "judge": "judge-220 (Opus, effort max)",
-      "why": "The place is on When_He_Comes2-356.jpg (not When_He_Comes2-0.jpg): row 2 ends 'to the sky,' and prints nothing after it while the alto and tenor move under the held note, an unworded echo."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-356-458.jpg row 2 ends 'ring-ing to the sky,' with no echoed 'to the sky' after it."
     },
     {
       "sites": [
@@ -379,6 +745,13 @@
           "crop": "220-113.jpg",
           "box": [0, 113, 1275, 248],
           "sha": "f03b2dbc3f7e2371",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-482.jpg",
+          "box": [0, 482, 1275, 247],
+          "sha": "96089dced923d39f",
           "shows": ""
         }
       ],
@@ -440,22 +813,205 @@
           "at": 63
         }
       ],
-      "row": "to the sky",
-      "readings": [""],
+      "row": "to",
+      "readings": ["with"],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "220.png",
-          "crop": "220-1180.jpg",
-          "box": [0, 1180, 1275, 260],
-          "sha": "63a906852e6e7fcc",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
           "shows": ""
         }
       ],
-      "judge": "judge-220-2 (Opus, effort max)",
-      "why": "The one refrain row of 220-1180.jpg prints nothing between 'sky,' and 'With the', while the alto answers the held 'sky,' there: an echo this re-engraving prints no words for."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's one refrain row prints 'ring-ing to the sky, With the' with no echoed 'to the sky' after 'sky' (220-1245.jpg is the same row again); the OCR's 'with' is that row's closing 'With'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 63
+        }
+      ],
+      "row": "to the sky",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's refrain row goes from 'ring-ing to the sky,' straight to 'With the', and no echo row stands under either staff (220-1245.jpg shows the same row)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 65
+        }
+      ],
+      "row": "sky",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "No echoed 'to the sky' is printed after 'ring-ing to the sky,' on 220-1244.jpg's refrain row (220-1245.jpg repeats that row)."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 68
+        }
+      ],
+      "row": "alleluias",
+      "readings": ["leluias"],
+      "printed": "alleluias",
+      "sung": "alleluias",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": "alleluias"
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's row prints 'al-le-lu-ias' (220-1245.jpg repeats the row, and the line's next 'al-le-lu-ias' stands on When_He_Comes2-0-326.jpg's middle row), never 'leluias'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 70
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": "to"
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "220-1244.jpg's row prints 'ring-ing to the sky' (220-1245.jpg repeats it, and When_He_Comes2-0-326.jpg's middle row ends the next line 'ring-ing to the sky!'); the OCR missed 'to'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 73
+        }
+      ],
+      "row": "to",
+      "readings": ["with"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "No echoed 'to the sky' is printed on 220-1244.jpg's row (repeated on 220-1245.jpg) or after When_He_Comes2-0-326.jpg's 'ring-ing to the sky!'; the OCR's 'with' is the row's closing 'With'."
     },
     {
       "sites": [
@@ -467,19 +1023,95 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "When_He_Comes2.png",
-          "crop": "When_He_Comes2-0.jpg",
-          "box": [0, 0, 1275, 328],
-          "sha": "5128313599827537",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
           "shows": ""
         }
       ],
-      "judge": "judge-220 (Opus, effort max)",
-      "why": "When_He_Comes2-0.jpg prints nothing between the shared 'to the sky!' and row 3's 'We shall all' while the lower staff moves under the held chord, an unworded echo."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-0-326.jpg's middle row ends 'ring-ing to the sky!' and row 3 goes on 'We shall all rise', with no echoed 'to the sky'; 220-1244.jpg and 220-1245.jpg print none either."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 75
+        }
+      ],
+      "row": "sky",
+      "readings": [""],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-0-326.jpg",
+          "box": [0, 0, 1274, 326],
+          "sha": "e07e1ef27439c796",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1244.jpg",
+          "box": [0, 1244, 1274, 184],
+          "sha": "28b0b0d6100b1d9e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-1245.jpg",
+          "box": [0, 1245, 1274, 344],
+          "sha": "12d804d96011bc2c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "No echoed 'to the sky' follows 'ring-ing to the sky!' on When_He_Comes2-0-326.jpg's middle row, nor stands on 220-1244.jpg or 220-1245.jpg."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 92
+        }
+      ],
+      "row": "with the alleluias ringing to the sky to the sky",
+      "readings": [""],
+      "printed": "With the alleluias ringing to the sky,",
+      "sung": "with the alleluias ringing to the sky",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-356-458.jpg",
+          "box": [0, 356, 1274, 458],
+          "sha": "da81940669ba9a68",
+          "shows": "With the alleluias ringing to the sky,"
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-356-458.jpg prints 'With the al-le-lu-ias ring-ing to the sky,' once, on the middle row after row 3's 'calls His own to greet Him', for every stanza, with no echo after it."
     },
     {
       "sites": [
@@ -491,19 +1123,19 @@
       "row": "to the sky",
       "readings": [""],
       "printed": "",
-      "sung": "to the sky",
-      "kind": "echo",
+      "sung": "",
+      "kind": "words",
       "crops": [
         {
           "image": "When_He_Comes2.png",
-          "crop": "When_He_Comes2-356.jpg",
-          "box": [0, 356, 1275, 459],
-          "sha": "21230e697f509fc5",
+          "crop": "When_He_Comes2-356-458.jpg",
+          "box": [0, 356, 1274, 458],
+          "sha": "da81940669ba9a68",
           "shows": ""
         }
       ],
-      "judge": "judge-220 (Opus, effort max)",
-      "why": "The place is on When_He_Comes2-356.jpg (not When_He_Comes2-0.jpg): the shared row 2 ends 'to the sky,' and prints nothing after it while the alto and tenor move under the held note, an unworded echo."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "When_He_Comes2-356-458.jpg prints no echoed 'to the sky' after the closing 'ring-ing to the sky,'."
     }
   ]
 }

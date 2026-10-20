@@ -15,15 +15,156 @@
       "kind": "words",
       "crops": [
         {
-          "image": "397.png",
-          "crop": "397-113.jpg",
-          "box": [0, 113, 1275, 277],
-          "sha": "42773f7e47d72af4",
+          "image": "397.jpg",
+          "crop": "397-518.jpg",
+          "box": [0, 518, 2268, 728],
+          "sha": "5d788d28e5574355",
           "shows": "He"
+        },
+        {
+          "image": "397.jpg",
+          "crop": "397-994.jpg",
+          "box": [0, 994, 2268, 448],
+          "sha": "2673f13bd1423ce4",
+          "shows": ""
         }
       ],
-      "judge": "judge-284 (Opus, effort max)",
-      "why": "Row 1. ends 'For those He' plainly, so the page prints 'He' between 'those' and 'loved'."
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "397-518.jpg row 1 ends 'For those He' and 397-994.jpg row 1 goes on 'loved un-til the end': 'He' stands between 'those' and 'loved'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "celebrate",
+      "readings": ["cel"],
+      "printed": "celebrate",
+      "sung": "celebrate",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "397.jpg",
+          "crop": "397-1278.jpg",
+          "box": [0, 1278, 2268, 1018],
+          "sha": "0252607ddbe3ed3a",
+          "shows": "celebrate"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "397-1278.jpg lower system row 1 prints 'To cel-e-brate their ris-en Friend'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 19
+        }
+      ],
+      "row": "complete",
+      "readings": [""],
+      "printed": "complete",
+      "sung": "complete",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "397.jpg",
+          "crop": "397-994.jpg",
+          "box": [0, 994, 2268, 448],
+          "sha": "2673f13bd1423ce4",
+          "shows": "com-"
+        },
+        {
+          "image": "397.jpg",
+          "crop": "397-1278.jpg",
+          "box": [0, 1278, 2268, 1018],
+          "sha": "0252607ddbe3ed3a",
+          "shows": "plete"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "397-994.jpg row 2 ends 'shall be made com-' and 397-1278.jpg lower system row 2 begins 'plete Sent out to serve'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "397.jpg",
+          "crop": "397-518.jpg",
+          "box": [0, 518, 2268, 728],
+          "sha": "5d788d28e5574355",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "397-518.jpg row 3 begins '3. A last-ing gift'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 20
+        }
+      ],
+      "row": "he",
+      "readings": [""],
+      "printed": "he",
+      "sung": "he",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "397.jpg",
+          "crop": "397-1278.jpg",
+          "box": [0, 1278, 2268, 1018],
+          "sha": "0252607ddbe3ed3a",
+          "shows": "he"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "397-1278.jpg lower system row 3 prints 'down, He by His cross'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 10
+        }
+      ],
+      "row": "beyond",
+      "readings": [""],
+      "printed": "beyond",
+      "sung": "beyond",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "397.jpg",
+          "crop": "397-518.jpg",
+          "box": [0, 518, 2268, 728],
+          "sha": "5d788d28e5574355",
+          "shows": "be-"
+        },
+        {
+          "image": "397.jpg",
+          "crop": "397-994.jpg",
+          "box": [0, 994, 2268, 448],
+          "sha": "2673f13bd1423ce4",
+          "shows": "yond"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "397-518.jpg row 4 ends 'He loves be-' and 397-994.jpg row 4 begins 'yond our ut-ter-most'."
     }
   ]
 }

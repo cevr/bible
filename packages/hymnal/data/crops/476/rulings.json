@@ -1,0 +1,191 @@
+{
+  "number": 476,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 19
+        }
+      ],
+      "row": "very",
+      "readings": ["ver"],
+      "printed": "very",
+      "sung": "very",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "476.png",
+          "crop": "476-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "2730b603a15d15db",
+          "shows": "very"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "476-484.jpg row 1 prints 'Je-sus is ver - y near' (very); the OCR dropped the split-off 'y'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 35
+        }
+      ],
+      "row": "very",
+      "readings": ["ver"],
+      "printed": "very",
+      "sung": "very",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "476.png",
+          "crop": "476-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "2730b603a15d15db",
+          "shows": ""
+        },
+        {
+          "image": "476.png",
+          "crop": "476-868.jpg",
+          "box": [0, 868, 1274, 184],
+          "sha": "b498f2c4a66837be",
+          "shows": ""
+        },
+        {
+          "image": "476.png",
+          "crop": "476-1218.jpg",
+          "box": [0, 1218, 1274, 180],
+          "sha": "8bdbcd591a0012e0",
+          "shows": "very"
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "476-1218.jpg, the refrain's last row, prints 'Je-sus is ver-y near.': 'very' with its y; 476-484.jpg holds the stanzas' own line and 476-868.jpg the 'Cal-va-ry' line."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 18
+        }
+      ],
+      "row": "very",
+      "readings": ["ver"],
+      "printed": "very",
+      "sung": "very",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "476.png",
+          "crop": "476-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "2730b603a15d15db",
+          "shows": "very"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "476-484.jpg row 2 prints 'Je-sus is ver - y near' (very); the OCR dropped the split-off 'y'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "very",
+      "readings": ["ver"],
+      "printed": "very",
+      "sung": "very",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "476.png",
+          "crop": "476-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "2730b603a15d15db",
+          "shows": ""
+        },
+        {
+          "image": "476.png",
+          "crop": "476-868.jpg",
+          "box": [0, 868, 1274, 184],
+          "sha": "b498f2c4a66837be",
+          "shows": ""
+        },
+        {
+          "image": "476.png",
+          "crop": "476-1218.jpg",
+          "box": [0, 1218, 1274, 180],
+          "sha": "8bdbcd591a0012e0",
+          "shows": "very"
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "476-1218.jpg prints the refrain's last row once for every stanza, 'Je-sus is ver-y near.': 'very' with its y; 476-484.jpg and 476-868.jpg hold other lines."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 17
+        }
+      ],
+      "row": "very",
+      "readings": ["ver"],
+      "printed": "very",
+      "sung": "very",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "476.png",
+          "crop": "476-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "2730b603a15d15db",
+          "shows": "very"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "476-484.jpg row 3 prints 'Je-sus is ver - y near' (very); the OCR dropped the split-off 'y'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 33
+        }
+      ],
+      "row": "very",
+      "readings": ["ver"],
+      "printed": "very",
+      "sung": "very",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "476.png",
+          "crop": "476-484.jpg",
+          "box": [0, 484, 1274, 238],
+          "sha": "2730b603a15d15db",
+          "shows": ""
+        },
+        {
+          "image": "476.png",
+          "crop": "476-868.jpg",
+          "box": [0, 868, 1274, 184],
+          "sha": "b498f2c4a66837be",
+          "shows": ""
+        },
+        {
+          "image": "476.png",
+          "crop": "476-1218.jpg",
+          "box": [0, 1218, 1274, 180],
+          "sha": "8bdbcd591a0012e0",
+          "shows": "very"
+        }
+      ],
+      "judge": "judge-again-013 (Opus, effort max)",
+      "why": "476-1218.jpg prints the refrain's last row once for every stanza, 'Je-sus is ver-y near.': 'very' with its y; 476-484.jpg and 476-868.jpg hold other lines."
+    }
+  ]
+}

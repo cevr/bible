@@ -1,7 +1,7 @@
 {
   "number": 471,
   "title": "Grant Us Your Peace",
-  "print": "the owner's photo of his 1985 book (471.jpg), each line read off the page at its system and row; the rulings (data/crops/471/rulings.json) put in what the page prints where the base row differs: \"\" -> \"us\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crop 471-0.jpg, judge-471 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (471.jpg), each line read off the page at its system and row; the rulings (data/crops/471/rulings.json) put in what the page prints where the base row differs: \"\" -> \"us\" (words, crops 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crops 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crops 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crops 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crops 471-353.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crops 471-0.jpg, judge-471 (Opus, effort max)); \"a coordenous\" -> \"Accorde-nous\" (words, crops 471-0.jpg, 471-353.jpg, judge-471 (Opus, effort max)).",
   "stanzas": [
     [
       {

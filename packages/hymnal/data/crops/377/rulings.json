@@ -1,0 +1,108 @@
+{
+  "number": 377,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 21
+        }
+      ],
+      "row": "in his",
+      "readings": [""],
+      "printed": "in his",
+      "sung": "in his",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p367.jpg",
+          "crop": "p367-768.jpg",
+          "box": [0, 768, 1758, 554],
+          "sha": "9661c614e3c644ad",
+          "shows": "in his"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p367-768.jpg row 1 prints 'And keep you in His way'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "go",
+      "readings": [""],
+      "printed": "go",
+      "sung": "go",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p367.jpg",
+          "crop": "p367-375.jpg",
+          "box": [0, 375, 1758, 384],
+          "sha": "c89769fa9579769b",
+          "shows": "go"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p367-375.jpg row 2 begins '2. Go forth, go forth with Christ'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "in fidelity",
+      "readings": [""],
+      "printed": "in fidelity",
+      "sung": "in fidelity",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p367.jpg",
+          "crop": "p367-768.jpg",
+          "box": [0, 768, 1758, 554],
+          "sha": "9661c614e3c644ad",
+          "shows": ""
+        },
+        {
+          "image": "p367.jpg",
+          "crop": "p367-1360.jpg",
+          "box": [0, 1360, 1758, 536],
+          "sha": "0cff3b54a56ebc4e",
+          "shows": "in fidelity"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p367-768.jpg row 2 ends 'To guard you' and p367-1360.jpg row 2 begins 'in fi-del-i-ty His Spir-it'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "go",
+      "readings": [""],
+      "printed": "go",
+      "sung": "go",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p367.jpg",
+          "crop": "p367-375.jpg",
+          "box": [0, 375, 1758, 384],
+          "sha": "c89769fa9579769b",
+          "shows": "go"
+        }
+      ],
+      "judge": "judge-362 (Opus, effort max)",
+      "why": "p367-375.jpg row 3 begins '3. Go forth, go forth with Christ'."
+    }
+  ]
+}

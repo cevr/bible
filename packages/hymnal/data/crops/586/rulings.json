@@ -1,0 +1,81 @@
+{
+  "number": 586,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "where god who uses",
+      "readings": [""],
+      "printed": "Where God, who uses",
+      "sung": "Where God, who uses",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "586.png",
+          "crop": "586-471.jpg",
+          "box": [0, 471, 1274, 214],
+          "sha": "b654ed4b478ad5b9",
+          "shows": "Where God, who uses"
+        },
+        {
+          "image": "586.png",
+          "crop": "586-814.jpg",
+          "box": [0, 814, 1274, 216],
+          "sha": "a878de1a28904d45",
+          "shows": ""
+        },
+        {
+          "image": "585.jpg",
+          "crop": "585-2239.jpg",
+          "box": [0, 2239, 2268, 674],
+          "sha": "454289ed358dc27e",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "586-471.jpg row 1 prints 'at home, Where God, who us-es'; 585-2239.jpg row 1 stops at 'at home,' and 586-814.jpg row 1 starts at 'ev-ery gift,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 16
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "586.png",
+          "crop": "586-471.jpg",
+          "box": [0, 471, 1274, 214],
+          "sha": "b654ed4b478ad5b9",
+          "shows": "a"
+        },
+        {
+          "image": "586.png",
+          "crop": "586-555.jpg",
+          "box": [0, 555, 1274, 214],
+          "sha": "7a095d3ac40763f4",
+          "shows": ""
+        },
+        {
+          "image": "586.png",
+          "crop": "586-814.jpg",
+          "box": [0, 814, 1274, 216],
+          "sha": "a878de1a28904d45",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "586-471.jpg row 2 ends with 'a' before 586-814.jpg's 'com - mon ground'; 586-555.jpg repeats that row."
+    }
+  ]
+}

@@ -4,6 +4,61 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "prompts",
+      "readings": [""],
+      "printed": "Prompts",
+      "sung": "Prompts",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "639.jpg",
+          "crop": "639-233.jpg",
+          "box": [0, 233, 2268, 894],
+          "sha": "ed76ac8943e1a9f0",
+          "shows": "Prompts"
+        },
+        {
+          "image": "639.jpg",
+          "crop": "639-1089.jpg",
+          "box": [0, 1089, 2268, 570],
+          "sha": "d296f32eb03254ae",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "639-233.jpg row 1 ends 'grate-ful heart Prompts' and 639-1089.jpg row 1 goes on 'me to sing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 2
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "639.jpg",
+          "crop": "639-233.jpg",
+          "box": [0, 233, 2268, 894],
+          "sha": "ed76ac8943e1a9f0",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "639-233.jpg row 3 prints 'My thanks I give for stew-ard-ship' (it prints no 'you' after 'give')."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 4
         }
@@ -24,6 +79,85 @@
       ],
       "judge": "judge-634 (Opus, effort max)",
       "why": "Row 3. prints 'My thanks I give for stew-ard-ship' with no 'you' between 'give' and 'for'; its eight syllables match row 1.'s 'A dil-i-gent and grate-ful heart'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": [""],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "639.jpg",
+          "crop": "639-233.jpg",
+          "box": [0, 233, 2268, 894],
+          "sha": "ed76ac8943e1a9f0",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "639-233.jpg row 4 prints '4. O Lord, I ded-i-cate'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 2
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "639.jpg",
+          "crop": "639-233.jpg",
+          "box": [0, 233, 2268, 894],
+          "sha": "ed76ac8943e1a9f0",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "639-233.jpg row 4 prints 'O Lord, I ded-i-cate my all'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 14
+        }
+      ],
+      "row": "magnify",
+      "readings": ["fy"],
+      "printed": "magnify",
+      "sung": "magnify",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "639.jpg",
+          "crop": "639-1089.jpg",
+          "box": [0, 1089, 2268, 570],
+          "sha": "d296f32eb03254ae",
+          "shows": "magni-"
+        },
+        {
+          "image": "639.jpg",
+          "crop": "639-1621.jpg",
+          "box": [0, 1621, 2268, 618],
+          "sha": "973bd6202f77e81f",
+          "shows": "fy"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "639-1089.jpg row 4 ends 'Help me to mag-ni-' and 639-1621.jpg row 4 begins 'fy this call'."
     }
   ]
 }

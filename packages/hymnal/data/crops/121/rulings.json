@@ -1,0 +1,43 @@
+{
+  "number": 121,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 10
+        }
+      ],
+      "row": "behold",
+      "readings": [""],
+      "printed": "Behold",
+      "sung": "Behold",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p118.jpg",
+          "crop": "p118-1381.jpg",
+          "box": [0, 1381, 1758, 386],
+          "sha": "94fc490caef7ce4a",
+          "shows": "Be-"
+        },
+        {
+          "image": "p118.jpg",
+          "crop": "p118-1756.jpg",
+          "box": [0, 1756, 1758, 298],
+          "sha": "8394a771977b1f53",
+          "shows": ""
+        },
+        {
+          "image": "p118.jpg",
+          "crop": "p118-1968.jpg",
+          "box": [0, 1968, 1758, 382],
+          "sha": "76b59afc1a28139a",
+          "shows": "hold"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "p118-1381.jpg row 1 ends 'by night, Be-', p118-1756.jpg holds no lyric row, and p118-1968.jpg row 1 begins 'hold through-out', together 'Behold'."
+    }
+  ]
+}

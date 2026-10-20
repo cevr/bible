@@ -1,0 +1,161 @@
+{
+  "number": 231,
+  "title": "Bless Be the King",
+  "print": "the owner's photo of his 1985 book (231.jpg), each line read off the page at its system and row; the rulings (data/crops/231/rulings.json) put in what the page prints where the base row differs: \"bless\" -> \"Blest\" (words, crops 231-315.jpg, judge-220 (Opus, effort max)); \"bless\" -> \"Blest\" (words, crops 231-315.jpg, judge-220 (Opus, effort max)); \"bless\" -> \"Blest\" (words, crops 231-315.jpg, judge-220 (Opus, effort max)); \"bless\" -> \"Blest\" (words, crops 231-315.jpg, judge-220 (Opus, effort max)); \"humbled\" -> \"humble\" (words, crops 231-1335.jpg, judge-220 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Blest be the King whose coming",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "Is in the name of God!",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "For Him let doors be opened,",
+        "from": "231.jpg system 2, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "No hearts against Him barred!",
+        "from": "231.jpg system 2, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Not robed in royal splendor,",
+        "from": "231.jpg system 3, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "In power and pomp comes He;",
+        "from": "231.jpg system 3, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "But clad as are the poorest,",
+        "from": "231.jpg system 4, row 1. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Such His humility.",
+        "from": "231.jpg system 4, row 1. (placed off the page by from-231 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Blest be the King whose coming",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "Is in the name of God!",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "By those who truly listen",
+        "from": "231.jpg system 2, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "His voice is truly heard;",
+        "from": "231.jpg system 2, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Pity the proud and haughty",
+        "from": "231.jpg system 3, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Who have not learned to heed",
+        "from": "231.jpg system 3, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "The Christ who is the promise,",
+        "from": "231.jpg system 4, row 2. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Who has atonement made.",
+        "from": "231.jpg system 4, row 2. (placed off the page by from-231 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Blest be the King whose coming",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "Is in the name of God!",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "He only to the humble",
+        "from": "231.jpg system 2, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Reveals the face of God",
+        "from": "231.jpg system 2, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "All power is His, all glory!",
+        "from": "231.jpg system 3, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "All things are in His hand,",
+        "from": "231.jpg system 3, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "All ages and all peoples,",
+        "from": "231.jpg system 4, row 3. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Till time itself shall end.",
+        "from": "231.jpg system 4, row 3. (placed off the page by from-231 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Blest be the King whose coming",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "Is in the name of God!",
+        "from": "231.jpg system 1, the refrain row (placed off the page by from-231 (Opus): printed once, unnumbered, in system 1 above the numbered stanza rows; every stanza opens with it)"
+      },
+      {
+        "text": "He offers to the burdened",
+        "from": "231.jpg system 2, row 4. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "The rest and grace they need.",
+        "from": "231.jpg system 2, row 4. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "Gentle is He and humble!",
+        "from": "231.jpg system 3, row 4. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "And light His yoke shall be,",
+        "from": "231.jpg system 3, row 4. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "For He would have us bear it",
+        "from": "231.jpg system 4, row 4. (placed off the page by from-231 (Opus))"
+      },
+      {
+        "text": "So He can make us free!",
+        "from": "231.jpg system 4, row 4. (placed off the page by from-231 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Bless be the King whose coming\nIs in the name of God!\nFor Him let doors be opened,\nNo hearts against Him barred!\nNot robed in royal splendor,\nIn power and pomp comes He;\nBut clad as are the poorest,\nSuch His humility."
+    },
+    {
+      "id": 1,
+      "text": "Bless be the King whose coming\nIs in the name of God!\nBy those who truly listen\nHis voice is truly heard;\nPity the proud and haughty\nWho have not learned to heed\nThe Christ who is the promise,\nWho has atonement made."
+    },
+    {
+      "id": 2,
+      "text": "Bless be the King whose coming\nIs in the name of God!\nHe only to the humble\nReveals the face of God\nAll power is His, all glory!\nAll things are in His hand,\nAll ages and all peoples,\nTill time itself shall end."
+    },
+    {
+      "id": 3,
+      "text": "Bless be the King whose coming\nIs in the name of God!\nHe offers to the burdened\nThe rest and grace they need.\nGentle is He and humbled!\nAnd light His yoke shall be,\nFor He would have us bear it\nSo He can make us free!"
+    }
+  ]
+}

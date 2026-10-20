@@ -1,0 +1,328 @@
+{
+  "number": 506,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 3
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-24.jpg",
+          "box": [0, 24, 2268, 752],
+          "sha": "1659478c52bbd00b",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-24.jpg row 1 prints 'A might-y for-tress is our God'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "failing",
+      "readings": [""],
+      "printed": "failing",
+      "sung": "failing",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-24.jpg",
+          "box": [0, 24, 2268, 752],
+          "sha": "1659478c52bbd00b",
+          "shows": "failing"
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-771.jpg",
+          "box": [0, 771, 2268, 614],
+          "sha": "16c45f622694fb26",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-24.jpg row 1 ends 'A bul-wark nev-er fail - ing;'; 506-771.jpg row 1 begins 'Our help-er He'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 22
+        }
+      ],
+      "row": "our",
+      "readings": [""],
+      "printed": "our",
+      "sung": "our",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1180.jpg",
+          "box": [0, 1180, 2268, 522],
+          "sha": "4560eaa85cfe477f",
+          "shows": "our"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1180.jpg row 1 prints 'For still our an-cient foe'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "woe",
+      "readings": [""],
+      "printed": "woe",
+      "sung": "woe",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1180.jpg",
+          "box": [0, 1180, 2268, 522],
+          "sha": "4560eaa85cfe477f",
+          "shows": "woe"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1180.jpg row 1 prints 'Doth seek to work us woe;'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 47
+        }
+      ],
+      "row": "equal",
+      "readings": [""],
+      "printed": "equal",
+      "sung": "equal",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1605.jpg",
+          "box": [0, 1605, 2268, 710],
+          "sha": "02f2dd27d8cb18aa",
+          "shows": "equal"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1605.jpg row 1 ends 'On earth is not his e - qual.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "did",
+      "readings": [""],
+      "printed": "did",
+      "sung": "did",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-24.jpg",
+          "box": [0, 24, 2268, 752],
+          "sha": "1659478c52bbd00b",
+          "shows": "did"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-24.jpg row 2 begins 'Did we in our own strength con-fide'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "may",
+      "readings": [""],
+      "printed": "may",
+      "sung": "may",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1180.jpg",
+          "box": [0, 1180, 2268, 522],
+          "sha": "4560eaa85cfe477f",
+          "shows": "may"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1180.jpg row 2 prints 'Dost ask who that may be?'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "it is he lord sabaoth his",
+      "readings": [""],
+      "printed": "it is He Lord Sabaoth His",
+      "sung": "it is He Lord Sabaoth His",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1180.jpg",
+          "box": [0, 1180, 2268, 522],
+          "sha": "4560eaa85cfe477f",
+          "shows": "it is He Lord Saba-"
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-1605.jpg",
+          "box": [0, 1605, 2268, 710],
+          "sha": "02f2dd27d8cb18aa",
+          "shows": "oth His"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1180.jpg row 2 ends 'Christ Je-sus, it is He, Lord Sab - a -' and 506-1605.jpg row 2 goes on 'oth His name'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "to undo us",
+      "readings": [""],
+      "printed": "to undo us",
+      "sung": "to undo us",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-24.jpg",
+          "box": [0, 24, 2268, 752],
+          "sha": "1659478c52bbd00b",
+          "shows": "to undo us"
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-771.jpg",
+          "box": [0, 771, 2268, 614],
+          "sha": "16c45f622694fb26",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-24.jpg row 3 ends 'Should threaten to un - do us,'; 506-771.jpg row 3 begins 'We will not fear'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 36
+        }
+      ],
+      "row": "his rage we",
+      "readings": [""],
+      "printed": "His rage we",
+      "sung": "His rage we",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1180.jpg",
+          "box": [0, 1180, 2268, 522],
+          "sha": "4560eaa85cfe477f",
+          "shows": "His rage we"
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-1605.jpg",
+          "box": [0, 1605, 2268, 710],
+          "sha": "02f2dd27d8cb18aa",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1180.jpg row 3 ends 'We trem-ble not for him; His rage we'; 506-1605.jpg row 3 begins 'can en-dure'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 22
+        }
+      ],
+      "row": "us sideth",
+      "readings": [""],
+      "printed": "us sideth",
+      "sung": "us sideth",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-771.jpg",
+          "box": [0, 771, 2268, 614],
+          "sha": "16c45f622694fb26",
+          "shows": "us sideth"
+        },
+        {
+          "image": "506.jpg",
+          "crop": "506-1180.jpg",
+          "box": [0, 1180, 2268, 522],
+          "sha": "4560eaa85cfe477f",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-771.jpg row 4 ends 'Through Him who with us sid - eth;'; 506-1180.jpg row 4 begins 'Let goods and kin-dred go'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 45
+        }
+      ],
+      "row": "forever",
+      "readings": [""],
+      "printed": "forever",
+      "sung": "forever",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "506.jpg",
+          "crop": "506-1605.jpg",
+          "box": [0, 1605, 2268, 710],
+          "sha": "02f2dd27d8cb18aa",
+          "shows": "forever"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "506-1605.jpg row 4 ends 'His king-dom is for-ev - er.'."
+    }
+  ]
+}

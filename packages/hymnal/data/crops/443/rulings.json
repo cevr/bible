@@ -12,20 +12,27 @@
       "readings": [
         "therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there"
       ],
-      "printed": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.",
-      "sung": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.",
-      "kind": "words",
+      "printed": "There'll be no sorrow there, There'll be no sorrow there In heaven above, where all is love, There'll be no sorrow there",
+      "sung": "therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there",
+      "kind": "repeat",
       "crops": [
         {
           "image": "p430.jpg",
-          "crop": "p430-2010.jpg",
-          "box": [0, 2010, 1759, 434],
-          "sha": "e317f4f84dbe89d6",
-          "shows": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there."
+          "crop": "p430-1448.jpg",
+          "box": [0, 1448, 1758, 430],
+          "sha": "888cfd7cd63e9b9b",
+          "shows": "There'll be no sorrow there, There'll be no sorrow there"
+        },
+        {
+          "image": "p430.jpg",
+          "crop": "p430-2015.jpg",
+          "box": [0, 2015, 1758, 422],
+          "sha": "26dcb2e44d2ff612",
+          "shows": "In heaven above, where all is love, There'll be no sorrow there"
         }
       ],
-      "judge": "judge-443 (Opus, effort max)",
-      "why": "The page prints these words once, in the row labelled 'Ref.' (first system on p430.jpg, row 4 of p430-2010.jpg): a refrain, sung after each stanza, here stanza 1."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The refrain is printed once, as row 4 marked 'Ref.' on p430-1448.jpg ('There'll be no sor-row there, There'll be no sor-row there;') and going on in p430-2015.jpg row 4 ('In heaven a-bove, where all is love, There'll be no sor-row there.'), and the tune is sung again with it after each stanza."
     },
     {
       "sites": [
@@ -38,20 +45,27 @@
       "readings": [
         "therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there"
       ],
-      "printed": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.",
-      "sung": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.",
-      "kind": "words",
+      "printed": "There'll be no sorrow there, There'll be no sorrow there In heaven above, where all is love, There'll be no sorrow there",
+      "sung": "therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there",
+      "kind": "repeat",
       "crops": [
         {
           "image": "p430.jpg",
-          "crop": "p430-2010.jpg",
-          "box": [0, 2010, 1759, 434],
-          "sha": "e317f4f84dbe89d6",
-          "shows": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there."
+          "crop": "p430-1448.jpg",
+          "box": [0, 1448, 1758, 430],
+          "sha": "888cfd7cd63e9b9b",
+          "shows": "There'll be no sorrow there, There'll be no sorrow there"
+        },
+        {
+          "image": "p430.jpg",
+          "crop": "p430-2015.jpg",
+          "box": [0, 2015, 1758, 422],
+          "sha": "26dcb2e44d2ff612",
+          "shows": "In heaven above, where all is love, There'll be no sorrow there"
         }
       ],
-      "judge": "judge-443 (Opus, effort max)",
-      "why": "The page prints these words once, in the row labelled 'Ref.' (first system on p430.jpg, row 4 of p430-2010.jpg): a refrain, sung after each stanza, here stanza 2."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The 'Ref.' row (p430-1448.jpg row 4, then p430-2015.jpg row 4) is printed once and is sung after stanza 2 as after stanza 1."
     },
     {
       "sites": [
@@ -64,20 +78,27 @@
       "readings": [
         "therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there"
       ],
-      "printed": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.",
-      "sung": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there.",
-      "kind": "words",
+      "printed": "There'll be no sorrow there, There'll be no sorrow there In heaven above, where all is love, There'll be no sorrow there",
+      "sung": "therell be no sorrow there therell be no sorrow there in heaven above where all is love therell be no sorrow there",
+      "kind": "repeat",
       "crops": [
         {
           "image": "p430.jpg",
-          "crop": "p430-2010.jpg",
-          "box": [0, 2010, 1759, 434],
-          "sha": "e317f4f84dbe89d6",
-          "shows": "There'll be no sorrow there, There'll be no sorrow there; In heaven above, where all is love, There'll be no sorrow there."
+          "crop": "p430-1448.jpg",
+          "box": [0, 1448, 1758, 430],
+          "sha": "888cfd7cd63e9b9b",
+          "shows": "There'll be no sorrow there, There'll be no sorrow there"
+        },
+        {
+          "image": "p430.jpg",
+          "crop": "p430-2015.jpg",
+          "box": [0, 2015, 1758, 422],
+          "sha": "26dcb2e44d2ff612",
+          "shows": "In heaven above, where all is love, There'll be no sorrow there"
         }
       ],
-      "judge": "judge-443 (Opus, effort max)",
-      "why": "The page prints these words once, in the row labelled 'Ref.' (first system on p430.jpg, row 4 of p430-2010.jpg): a refrain, sung after each stanza, here stanza 3."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The 'Ref.' row (p430-1448.jpg row 4, then p430-2015.jpg row 4) is printed once and is sung after stanza 3 as after stanza 1."
     },
     {
       "sites": [
@@ -94,14 +115,21 @@
       "crops": [
         {
           "image": "p430.jpg",
-          "crop": "p430-2010.jpg",
-          "box": [0, 2010, 1759, 434],
-          "sha": "e317f4f84dbe89d6",
+          "crop": "p430-1448.jpg",
+          "box": [0, 1448, 1758, 430],
+          "sha": "888cfd7cd63e9b9b",
+          "shows": ""
+        },
+        {
+          "image": "p430.jpg",
+          "crop": "p430-2015.jpg",
+          "box": [0, 2015, 1758, 422],
+          "sha": "26dcb2e44d2ff612",
           "shows": ""
         }
       ],
-      "judge": "judge-443 (Opus, effort max)",
-      "why": "The fourth lyric row of both systems is labelled 'Ref.', not '4.': the page prints no stanza 4, and these words are the refrain ruled at 1:22, 2:24 and 3:21."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p430-1448.jpg numbers only stanzas 1 to 3; its row 4 is marked 'Ref.', the refrain sung after each stanza, so the page prints no stanza 4."
     }
   ]
 }

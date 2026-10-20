@@ -1,0 +1,328 @@
+{
+  "number": 505,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-360.jpg",
+          "box": [0, 360, 2268, 584],
+          "sha": "373c8428dcbe33b2",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-360.jpg row 1 begins 'I need the prayers'; the OCR missed the 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 11
+        }
+      ],
+      "row": "lifes",
+      "readings": ["iife s"],
+      "printed": "life's",
+      "sung": "life's",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-360.jpg",
+          "box": [0, 360, 2268, 584],
+          "sha": "373c8428dcbe33b2",
+          "shows": "life's"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-360.jpg row 1 prints 'o'er life's rug-ged way'; the OCR garbled 'life's'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 21
+        }
+      ],
+      "row": "and",
+      "readings": [""],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-794.jpg",
+          "box": [0, 794, 2268, 618],
+          "sha": "8100f28ec2cb4515",
+          "shows": "and"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-794.jpg row 1 prints 'And live for Je-sus ev-ery day'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 27
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-794.jpg",
+          "box": [0, 794, 2268, 618],
+          "sha": "8100f28ec2cb4515",
+          "shows": ""
+        },
+        {
+          "image": "505.jpg",
+          "crop": "505-1246.jpg",
+          "box": [0, 1246, 2268, 442],
+          "sha": "cc117b3d6a25708c",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-1246.jpg refrain row begins 'I want my friends'; 505-794.jpg holds only the stanza rows."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 47
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-1694.jpg",
+          "box": [0, 1694, 2268, 444],
+          "sha": "4b50945ac5dff488",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-1694.jpg refrain row prints 'for me; I need the prayers of those I love'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 10
+        }
+      ],
+      "row": "me",
+      "readings": [""],
+      "printed": "me",
+      "sung": "me",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-360.jpg",
+          "box": [0, 360, 2268, 584],
+          "sha": "373c8428dcbe33b2",
+          "shows": "me"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-360.jpg row 2 prints 'To help me in each try-ing hour'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 15
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "To",
+      "sung": "To",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-360.jpg",
+          "box": [0, 360, 2268, 584],
+          "sha": "373c8428dcbe33b2",
+          "shows": ""
+        },
+        {
+          "image": "505.jpg",
+          "crop": "505-794.jpg",
+          "box": [0, 794, 2268, 618],
+          "sha": "8100f28ec2cb4515",
+          "shows": "To"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-360.jpg row 2 ends at 'hour,'; 505-794.jpg row 2 begins 'To bear my tempt-ed soul'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 22
+        }
+      ],
+      "row": "that",
+      "readings": [""],
+      "printed": "that",
+      "sung": "that",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-794.jpg",
+          "box": [0, 794, 2268, 618],
+          "sha": "8100f28ec2cb4515",
+          "shows": "that"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-794.jpg row 2 prints 'That He may keep me by His pow'r'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-794.jpg",
+          "box": [0, 794, 2268, 618],
+          "sha": "8100f28ec2cb4515",
+          "shows": ""
+        },
+        {
+          "image": "505.jpg",
+          "crop": "505-1246.jpg",
+          "box": [0, 1246, 2268, 442],
+          "sha": "cc117b3d6a25708c",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-1246.jpg refrain row begins 'I want my friends'; 505-794.jpg holds only the stanza rows."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 50
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-1694.jpg",
+          "box": [0, 1694, 2268, 444],
+          "sha": "4b50945ac5dff488",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-1694.jpg refrain row prints 'for me; I need the prayers of those I love'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 17
+        }
+      ],
+      "row": "i may walk the narrow way kept by our fathers glorious grace i",
+      "readings": [""],
+      "printed": "I may walk the narrow way Kept by our Father's glorious grace I",
+      "sung": "I may walk the narrow way Kept by our Father's glorious grace I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-360.jpg",
+          "box": [0, 360, 2268, 584],
+          "sha": "373c8428dcbe33b2",
+          "shows": ""
+        },
+        {
+          "image": "505.jpg",
+          "crop": "505-794.jpg",
+          "box": [0, 794, 2268, 618],
+          "sha": "8100f28ec2cb4515",
+          "shows": "I may walk the narrow way Kept by our Father's glorious grace"
+        },
+        {
+          "image": "505.jpg",
+          "crop": "505-1246.jpg",
+          "box": [0, 1246, 2268, 442],
+          "sha": "cc117b3d6a25708c",
+          "shows": "I"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-360.jpg row 3 ends at 'faith,'; 505-794.jpg row 3 prints 'That I may walk the nar-row way, Kept by our Fa-ther's glo-rious grace'; 505-1246.jpg refrain begins 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 49
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "505.jpg",
+          "crop": "505-1694.jpg",
+          "box": [0, 1694, 2268, 444],
+          "sha": "4b50945ac5dff488",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-505 (Opus, effort max)",
+      "why": "505-1694.jpg refrain row prints 'for me; I need the prayers of those I love'."
+    }
+  ]
+}

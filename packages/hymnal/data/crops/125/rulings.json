@@ -1,0 +1,60 @@
+{
+  "number": 125,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 4
+        }
+      ],
+      "row": "and",
+      "readings": [""],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "125.jpg",
+          "crop": "125-19.jpg",
+          "box": [0, 19, 2268, 884],
+          "sha": "537cf3dce8fa3c0b",
+          "shows": "and"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "125-19.jpg row 3 prints 'No more let sin and sor-row grow'; the OCR missed 'and'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "far as",
+      "readings": [""],
+      "printed": "Far as",
+      "sung": "Far as",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "125.jpg",
+          "crop": "125-881.jpg",
+          "box": [0, 881, 2268, 604],
+          "sha": "5719b0673eb5dedb",
+          "shows": ""
+        },
+        {
+          "image": "125.jpg",
+          "crop": "125-1349.jpg",
+          "box": [0, 1349, 2268, 460],
+          "sha": "36351aefe216c02c",
+          "shows": "Far as"
+        }
+      ],
+      "judge": "judge-122 (Opus, effort max)",
+      "why": "125-1349.jpg row 3 begins 'Far as the curse is found'; 125-881.jpg row 3 ends at 'flow'."
+    }
+  ]
+}

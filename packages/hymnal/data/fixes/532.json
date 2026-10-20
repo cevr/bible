@@ -1,0 +1,123 @@
+{
+  "number": 532,
+  "title": "Day By Day",
+  "print": "the owner's photo of his 1985 book (532-b-p2.jpg, 532-b.jpg, 532.jpg), each line read off the page at its system and row; the rulings (data/crops/532/rulings.json) put in what the page prints where the base row differs: \"counselor\" -> \"counsellor\" (words, crops 532-b-1386.jpg, judge-532 (Opus, effort max)).",
+  "stanzas": [
+    [
+      {
+        "text": "Day by day and with each passing moment,",
+        "from": "532-b.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Strength I find to meet my trials here;",
+        "from": "532-b.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Trusting in my Father's wise bestowment,",
+        "from": "532-b.jpg system 2, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "I've no cause for worry or for fear,",
+        "from": "532-b.jpg system 3, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "He whose heart is kind beyond all measure",
+        "from": "532-b.jpg system 3, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Gives unto each day what He deems best",
+        "from": "532-b.jpg system 4, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Lovingly, its part of pain and pleasure,",
+        "from": "532-b.jpg system 4, row 1. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Mingling toil with peace and rest.",
+        "from": "532-b-p2.jpg system 1, row 1. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Every day the Lord Himself is near me",
+        "from": "532-b.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "With a special mercy for each hour;",
+        "from": "532-b.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "All my cares he fain would bear, and cheer me,",
+        "from": "532-b.jpg system 2, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "He whose name is counsellor and power.",
+        "from": "532-b.jpg system 3, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "The protection of His child and treasure",
+        "from": "532-b.jpg system 3, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Is a charge that on Himself He laid:",
+        "from": "532-b.jpg system 4, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "As your days, your strength shall be in measure,",
+        "from": "532-b.jpg system 4, row 2. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "This the pledge to me He made.",
+        "from": "532-b-p2.jpg system 1, row 2. (placed off the page by from-532 (Opus))"
+      }
+    ],
+    [
+      {
+        "text": "Help me then in every tribulation",
+        "from": "532-b.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "So to trust Thy promises, O Lord,",
+        "from": "532-b.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "That I lose not faith's sweet consolation",
+        "from": "532-b.jpg system 2, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Offered me within Thy holy Word.",
+        "from": "532-b.jpg system 3, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Help me Lord, when toil and trouble meeting,",
+        "from": "532-b.jpg system 3, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "E'er to take, as from a Father's hand,",
+        "from": "532-b.jpg system 4, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "One by one, the days, the moments fleeting,",
+        "from": "532-b.jpg system 4, row 3. (placed off the page by from-532 (Opus))"
+      },
+      {
+        "text": "Till I reach the promised land.",
+        "from": "532-b-p2.jpg system 1, row 3. (placed off the page by from-532 (Opus))"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "Day by day and with each passing moment,\nStrength I find to meet my trials here;\nTrusting in my Father's wise bestowment,\nI've no cause for worry or for fear,\nHe whose heart is kind beyond all measure\nGives unto each day what He deems best\nLovingly, its part of pain and pleasure,\nMingling toil with peace and rest."
+    },
+    {
+      "id": 1,
+      "text": "Every day the Lord Himself is near me\nWith a special mercy for each hour;\nAll my cares he fain would bear, and cheer me,\nHe whose name is Counselor and power.\nThe protection of His child and treasure\nIs a charge that on Himself He laid:\nAs your days, your strength shall be in measure,\nThis the pledge to me He made."
+    },
+    {
+      "id": 2,
+      "text": "Help me then in every tribulation\nSo to trust Thy promises, O Lord,\nThat I lose not faith's sweet consolation\nOffered me within Thy holy Word.\nHelp me Lord, when toil and trouble meeting,\nE'er to take, as from a Father's hand,\nOne by one, the days, the moments fleeting,\nTill I reach the promised land."
+    }
+  ]
+}

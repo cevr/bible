@@ -1,7 +1,7 @@
 {
   "number": 214,
   "title": "We Have This Hope",
-  "print": "the owner's photo of his 1985 book (214.jpg, 215.jpg), each line read off the page at its system and row; the rulings (data/crops/214/rulings.json) put in what the page prints where the base row differs: \"heanns\" -> \"heav'ns\" (words, crop 214-1912.jpg, judge-209 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (214.jpg, 215.jpg), each line read off the page at its system and row; the rulings (data/crops/214/rulings.json) put in what the page prints where the base row differs: \"heanns\" -> \"heav'ns\" (words, crops 214-1912.jpg, judge-209 (Opus, effort max)); \"heanns\" -> \"heav'ns\" (words, crops 214-1917.jpg, judge-122 (Opus, effort max)).",
   "stanzas": [
     [
       {

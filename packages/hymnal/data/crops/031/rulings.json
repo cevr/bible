@@ -1,0 +1,60 @@
+{
+  "number": 31,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 34
+        }
+      ],
+      "row": "mighty",
+      "readings": ["might"],
+      "printed": "mighty",
+      "sung": "mighty",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "031.png",
+          "crop": "031-1253.jpg",
+          "box": [0, 1253, 1274, 268],
+          "sha": "bb33e7b52819e18a",
+          "shows": "mighty"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "031-1253.jpg row 2 prints 'the Lord, the Might - y One.', joined 'Mighty'; the OCR caught only 'might'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 15
+        }
+      ],
+      "row": "mercy sure",
+      "readings": [""],
+      "printed": "mercy sure",
+      "sung": "mercy sure",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "031.png",
+          "crop": "031-495.jpg",
+          "box": [0, 495, 1274, 270],
+          "sha": "ad3f8226e2fb4451",
+          "shows": "mercy sure"
+        },
+        {
+          "image": "031.png",
+          "crop": "031-874.jpg",
+          "box": [0, 874, 1274, 272],
+          "sha": "11a38c107e6df482",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "031-495.jpg row 4 prints 'and His mer - cy sure.' plainly; 031-874.jpg row 4 is 'Tell out, my soul' and holds none of it."
+    }
+  ]
+}

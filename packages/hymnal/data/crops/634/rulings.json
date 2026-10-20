@@ -4,6 +4,54 @@
     {
       "sites": [
         {
+          "unit": 2,
+          "at": 43
+        }
+      ],
+      "row": "and with",
+      "readings": [""],
+      "printed": "and with",
+      "sung": "and with",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "634.jpg",
+          "crop": "634-1404.jpg",
+          "box": [0, 1404, 2268, 1280],
+          "sha": "d894bf485730ceb3",
+          "shows": "and with"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "634-1404.jpg, last system row 2 prints 'And with joy His prais-es sing'; the OCR missed 'And with'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 46
+        }
+      ],
+      "row": "his praises sing",
+      "readings": ["and"],
+      "printed": "his praises sing",
+      "sung": "his praises sing",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "634.jpg",
+          "crop": "634-1404.jpg",
+          "box": [0, 1404, 2268, 1280],
+          "sha": "d894bf485730ceb3",
+          "shows": "his praises sing"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "634-1404.jpg, last system row 2 prints 'His prais-es sing.'"
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 14
         }
@@ -15,15 +63,39 @@
       "kind": "words",
       "crops": [
         {
-          "image": "634.png",
-          "crop": "634-403.jpg",
-          "box": [0, 403, 1275, 373],
-          "sha": "d30954651ca8a17b",
+          "image": "634.jpg",
+          "crop": "634-1063.jpg",
+          "box": [0, 1063, 2268, 554],
+          "sha": "20c56fa987cb4ca0",
           "shows": ""
         }
       ],
       "judge": "judge-634 (Opus, effort max)",
-      "why": "Row 3 (the 'one;' row) prints 'Show-ing mer-cy to an-oth-er' with no 'one' between 'to' and 'another'; the eight syllables match stanza 1's 'Make your lives for Him more fit-ted'."
+      "why": "634-1063.jpg row 3 prints 'Show-ing mer-cy to an-oth-er' with no 'one' before 'another'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "joy and",
+      "readings": [""],
+      "printed": "joy and",
+      "sung": "joy and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "634.jpg",
+          "crop": "634-1404.jpg",
+          "box": [0, 1404, 2268, 1280],
+          "sha": "d894bf485730ceb3",
+          "shows": "joy and"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "634-1404.jpg, last system row 3 prints 'Joy and peace are ful-ly thine.'"
     },
     {
       "sites": [
@@ -39,15 +111,39 @@
       "kind": "words",
       "crops": [
         {
-          "image": "634.png",
-          "crop": "634-114.jpg",
-          "box": [0, 114, 1275, 277],
-          "sha": "40404f1f1695e315",
+          "image": "634.jpg",
+          "crop": "634-242.jpg",
+          "box": [0, 242, 2268, 906],
+          "sha": "a3f619105490d7dc",
           "shows": "on"
         }
       ],
       "judge": "judge-634 (Opus, effort max)",
-      "why": "Row 4. prints 'All who on Christ's name be-' plainly."
+      "why": "634-242.jpg row 4 prints 'All who on Christ's name be-lieve', not 'in'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 32
+        }
+      ],
+      "row": "the word and",
+      "readings": [""],
+      "printed": "the word and",
+      "sung": "the word and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "634.jpg",
+          "crop": "634-1404.jpg",
+          "box": [0, 1404, 2268, 1280],
+          "sha": "d894bf485730ceb3",
+          "shows": "the word and"
+        }
+      ],
+      "judge": "judge-634 (Opus, effort max)",
+      "why": "634-1404.jpg, middle system row 4 ends 'and the Word,' and last system row 4 begins 'And re-peat'."
     }
   ]
 }

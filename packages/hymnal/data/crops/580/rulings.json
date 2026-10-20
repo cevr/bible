@@ -5,6 +5,37 @@
       "sites": [
         {
           "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "im going to let it shine",
+      "readings": [""],
+      "printed": "I'm going to let it shine",
+      "sung": "I'm going to let it shine",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-20.jpg",
+          "box": [0, 20, 2268, 410],
+          "sha": "a97cfe27051bc608",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-207.jpg",
+          "box": [0, 207, 2268, 794],
+          "sha": "2398f5a0b17032ed",
+          "shows": "I'm going to let it shine"
+        }
+      ],
+      "judge": "judge-again-497 (Opus, effort max)",
+      "why": "580-207.jpg prints 'I'm going to let it shine,' once, level with row 2, after the three stanza rows and under bars every stanza sings (the echo '(shine)' follows it); 580-20.jpg shows only the title."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
           "at": 11
         }
       ],
@@ -24,6 +55,58 @@
       ],
       "judge": "judge-554 (Opus, effort max)",
       "why": "The first system prints the shared line 'I'm going to let it shine, (shine)' once for all stanzas; the second 'shine' is in parentheses, an echo the database leaves out."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 16
+        }
+      ],
+      "row": "im going to let it shine",
+      "readings": [""],
+      "printed": "I'm going to let it shine",
+      "sung": "I'm going to let it shine",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-20.jpg",
+          "box": [0, 20, 2268, 410],
+          "sha": "a97cfe27051bc608",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-207.jpg",
+          "box": [0, 207, 2268, 794],
+          "sha": "2398f5a0b17032ed",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-772.jpg",
+          "box": [0, 772, 2268, 634],
+          "sha": "8519c0046229ae75",
+          "shows": "I'm going to let it shine"
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1281.jpg",
+          "box": [0, 1281, 2268, 496],
+          "sha": "6f57bd166d5f60d1",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1543-616.jpg",
+          "box": [0, 1543, 2268, 616],
+          "sha": "83ef8eecdaba13b9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-772.jpg system 2 prints 'I'm going to let it shine, (shine)' once beside the three rows, for every stanza."
     },
     {
       "sites": [
@@ -52,6 +135,85 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 27
+        }
+      ],
+      "row": "im going to",
+      "readings": [""],
+      "printed": "I'm going to",
+      "sung": "I'm going to",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-1543-616.jpg",
+          "box": [0, 1543, 2268, 616],
+          "sha": "83ef8eecdaba13b9",
+          "shows": "I'm going to"
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1543-616.jpg system 3 prints 'I'm going to let it shine' once beside the three rows, for every stanza; 580-1959.jpg holds the last system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 34
+        }
+      ],
+      "row": "it",
+      "readings": [""],
+      "printed": "it",
+      "sung": "it",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": "it"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1959.jpg's single row prints 'it' in the first 'Let it shine'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 39
+        }
+      ],
+      "row": "let it shine",
+      "readings": [""],
+      "printed": "let it shine",
+      "sung": "let it shine",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": "let it shine"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1959.jpg's single row ends with the third 'let it shine'."
+    },
+    {
+      "sites": [
+        {
           "unit": 2,
           "at": 9
         }
@@ -68,6 +230,13 @@
           "box": [0, 0, 2268, 868],
           "sha": "26ef8acef7cf8891",
           "shows": "(shine)"
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1543.jpg",
+          "box": [0, 1543, 2268, 432],
+          "sha": "778e57e751bda2cc",
+          "shows": ""
         }
       ],
       "judge": "judge-554 (Opus, effort max)",
@@ -100,6 +269,54 @@
     {
       "sites": [
         {
+          "unit": 2,
+          "at": 31
+        }
+      ],
+      "row": "it",
+      "readings": [""],
+      "printed": "it",
+      "sung": "it",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": "it"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1959.jpg's single row prints 'it' in the second 'let it shine'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 9
+        }
+      ],
+      "row": "",
+      "readings": ["saine"],
+      "printed": "(shine)",
+      "sung": "",
+      "kind": "echo",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-207.jpg",
+          "box": [0, 207, 2268, 794],
+          "sha": "2398f5a0b17032ed",
+          "shows": "(shine)"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-207.jpg system 1 prints the shared line with the echo '(shine)' in parentheses after 'shine'; the reading took the echo in."
+    },
+    {
+      "sites": [
+        {
           "unit": 3,
           "at": 10
         }
@@ -125,6 +342,44 @@
       "sites": [
         {
           "unit": 3,
+          "at": 14
+        }
+      ],
+      "row": "im going to let it shine",
+      "readings": [""],
+      "printed": "I'm going to let it shine",
+      "sung": "I'm going to let it shine",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-772.jpg",
+          "box": [0, 772, 2268, 634],
+          "sha": "8519c0046229ae75",
+          "shows": "I'm going to let it shine"
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1281.jpg",
+          "box": [0, 1281, 2268, 496],
+          "sha": "6f57bd166d5f60d1",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1543-616.jpg",
+          "box": [0, 1543, 2268, 616],
+          "sha": "83ef8eecdaba13b9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-772.jpg system 2 prints 'I'm going to let it shine, (shine)' once beside the three rows, sung after row 3's line too."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
           "at": 20
         }
       ],
@@ -144,6 +399,99 @@
       ],
       "judge": "judge-580 (Opus, effort max)",
       "why": "Crop 580-1080 (second system): the 'All through the night,' row has no words there, and the shared line in the middle row ends 'shine, (shine)', a parenthesized echo that the database leaves out."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 24
+        }
+      ],
+      "row": "im going to",
+      "readings": [""],
+      "printed": "I'm going to",
+      "sung": "I'm going to",
+      "kind": "shared",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-772.jpg",
+          "box": [0, 772, 2268, 634],
+          "sha": "8519c0046229ae75",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1281.jpg",
+          "box": [0, 1281, 2268, 496],
+          "sha": "6f57bd166d5f60d1",
+          "shows": ""
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1543-616.jpg",
+          "box": [0, 1543, 2268, 616],
+          "sha": "83ef8eecdaba13b9",
+          "shows": "I'm going to"
+        },
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1543-616.jpg system 3 prints 'I'm going to let it shine' once beside the three rows, sung after row 3's line too."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 31
+        }
+      ],
+      "row": "it",
+      "readings": [""],
+      "printed": "it",
+      "sung": "it",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": "it"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1959.jpg's single row prints 'it' in the first 'Let it shine'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 36
+        }
+      ],
+      "row": "let it shine",
+      "readings": [""],
+      "printed": "let it shine",
+      "sung": "let it shine",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "580.jpg",
+          "crop": "580-1959.jpg",
+          "box": [0, 1959, 2268, 488],
+          "sha": "5c0b4e616acb755a",
+          "shows": "let it shine"
+        }
+      ],
+      "judge": "judge-562 (Opus, effort max)",
+      "why": "580-1959.jpg's single row ends with the third 'let it shine'."
     }
   ]
 }

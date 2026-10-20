@@ -177,53 +177,86 @@ chart, key or compiled file.
 `bun run census` holds every hymn 1 to 695 against its printed page in the
 1985 book, one entry each in `data/census.json`, prints a `problem` line for
 each disagreement and exits 1 on any (`scripts/census.ts` names each check).
-It reads only what its builder does not write:
+
+What the plain run reads and checks itself:
 
 - `data/pages.json`, the page inventory: the page images that show each
   hymn. These are the owner's photos (`data/photos/sdah-1985/`), the
   hymnary.org scan of the 1985 book (the pages it shows and the pages it
   withholds), and the SDAHImages engravings at a pinned commit. A hymn's
   deciding page is its photo when the photos show it whole; else its scan,
-  when hymnary.org shows every page of it; else its engraving.
+  when hymnary.org shows every page of it; else its engraving, unless the
+  engraving's credit line dates a words revision after 1985 (`revised`);
+  else none. A photo that shows part of a hymn stands beside its deciding
+  page and rules the places it shows. The hymns between two shown scan
+  pages' starts are put on every withheld page between them (inferred, not
+  seen), except a hymn a complete reading or a look at the page saw end on
+  a shown page; that is why page 71 lists no hymn.
 - `data/crops/NNN/`: crops of a deciding page cut at 1:1, and
-  `rulings.json`, the words a judge saw printed on each crop.
-- The base row: origin/main's hymnal.db row at `base.commit`.
+  `rulings.json`. Each ruling names its crops by file, box and digest (the
+  first 16 hex digits of the file's sha256), and the words a judge saw each
+  crop print at the place. A committed crop no ruling names is a problem.
+- The base row: hymnal.db at `base.commit`, read from git.
+- `data/fixes/NNN.json` and hymnal.db: a `fixed` row is the base row with
+  each ruling applied, and each fix line's `from` names a deciding image of
+  its hymn.
 
-Readings find; crops decide. A blind reader, shown the deciding page and
-never the row, transcribed it. Where a reader would not transcribe the
-words (a copyright notice, or the API's content filter), two proofreaders
-each marked every row line against the page, and wrote the page's line only
-where it differs. A script compares each reading with the base row in sung
-units (each stanza with the refrain after it). A run is a stretch of words
-where they differ; a word split alone (`for ever` against `forever`) is no
-run. A fresh judge rules each run on a crop of the page there: an Opus
-subagent at max effort that never saw the reading. A ruling is `words`,
-`misprint`, `echo`, `repeat`, `shared`, `layout` or `unreadable`, and
-applying every ruling to the base row gives the row. The readings hold the
-hymns' texts, so they are not committed; `bun run census --readings <dir>`
-holds them to the rulings.
+What the plain run trusts: each entry's reading counts (`readings.reader`,
+`readings.ocr`) and witness digest in `data/census.json`, which the builder
+writes, and which scan pages `data/pages.json` says hymnary.org shows. A
+hymn never read, with a written count of 1 and no rulings, passes the plain
+run. Three runs hold these:
 
-The four states (2026-10-19: 695 hymns, 288 rulings):
+- `bun run census --readings <dir>`: every blind reading's runs against the
+  rulings, and each entry's counts against the readings. The readings hold
+  the hymns' texts, so they are not committed.
+- `bun run census --scans <dir>`: the inventory's scan pages against the
+  fetched scans.
+- `bun run census --witness <csycms>`: the rows against the csycms
+  witness transcription, every refrain block compared.
 
-| State       | Hymns | Deciding page                     | Readings of it                             | Rulings that decided it                                                                                                                                                                                        |
-| ----------- | ----- | --------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `matches`   | 607   | 49 photo, 367 scan, 191 engraving | 525 one blind, 16 two blind, 66 two proofs | 589 with no ruling: no reading differs from the row in a word. 18 with 131 rulings that keep the row: 54 `echo`, 33 `layout`, 32 `words` (the reading misread the page), 6 `repeat`, 5 `shared`, 1 `misprint`. |
-| `fixed`     | 64    | 38 photo, 26 scan                 | 23 one blind, 24 two blind, 17 two proofs  | 123 rulings that change words: 116 `words`, 7 `repeat`.                                                                                                                                                        |
-| `unsettled` | 24    | 24 engraving                      | 1 one blind, 6 two blind, 17 two proofs    | 34 rulings that change words on an engraving, which never fixes a row: 30 `words`, 4 `shared`. No ruling is `unreadable`.                                                                                      |
-| `nopage`    | 0     |                                   |                                            |                                                                                                                                                                                                                |
+A handoff carries the logs of these runs.
+
+Readings find; crops decide. Every hymn is transcribed for comparison only,
+whatever its credit lines say. A blind reading of the deciding page is never
+shown the row: a model reader's transcription, or, for hymns whose words a
+model will not transcribe, the page's machine OCR (Apple Vision; its rows
+are ordered against the base row's parts, never changed by it). A script
+compares each reading with the base row in sung units (each stanza with the
+refrain after it). A run is a stretch of words where they differ; a word
+split alone (`for ever` against `forever`) is no run. A fresh judge (an
+Opus subagent at max effort that never saw a reading whole) rules each run
+on 1:1 crops of the page, one for each system the run lies on, and writes
+what each crop prints there. A ruling is `words`, `misprint`, `echo`,
+`repeat`, `shared`, `layout` or `unreadable`; a place no crop holds is
+`unreadable`. Applying every ruling to the base row gives the row. Two
+readings can find runs of different extent at one place, and each is ruled:
+a ruling inside a wider one is applied once and must agree with it, and
+rulings of one stretch with neither inside the other must come from one
+judge, so the row is never stitched from two readings of the page. Each
+line of a fix names the image, system and row it is printed in, placed by
+a reader that looked at the page, on an image the line's ruling has a crop
+of.
+
+The four states (2026-10-19: 695 hymns, 976 rulings):
+
+| State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                          |
+| ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `matches`   | 608   | 366 scan, 180 engraving, 62 photo | 519 1 reader, 71 1 OCR, 15 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 521 hymns with no ruling; 87 with 557 rulings: 0 change words, 557 keep the row (471 words, 35 layout, 34 echo, 10 shared, 6 repeat, 1 misprint) |
+| `fixed`     | 80    | 54 photo, 26 scan                 | 29 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 80 with 366 rulings: 157 change words (147 words, 10 repeat), 209 keep the row (209 words)                               |
+| `unsettled` | 3     | 2 engraving, 1 photo              | 3 1 OCR                                                             | 0 hymns with no ruling; 3 with 53 rulings: 22 change words (20 words, 2 shared), 31 keep the row (13 words, 12 echo, 4 layout, 2 unreadable)     |
+| `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                     |
 
 A `fixed` row is the base row with each ruling applied, written from its
 `data/fixes/NNN.json`. One reading is enough to fix a row: a reading only
-finds a run, and the judge's crop decides it. A `matches` row read by
-proofreaders is decided the same way: the API's content filter blocked the
-blind reading of 506's photo, both proofreaders marked every row line
-against the photo, and neither marked a difference, so 506 has no ruling. An `unsettled` or
-`nopage` row stays the base row, and the hymn waits on the owner's photo of
-its page; `bun run census` prints each with its note.
+finds a run, and the judge's crops decide it. An `unsettled` or `nopage` row
+stays the base row, and the hymn waits on the owner's photo of its page;
+`bun run census` prints each with its note.
 
 `src/census.test.ts` reads the census, the inventory, the rulings, the
 crops, the fixes and hymnal.db, and checks each entry against them: its
 deciding page, its base row, its state from its rulings, and its committed
 row as the base row with each ruling applied. Its mutant cases relabel an
-entry, drop a ruling or a crop, change a row word or a later refrain
-variant, and move a page, and the census catches each one.
+entry, drop a ruling or a crop, swap a crop's bytes, change a row word or a
+later refrain variant, move a page, and point a fix line at another page,
+and the census catches each one.

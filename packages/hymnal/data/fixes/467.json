@@ -1,7 +1,7 @@
 {
   "number": 467,
   "title": "Life Is Great! So Sing About It",
-  "print": "the owner's photo of his 1985 book (467.jpg), each line read off the page at its system and row; the rulings (data/crops/467/rulings.json) put in what the page prints where the base row differs: \"shop\" -> \"Shops\" (words, crop 467-0.jpg, judge-443 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (467.jpg), each line read off the page at its system and row; the rulings (data/crops/467/rulings.json) put in what the page prints where the base row differs: \"as we should shop and buses towns and people\" -> \"as we should Shops and buses towns and people\" (words, crops 467-0.jpg, 467-1222.jpg, judge-467 (Opus, effort max)); \"shop\" -> \"Shops\" (words, crops 467-0.jpg, judge-443 (Opus, effort max)).",
   "stanzas": [
     [
       {

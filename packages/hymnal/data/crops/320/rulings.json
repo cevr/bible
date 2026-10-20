@@ -1,0 +1,729 @@
+{
+  "number": 320,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 6
+        }
+      ],
+      "row": "all",
+      "readings": ["tall"],
+      "printed": "all",
+      "sung": "all",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "all"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 1 prints 'You be all praise!'; the OCR's 'tall' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 9
+        }
+      ],
+      "row": "mighty your working most wondrous your ways your",
+      "readings": [""],
+      "printed": "mighty Your working most wondrous Your ways Your",
+      "sung": "mighty Your working most wondrous Your ways Your",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "mighty Your working most wondrous Your ways Your"
+        },
+        {
+          "image": "320.jpg",
+          "crop": "320-1048.jpg",
+          "box": [0, 1048, 2268, 416],
+          "sha": "b3d0ff87ab4af17c",
+          "shows": ""
+        },
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg second system row 1 prints 'might - y Your work - ing, most won - drous Your ways! Your'; 320-1048.jpg and 320-1193.jpg do not hold that row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 25
+        }
+      ],
+      "row": "and",
+      "readings": [""],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "and"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 1 of its first system ends 'to tell, And'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 27
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 1 prints 'yet in the heart'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 1 prints 'heart of the hum - ble'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 34
+        }
+      ],
+      "row": "dwell",
+      "readings": [""],
+      "printed": "dwell",
+      "sung": "dwell",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "dwell"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 1 ends 'You dwell.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 4
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 2 prints 'pow - er, I give You my will'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 10
+        }
+      ],
+      "row": "joyful obedience",
+      "readings": [""],
+      "printed": "joyful obedience",
+      "sung": "joyful obedience",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "joyful obedience"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg second system row 2 prints 'joy - ful o - be - dience Your tasks'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 21
+        }
+      ],
+      "row": "service",
+      "readings": ["ser"],
+      "printed": "service",
+      "sung": "service",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "service"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 2 of its first system prints 'Your ser - vice is song'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "and",
+      "readings": [""],
+      "printed": "and",
+      "sung": "and",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "and"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 2 of its first system ends 'song; And'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 26
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 2 prints 'held in Your keep - ing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 32
+        }
+      ],
+      "row": "strong",
+      "readings": [""],
+      "printed": "strong",
+      "sung": "strong",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "strong"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 2 ends 'is strong.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 1
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 3 prints '3. Lord of all wis - dom'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 4
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 3 prints 'wis - dom, I give You my mind'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 6
+        }
+      ],
+      "row": "you",
+      "readings": [""],
+      "printed": "you",
+      "sung": "you",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "you"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 3 prints 'I give You my mind'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 8
+        }
+      ],
+      "row": "mind",
+      "readings": [""],
+      "printed": "mind",
+      "sung": "mind",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "mind"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 3 prints 'my mind, Rich'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 10
+        }
+      ],
+      "row": "truth that",
+      "readings": ["rich"],
+      "printed": "truth that",
+      "sung": "truth that",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "truth that"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg second system row 3 begins 'truth that sur - pass - es'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "has",
+      "readings": [""],
+      "printed": "has",
+      "sung": "has",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "has"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 3 of its first system prints 'eye has not seen'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 25
+        }
+      ],
+      "row": "has",
+      "readings": [""],
+      "printed": "has",
+      "sung": "has",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "has"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 3 of its first system prints 'what ear has not heard'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 28
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 3 of its first system ends 'heard Is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 32
+        }
+      ],
+      "row": "spirit",
+      "readings": ["spir"],
+      "printed": "spirit",
+      "sung": "spirit",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "spirit"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 3 prints 'by Your Spir - it and shines'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 37
+        }
+      ],
+      "row": "word",
+      "readings": [""],
+      "printed": "word",
+      "sung": "word",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "word"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 3 ends 'Your Word.'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 1
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 4 prints '4. Lord of all be - ing'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 4
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg row 4 prints 'be - ing, I give You my all'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 18
+        }
+      ],
+      "row": "but",
+      "readings": [""],
+      "printed": "But",
+      "sung": "But",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-360.jpg",
+          "box": [0, 360, 2268, 848],
+          "sha": "14736ea25bab0d60",
+          "shows": "But"
+        },
+        {
+          "image": "320.jpg",
+          "crop": "320-1048.jpg",
+          "box": [0, 1048, 2268, 416],
+          "sha": "b3d0ff87ab4af17c",
+          "shows": ""
+        },
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-360.jpg second system row 4 ends 'and fall; But'; the same row shows again at the top of 320-1048.jpg, so its 'But' goes to 320-360.jpg only; 320-1193.jpg does not hold that row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 20
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 4 of its first system prints 'led in Your ser - vice'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 26
+        }
+      ],
+      "row": "obey ill",
+      "readings": [""],
+      "printed": "obey ill",
+      "sung": "obey ill",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "obey ill"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg row 4 of its first system ends 'to o - bey, I'll'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 29
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 4 prints 'walk in Your free - dom'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 31
+        }
+      ],
+      "row": "freedom",
+      "readings": ["dom"],
+      "printed": "freedom",
+      "sung": "freedom",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "320.jpg",
+          "crop": "320-1193.jpg",
+          "box": [0, 1193, 2268, 1022],
+          "sha": "44b430a92e5f1e4c",
+          "shows": "freedom"
+        }
+      ],
+      "judge": "judge-320 (Opus, effort max)",
+      "why": "320-1193.jpg last system row 4 prints 'free - dom to the end'; the OCR kept only 'dom'."
+    }
+  ]
+}

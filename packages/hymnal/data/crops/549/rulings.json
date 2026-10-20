@@ -1,0 +1,29 @@
+{
+  "number": 549,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 16
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "548.jpg",
+          "crop": "548-2075.jpg",
+          "box": [0, 2075, 2268, 502],
+          "sha": "d07ee077cc38d3e2",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "548-2075.jpg row 3 prints 'heaven-ly fold I my Shep-herd'."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "number": 461,
   "title": "Be Still My Soul",
-  "print": "the owner's photo of his 1985 book (461.jpg), each line read off the page at its system and row; the rulings (data/crops/461/rulings.json) put in what the page prints where the base row differs: \"dwelth\" -> \"dwelt\" (words, crop 461-1800.jpg, judge-443 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (461.jpg), each line read off the page at its system and row; the rulings (data/crops/461/rulings.json) put in what the page prints where the base row differs: \"dwelth\" -> \"dwelt\" (words, crops 461-1800.jpg, judge-443 (Opus, effort max)).",
   "stanzas": [
     [
       {

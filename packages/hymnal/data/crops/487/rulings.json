@@ -1,0 +1,235 @@
+{
+  "number": 487,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 17
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-681.jpg",
+          "box": [0, 681, 1758, 544],
+          "sha": "df8b58ae3af5a42a",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-681.jpg row 1 prints 'And the voice I hear'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 42
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-2011.jpg",
+          "box": [0, 2011, 1758, 618],
+          "sha": "4aed1b1448019635",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-2011.jpg, the refrain row, prints 'And He tells me I am His own'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 22
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-681.jpg",
+          "box": [0, 681, 1758, 544],
+          "sha": "df8b58ae3af5a42a",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-681.jpg row 2 prints 'that He gave to me'; the OCR missed 'to'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "within",
+      "readings": ["with"],
+      "printed": "Within",
+      "sung": "Within",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-681.jpg",
+          "box": [0, 681, 1758, 544],
+          "sha": "df8b58ae3af5a42a",
+          "shows": "With-"
+        },
+        {
+          "image": "p475.jpg",
+          "crop": "p475-1198.jpg",
+          "box": [0, 1198, 1758, 296],
+          "sha": "bcfbddae276a3e5f",
+          "shows": ""
+        },
+        {
+          "image": "p475.jpg",
+          "crop": "p475-1416.jpg",
+          "box": [0, 1416, 1758, 378],
+          "sha": "4d4d8616d8f5d0cc",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-681.jpg row 2 ends 'With -' and p475-1416.jpg row 2 begins 'in', making 'within'; p475-1198.jpg holds no lyric row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 27
+        }
+      ],
+      "row": "is",
+      "readings": [""],
+      "printed": "is",
+      "sung": "is",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-1416.jpg",
+          "box": [0, 1416, 1758, 378],
+          "sha": "4d4d8616d8f5d0cc",
+          "shows": "is"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-1416.jpg row 2 prints 'in my heart is ring-ing'; the OCR missed 'is'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 43
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-2011.jpg",
+          "box": [0, 2011, 1758, 618],
+          "sha": "4aed1b1448019635",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-2011.jpg, the refrain row sung after each stanza, prints 'tells me I am His own'; the OCR missed 'I'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 26
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-1416.jpg",
+          "box": [0, 1416, 1758, 378],
+          "sha": "4d4d8616d8f5d0cc",
+          "shows": "to"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-1416.jpg row 3 prints 'voice to me is call-ing'; the OCR missed 'to'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 29
+        }
+      ],
+      "row": "calling",
+      "readings": [""],
+      "printed": "calling",
+      "sung": "calling",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-1416.jpg",
+          "box": [0, 1416, 1758, 378],
+          "sha": "4d4d8616d8f5d0cc",
+          "shows": "calling"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-1416.jpg row 3 prints 'call - ing' (calling); the OCR missed it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 44
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p475.jpg",
+          "crop": "p475-2011.jpg",
+          "box": [0, 2011, 1758, 618],
+          "sha": "4aed1b1448019635",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-467 (Opus, effort max)",
+      "why": "p475-2011.jpg, the refrain row sung after each stanza, prints 'tells me I am His own'; the OCR missed 'I'."
+    }
+  ]
+}

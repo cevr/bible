@@ -4,6 +4,243 @@
     {
       "sites": [
         {
+          "unit": 1,
+          "at": 12
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-1056.jpg",
+          "box": [0, 1056, 2268, 742],
+          "sha": "2e88e551bb7cbc2a",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-1056.jpg row 1 prints 'like me! I once was lost'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 14
+        }
+      ],
+      "row": "was",
+      "readings": [""],
+      "printed": "was",
+      "sung": "was",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-1056.jpg",
+          "box": [0, 1056, 2268, 742],
+          "sha": "2e88e551bb7cbc2a",
+          "shows": "was"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-1056.jpg row 1 prints 'I once was lost, but'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 24
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "i",
+      "sung": "i",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-1538.jpg",
+          "box": [0, 1538, 2268, 616],
+          "sha": "bbe7a3973ad0a2dc",
+          "shows": "i"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-1538.jpg row 1 prints 'but now I see.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 0
+        }
+      ],
+      "row": "twas",
+      "readings": [""],
+      "printed": "twas",
+      "sung": "twas",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-265.jpg",
+          "box": [0, 265, 2268, 940],
+          "sha": "6946d3dc94cb2420",
+          "shows": "twas"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-265.jpg row 2 prints '2. 'Twas grace that taught'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 17
+        }
+      ],
+      "row": "portion",
+      "readings": [""],
+      "printed": "portion",
+      "sung": "portion",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-1056.jpg",
+          "box": [0, 1056, 2268, 742],
+          "sha": "2e88e551bb7cbc2a",
+          "shows": ""
+        },
+        {
+          "image": "108.jpg",
+          "crop": "108-1538.jpg",
+          "box": [0, 1538, 2268, 616],
+          "sha": "bbe7a3973ad0a2dc",
+          "shows": "portion"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-1056.jpg row 3 ends 'my shield and' and 108-1538.jpg row 3 begins 'por-tion be'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 21
+        }
+      ],
+      "row": "as",
+      "readings": [""],
+      "printed": "as",
+      "sung": "as",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-1538.jpg",
+          "box": [0, 1538, 2268, 616],
+          "sha": "bbe7a3973ad0a2dc",
+          "shows": "as"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-1538.jpg row 3 prints 'As long as life en-dures.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 1
+        }
+      ],
+      "row": "many",
+      "readings": ["man"],
+      "printed": "many",
+      "sung": "many",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-265.jpg",
+          "box": [0, 265, 2268, 940],
+          "sha": "6946d3dc94cb2420",
+          "shows": "many"
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-265.jpg row 4 prints 'Through man - y dan-gers', the word 'many'; the OCR caught only 'man'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 6
+        }
+      ],
+      "row": "i",
+      "readings": [""],
+      "printed": "I",
+      "sung": "I",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-265.jpg",
+          "box": [0, 265, 2268, 940],
+          "sha": "6946d3dc94cb2420",
+          "shows": "I"
+        },
+        {
+          "image": "108.jpg",
+          "crop": "108-1056.jpg",
+          "box": [0, 1056, 2268, 742],
+          "sha": "2e88e551bb7cbc2a",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-265.jpg row 4 ends 'and snares, I'; 108-1056.jpg only repeats that same row at its top edge and its own row 4 begins 'have', so 'I' is printed once."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 16
+        }
+      ],
+      "row": "to",
+      "readings": [""],
+      "printed": "to",
+      "sung": "to",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "108.jpg",
+          "crop": "108-1056.jpg",
+          "box": [0, 1056, 2268, 742],
+          "sha": "2e88e551bb7cbc2a",
+          "shows": "to"
+        },
+        {
+          "image": "108.jpg",
+          "crop": "108-1538.jpg",
+          "box": [0, 1538, 2268, 616],
+          "sha": "bbe7a3973ad0a2dc",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-100 (Opus, effort max)",
+      "why": "108-1056.jpg row 5 ends 'no less days to' and 108-1538.jpg row 5 begins 'sing God's praise'."
+    },
+    {
+      "sites": [
+        {
           "unit": 5,
           "at": 22
         }

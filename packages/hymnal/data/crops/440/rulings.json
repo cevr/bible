@@ -16,14 +16,14 @@
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-782.jpg",
-          "box": [0, 782, 1759, 339],
-          "sha": "8f9f8b94a6353d22",
+          "crop": "p427-784.jpg",
+          "box": [0, 784, 1758, 336],
+          "sha": "ece7b11e2d5c5ef4",
           "shows": "buoys"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "The main row of system 2 (crop p427-782) prints 'It buoys us up while', spelled b-u-o-y-s, so the database's 'bouys' is a typo."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p427-784.jpg row 1 prints 'It buoys us up while'; the database's 'bouys' is a misspelling."
     },
     {
       "sites": [
@@ -40,14 +40,42 @@
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-1042.jpg",
-          "box": [0, 1042, 1759, 301],
-          "sha": "3ff54ffe5fc9cbd6",
+          "crop": "p427-784.jpg",
+          "box": [0, 784, 1758, 336],
+          "sha": "ece7b11e2d5c5ef4",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1042-300.jpg",
+          "box": [0, 1042, 1758, 300],
+          "sha": "074519c355f6b3ca",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
           "shows": "passing through"
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1546.jpg",
+          "box": [0, 1546, 1758, 304],
+          "sha": "91dc25597b375457",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1785.jpg",
+          "box": [0, 1785, 1758, 344],
+          "sha": "873cdebd9a212638",
+          "shows": ""
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "The bass row in crop p427-1042 prints 'It buoys us up while pass-ing through This', and the main row also runs from 'while' (system 2) into 'pass-ing through This' (system 3 on the page image)."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The stanza row runs from 'It buoys us up while' (p427-784.jpg row 1) into 'pass-ing through This' (p427-1292.jpg row 1); the row under the bass staff on p427-1042-300.jpg is the bass's own earlier entry, not the stanza row."
     },
     {
       "sites": [
@@ -58,20 +86,48 @@
       ],
       "row": "",
       "readings": ["wilderness of woe it buoys us up while"],
-      "printed": "wilderness of woe It buoys us up while",
-      "sung": "wilderness of woe It buoys us up while",
+      "printed": "wilderness of woe, It buoys us up while",
+      "sung": "wilderness of woe, It buoys us up while",
       "kind": "words",
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-1783.jpg",
-          "box": [0, 1783, 1759, 347],
-          "sha": "fb13b76166d5ac60",
-          "shows": "wilderness of woe It buoys us up while"
+          "crop": "p427-784.jpg",
+          "box": [0, 784, 1758, 336],
+          "sha": "ece7b11e2d5c5ef4",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1042-300.jpg",
+          "box": [0, 1042, 1758, 300],
+          "sha": "074519c355f6b3ca",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
+          "shows": "wilderness of woe, It"
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1546.jpg",
+          "box": [0, 1546, 1758, 304],
+          "sha": "91dc25597b375457",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1785.jpg",
+          "box": [0, 1785, 1758, 344],
+          "sha": "873cdebd9a212638",
+          "shows": "buoys us up while"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "The main row prints the fuguing lines twice: 'wil-der-ness of woe, It' ends system 3 (page image p427.jpg), and 'buoys us up while' opens the top row of crop p427-1783 before the second 'pass-ing through This wil-der-ness of woe.'"
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The stanza row sings the line twice: p427-1292.jpg row 1 'This wil-der-ness of woe, It', then p427-1785.jpg row 1 'buoys us up while pass-ing through This wil-der-ness of woe.'; p427-1292.jpg row 2 and the bass row on p427-1546.jpg are other voices' entries."
     },
     {
       "sites": [
@@ -88,14 +144,21 @@
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
           "shows": "points"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "Crop p427-2101 prints stanza '2. It points us to a land of rest,' below the music; the database's unit 2 holds stanza 1's fuguing rows instead of stanza 2."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "Stanza 2 is printed only below the music, on p427-2103.jpg left column, '2. It points us to a land of rest,'; the 'buoys' in p427-1292.jpg row 2 is stanza 1, another voice's entry."
     },
     {
       "sites": [
@@ -112,14 +175,21 @@
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
           "shows": "to a land"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "Stanza 2, line 1 in crop p427-2101 prints 'It points us to a land of rest,' (crop p427-1783 holds only stanza 1's music rows)."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p427-2103.jpg stanza 2 line 1 prints 'It points us to a land of rest,'; p427-1292.jpg holds only stanza 1."
     },
     {
       "sites": [
@@ -130,20 +200,41 @@
       ],
       "row": "woe it bouys us up while passing through this wilderness",
       "readings": ["rest where saints with christ will reign where we shall meet the loved"],
-      "printed": "rest Where saints with Christ will reign Where we shall meet the loved",
-      "sung": "rest Where saints with Christ will reign Where we shall meet the loved",
+      "printed": "rest, Where saints with Christ will reign; Where we shall meet the loved",
+      "sung": "rest, Where saints with Christ will reign; Where we shall meet the loved",
       "kind": "words",
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
-          "shows": "rest Where saints with Christ will reign Where we shall meet the loved"
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1546.jpg",
+          "box": [0, 1546, 1758, 304],
+          "sha": "91dc25597b375457",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1785.jpg",
+          "box": [0, 1785, 1758, 344],
+          "sha": "873cdebd9a212638",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
+          "shows": "rest, Where saints with Christ will reign; Where we shall meet the loved"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "Stanza 2 in crop p427-2101 prints 'land of rest, / Where saints with Christ will reign; / Where we shall meet the loved of earth,'."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p427-2103.jpg stanza 2 prints 'of rest, Where saints with Christ will reign; Where we shall meet the loved of earth,'; the music crops hold only stanza 1."
     },
     {
       "sites": [
@@ -154,20 +245,34 @@
       ],
       "row": "woe",
       "readings": ["earth and never part again"],
-      "printed": "earth And never part again",
-      "sung": "earth And never part again Where we shall meet the loved of earth And never part again",
+      "printed": "earth, And never part again",
+      "sung": "earth, And never part again, Where we shall meet the loved of earth, And never part again",
       "kind": "repeat",
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
-          "shows": "earth And never part again"
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1785.jpg",
+          "box": [0, 1785, 1758, 344],
+          "sha": "873cdebd9a212638",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
+          "shows": "earth, And never part again"
         }
       ],
-      "judge": "judge-440-2 (Opus, effort max)",
-      "why": "Stanza 2 below the music (p427-2101.jpg) prints 'earth, / And never part again.' once, but the melody row under stanza 1 (p427-782.jpg row 1, the page's third system, p427-1783.jpg row 1) sings lines 3-4 twice ('It buoys us up while passing through This wilderness of woe, It buoys us up ... woe.'), so stanza 2 sings its lines 3-4 again."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The music sings lines 3-4 twice, its stanza row starting them again at 'woe, It' on p427-1292.jpg row 1 and singing them through on p427-1785.jpg row 1, while p427-2103.jpg prints stanza 2 once, ending 'the loved of earth, And never part again.', so its lines 3-4 are sung again here."
     },
     {
       "sites": [
@@ -178,20 +283,20 @@
       ],
       "row": "it points us to a land of rest where saints with christ will reign where",
       "readings": ["fly lingering moments fly o fly dear savior quickly come"],
-      "printed": "Fly lingering moments fly O fly Dear Savior quickly come",
-      "sung": "Fly lingering moments fly O fly Dear Savior quickly come",
+      "printed": "Fly, lingering moments, fly, O, fly, Dear Savior, quickly come",
+      "sung": "Fly, lingering moments, fly, O, fly, Dear Savior, quickly come",
       "kind": "words",
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
-          "shows": "Fly lingering moments fly O fly Dear Savior quickly come"
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
+          "shows": "Fly, lingering moments, fly, O, fly, Dear Savior, quickly come"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "The right-hand stanza in crop p427-2101 prints '3. Fly, lingering moments, fly, O, fly, / Dear Savior, quickly come!' before 'We'; the database's words here are stanza 2's."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p427-2103.jpg right column, stanza 3 opens 'Fly, lingering moments, fly, O, fly, Dear Savior, quickly come!'; the database's words here are stanza 2's."
     },
     {
       "sites": [
@@ -208,14 +313,14 @@
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
           "shows": "long to see Thee as Thou art"
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "Stanza 3, line 3 in crop p427-2101 prints 'We long to see Thee as Thou art,'."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p427-2103.jpg stanza 3 line 3 prints 'We long to see Thee as Thou art,'."
     },
     {
       "sites": [
@@ -227,19 +332,33 @@
       "row": "never part again",
       "readings": ["reach that blissful home"],
       "printed": "reach that blissful home",
-      "sung": "reach that blissful home We long to see Thee as Thou art And reach that blissful home",
+      "sung": "reach that blissful home, We long to see Thee as Thou art, And reach that blissful home",
       "kind": "repeat",
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
+          "crop": "p427-1292.jpg",
+          "box": [0, 1292, 1758, 342],
+          "sha": "08098677b3f5f8e2",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-1785.jpg",
+          "box": [0, 1785, 1758, 344],
+          "sha": "873cdebd9a212638",
+          "shows": ""
+        },
+        {
+          "image": "p427.jpg",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
           "shows": "reach that blissful home"
         }
       ],
-      "judge": "judge-440-2 (Opus, effort max)",
-      "why": "Stanza 3 below the music (p427-2101.jpg) prints 'And reach that blissful home.' once, but the melody sings lines 3-4 twice (stanza 1's 'It buoys us up ... woe' runs twice across p427-782.jpg row 1, the third system and p427-1783.jpg row 1), so 'We long to see Thee as Thou art, And reach that blissful home' is sung again."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "The music sings lines 3-4 twice, its stanza row starting them again at 'woe, It' on p427-1292.jpg row 1 and singing them through on p427-1785.jpg row 1, while p427-2103.jpg prints stanza 3 once, ending 'We long to see Thee as Thou art, And reach that blissful home.', so its lines 3-4 are sung again here."
     },
     {
       "sites": [
@@ -256,14 +375,14 @@
       "crops": [
         {
           "image": "p427.jpg",
-          "crop": "p427-2101.jpg",
-          "box": [0, 2101, 1759, 437],
-          "sha": "d3afc6bc31316d25",
+          "crop": "p427-2103.jpg",
+          "box": [0, 2103, 1758, 430],
+          "sha": "0e1b8e5ac5953ab3",
           "shows": ""
         }
       ],
-      "judge": "judge-440 (Opus, effort max)",
-      "why": "The page prints three stanzas only: crop p427-2101 has stanzas 2 and 3 below the music, then the rule and 'EARLY ADVENT', and no fourth stanza."
+      "judge": "judge-again-440 (Opus, effort max)",
+      "why": "p427-2103.jpg prints stanzas 2 and 3 below the music and then the hymn's closing rule; the page has no stanza 4."
     }
   ]
 }

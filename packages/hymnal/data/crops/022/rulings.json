@@ -1,0 +1,215 @@
+{
+  "number": 22,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 20
+        }
+      ],
+      "row": "unaffected joy",
+      "readings": [""],
+      "printed": "unaffected joy",
+      "sung": "unaffected joy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-400.jpg",
+          "box": [0, 400, 1274, 624],
+          "sha": "a70d849f919d4377",
+          "shows": "unaffected joy"
+        },
+        {
+          "image": "022.png",
+          "crop": "022-885.jpg",
+          "box": [0, 885, 1274, 272],
+          "sha": "f4a53a2b8fc1f2a6",
+          "shows": ""
+        },
+        {
+          "image": "022.png",
+          "crop": "022-1149.jpg",
+          "box": [0, 1149, 1274, 178],
+          "sha": "931ea4f7d0dce41b",
+          "shows": ""
+        },
+        {
+          "image": "022.png",
+          "crop": "022-1268.jpg",
+          "box": [0, 1268, 1274, 272],
+          "sha": "5ec54d8964c63c56",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-400.jpg's bottom row (row 1 of the third system) prints 'un - af - fect - ed joy'; 022-885.jpg row 1 shows it again, and 022-1149.jpg and 022-1268.jpg do not hold it."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 24
+        }
+      ],
+      "row": "unite",
+      "readings": [""],
+      "printed": "unite",
+      "sung": "unite",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-885.jpg",
+          "box": [0, 885, 1274, 272],
+          "sha": "f4a53a2b8fc1f2a6",
+          "shows": "unite"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-885.jpg row 2 prints 'ven - tures new u - nite,', joined 'unite'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 19
+        }
+      ],
+      "row": "complexities",
+      "readings": ["com"],
+      "printed": "complexities",
+      "sung": "complexities",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-400.jpg",
+          "box": [0, 400, 1274, 624],
+          "sha": "a70d849f919d4377",
+          "shows": "com-"
+        },
+        {
+          "image": "022.png",
+          "crop": "022-885.jpg",
+          "box": [0, 885, 1274, 272],
+          "sha": "f4a53a2b8fc1f2a6",
+          "shows": "plexities"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-400.jpg row 3 ends 'Love knows what rich com -' and 022-885.jpg row 3 begins 'plex - i - ties of sound', joined 'complexities'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 10
+        }
+      ],
+      "row": "ecstasy",
+      "readings": [""],
+      "printed": "ecstasy",
+      "sung": "ecstasy",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-116.jpg",
+          "box": [0, 116, 1274, 270],
+          "sha": "26ff513d60a052eb",
+          "shows": "ecsta-"
+        },
+        {
+          "image": "022.png",
+          "crop": "022-249.jpg",
+          "box": [0, 249, 1274, 232],
+          "sha": "ae701251ae515880",
+          "shows": ""
+        },
+        {
+          "image": "022.png",
+          "crop": "022-400.jpg",
+          "box": [0, 400, 1274, 624],
+          "sha": "a70d849f919d4377",
+          "shows": "sy"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-116.jpg row 4 ends 'When ec - sta -' (022-249.jpg row 4 shows it again) and 022-400.jpg row 4 begins 'sy or sor - row', joined 'ecstasy'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "obeys",
+      "readings": ["beys"],
+      "printed": "obeys",
+      "sung": "obeys",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-885.jpg",
+          "box": [0, 885, 1274, 272],
+          "sha": "f4a53a2b8fc1f2a6",
+          "shows": "obeys"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-885.jpg row 4 prints 'si - lent - ly o - beys', joined 'obeys'; the OCR caught only 'beys'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 30
+        }
+      ],
+      "row": "until",
+      "readings": ["un"],
+      "printed": "until",
+      "sung": "until",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-1268.jpg",
+          "box": [0, 1268, 1274, 272],
+          "sha": "5ec54d8964c63c56",
+          "shows": "until"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-1268.jpg row 4 prints 'praise, Un - til we find', joined 'Until'; the OCR caught only 'un'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 33
+        }
+      ],
+      "row": "again",
+      "readings": ["gain"],
+      "printed": "again",
+      "sung": "again",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "022.png",
+          "crop": "022-1268.jpg",
+          "box": [0, 1268, 1274, 272],
+          "sha": "5ec54d8964c63c56",
+          "shows": "again"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "022-1268.jpg row 4 prints 'a - gain the voice of praise.', joined 'again'; the OCR caught only 'gain'."
+    }
+  ]
+}

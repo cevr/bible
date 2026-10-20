@@ -1,7 +1,7 @@
 {
   "number": 473,
   "title": "Nearer My God, to Thee",
-  "print": "the 1985 book's hymnary.org scan (p462.jpg), each line read off the page at its system and row; the rulings (data/crops/473/rulings.json) put in what the page prints where the base row differs: \"i\" -> \"I'll\" (words, crop p462-1533.jpg, judge-471 (Opus, effort max)).",
+  "print": "the 1985 book's hymnary.org scan (p462.jpg), each line read off the page at its system and row; the rulings (data/crops/473/rulings.json) put in what the page prints where the base row differs: \"i\" -> \"I'll\" (words, crops p462-1533.jpg, judge-471 (Opus, effort max)).",
   "stanzas": [
     [
       {

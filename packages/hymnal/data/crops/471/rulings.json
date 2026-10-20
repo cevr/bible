@@ -164,6 +164,13 @@
           "box": [0, 0, 2268, 1470],
           "sha": "5b5ca0a8a3d86a14",
           "shows": "Accorde-nous"
+        },
+        {
+          "image": "471.jpg",
+          "crop": "471-353.jpg",
+          "box": [0, 353, 2268, 822],
+          "sha": "096b3d02c6ff1d22",
+          "shows": ""
         }
       ],
       "judge": "judge-471 (Opus, effort max)",

@@ -1,0 +1,252 @@
+{
+  "number": 533,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 0
+        }
+      ],
+      "row": "o",
+      "readings": ["n"],
+      "printed": "o",
+      "sung": "o",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1049.jpg",
+          "box": [0, 1049, 2268, 560],
+          "sha": "0b9efe4feaf63bb9",
+          "shows": "o"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1049.jpg row 1 begins '1. O for a faith'; the OCR's 'n' is a slip."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 29
+        }
+      ],
+      "row": "or",
+      "readings": [""],
+      "printed": "or",
+      "sung": "or",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "or"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1382.jpg lowest system row 1 prints 'Of pov-er-ty or woe' twice; the second 'or' is there."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 30
+        }
+      ],
+      "row": "its",
+      "readings": [""],
+      "printed": "its",
+      "sung": "its",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "its"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1382.jpg lowest system row 2 ends 'Can lean up-on its God.'"
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 0
+        }
+      ],
+      "row": "a",
+      "readings": [""],
+      "printed": "a",
+      "sung": "a",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1049.jpg",
+          "box": [0, 1049, 2268, 560],
+          "sha": "0b9efe4feaf63bb9",
+          "shows": "a"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1049.jpg row 3 begins '3. A faith that shines'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 23
+        }
+      ],
+      "row": "in",
+      "readings": [""],
+      "printed": "in",
+      "sung": "in",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "in"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1382.jpg lowest system row 3 begins 'In dark-ness feels no doubt'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 15
+        }
+      ],
+      "row": "ocean",
+      "readings": ["cean"],
+      "printed": "ocean",
+      "sung": "ocean",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "ocean"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1382.jpg middle system row 4 prints 'sin's wild o-cean can-not drown'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 21
+        }
+      ],
+      "row": "nor",
+      "readings": [""],
+      "printed": "nor",
+      "sung": "nor",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "nor"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1382.jpg lowest system row 4 begins 'Nor its soft arts be-guile'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 7
+        }
+      ],
+      "row": "this",
+      "readings": [""],
+      "printed": "this",
+      "sung": "this",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1049.jpg",
+          "box": [0, 1049, 2268, 560],
+          "sha": "0b9efe4feaf63bb9",
+          "shows": "this"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1049.jpg row 5 prints 'such a faith as this,'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 13
+        }
+      ],
+      "row": "ill",
+      "readings": [""],
+      "printed": "I'll",
+      "sung": "I'll",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1049.jpg",
+          "box": [0, 1049, 2268, 560],
+          "sha": "0b9efe4feaf63bb9",
+          "shows": ""
+        },
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "I'll"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1049.jpg row 5 ends at 'may come'; 532-b-p2-1382.jpg middle system row 5 begins 'I'll taste e'en here'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 5,
+          "at": 23
+        }
+      ],
+      "row": "of",
+      "readings": [""],
+      "printed": "of",
+      "sung": "of",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "532-b-p2.jpg",
+          "crop": "532-b-p2-1382.jpg",
+          "box": [0, 1382, 2268, 1226],
+          "sha": "a3eee125f595f992",
+          "shows": "of"
+        }
+      ],
+      "judge": "judge-532 (Opus, effort max)",
+      "why": "532-b-p2-1382.jpg lowest system row 5 begins 'Of an e-ter-nal home'."
+    }
+  ]
+}

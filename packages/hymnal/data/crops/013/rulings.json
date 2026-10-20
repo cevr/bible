@@ -10,20 +10,289 @@
       ],
       "row": "new",
       "readings": ["now"],
-      "printed": "Now",
-      "sung": "Now",
+      "printed": "New",
+      "sung": "New",
       "kind": "words",
       "crops": [
         {
-          "image": "013.png",
+          "image": "013-c.jpg",
+          "crop": "013-c-0.jpg",
+          "box": [0, 0, 2268, 644],
+          "sha": "62b911aee0378cda",
+          "shows": ""
+        },
+        {
+          "image": "013.jpg",
+          "crop": "013-0.jpg",
+          "box": [0, 0, 2268, 948],
+          "sha": "b83413e382a5f7ee",
+          "shows": ""
+        },
+        {
+          "image": "013.jpg",
           "crop": "013-112.jpg",
           "box": [0, 112, 1275, 249],
           "sha": "52077bd9c310d35d",
-          "shows": "Now"
+          "shows": ""
+        },
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-413.jpg",
+          "box": [0, 413, 2268, 658],
+          "sha": "b6b9289fcd7c4324",
+          "shows": "New"
         }
       ],
-      "judge": "judge-006 (Opus, effort max)",
-      "why": "Row 1. of crop 013-112.jpg prints 'Now songs of cel - e - bra - tion' plainly, though the page's title reads 'New Songs of Celebration Render'."
+      "judge": "judge-again-013-2 (Opus, effort max)",
+      "why": "013-c-413.jpg row 1 prints '1. New songs' plainly, as does 013-0.jpg (shown again, so empty); only the re-engraved crop 013-112.jpg prints 'Now'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 5
+        }
+      ],
+      "row": "to him who",
+      "readings": [""],
+      "printed": "To Him who",
+      "sung": "To Him who",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-0.jpg",
+          "box": [0, 0, 2268, 644],
+          "sha": "62b911aee0378cda",
+          "shows": ""
+        },
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-413.jpg",
+          "box": [0, 413, 2268, 658],
+          "sha": "b6b9289fcd7c4324",
+          "shows": "To Him who"
+        },
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-901.jpg",
+          "box": [0, 901, 2268, 466],
+          "sha": "e53245ecc5c56e01",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-c-413.jpg row 1 prints 'ren - der To Him who' plainly; 013-c-0.jpg's bottom edge shows only the cut-off tops of that row and 013-c-901.jpg starts at the next system."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 30
+        }
+      ],
+      "row": "salvation",
+      "readings": [""],
+      "printed": "salvation",
+      "sung": "salvation",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-1348.jpg",
+          "box": [0, 1348, 2268, 1350],
+          "sha": "9c3ea3a1bfc1f090",
+          "shows": "salvation"
+        },
+        {
+          "image": "013.jpg",
+          "crop": "013-2141.jpg",
+          "box": [0, 2141, 2268, 524],
+          "sha": "afbfaf6655415486",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-c-1348.jpg row 1 ends one system 'His great sal-' and begins the next 'va - tion Which', joined 'salvation'; 013-2141.jpg row 1 shows that 'va - tion' again."
+    },
+    {
+      "sites": [
+        {
+          "unit": 1,
+          "at": 40
+        }
+      ],
+      "row": "revealed",
+      "readings": [""],
+      "printed": "revealed",
+      "sung": "revealed",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013.jpg",
+          "crop": "013-2141.jpg",
+          "box": [0, 2141, 2268, 524],
+          "sha": "afbfaf6655415486",
+          "shows": "re-"
+        },
+        {
+          "image": "013-p2.jpg",
+          "crop": "013-p2-105.jpg",
+          "box": [0, 105, 2268, 650],
+          "sha": "c790f79d280752d5",
+          "shows": "vealed"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-2141.jpg row 1 ends 'He has re-' and 013-p2-105.jpg row 1 (the next page) begins 'vealed to ev - ery na - tion', joined 'revealed'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 2
+        }
+      ],
+      "row": "",
+      "readings": ["resound every"],
+      "printed": "",
+      "sung": "",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013.jpg",
+          "crop": "013-0.jpg",
+          "box": [0, 0, 2268, 948],
+          "sha": "b83413e382a5f7ee",
+          "shows": ""
+        },
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-413.jpg",
+          "box": [0, 413, 2268, 658],
+          "sha": "b6b9289fcd7c4324",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-c-413.jpg and 013-0.jpg row 2 print 'heart - i - ly re - sound - ing' with nothing between; the OCR's 'resound every' garbles that row."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 15
+        }
+      ],
+      "row": "calling",
+      "readings": ["tr composite"],
+      "printed": "Calling",
+      "sung": "Calling",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-901.jpg",
+          "box": [0, 901, 2268, 466],
+          "sha": "e53245ecc5c56e01",
+          "shows": ""
+        },
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-1130.jpg",
+          "box": [0, 1130, 2268, 382],
+          "sha": "085f5fdabc1f291a",
+          "shows": ""
+        },
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-1348.jpg",
+          "box": [0, 1348, 2268, 1350],
+          "sha": "9c3ea3a1bfc1f090",
+          "shows": "Calling"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-c-901.jpg and 013-c-1130.jpg row 2 end 'a - bound - ing,' and 013-c-1348.jpg row 2 begins 'Call - ing the whole world'; the OCR's 'tr composite' is the facing hymn's credit line."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 33
+        }
+      ],
+      "row": "ring",
+      "readings": [""],
+      "printed": "ring",
+      "sung": "ring",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013.jpg",
+          "crop": "013-2141.jpg",
+          "box": [0, 2141, 2268, 524],
+          "sha": "afbfaf6655415486",
+          "shows": "ring"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-2141.jpg row 2 prints 'make the heav - ens ring;' plainly."
+    },
+    {
+      "sites": [
+        {
+          "unit": 2,
+          "at": 41
+        }
+      ],
+      "row": "ocean",
+      "readings": [""],
+      "printed": "ocean",
+      "sung": "ocean",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013-p2.jpg",
+          "crop": "013-p2-105.jpg",
+          "box": [0, 105, 2268, 650],
+          "sha": "c790f79d280752d5",
+          "shows": "ocean"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-p2-105.jpg row 2 prints 'live in earth and o - cean,', joined 'ocean'."
+    },
+    {
+      "sites": [
+        {
+          "unit": 3,
+          "at": 18
+        }
+      ],
+      "row": "and",
+      "readings": [""],
+      "printed": "And",
+      "sung": "And",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "013-c.jpg",
+          "crop": "013-c-901.jpg",
+          "box": [0, 901, 2268, 466],
+          "sha": "e53245ecc5c56e01",
+          "shows": ""
+        },
+        {
+          "image": "013.jpg",
+          "crop": "013-1431.jpg",
+          "box": [0, 1431, 2268, 624],
+          "sha": "82467ce37fee0af0",
+          "shows": "And"
+        }
+      ],
+      "judge": "judge-003 (Opus, effort max)",
+      "why": "013-c-901.jpg row 3 ends 'look up a - dor - ing,' and 013-1431.jpg row 3 begins 'And find a voice' plainly."
     }
   ]
 }

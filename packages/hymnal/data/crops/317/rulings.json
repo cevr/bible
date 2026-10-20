@@ -1,0 +1,43 @@
+{
+  "number": 317,
+  "rulings": [
+    {
+      "sites": [
+        {
+          "unit": 4,
+          "at": 24
+        }
+      ],
+      "row": "me",
+      "readings": [""],
+      "printed": "me",
+      "sung": "me",
+      "kind": "words",
+      "crops": [
+        {
+          "image": "p308.jpg",
+          "crop": "p308-886.jpg",
+          "box": [0, 886, 1758, 430],
+          "sha": "db9ebf0f484af496",
+          "shows": "me"
+        },
+        {
+          "image": "p308.jpg",
+          "crop": "p308-1315.jpg",
+          "box": [0, 1315, 1758, 298],
+          "sha": "ebfc8c59a147d102",
+          "shows": ""
+        },
+        {
+          "image": "p308.jpg",
+          "crop": "p308-1499.jpg",
+          "box": [0, 1499, 1758, 300],
+          "sha": "dcfc4598317409e9",
+          "shows": ""
+        }
+      ],
+      "judge": "judge-275 (Opus, effort max)",
+      "why": "p308-886.jpg row 4 ends 'Thou hast borne all for me.'; p308-1315.jpg prints no lyrics and p308-1499.jpg's refrain row starts after the place."
+    }
+  ]
+}
