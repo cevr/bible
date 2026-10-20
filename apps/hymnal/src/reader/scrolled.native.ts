@@ -7,3 +7,6 @@ import type { FlatList } from 'react-native';
  * kept offset.
  */
 export const scrolled = <Item>(_: FlatList<Item>): Option.Option<number> => Option.none();
+
+/** Tells `list` where its scroller is: on a phone, never needed, since a phone hydrates no server list. */
+export const told = <Item>(_: FlatList<Item>): void => {};
