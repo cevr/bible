@@ -8,9 +8,9 @@
  * comes back to where it began. A move with no press open (a key, a screen
  * reader) seeks at once. With no press open, the bar draws playback.
  *
- * The bar writes whole seconds: a range input fits its value to its step, so
- * a fractional place would leave the input holding another value than the
- * one written.
+ * The bar writes whole seconds: a range input fits its value to its step
+ * (Chrome holds 69.6 as 70), so a fractional place would leave the input on
+ * another second than the bar means, and a key's step would start from it.
  */
 
 import { useAccent } from '~/color';
@@ -33,11 +33,8 @@ export function Scrubber(props: ScrubberProps) {
       onPointerDown={(event) => {
         if (event.button === 0) scrub.press();
       }}
-      // React's `onChange` is the DOM's `input` and its `change`; only an
-      // `input` is the reader's move.
-      onChange={(event) => {
-        if (event.nativeEvent.type === 'input') scrub.move(Number(event.currentTarget.value));
-      }}
+      // React calls `onChange` only for a value it did not write: the reader's.
+      onChange={(event) => scrub.move(Number(event.currentTarget.value))}
       onPointerUp={scrub.release}
       onPointerCancel={scrub.cancel}
       onLostPointerCapture={scrub.cancel}

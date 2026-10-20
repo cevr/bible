@@ -217,6 +217,26 @@ describe('the hymn page’s recording control', () => {
     }),
   );
 
+  it.live('opens no press on the other buttons: a key’s step after one still seeks', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.press('Play hymn 100');
+      page.device.now = { state: 'playing', positionMs: 40_200, durationMs: 151_000 };
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 40.2);
+      const bar = page.bar();
+
+      // A right button's press: its menu takes the release, so no `pointerup` comes.
+      act(
+        () =>
+          void bar.dispatchEvent(
+            new PointerEvent('pointerdown', { bubbles: true, button: 2, pointerType: 'mouse' }),
+          ),
+      );
+      act(() => drag(bar, '41'));
+      expect(page.device.sought).toEqual([41_000]);
+    }),
+  );
+
   it.live('holds the place it sent until the player reaches it', () =>
     Effect.gen(function* () {
       using page = mount();
