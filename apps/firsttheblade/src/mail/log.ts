@@ -4,7 +4,7 @@
  * field: `mail.test.ts` reads every line the routes write and holds them to
  * that.
  */
-import { Effect } from 'effect';
+import { Cause, Effect, Option } from 'effect';
 
 export type LogField = string | number;
 
@@ -18,3 +18,7 @@ export const logMail = (action: string, fields: Readonly<Record<string, LogField
 
 export const warnMail = (action: string, fields: Readonly<Record<string, LogField>> = {}) =>
   Effect.logWarning(line(action, fields));
+
+/** What a cause names in a log line: its error's `field`, or `defect` for a throw or an interrupt. */
+export const reasonOf = <E>(cause: Cause.Cause<E>, field: (error: E) => string) =>
+  Option.match(Cause.findErrorOption(cause), { onNone: () => 'defect', onSome: field });

@@ -63,6 +63,11 @@ template editor and no analytics.
   mail scanners open links; the button's `POST` to the same address confirms.
   A GET never changes the list. A link works for seven days, and only the
   newest one, sent since the address last left, works.
+- **Sign-ups never confirmed** are undone 30 days after the address last
+  signed up, by the Worker's daily cron trigger (`src/mail/purge.ts`, 04:17
+  UTC): an address that never confirmed is deleted with every row it owns,
+  and one that left and signed up again is marked as left again. Its log
+  line carries counts only (`purge.done deleted= sends= left=`).
 - **Leave** is the link at the foot of every film's email, `GET /unsubscribe`
   (one button), and its `POST`, which a mail app's one-click unsubscribe also
   sends (`List-Unsubscribe`, RFC 8058); it answers 200, never a redirect.

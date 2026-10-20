@@ -11,10 +11,11 @@ import { Address } from './address.ts';
 import { Background, Held } from './background.ts';
 import { deliver } from './deliver.ts';
 import { layerOf } from './films.ts';
-import { List } from './list.ts';
+import { List, PENDING_FOR } from './list.ts';
 import { layerTest, TEST_ADMIN_TOKEN } from './local.ts';
 import { Mailbox, Mailer, MailRefused, MailUnavailable } from './mailer.ts';
 import { MAIL_PAGES, SIGNUP_FIELDS } from './paths.ts';
+import { purge } from './purge.ts';
 import { Queued } from './queue.ts';
 import { SqlError } from './sql.ts';
 import { SIGNUPS } from './throttle.ts';
@@ -598,6 +599,33 @@ describe('leaving', () => {
       expect((yield* call(`/unsubscribe?token=${confirmToken}`, { method: 'POST' })).status).toBe(
         400,
       );
+    }));
+});
+
+describe('the daily purge', () => {
+  test('undoes a sign-up never confirmed, thirty days after it, and logs counts only', () =>
+    Effect.gen(function* () {
+      yield* signUp({ email: ANN });
+      yield* signUp({ email: 'ben@example.com' });
+      yield* joined('cal@example.com');
+      yield* TestClock.adjust(PENDING_FOR);
+      yield* purge();
+      const done = (yield* Heard).lines().filter((line) => line.includes('purge.done'));
+      expect(done).toEqual(['[mail] purge.done deleted=2 sends=0 left=0']);
+      const list = yield* List;
+      expect((yield* list.counts(FILM)).confirmed).toBe(1);
+    }));
+
+  test('a purge that fails is logged by its reason, and fails nothing else', () =>
+    Effect.gen(function* () {
+      const list = yield* List;
+      const broken = List.of({
+        ...list,
+        purge: () => Effect.fail(SqlError.make({ statement: 'list.purge', reason: 'down' })),
+      });
+      yield* purge().pipe(Effect.provideService(List, broken));
+      const failed = (yield* Heard).lines().filter((line) => line.includes('purge.'));
+      expect(failed).toEqual(['[mail] purge.failed reason=SqlError']);
     }));
 });
 

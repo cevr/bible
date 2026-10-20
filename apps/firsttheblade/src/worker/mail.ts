@@ -136,11 +136,12 @@ export const layerCloudflare = (clients: MailClients) =>
     }),
   );
 
-/** The runtime layers the list's bindings resolve through. */
+/** The runtime layers the list's bindings and the purge's cron trigger resolve through. */
 export const MailBindings = Layer.mergeAll(
   Cloudflare.D1.QueryDatabaseBinding,
   Cloudflare.Email.SendBinding,
   Cloudflare.Queues.WriteQueueBinding,
   Cloudflare.Queues.EventSourceLive,
   Cloudflare.Workers.RateLimitBinding,
+  Cloudflare.Workers.CronEventSourceLive,
 );

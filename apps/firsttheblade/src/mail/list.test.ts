@@ -3,16 +3,18 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Duration, Effect, Layer, Option } from 'effect';
 
 import { Address } from './address.ts';
-import { layer as listLayer, List, RESEND_AFTER } from './list.ts';
+import { layer as listLayer, List, PENDING_FOR, RESEND_AFTER } from './list.ts';
+import { Sql } from './sql.ts';
 import { layerSqlite } from './sql-sqlite.ts';
 
 const test = it.effect.layer(
-  listLayer.pipe(Layer.provide(layerSqlite), Layer.provide(BunServices.layer)),
+  listLayer.pipe(Layer.provideMerge(layerSqlite), Layer.provide(BunServices.layer)),
 );
 
 const ANN = Address.make('ann@example.com');
 const BEN = Address.make('ben@example.com');
 const HOUR = Duration.toMillis(RESEND_AFTER);
+const PENDING = Duration.toMillis(PENDING_FOR);
 
 /** Signs an address up and confirms it, answering its id. */
 const confirmed = (address: Address, now: number) =>
@@ -154,5 +156,57 @@ describe('the list', () => {
       yield* list.unsubscribe(ann, 2000);
       expect(Option.isNone(yield* list.recipient('path/01', ann))).toBe(true);
       expect((yield* list.counts('path/01')).waiting).toBe(0);
+    }));
+
+  test('a sign-up never confirmed is deleted thirty days after it, with every row it owns, and not before', () =>
+    Effect.gen(function* () {
+      const list = yield* List;
+      const claim = Option.getOrThrow(yield* list.signUp(ANN, 1000));
+      // A row of its own in `sends`, which the list never makes for a pending address.
+      const sql = yield* Sql;
+      yield* sql.run({ name: 'test.send', text: 'INSERT INTO sends VALUES (?, ?, ?, ?)' }, [
+        'path/01',
+        claim.subscriber,
+        'sent',
+        1500,
+      ]);
+      expect(yield* list.purge(1000 + PENDING - 1)).toEqual({ deleted: 0, sends: 0, left: 0 });
+      expect(yield* list.purge(1000 + PENDING)).toEqual({ deleted: 1, sends: 1, left: 0 });
+      expect(yield* list.confirm(claim, 1000 + PENDING)).toBe('invalid');
+      const rows = yield* sql.all(
+        {
+          name: 'test.rows',
+          text: 'SELECT (SELECT count(*) FROM subscribers) AS subscribers, (SELECT count(*) FROM sends) AS sends',
+        },
+        [],
+      );
+      expect(rows).toEqual([{ subscribers: 0, sends: 0 }]);
+    }));
+
+  test('signing up again starts the thirty days again', () =>
+    Effect.gen(function* () {
+      const list = yield* List;
+      yield* list.signUp(ANN, 1000);
+      const day = Duration.toMillis(Duration.days(1));
+      yield* list.signUp(ANN, 1000 + 10 * day);
+      expect((yield* list.purge(1000 + PENDING)).deleted).toBe(0);
+      expect((yield* list.purge(1000 + 10 * day + PENDING)).deleted).toBe(1);
+    }));
+
+  test('a confirmed address stays; one that left and signed up again is marked as left again', () =>
+    Effect.gen(function* () {
+      const list = yield* List;
+      const ann = yield* confirmed(ANN, 1000);
+      yield* confirmed(BEN, 1000);
+      yield* list.claimSend('path/01', ann, 1500);
+      yield* list.recordSend('path/01', ann, 'sent', 1500);
+      yield* list.unsubscribe(ann, 2000);
+      const rejoin = Option.getOrThrow(yield* list.signUp(ANN, 2000 + HOUR));
+      const later = 2000 + HOUR + PENDING;
+      expect(yield* list.purge(later)).toEqual({ deleted: 0, sends: 0, left: 1 });
+      expect(yield* list.counts('path/01')).toMatchObject({ confirmed: 1, sent: 1 });
+      expect(yield* list.confirm(rejoin, later)).toBe('invalid');
+      const again = Option.getOrThrow(yield* list.signUp(ANN, later));
+      expect(again.subscriber).toBe(ann);
     }));
 });

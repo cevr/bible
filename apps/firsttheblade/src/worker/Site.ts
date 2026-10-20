@@ -17,7 +17,8 @@
  * mail:send` must show), are read from the deployer's environment and bound
  * as Worker secrets; they are never in the repository. The Worker is also the
  * queue's consumer: each batch of a film's send is delivered here
- * (`../mail/deliver.ts`).
+ * (`../mail/deliver.ts`). Its cron trigger runs the daily purge of sign-ups
+ * never confirmed (`../mail/purge.ts`).
  */
 import type { RuntimeContext } from 'alchemy';
 import { Stage } from 'alchemy/Stage';
@@ -27,6 +28,7 @@ import { HttpServerRequest } from 'effect/http';
 
 import { deliver } from '../mail/deliver.ts';
 import { warnMail } from '../mail/log.ts';
+import { purge, PURGE_CRON } from '../mail/purge.ts';
 import { Delivery } from '../mail/queue.ts';
 import type { MailServices } from '../mail/routes.ts';
 
@@ -119,6 +121,8 @@ export default class Site extends Cloudflare.Worker<Site>()(
         yield* deliver(deliveries);
       }).pipe(Effect.provide(mail)),
     );
+
+    yield* Cloudflare.Workers.cron(PURGE_CRON, () => purge().pipe(Effect.provide(mail)));
 
     return {
       fetch: serve(Layer.merge(Layer.succeed(Assets, assets), mail)),

@@ -261,6 +261,7 @@ const PRIVACY: ReadonlyArray<PrivacySection> = [
     band: 'section',
     words: [
       'If you join the email list, we keep your email address, whether you have confirmed it, when you signed up, confirmed or left, and which films we have emailed you.',
+      'If you sign up and never confirm, we delete your address, and all we kept with it, thirty days later.',
       'That is all. We ask for no name, and the emails carry no tracking: we do not know whether you open them or which links you follow.',
     ],
   },

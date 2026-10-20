@@ -8,15 +8,15 @@ import { Database } from 'bun:sqlite';
 
 import { Effect, FileSystem, Layer, Path } from 'effect';
 
-import { reasonOf, Sql, SqlError, type Statement, type SqlValue } from './sql.ts';
+import { batchName, reasonOf, Sql, SqlError, type Statement, type SqlValue } from './sql.ts';
 
 /** The migrations folder beside `src/`. */
 const MIGRATIONS = new URL('../../migrations', import.meta.url).pathname;
 
-const attempt = <A>(statement: Statement, run: () => A) =>
+const attempt = <A>(name: string, run: () => A) =>
   Effect.try({
     try: run,
-    catch: (cause) => SqlError.make({ statement: statement.name, reason: reasonOf(cause) }),
+    catch: (cause) => SqlError.make({ statement: name, reason: reasonOf(cause) }),
   });
 
 /** A fresh database in memory, migrated, for as long as the layer lives. */
@@ -35,11 +35,16 @@ export const layerSqlite = Layer.effect(
       db.run(yield* fs.readFileString(path.join(MIGRATIONS, file)));
     }
     const bind = (values: ReadonlyArray<SqlValue>) => [...values];
+    const write = (statement: Statement, values: ReadonlyArray<SqlValue>) =>
+      db.query(statement.text).run(...bind(values)).changes;
     return Sql.of({
       all: (statement, values) =>
-        attempt(statement, () => db.query(statement.text).all(...bind(values))),
-      run: (statement, values) =>
-        attempt(statement, () => db.query(statement.text).run(...bind(values)).changes),
+        attempt(statement.name, () => db.query(statement.text).all(...bind(values))),
+      run: (statement, values) => attempt(statement.name, () => write(statement, values)),
+      batch: (steps) =>
+        attempt(batchName(steps), () =>
+          db.transaction(() => steps.map((step) => write(step.statement, step.values)))(),
+        ),
     });
   }),
 );

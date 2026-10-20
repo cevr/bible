@@ -22,18 +22,7 @@
  * Every answer is a redirect, a page or a short text, and the logs name
  * ids, counts and codes, never an address or a token.
  */
-import {
-  Cause,
-  Clock,
-  Context,
-  Crypto,
-  Duration,
-  Effect,
-  Exit,
-  Option,
-  Redacted,
-  Schema,
-} from 'effect';
+import { Clock, Context, Crypto, Duration, Effect, Exit, Option, Redacted, Schema } from 'effect';
 import { Headers, type HttpServerRequest, HttpServerResponse, UrlParams } from 'effect/http';
 
 import { Assets, pageRequest } from '../worker/assets.ts';
@@ -43,7 +32,7 @@ import { Films } from './films.ts';
 import { confirmLetter } from './letters.ts';
 import { type SendAnswer, SendRequest } from './admin.ts';
 import { type ConfirmClaim, List } from './list.ts';
-import { logMail, warnMail } from './log.ts';
+import { logMail, reasonOf, warnMail } from './log.ts';
 import { Mailer } from './mailer.ts';
 import { MAIL_PAGES, MAIL_ROUTES, SIGNUP_FIELDS } from './paths.ts';
 import { BATCH, FilmQueue, type QueueError } from './queue.ts';
@@ -102,10 +91,6 @@ const field = (form: UrlParams.UrlParams, name: string) =>
 /** The sender's address as Cloudflare names it; one place when it is missing. */
 const placeOf = (request: HttpServerRequest.HttpServerRequest) =>
   Option.getOrElse(Headers.get(request.headers, 'cf-connecting-ip'), () => 'unknown');
-
-/** What a cause names in a log line: its error's `field`, or `defect` for a throw or an interrupt. */
-const reasonOf = <E>(cause: Cause.Cause<E>, field: (error: E) => string) =>
-  Option.match(Cause.findErrorOption(cause), { onNone: () => 'defect', onSome: field });
 
 /**
  * What a sign-up does beside its answer, which does not wait for it: the
