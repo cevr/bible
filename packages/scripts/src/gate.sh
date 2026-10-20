@@ -4,21 +4,25 @@
 #
 # 1. The checks, which hold no time limit (`gate:checks`): lint, the format
 #    check, the dead exports and turbo's `gate` task (every package's
-#    typecheck, build and own gate script, Selah's native gate among them),
-#    all at once, at a lowered priority (`taskpolicy -c utility` on macOS,
-#    `nice -n 19` elsewhere), so the tests of another gate on the machine
-#    keep the cores they need.
-# 2. The tests, which hold one (bun's 5 s a case; `gate:tests`): each
-#    workspace's `test` alone, one after another, as `test:budget` measures
-#    it, then the film's guard tests, under the host's test lock (`flock`
+#    typecheck and build, and Selah's native gate, the one package `gate`
+#    script), all at once, at a lowered priority (`taskpolicy -c utility` on
+#    macOS, `nice -n 19` elsewhere), so the tests of another gate on the
+#    machine keep the cores they need.
+# 2. The work that holds a time limit (`gate:tests`): each workspace's
+#    `test` (bun's 5 s a case) and `gate:timed` (a package's own check that
+#    waits on a browser with time limits: firsttheblade's built pages'
+#    contrast), each alone, one after another, as `test:budget` measures a
+#    test, then the film's guard tests, under the host's test lock (`flock`
 #    where there is one, else `lockf -k`, on `$LOCK`), so two gates on one
 #    machine take turns. Selah's tests are its native gate's, in the checks,
 #    so its workspace is left out here.
 #
 # A case's limit holds on the machine its time was measured on, alone: beside
 # every other workspace's tests, the typechecks and the native build, a case
-# takes ten times as long or more (one of 0.47 s alone takes 6.1 s), so the
-# tests run with nothing else of the gate's beside them.
+# takes ten times as long or more (one of 0.47 s alone takes 6.1 s), and
+# the contrast check's browser, at the checks' lowered priority beside a cold
+# build, missed its 30 s screenshot limit, so the timed work runs with nothing
+# else of the gate's beside it.
 set -u
 cd "$(dirname "$0")/../../.."
 

@@ -1,9 +1,9 @@
 # The gate, as `bun run gate` runs it locally (`packages/scripts/src/gate.sh`):
-# first the checks, lint, the format check, the dead exports and every
-# package's typecheck and build, and after its build a package's own `gate`
-# script where it has one (firsttheblade's built pages' contrast, in the
-# runner's Google Chrome); then each workspace's tests alone, one after
-# another. CI keeps no turbo cache, so every task runs. The hooks run only the staged-file lint and
+# first the checks, lint, the format check, the dead exports, every
+# package's typecheck and build, and Selah's native gate; then the work that
+# holds a time limit, each workspace's tests and firsttheblade's built pages'
+# contrast (`gate:timed`, in the runner's Google Chrome), each alone, one
+# after another. CI keeps no turbo cache, so every task runs. The hooks run only the staged-file lint and
 # format. CI runs the gate alone (owner, 2026-10-19: "gate only"): the browser
 # tests (the film's e2e, @bible/ui's, atom-solid's hydration, egw-search's
 # page) are tools a unit runs by hand, and no agent reads this workflow's runs.

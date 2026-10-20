@@ -39,6 +39,10 @@
     "gate": {
       "dependsOn": ["typecheck", "build"],
       "outputs": []
+    },
+    "gate:timed": {
+      "dependsOn": ["build"],
+      "outputs": []
     }
   }
 }
