@@ -21,11 +21,20 @@ under its number, and the refrain written out each time it is sung.
   header and search field on the web. A phone never renders them.
 - On the web a screen is mounted anew when the reader comes back to it, so
   the search's query and each list's scroll offset live in the app's
-  registry (`src/reader/place.ts`), not in the screen.
+  registry (`src/reader/place.ts`), not in the screen. A list keeps its
+  offset as it unmounts and opens there again before its first paint; every
+  row is one line of one height (a long title ends in an ellipsis), so the
+  list can open at any row at once (`src/reader/HymnList.tsx`).
+- Each row is a link (an anchor on the web): a press opens the hymn inside
+  the app; Enter, a Cmd-click and "Open in New Tab" work as on any link.
 - `bun run test` runs the app's tests (`src`, with `src/test/setup.ts` as the
   preload: react-native-web for `react-native`, the real words for
-  `virtual:hymnal`, a happy-dom document for the tests that press and type)
-  and the infra's.
+  `virtual:hymnal`, a happy-dom document for the tests that press and type),
+  the browser tests and the infra's.
+- `bun run test:browser` (`test/browser/`) bundles the Hymns list into a page
+  and drives it in Playwright's Chromium: Back, a tab switch and a press at
+  offsets across the whole list come back to the pixel, and a row is a real
+  link. It needs Chromium installed once (`bunx playwright install chromium`).
 
 ## Recordings: R2 at hymns.cvr.im
 
