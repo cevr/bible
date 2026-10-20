@@ -7,15 +7,16 @@
  * (`../site.ts`): `prod` takes the Worker name `firsttheblade` (so its
  * `workers.dev` host is `firsttheblade.<subdomain>.workers.dev`), and with
  * `SERVED_FROM = 'custom-domain'` it takes the apex domain, redirects `www`
- * to it and turns its `workers.dev` host off. Any other stage is a throwaway
- * copy on a generated `workers.dev` name and never touches the domain.
+ * and each of `REDIRECTED_DOMAINS` (with its `www`) to it, and turns its
+ * `workers.dev` host off. Any other stage is a throwaway copy on a
+ * generated `workers.dev` name and never touches the domain.
  */
 import { Stage } from 'alchemy/Stage';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Effect, Option } from 'effect';
 import { HttpServerRequest } from 'effect/http';
 
-import { DOMAIN, SERVED_FROM, type ServedFrom, WORKER_NAME } from '../site.ts';
+import { DOMAIN, REDIRECTED_DOMAINS, SERVED_FROM, type ServedFrom, WORKER_NAME } from '../site.ts';
 import { Assets } from './assets.ts';
 import { respond } from './respond.ts';
 
@@ -32,7 +33,10 @@ const PRODUCTION: Record<ServedFrom, Cloudflare.WorkerProps> = {
   'custom-domain': {
     name: WORKER_NAME,
     workersDev: false,
-    domain: { name: DOMAIN, redirects: [`www.${DOMAIN}`] },
+    domain: {
+      name: DOMAIN,
+      redirects: [`www.${DOMAIN}`, ...REDIRECTED_DOMAINS.flatMap((name) => [name, `www.${name}`])],
+    },
   },
 };
 

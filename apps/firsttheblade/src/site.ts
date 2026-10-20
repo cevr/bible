@@ -5,9 +5,9 @@
  * follow one value.
  *
  * The switch is `SERVED_FROM`. firsttheblade.com is in this Cloudflare
- * account, so the Worker takes the apex, `www` redirects to it, and the
- * `workers.dev` URL is off. Setting `'workers.dev'` and deploying serves the
- * site from that URL instead.
+ * account, so the Worker takes the apex, `www` and firsttheblade.org
+ * redirect to it, and the `workers.dev` URL is off. Setting `'workers.dev'`
+ * and deploying serves the site from that URL instead.
  */
 
 export type ServedFrom = 'workers.dev' | 'custom-domain';
@@ -16,6 +16,9 @@ export const SERVED_FROM: ServedFrom = 'custom-domain';
 
 /** The registered name the custom domain serves. */
 export const DOMAIN = 'firsttheblade.com';
+
+/** The other registered names: each, and its `www`, redirects to `DOMAIN`. */
+export const REDIRECTED_DOMAINS = ['firsttheblade.org'] as const;
 
 /** The Worker's script name, which names its `workers.dev` host. */
 export const WORKER_NAME = 'firsttheblade';
