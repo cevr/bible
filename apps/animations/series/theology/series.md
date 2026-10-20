@@ -160,6 +160,7 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Core KJV:** Heb 6:1; Acts 2:37–38; Acts 5:31; Rom 2:4; Ps 51; 2 Cor 7:10; Heb 9:14; 1 John 1:9.
 - **Sources:** SC 23.2, 23.3, 24.3, 26.4; RH April 1, 1890, par. 3; RH November 4, 1890, par. 2 (EGW); AMS May 24, 1894, 162.9 (A. T. Jones, byline not confirmed); SSP 368.2 (Haskell, 1905).
 - **Builds on:** 04, 06. **Length:** about 5½ min. **History:** OK.
+- **The stones:** it shows Hebrews 6's six stones and lights the first; 06b lit it first and 08 opens on it lit (owner, 2026-10-19).
 
 **08 · Faith Toward God** (stone 2, "faith toward God"; new, owner 2026-10-19; notes: [`what-is-salvation.md`](what-is-salvation.md), "Eternal life: three ways, one source")
 

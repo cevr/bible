@@ -178,7 +178,7 @@ Daniel ranks this high, among the talk-only figures, because the plans use him m
 
 All of this follows the guide's section 3 exactly. Christ, the angels and Satan are **draft, awaiting owner**, under owner questions 5–9. The Father's form is the exception: the owner decided it on 2026-10-13 (§3.3).
 
-#### Jesus Christ: draft, awaiting owner (OQ5, OQ6)
+#### Jesus Christ: draft, awaiting owner (OQ6; OQ5 answered 2026-10-19)
 
 **Appears**
 
@@ -249,7 +249,7 @@ At 0.97 He is never the tallest in a crowd.
 
 - a halo or nimbus;
 - a glow in His earthly ministry outside the transfiguration;
-- the white robe in earthly scenes (OQ5);
+- the white robe in earthly scenes (OQ5; owner, 2026-10-19: the seamless linen coat and a brown mantle on earth, the white robe and gold girdle only as Priest, Advocate and in glory);
 - a framed portrait (T05's `face` beat must be restaged);
 - scarlet on Him except the sins laid on Him at the cross;
 - wounds in close-up;
@@ -1266,7 +1266,7 @@ Each item gives where the conflict is and what the guide says. A recommendation 
 1. **Christ's earthly dress.**
    - Where: T01's host, T02 (the Jordan and Emmaus), T03 (the upper room), T05 (the Galilee road) and RBF (`roof`, `woman`, `centurion`) dress His earthly ministry in a "white robe, gold sash".
    - The guide: §3.2 (OQ5) gives the earthly ministry the seamless undyed-linen coat (John 19:23), and keeps the white robe and golden girdle for Priest, Advocate and glory.
-   - Recommendation: restage these when OQ5 is answered.
+   - The owner chose the guide (2026-10-19). The theology drafts are restaged to the linen coat; RBF's scenes wait until RBF resumes (owner, 2026-10-19: RBF is paused).
 2. **The seraphim's colour.**
    - Where: T05 draws them "flame-red and gold paper".
    - The guide: §3.5 makes them gold and cream; flame-red would put the scarlet accent on them.

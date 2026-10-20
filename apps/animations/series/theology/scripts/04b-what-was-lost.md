@@ -4,7 +4,7 @@ Series: From Milk to Meat · Tier One (Milk) · the salvation arc, 2 of 3, after
 Promise: the viewer counts what the fall cost: the image (Adam's son is born in Adam's likeness), nearness to God (his presence consumes sin, so he keeps us back that we may live), life itself, and the power to stop sinning; and sees that the last is the deepest, for paying the price alone would not end it.
 Prerequisites: 03b (the image, form and character), 04 (the serpent's question; how sin entered).
 Length: about 5:50 (640 spoken words: 4:08 at 155 wpm, 4:37 with the marked breaths and holds; plus the 6 s title, seams of 0.6 s between beats and a 3 s hold into the thesis, about 30 s of music alone and 28 s of credits). Measured on that clock: the title starts at 7.9 %, the deepest turn (`bondage`) at 56.5 %, the landing (`gate`) at 73.5 %, and the landing runs 34.5 s through the thesis's last word.
-Status: draft for the owner, 2026-10-19, from his notes of that day (`../what-is-salvation.md`). Nothing narrated. Reviewed by counsel (deep) the same day; every finding folded or answered in `../sources-arc.md`. Every KJV line printed by `bible verse` on 2026-10-19; every paraphrase source read with `bible egw lookup` the same day, verbatim in `../sources-arc.md`, and passed by the frame's verifier. Frames: state-of-dead.md, righteousness-by-faith.md, nature-of-christ.md (not touched). Written to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
+Status: kept by the owner, 2026-10-19 (ask a4d29ea9eb0: it stays the arc's problem episode), from his notes of that day (`../what-is-salvation.md`). Nothing narrated. Reviewed by counsel (deep) the same day; every finding folded or answered in `../sources-arc.md`. Every KJV line printed by `bible verse` on 2026-10-19; every paraphrase source read with `bible egw lookup` the same day, verbatim in `../sources-arc.md`, and passed by the frame's verifier. Frames: state-of-dead.md, righteousness-by-faith.md, nature-of-christ.md (not touched). Written to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header
 
@@ -31,7 +31,7 @@ Frame (state-of-dead.md): Adam's death in `death` is a man laid down; nothing le
 
 The common view, once, in the viewer's words: `image` ("are we born guilty of Adam's sin?"), answered in the next breath from Ezekiel 18:20.
 
-The problem: this film is the arc's problem episode (CRAFT's 20 % rule is written for one film). Each loss carries its mercy in a line (God keeps us back so we may live; sin is not made immortal; Seth was taught the promise), and the landing turns to the One they call on. See Notes.
+The problem: this film is the arc's problem episode (CRAFT's 20 % rule is written for one film; the owner allowed it, 2026-10-19). Each loss carries its mercy in a line (God keeps us back so we may live; sin is not made immortal; Seth was taught the promise), and the landing turns to the One they call on. See Notes.
 
 Quoted Scripture: 6 passages, 69 of 640 spoken words (10.8 %; counted 2026-10-19 over the `say` lines' “…” spans). One quotation per beat.
 
