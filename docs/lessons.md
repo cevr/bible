@@ -783,3 +783,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check called reached a spec that a `testIgnore` extglob (`*.@(spec|test).ts`) leaves out.
 - **Cause:** The reader matched a glob with Bun's `Glob`, which reads no extglobs; playwright reads a glob with the minimatch it bundles, dot files taken.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read by a glob as playwright reads one, with the minimatch playwright bundles`
+
+### reach-parses-configs
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The reach check can read inactive configuration text as active settings"
+- **Source:** p6-guardloop/review-6.md F1
+- **Wrong:** The reach check read a `testIgnore` from a comment, or from an object the config does not export, as the config's own, and read a config that spreads another object into its export as if the spread set nothing.
+- **Cause:** The reader matched the config's text with regexes, which cannot tell a setting of the exported object from any other text.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
