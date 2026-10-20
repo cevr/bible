@@ -1,14 +1,28 @@
 // The judged lint's command (`lint-judged.ts` runs it): its flag, the run
 // of every judged rule of the lint config over the repo's items, the
-// findings oxlint cannot report printed, and the boundary that turns every failure but a gating finding and an interrupt
+// run's findings written by file for the plugin (`findings.ts`; one that
+// cannot be written is said on one line), the findings oxlint cannot report
+// printed, and the boundary that turns every failure but a gating finding and an interrupt
 // into one `reason=error` skip line and success. It takes its model as a
 // layer for the config's model name, so a test runs the whole command
 // in-process over a model of its own.
 
-import { Cause, Console, Effect, Layer, Option, Ref, Runtime, Schema } from 'effect';
+import {
+  Cause,
+  Console,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Ref,
+  Runtime,
+  Schema,
+} from 'effect';
 import type { DecisionModel } from 'effect/ai';
 import { Command, Flag } from 'effect/cli';
 
+import { Findings, findingsFileOf, ruleSignature } from './findings.js';
 import { readByOxlint } from './items.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { cacheModel } from './rule.js';
@@ -28,30 +42,75 @@ const isGatingFindings = Schema.is(GatingFindings);
 /** A model layer for a model's name. */
 type ModelOf<E, R> = (model: string) => Layer.Layer<DecisionModel.DecisionModel, E, R>;
 
+/**
+ * The findings file of a run: each file the run read, by its hash, with the
+ * findings the store keeps of each rule that judged all its items there, for
+ * the plugin to report; a Markdown file oxlint never reads holds none.
+ */
+const findingsOf = (
+  model: string,
+  outcomes: ReadonlyArray<Effect.Success<ReturnType<typeof judge>>[number]>,
+  files: ReadonlyArray<{ readonly file: string; readonly hash: string }>,
+): Findings => ({
+  rules: Object.fromEntries(
+    outcomes.map((outcome) => [outcome.rule.id, ruleSignature(model, outcome.rule)]),
+  ),
+  files: Object.fromEntries(
+    files
+      .filter(({ file }) => readByOxlint(file))
+      .map(({ file, hash }) => [
+        file,
+        {
+          hash,
+          rules: Object.fromEntries(
+            outcomes
+              .filter((outcome) => !outcome.unjudged.has(file))
+              .map((outcome) => [
+                outcome.rule.id,
+                outcome.findings
+                  .filter((finding) => finding.kept && finding.file === file)
+                  .map(({ start, p }) => ({ start, p })),
+              ]),
+          ),
+        },
+      ]),
+  ),
+});
+
+/** Writes `findings` to `file` whole, through a temporary file renamed over it; one that cannot be written is said on one line. */
+const writeFindings = (file: string, findings: Findings) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+    const temporary = `${file}.${process.pid}.tmp`;
+    yield* fs.writeFileString(temporary, yield* Schema.encodeEffect(Findings)(findings));
+    yield* fs.rename(temporary, file);
+  }).pipe(
+    Effect.catch((error) => Console.error(`[judged] findings not kept detail=${error._tag}`)),
+  );
+
 /** Lints the repo's items; `read` holds how many items the selectors found. */
 const lint = Effect.fn('lintJudged')(function* (strict: boolean, read: Ref.Ref<number>) {
   const config = yield* JudgedLint;
+  const path = yield* Path.Path;
   const root = config.root;
-  const found = yield* repoItems(root, config.ignorePatterns, [
-    ...new Set(config.rules.map((rule) => rule.selector)),
-  ]);
-  const items = config.rules.flatMap((rule) =>
-    found
-      .filter((item) => item.selector === rule.selector)
-      .map((item) => ({
-        rule,
-        file: item.file,
-        line: item.line,
-        text: item.text,
-        key: item.key,
-      })),
-  );
-  yield* Ref.set(read, items.length);
-  const outcomes = yield* judge(config.rules, items, {
-    model: cacheModel(config.settings.model),
+  const model = cacheModel(config.settings.model);
+  const tree = yield* repoItems(root, config.ignorePatterns, config.rules, {
+    model,
+    file: path.join(root, config.settings.checkout, 'items.json'),
+  });
+  yield* Ref.set(read, tree.items.length);
+  const outcomes = yield* judge(config.rules, tree.items, {
+    model,
     storeFile: storeFileOf(root, config.settings.store),
+    textsOf: tree.textsOf,
     ...LIMITS,
   });
+  yield* writeFindings(
+    findingsFileOf(root, config.settings.checkout),
+    findingsOf(model, outcomes, tree.files),
+  );
   // oxlint reports, at the rule's severity, every finding the plugin can
   // read; the runner prints and gates on the rest (a series script, an
   // answer the store could not keep), or on every one under --strict.

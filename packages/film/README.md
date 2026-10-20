@@ -3896,10 +3896,17 @@ item or rule words it has not seen, an edit a parser sees or to a rule's
 words asks again, a threshold or a message changes no
 answer, and a moved, copied or re-indented item keeps its answer; a run
 marks each answer its tree reads seen that day, and drops an answer no
-checkout has read for 30 days (`MAX_AGE_DAYS`), never one another tree reads. The plugin (`packages/scripts/lint/judged.ts`) hashes
-each item of the file it lints the same way and reports the kept answer at
-or over its rule's threshold at its line, wherever the text now lives; it
-asks no model, so a checkout with no store reports nothing. The runner
+checkout has read for 30 days (`MAX_AGE_DAYS`), never one another tree reads.
+The checkout keeps its own two files beside (`settings.judged.checkout`,
+`tmp/judged`): a memo of each file's items and their keys by the file's
+hash (`items.json`), so a run parses only the files changed since, and the
+run's findings by file (`findings.json`). The plugin (`packages/scripts/lint/judged.ts`)
+reports a file's findings from the last run when the file hashes as it did
+then and the rule's words, label, threshold and model are the same;
+otherwise it hashes each item of the file the same way the runner does and
+reports the kept answer at or over its rule's threshold at its line,
+wherever the text now lives. It asks no model, so a checkout with no store
+reports nothing. The runner
 prints, and gates on, only the findings oxlint cannot report (a Markdown
 series script, an answer the store could not keep), and one line a rule;
 `--strict` prints every finding and fails on any. It never fails on its

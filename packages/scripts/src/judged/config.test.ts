@@ -30,7 +30,8 @@ const readJudgedConfig = (text: string) =>
     return yield* lintOf(dir);
   }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
-const SETTINGS = '"settings": { "judged": { "model": "m", "store": "judged/s.json" } }';
+const SETTINGS =
+  '"settings": { "judged": { "model": "m", "store": "judged/s.json", "checkout": "tmp/j" } }';
 
 /** A config's text: its settings and `rules`. */
 const configOf = (rules: string) => `{ ${SETTINGS}, "rules": { ${rules} } }`;
@@ -67,7 +68,7 @@ describe("the judged rules in the repo's lint config", () => {
         ['b', 'error'],
       ]);
       expect(config.ignorePatterns).toEqual(['**/dist/**']);
-      expect(config.settings).toEqual({ model: 'm', store: 'judged/s.json' });
+      expect(config.settings).toEqual({ model: 'm', store: 'judged/s.json', checkout: 'tmp/j' });
     }),
   );
 

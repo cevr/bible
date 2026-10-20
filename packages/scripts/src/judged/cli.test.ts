@@ -15,6 +15,7 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { lintJudged } from './cli.js';
 import { JudgedLint, judgedLintLayer } from './config.js';
 import { judgedModel } from './model.js';
+import { Findings, textHash } from './findings.js';
 import { Store } from './store.js';
 import { env, missing, typesafeHttp } from './testing.js';
 
@@ -183,6 +184,18 @@ const answering = (choice: string, other: string) => {
 
 /** The model answering every key history. */
 const historyModel = () => answering('history', 'today');
+
+/** The lint's own model over a fake TypeSafe that answers every request 500. */
+const refusingModel = (model: string) =>
+  judgedModel(model).pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        typesafeHttp(500, () => ({})).layer,
+        missing().layer,
+        env({ TYPESAFE_API_KEY: 'test-key' }),
+      ),
+    ),
+  );
 
 /** A model whose every answer is a defect. */
 const dyingModel = () =>
@@ -401,6 +414,37 @@ describe('the judged lint reads the whole repo, by content', () => {
         }),
       ),
     SPAWNS_MS,
+  );
+
+  it.live(
+    "writes each file it read by its hash, with each rule's kept findings, and no rule where an item went unjudged",
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const dir = yield* repo;
+          const findingsOf = Effect.flatMap(
+            fs.readFileString(path.join(dir, 'tmp/judged/findings.json')),
+            Schema.decodeEffect(Findings),
+          );
+          yield* inProcess(dir, [], historyModel().layer);
+          const a = yield* fs.readFileString(path.join(dir, 'src/a.ts'));
+          expect((yield* findingsOf).files).toEqual({
+            'src/a.ts': { hash: textHash(a), rules: { historyComment: [{ start: 0, p: 0.97 }] } },
+          });
+          const b = '// We switched to Rive in the spring.\nconst b = 2;\n';
+          yield* fs.writeFileString(path.join(dir, 'src/b.ts'), b);
+          const refused = yield* inProcess(dir, [], refusingModel);
+          expect(refused.out.at(-1)).toBe(
+            '[judged] skipped rule=historyComment reason=http items=1',
+          );
+          expect((yield* findingsOf).files).toEqual({
+            'src/a.ts': { hash: textHash(a), rules: { historyComment: [{ start: 0, p: 0.97 }] } },
+            'src/b.ts': { hash: textHash(b), rules: {} },
+          });
+        }),
+      ),
   );
 
   it.live(

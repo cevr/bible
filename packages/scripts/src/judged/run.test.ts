@@ -12,6 +12,9 @@ import { findingLine, judge, partsOf, runLine } from './run.js';
 
 /** An item a judged rule reads. */
 type RuleItem = Parameters<typeof judge>[1][number];
+
+/** A run's options but how it reads the texts it asks about: `judgeBy` reads them from its cases. */
+type Options = Omit<Parameters<typeof judge>[2], 'textsOf'>;
 import { type Answer, type Verdict, MAX_AGE_DAYS, cacheKey, dayOf } from './store.js';
 import { env, historyComment, missing, typesafeHttp } from './testing.js';
 
@@ -69,8 +72,15 @@ const countingModel = (pOf: (text: string) => number) => {
   return { layer, requests };
 };
 
-/** An item as a case writes it: its key is its text unless the case names one. */
-type CaseItem = Omit<RuleItem, 'rule' | 'key'> & { readonly key?: string };
+/**
+ * An item as a case writes it: its text, its own key its text unless the
+ * case names one, and its offset 0 unless the case names one.
+ */
+type CaseItem = Omit<RuleItem, 'rule' | 'key' | 'start'> & {
+  readonly text: string;
+  readonly key?: string;
+  readonly start?: number;
+};
 
 const ITEMS: ReadonlyArray<CaseItem> = [
   { file: 'src/a.ts', line: 3, text: 'This used to retry; pass 6 removed that.' },
@@ -89,7 +99,7 @@ const judging = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'judged-run-' });
-  const options: Parameters<typeof judge>[2] = {
+  const options: Options = {
     model: 'fake/model',
     storeFile: path.join(dir, '.git', 'judged', 'store.json'),
     bound: 200,
@@ -109,16 +119,41 @@ const keep = (file: string, fresh: ReadonlyMap<string, Verdict>) =>
 const withFs = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
+/**
+ * Judges `items`, each by its rule, as the runner does: each keyed in the
+ * store for its rule on the options' model, each asked text read from its
+ * case.
+ */
+const judgeAll = (
+  rules: ReadonlyArray<JudgedRule>,
+  items: ReadonlyArray<CaseItem & { readonly rule: JudgedRule }>,
+  options: Options,
+) => {
+  const keyed = items.map(({ text, key, start, ...item }) => ({
+    item: {
+      ...item,
+      start: start ?? 0,
+      key: cacheKey(ruleKey(item.rule), options.model, key ?? text),
+    },
+    text,
+  }));
+  const texts = new Map(keyed.map(({ item, text }) => [item.key, text]));
+  return judge(
+    rules,
+    keyed.map(({ item }) => item),
+    {
+      ...options,
+      textsOf: (asked) => Effect.succeed(asked.map((item) => texts.get(item.key) ?? '')),
+    },
+  );
+};
+
 /** Judges `items` by `rule` alone: its one outcome. */
-const judgeBy = (
-  rule: JudgedRule,
-  items: ReadonlyArray<CaseItem>,
-  options: Parameters<typeof judge>[2],
-) =>
+const judgeBy = (rule: JudgedRule, items: ReadonlyArray<CaseItem>, options: Options) =>
   Effect.map(
-    judge(
+    judgeAll(
       [rule],
-      items.map((item) => ({ ...item, key: item.key ?? item.text, rule })),
+      items.map((item) => ({ ...item, rule })),
       options,
     ),
     (outcomes) => outcomes[0]!,
@@ -146,7 +181,9 @@ describe('a judged rule', () => {
         'Judge the code comment under key c1. HISTORY means',
       );
       // The texts are at 0.97, 0.02 and 0.89: the first alone is a finding.
-      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);
+      expect(outcome.findings).toEqual([
+        { file: 'src/a.ts', line: 3, start: 0, p: 0.97, kept: true },
+      ]);
       expect(outcome.findings.map((f) => findingLine(historyComment, f))).toEqual([
         "src/a.ts:3 warning judged(historyComment): the comment tells the code's history: say what it does today and why; how it got here lives in git log p=0.97",
       ]);
@@ -165,7 +202,9 @@ describe('a judged rule', () => {
     return Effect.gen(function* () {
       const items = [...at.keys()].map((text, i) => ({ file: 'src/t.ts', line: i + 1, text }));
       const outcome = yield* judgeBy(historyComment, items, yield* judging);
-      expect(outcome.findings).toEqual([{ file: 'src/t.ts', line: 1, p: 0.9, kept: true }]);
+      expect(outcome.findings).toEqual([
+        { file: 'src/t.ts', line: 1, start: 0, p: 0.9, kept: true },
+      ]);
     }).pipe(Effect.provide(model.layer), withFs);
   });
 
@@ -284,11 +323,11 @@ describe('a judged rule', () => {
       instructions: 'OTHER means something else.',
     };
     return Effect.gen(function* () {
-      const outcomes = yield* judge(
+      const outcomes = yield* judgeAll(
         [historyComment, other],
         [
-          { ...ITEMS[0]!, key: ITEMS[0]!.text, rule: historyComment },
-          { ...ITEMS[0]!, key: ITEMS[0]!.text, rule: other },
+          { ...ITEMS[0]!, rule: historyComment },
+          { ...ITEMS[0]!, rule: other },
         ],
         yield* judging,
       );
@@ -386,7 +425,7 @@ describe('a judged rule', () => {
         );
         expect(model.requests).toHaveLength(1);
         expect(moved.findings).toEqual([
-          { file: 'src/elsewhere/z.ts', line: 40, p: 0.97, kept: true },
+          { file: 'src/elsewhere/z.ts', line: 40, start: 0, p: 0.97, kept: true },
         ]);
         yield* judgeBy(
           historyComment,
@@ -653,7 +692,9 @@ describe('a judged rule never fails on its model', () => {
     return Effect.gen(function* () {
       const outcome = yield* judgeBy(historyComment, ITEMS, yield* judging);
       expect(typesafe.requests.map((r) => r.url)).toEqual(['https://api.typesafe.ai/v1/systemone']);
-      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96, kept: true }]);
+      expect(outcome.findings).toEqual([
+        { file: 'src/a.ts', line: 3, start: 0, p: 0.96, kept: true },
+      ]);
     }).pipe(Effect.provide(typesafe.layer), withFs);
   });
 
@@ -712,7 +753,9 @@ describe('a judged rule never fails on its model', () => {
     );
     return Effect.gen(function* () {
       const outcome = yield* ticking(judgeBy(historyComment, ITEMS, yield* judging));
-      expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.96, kept: true }]);
+      expect(outcome.findings).toEqual([
+        { file: 'src/a.ts', line: 3, start: 0, p: 0.96, kept: true },
+      ]);
       const at = typesafe.requests.map((request) => request.at);
       const gaps = at.slice(1).map((time, i) => time - (at[i] ?? 0));
       expect(gaps.map((gap, i) => gap >= waits[i]! && gap < 2 * waits[i]!)).toEqual([true, true]);
@@ -862,7 +905,9 @@ describe('a judged rule never fails on its model', () => {
           ]),
         );
         const outcome = yield* judgeBy(historyComment, ITEMS, options);
-        expect(outcome.findings).toEqual([{ file: 'src/a.ts', line: 3, p: 0.97, kept: true }]);
+        expect(outcome.findings).toEqual([
+          { file: 'src/a.ts', line: 3, start: 0, p: 0.97, kept: true },
+        ]);
         expect(runLine(outcome)).toBe('[judged] skipped rule=historyComment reason=no-key items=2');
       }).pipe(Effect.provide(keyless), withFs);
     },

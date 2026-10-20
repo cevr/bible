@@ -1,13 +1,14 @@
 // The `judged` oxlint plugin, run for real: oxlint lints a scratch repo with
-// only this plugin on, over a store of kept answers, and reports exactly the
-// items whose answer is at or over the rule's threshold, wherever their text
-// lives.
+// only this plugin on, over a store of kept answers and a run's findings
+// file, and reports exactly the items whose answer is at or over the rule's
+// threshold, wherever their text lives.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Effect, FileSystem, Path, Schema, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
+import { Findings, ruleSignature, textHash } from '../src/judged/findings.ts';
 import { itemsOf, parse } from '../src/judged/items.ts';
 import { ruleKey } from '../src/judged/rule.ts';
 import { Store, cacheKey } from '../src/judged/store.ts';
@@ -79,7 +80,7 @@ const scratch = (severity: 'warn' | 'error', selector: string = historyComment.s
         categories: { correctness: 'off' },
         plugins: [],
         jsPlugins: [PLUGIN],
-        settings: { judged: { model: 'jev-1.13.0', store: 'kept.json' } },
+        settings: { judged: { model: 'jev-1.13.0', store: 'kept.json', checkout: 'tmp/judged' } },
         rules: { [`judged/${id}`]: [severity, { ...options, selector }] },
       }),
     );
@@ -152,6 +153,50 @@ describe('the judged plugin', () => {
           `src/y/z.ts:2:3: ${REPORT} p=0.95 [Error/judged(historyComment)]`,
         ]);
         expect(moved.code).not.toBe(0);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SPAWNS_MS,
+  );
+
+  it.live(
+    "reports the last run's findings of a file as it stands, and the store's for a file changed since or a rule of other words",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* scratch('warn');
+        const changed = `${SOURCE}\nconst d = 4;`;
+        yield* fs.writeFileString(path.join(dir, 'src/x.ts'), SOURCE);
+        yield* fs.writeFileString(path.join(dir, 'src/w.ts'), changed);
+        yield* fs.writeFileString(
+          path.join(dir, '.git', 'kept.json'),
+          yield* storeOf([0.95, 0.02, 0.02]),
+        );
+        // The run found the second comment alone: the store, read, would say the first.
+        const run = [{ start: SOURCE.indexOf('// The key'), p: 0.97 }];
+        const findings = (signature: string) =>
+          Effect.flatMap(
+            Schema.encodeEffect(Findings)({
+              rules: { historyComment: signature },
+              files: {
+                'src/x.ts': { hash: textHash(SOURCE), rules: { historyComment: run } },
+                'src/w.ts': { hash: textHash(SOURCE), rules: { historyComment: run } },
+              },
+            }),
+            (text) => fs.writeFileString(path.join(dir, 'tmp/judged/findings.json'), text),
+          );
+        yield* fs.makeDirectory(path.join(dir, 'tmp/judged'), { recursive: true });
+        yield* findings(ruleSignature('typesafe/jev-1.13.0', historyComment));
+        expect((yield* oxlint(dir)).lines).toEqual([
+          `src/w.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
+          `src/x.ts:4:1: ${REPORT} p=0.97 [Warning/judged(historyComment)]`,
+        ]);
+        yield* findings(
+          ruleSignature('typesafe/jev-1.13.0', { ...historyComment, threshold: 0.5 }),
+        );
+        expect((yield* oxlint(dir)).lines).toEqual([
+          `src/w.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
+          `src/x.ts:1:1: ${REPORT} p=0.95 [Warning/judged(historyComment)]`,
+        ]);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SPAWNS_MS,
   );

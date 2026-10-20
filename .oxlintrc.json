@@ -208,8 +208,9 @@
     // The model the judged rules ask, by its exact id (their thresholds were
     // measured on it; an alias such as jev-latest moves under them), and
     // where their answers are kept, from git's common dir (.git), which every
-    // checkout and worktree of the repo shares.
-    "judged": { "model": "jev-1.13.0", "store": "judged/store.json" },
+    // checkout and worktree of the repo shares; the checkout's own memo of
+    // its items and its last run's findings, from its root.
+    "judged": { "model": "jev-1.13.0", "store": "judged/store.json", "checkout": "tmp/judged" },
     // Test code besides `*.test.*` and `*.spec.*` modules: the harness helpers
     // the fixed-wait rule and effect's other test-aware rules read as tests.
     "effect": {
@@ -234,7 +235,11 @@
       // oxlint runs its plugins in Node: the judged plugin reads the kept
       // answers with node's file system, and their key is node's sha256,
       // which the runner, in Bun, computes the same.
-      "files": ["**/packages/scripts/lint/judged.ts", "**/packages/scripts/src/judged/store.ts"],
+      "files": [
+        "**/packages/scripts/lint/judged.ts",
+        "**/packages/scripts/src/judged/store.ts",
+        "**/packages/scripts/src/judged/findings.ts"
+      ],
       "rules": { "effect/noNodeBuiltinImport": "off" }
     },
     {

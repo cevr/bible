@@ -6,7 +6,10 @@
 // checkout of the repo) keeps each answer by the item's
 // content (`judged/store.ts`), so only an item whose text, or whose rule's
 // words, it has not seen goes to TypeSafe's model, every rule's in one
-// request, and the answers are kept. `bun run lint` runs this
+// request, and the answers are kept. A file the checkout's memo holds by
+// its hash is not parsed again (`judged/sources.ts`), and the run's findings
+// are written by file for the plugin (`judged/findings.ts`), both in the
+// checkout's `settings.judged.checkout`. `bun run lint` runs this
 // first and oxlint after it, and oxlint reports the kept answers at their
 // lines at each rule's severity (`packages/scripts/lint/judged.ts`). This
 // prints and gates on the findings oxlint cannot report (a Markdown series

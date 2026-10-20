@@ -56,6 +56,11 @@ export const Settings = Schema.Struct({
   model: Schema.String,
   /** Where the answers are kept, from git's common dir, so every checkout shares them (`store.ts`). */
   store: Schema.String,
+  /**
+   * The checkout's own files of the judged lint, from its root: the memo of
+   * its items (`sources.ts`) and its last run's findings (`findings.ts`).
+   */
+  checkout: Schema.String,
 });
 
 export type Settings = typeof Settings.Type;

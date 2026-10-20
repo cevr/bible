@@ -3,11 +3,49 @@ import { Effect, FileSystem, Path, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
+import type { Selector } from './items.js';
+import type { JudgedRule } from './rule.js';
 import { repoItems } from './sources.js';
+import { historyComment } from './testing.js';
+
+/** A rule of each of `selectors`, named by it. */
+const rulesOf = (selectors: ReadonlyArray<Selector>): ReadonlyArray<JudgedRule> =>
+  selectors.map((selector) => ({ ...historyComment, id: selector, selector }));
+
+/** The memo of the repo at `dir`, where the repo's config keeps it. */
+const memoOf = (dir: string) => `${dir}/tmp/judged/items.json`;
+
+/**
+ * The items of `selectors` in the repo at `dir`, past `ignorePatterns`,
+ * each with its rule's selector and its text as the run reads it, and the
+ * tree they came from.
+ */
+const treeOf = (
+  dir: string,
+  ignorePatterns: ReadonlyArray<string>,
+  selectors: ReadonlyArray<Selector>,
+  rules = rulesOf(selectors),
+) =>
+  Effect.gen(function* () {
+    const tree = yield* repoItems(dir, ignorePatterns, rules, {
+      model: 'fake/model',
+      file: memoOf(dir),
+    });
+    const texts = yield* tree.textsOf(tree.items);
+    return {
+      tree,
+      items: tree.items.map((item, at) => ({
+        selector: item.rule.selector,
+        file: item.file,
+        line: item.line,
+        text: texts[at],
+      })),
+    };
+  });
 
 /** The comment blocks of the repo at `dir`, past the dist folders. */
 const commentsOf = (dir: string) =>
-  Effect.map(repoItems(dir, ['**/dist/**'], ['comments']), (items) =>
+  Effect.map(treeOf(dir, ['**/dist/**'], ['comments']), ({ items }) =>
     items.map(({ file, line, text }) => ({ file, line, text })),
   );
 
@@ -208,7 +246,7 @@ describe("the repo's items", () => {
             },
             {},
           );
-          const items = yield* repoItems(dir, [], ['comments', 'commentedCode', 'scriptBeats']);
+          const { items } = yield* treeOf(dir, [], ['comments', 'commentedCode', 'scriptBeats']);
           expect(
             items.map(({ selector, file, line, text }) => [selector, file, line, text]),
           ).toEqual([
@@ -229,5 +267,81 @@ describe("the repo's items", () => {
           ]);
         }),
       ),
+  );
+
+  it.live(
+    "reads a file the memo holds by its hash from the memo, and its asked items' texts from the file",
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const dir = yield* repo({ 'src/a.ts': ['// One.', 'const a = 1;'] }, {});
+          const first = yield* treeOf(dir, [], ['comments']);
+          expect(first.items).toEqual([
+            { selector: 'comments', file: 'src/a.ts', line: 1, text: 'One.' },
+          ]);
+          // The memo says the item stands on line 7: a read that parsed the
+          // file again would say line 1.
+          const memo = yield* fs.readFileString(memoOf(dir));
+          yield* fs.writeFileString(memoOf(dir), memo.replace('"line":1', '"line":7'));
+          const again = yield* treeOf(dir, [], ['comments']);
+          expect(again.items).toEqual([
+            { selector: 'comments', file: 'src/a.ts', line: 7, text: 'One.' },
+          ]);
+          expect(again.tree.items.map((item) => item.key)).toEqual(
+            first.tree.items.map((item) => item.key),
+          );
+        }),
+      ),
+  );
+
+  it.live(
+    'reads again a file whose text changed, drops a file gone, and reads a memo of other rules as none',
+    () =>
+      withFs(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const dir = yield* repo(
+            { 'src/a.ts': ['// One.', 'const a = 1;'], 'src/b.ts': ['// Two.'] },
+            {},
+          );
+          yield* treeOf(dir, [], ['comments']);
+          yield* fs.writeFileString(path.join(dir, 'src/a.ts'), '// One, changed.\n');
+          yield* git(dir, 'rm', '-q', 'src/b.ts');
+          const changed = yield* treeOf(dir, [], ['comments']);
+          expect(changed.items).toEqual([
+            { selector: 'comments', file: 'src/a.ts', line: 1, text: 'One, changed.' },
+          ]);
+          const memo = yield* fs.readFileString(memoOf(dir));
+          expect([memo.includes('"src/a.ts"'), memo.includes('"src/b.ts"')]).toEqual([true, false]);
+          // The memo's line, past what the file says, is read only in the form it was made.
+          yield* fs.writeFileString(memoOf(dir), memo.replace('"line":1', '"line":7'));
+          const reworded = rulesOf(['comments']).map((rule) => ({
+            ...rule,
+            instructions: 'Other words.',
+          }));
+          const other = yield* treeOf(dir, [], ['comments'], reworded);
+          expect(other.items.map((item) => item.line)).toEqual([1]);
+        }),
+      ),
+  );
+
+  it.live("fails, tagged, to read an asked item's text from a file changed during the run", () =>
+    withFs(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* repo({ 'src/a.ts': ['// One.'] }, {});
+        yield* treeOf(dir, [], ['comments']);
+        const tree = yield* repoItems(dir, [], rulesOf(['comments']), {
+          model: 'fake/model',
+          file: memoOf(dir),
+        });
+        yield* fs.writeFileString(path.join(dir, 'src/a.ts'), '// Another.\n');
+        const failed = yield* Effect.flip(tree.textsOf(tree.items));
+        expect(failed._tag).toBe('ItemsMoved');
+      }),
+    ),
   );
 });
