@@ -32,7 +32,9 @@ home, about, one page per series, and the not-found page.
 The owner's choices (ask a358017aa44, 2026-10-20): each film gets a study page
 on the site, its vertical cuts go to YouTube Shorts, Facebook, Instagram and
 TikTok, and each film sends one email to the list. Pinterest waits until the
-country living, education and health series have films.
+country living, education and health series have films. A Patreon link follows
+once the first films are out; every film stays free, and Patreon is support
+only (ask ab8011aa651).
 
 1. Add the film to its series' `episodes` in `src/content.ts`, with its
    YouTube id and the day it went up (`published`).
