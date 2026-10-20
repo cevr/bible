@@ -1,0 +1,92 @@
+{
+  "number": 271,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-30 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p264.jpg",
+          "crop": "p264-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3a4ea7ee0c003db9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "p264-strip0.jpg system 1, stanza 2's row: words 1-6 sing the 6-syllable first line of the header metre 6.4.6.4.D., and the capital at word 7 (To, after a comma) opens the 4-syllable second line. The database writes the two whole poem lines as its line 1, as each of its lines joins a 6 and a 4 line, words the same.",
+      "settles": [
+        "271 shape (shape2-30): stanza 2 row 1 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-30 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p264.jpg",
+          "crop": "p264-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3a4ea7ee0c003db9",
+          "shows": ""
+        },
+        {
+          "image": "p264.jpg",
+          "crop": "p264-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "91f26d6b8f868d00",
+          "shows": ""
+        },
+        {
+          "image": "p264.jpg",
+          "crop": "p264-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "333a6ff5d05b217c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "p264-strip800.jpg and p264-strip1600.jpg system 3, stanza 2's row: words 1-5 sing the 6-syllable fifth line of the 6.4.6.4.D. metre (p264-strip0.jpg), and the capital at word 6 (All, after a comma) opens the 4-syllable sixth line. The database writes the two whole poem lines as its line 3, words the same.",
+      "settles": [
+        "271 shape (shape2-30): stanza 2 row 3 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-30 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p264.jpg",
+          "crop": "p264-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3a4ea7ee0c003db9",
+          "shows": ""
+        },
+        {
+          "image": "p264.jpg",
+          "crop": "p264-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "333a6ff5d05b217c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "p264-strip1600.jpg system 4, stanza 2's row: words 1-6 sing the 6-syllable seventh line of the 6.4.6.4.D. metre (p264-strip0.jpg), and the capital at word 7 (My, after a comma) opens the 4-syllable eighth line. The database writes the two whole poem lines as its line 4, words the same.",
+      "settles": [
+        "271 shape (shape2-30): stanza 2 row 4 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    }
+  ]
+}

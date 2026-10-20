@@ -1,0 +1,34 @@
+{
+  "number": 465,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-52 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "465.jpg",
+          "crop": "465-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "a4a83edc50838cd8",
+          "shows": ""
+        },
+        {
+          "image": "465.jpg",
+          "crop": "465-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "a7f54df2e732431f",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "465-strip800.jpg system 2, stanza 1 row: word 11 'My' is capitalised as Christ's own pronoun inside the words He speaks (opened by the quote in system 1), and opens no line. The poem line opens on 'Thy' (word 8): KINGSFOLD C.M.D. (header on 465-strip0.jpg) counts 8 syllables from 'Lay' to the second 'down' and 6 from 'Thy' to 'breast', where the database opens its lines 3 and 4.",
+      "settles": [
+        "465 shape (shape2-52): stanza 1 row 2 prints word 11 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    }
+  ]
+}

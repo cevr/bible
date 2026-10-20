@@ -1,0 +1,27 @@
+{
+  "number": 30,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-04 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p030.jpg",
+          "crop": "p030-strip0.jpg",
+          "box": [0, 0, 1770, 1000],
+          "sha": "b0d1405f5d181a43",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f01 (Opus, effort max)",
+      "why": "p030-strip0.jpg system 1, stanza 3 row: word 3 is the 'Holy' of 'Holy Son', capitalised as a name of God like the titles beside it. The header metre 7.8.7.8.7.7 makes words 1-4 one 7-syllable poem line, the database's line 1, so no line opens there.",
+      "settles": [
+        "30 shape (shape2-04): stanza 3 row 1 prints word 3 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    }
+  ]
+}

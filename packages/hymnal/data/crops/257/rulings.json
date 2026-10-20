@@ -1,0 +1,34 @@
+{
+  "number": 257,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p252.jpg",
+          "crop": "p252-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "2c3ebf5a0689c7cb",
+          "shows": ""
+        },
+        {
+          "image": "p252.jpg",
+          "crop": "p252-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "f4dee8513b8eedf9",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "p252-strip1600.jpg system 4, stanza 4's row: word 4 opens the name Holy Spirit (words 4-5), a name of God, after a lowercase article with no stop; it opens no poem line. The row is the whole 11-syllable last line of the header metre 6.6.11.6.6.11. on p252-strip0.jpg, which the database writes as its line 6.",
+      "settles": [
+        "257 shape (shape2-29): stanza 4 row 4 prints word 4 with a capital inside a line of stanza 4, where no line or sentence opens"
+      ]
+    }
+  ]
+}

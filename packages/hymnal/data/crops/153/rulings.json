@@ -20,6 +20,28 @@
       "judge": "reach-judge-reach-t07 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: swaplines:3.1: can: 153-strip0.jpg, the system from bar 1, stanza 3's row prints the line ending \"be done\" first, then the line ending \"be one\" (closing on the first word of the system from bar 4). The two lines differ in words (\"not mine\" against \"and mine\"), so the page's sung order shows the swap is wrong.",
       "gaps": ["swaplines:3.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-17 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "153.png",
+          "crop": "153-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "89cdf2a907d2e755",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "153-strip0.jpg system 1, stanza 1's row: word 3 is the capital of the title Prince of Peace, a name of Christ, after a lowercase word 2 with no stop. The page's poem lines open at word 1 and at word 7 (after a comma), so the database's line 1 (words 1-6) stands.",
+      "settles": [
+        "153 shape (shape2-17): stanza 1 row 1 prints word 3 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
     }
   ]
 }

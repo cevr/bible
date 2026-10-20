@@ -1,0 +1,34 @@
+{
+  "number": 540,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-60 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "540.jpg",
+          "crop": "540-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "34743b7fc05f3023",
+          "shows": ""
+        },
+        {
+          "image": "541.jpg",
+          "crop": "541-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "34743b7fc05f3023",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "540-strip800.jpg system 2, stanza 4 row (the same photo on 541-strip800.jpg): word 10 'Child' is capitalised with 'Holy' as a title of Christ ('the Holy Child'), and opens no line. The poem line opens on 'Christ' (word 7): GENTLE JESUS 7.7.7.7. counts 7 syllables from 'Then' to 'see' and 7 from 'Christ' to 'me', where the database opens its lines 3 and 4.",
+      "settles": [
+        "540 shape (shape2-60): stanza 4 row 2 prints word 10 with a capital inside a line of stanza 4, where no line or sentence opens"
+      ]
+    }
+  ]
+}

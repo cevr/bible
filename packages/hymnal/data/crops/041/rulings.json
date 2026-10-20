@@ -1,0 +1,34 @@
+{
+  "number": 41,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-05 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "041.jpg",
+          "crop": "041-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "9efb175036698855",
+          "shows": ""
+        },
+        {
+          "image": "041.jpg",
+          "crop": "041-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "44bb8e5fa2557466",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f01 (Opus, effort max)",
+      "why": "041-strip800.jpg system 2, stanza 1 row: word 4 is 'Light' in 'O Light of life', a title of Christ after the vocative 'O' (word 3), where the poem line opens. The L.M. metre on 041-strip0.jpg makes words 3-9 one 8-syllable line, the database's line 3, so the capital opens no line.",
+      "settles": [
+        "41 shape (shape2-05): stanza 1 row 2 prints word 4 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    }
+  ]
+}

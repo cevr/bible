@@ -1141,14 +1141,12 @@ export const outlineVaries = (outline: Outline): number[][] => {
 
 /**
  * One printed line: its words as compared, for each word whether the source
- * opens a sentence on it and whether the source writes it with a capital
- * inside its line (`linesOf`), and whether its text opens with whitespace
- * (an indent).
+ * opens a sentence on it (`linesOf`), and whether its text opens with
+ * whitespace (an indent).
  */
 export interface PrintedLine {
   readonly words: readonly string[];
   readonly sentences: readonly boolean[];
-  readonly capitals: readonly boolean[];
   readonly indent: boolean;
 }
 
@@ -1202,21 +1200,17 @@ const lineRead = (text: string, opening: boolean) => {
   const known = lineReads.get(key);
   if (known !== undefined) return known;
   let open = opening;
-  const [words, sentences, capitals]: [string[], boolean[], boolean[]] = [[], [], []];
-  let before: string | undefined;
+  const [words, sentences]: [string[], boolean[]] = [[], []];
   for (const token of text.split(/\s+/u)) {
     if (token === '') continue;
     const these = wordsOf(token);
-    const capital = midCapital(token, before);
     for (const [k, word] of these.entries()) {
       words.push(word);
       sentences.push(k === 0 && (open || QUOTE_OPEN.test(token)));
-      capitals.push(capital);
     }
     if (these.length > 0 || SENTENCE_END.test(token)) open = SENTENCE_END.test(token);
-    before = token;
   }
-  const read = { line: { words, sentences, capitals, indent: /^\s/u.test(text) }, open };
+  const read = { line: { words, sentences, indent: /^\s/u.test(text) }, open };
   lineReads.set(key, read);
   return read;
 };
@@ -1325,7 +1319,7 @@ const refrainItemsOf = (items: readonly RefrainText[]): readonly RefrainItem[] =
         varies: item.varies.map((part) => ({ after: part.after, lines: blockOf(part.lines) })),
       };
     k += 1;
-    return shared[k - 1] ?? { words: [], sentences: [], capitals: [], indent: false };
+    return shared[k - 1] ?? { words: [], sentences: [], indent: false };
   });
   refrains.set(items, read);
   return read;
@@ -1729,19 +1723,13 @@ const spanOff = (placed: Placed | undefined, row: OutlineRow | undefined) =>
  */
 const sungOf = (layout: PrintedLayout, i: number) => {
   const lines = [...(layout.stanzas[i - 1] ?? []), ...refrainAfter(layout, i)];
-  const [words, opens, sentences, capitals]: [string[], number[], boolean[], boolean[]] = [
-    [],
-    [],
-    [],
-    [],
-  ];
+  const [words, opens, sentences]: [string[], number[], boolean[]] = [[], [], []];
   for (const line of lines) {
     opens.push(words.length);
     words.push(...line.words);
-    capitals.push(...line.capitals);
     sentences.push(...line.sentences);
   }
-  return { words, opens, sentences, capitals, own: layout.stanzas[i - 1]?.length ?? 0 };
+  return { words, opens, sentences, own: layout.stanzas[i - 1]?.length ?? 0 };
 };
 
 /**
@@ -2059,8 +2047,10 @@ export const stanzaCheckOf = (
  * Each capital the page prints inside an anchored row where the source opens
  * no line and no sentence, on a word the page does not capitalise wherever
  * it falls (`book`, `capitalsOf`), at every place the word may stand
- * (`wordPlaces`), where the source writes no capital itself: the page opens
- * a line there that the source runs on.
+ * (`wordPlaces`): the page opens a line there that the source runs on. A
+ * source that writes the word with a capital there excuses nothing: two
+ * lines joined keep the second's capital, so a row that writes two poem
+ * lines as one is a line here, settled by a `layout` ruling on crops.
  */
 const unopenedCapitals = (
   what: string,
@@ -2070,7 +2060,6 @@ const unopenedCapitals = (
     readonly words: readonly string[];
     readonly opens: readonly number[];
     readonly sentences: readonly boolean[];
-    readonly capitals: readonly boolean[];
   },
   book: ReadonlySet<string>,
 ) => {
@@ -2079,10 +2068,7 @@ const unopenedCapitals = (
     const row = placement.rows[r];
     if (!one.anchored || row === undefined) return [];
     const opened = (at: number) =>
-      opens.has(at) ||
-      sung.sentences[at] === true ||
-      sung.capitals[at] === true ||
-      book.has(sung.words[at] ?? '');
+      opens.has(at) || sung.sentences[at] === true || book.has(sung.words[at] ?? '');
     return row.row.capitals.flatMap((c) => {
       const places = wordPlaces(one, Math.max(1, row.row.words), c);
       return places.length === 0 || places.some(opened)
@@ -2379,8 +2365,7 @@ const tallyLine = (counts: Map<string, [number, number]>, line: string) => {
  * capitalises it). A place inside a line is one `midCapital` reads: not first
  * in its line, after no `.`, `!`, `?`, `:`, `;` or quote mark, opening no
  * quote. A word capitalised in fewer of its places (`To` where a row writes
- * two poem lines as one) is no such word: its capital opens a line, unless
- * the row writes that very word there with a capital (`PrintedLine.capitals`).
+ * two poem lines as one) is no such word: its capital opens a line.
  */
 export const capitalsOf = (
   rows: ReadonlyMap<number, Verses>,

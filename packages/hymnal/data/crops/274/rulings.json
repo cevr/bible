@@ -27,6 +27,28 @@
       "judge": "reach-judge-reach-t14 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:1.2: can: The header prints 7.6.7.6.D. Stanza 1's line 2 (system 1's row) sings 6 syllables and line 3 (system 2's row) sings 7; moving the one-syllable O makes them 7 and 6, which the metre breaks. Capitals alone would not tell: O and the title after it both stand capital anyway. moveup:1.3: can: The header prints 7.6.7.6.D. Stanza 1's lines 3 and 4 (system 2's row) sing 7 and 6 syllables; moving the one-syllable O makes them 8 and 5, which the metre breaks. Capitals alone would not tell: O and the title after it both stand capital anyway.",
       "gaps": ["moveup:1.2", "moveup:1.3"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-31 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p267.jpg",
+          "crop": "p267-strip800.jpg",
+          "box": [0, 800, 1758, 1000],
+          "sha": "a14f30759c7a6b88",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "p267-strip800.jpg system 2, stanza 1 row: the poem line opens on 'O' (word 5) after the comma, where the database opens its line 4; word 6 'Light' is capitalised as a title of the divine Word after 'O', like 'O Truth' and 'O Wisdom', and opens no line. The metre 7.6.7.6.D counts 7 syllables to word 4 and 6 from 'O Light' to 'sky'.",
+      "settles": [
+        "274 shape (shape2-31): stanza 1 row 2 prints word 6 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
     }
   ]
 }

@@ -228,6 +228,35 @@
       "judge": "reach-judge-reach-t26 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: split:refrain.1.1: 493-strip800.jpg system 3, the refrain's row after the Refrain mark: the line's word 5, where the split opens, is a one-letter pronoun always printed as a capital, after a comma. The header on 493-strip0.jpg prints the metre as Irregular, so nothing fixes the lines. join:refrain.1.1: 493-strip1600.jpg system 4, the refrain's row: line 2's first word, the row's third, follows an exclamation mark, so it is a capital anyway as a new sentence's first word. The header prints the metre as Irregular, so nothing fixes the lines. movedown:refrain.1.1: 493-strip1600.jpg system 4, the refrain row's second word: the moved word is a name of God printed with a capital, and the word after its exclamation mark is a capital anyway as a new sentence's first word. The header prints the metre as Irregular.",
       "unreachable": ["split:refrain.1.1", "join:refrain.1.1", "movedown:refrain.1.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-55 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "493.jpg",
+          "crop": "493-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "d5b886a1e9c12962",
+          "shows": ""
+        },
+        {
+          "image": "493.jpg",
+          "crop": "493-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "1656ad03197e878a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "493-strip800.jpg system 3, stanza 1 row: word 2 'My' is capitalised as the Savior's own pronoun inside the quote He speaks, and opens no line. That poem line opens on the quoted 'Draw' after 'speaking:' at the end of system 2 (493-strip0.jpg and 493-strip800.jpg), where the database opens its line 4; the header says Irregular, so no metre applies.",
+      "settles": [
+        "493 shape (shape2-55): stanza 1 row 3 prints word 2 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
     }
   ]
 }

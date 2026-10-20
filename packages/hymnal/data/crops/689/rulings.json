@@ -1,0 +1,34 @@
+{
+  "number": 689,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-77 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "689.png",
+          "crop": "689-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d139f529bb95f486",
+          "shows": ""
+        },
+        {
+          "image": "689.png",
+          "crop": "689-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "a9d3042a047c248c",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "689-strip0.jpg system 3 (bars 7-10): 'Day' is capitalised after 'near-ly,' where the closing 'Day by day.' repeats the opening words on its own two-bar cadence. It opens at most a short poem line, and the database's line 3 joins the two short lines whole, the words the same, as its line 2 does with 'Love Thee' after 'clear-ly,' in system 2.",
+      "settles": [
+        "689 shape (shape2-77): stanza 1 row 3 prints word 5 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    }
+  ]
+}

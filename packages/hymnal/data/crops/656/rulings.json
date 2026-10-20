@@ -1,0 +1,27 @@
+{
+  "number": 656,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-73 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p643.jpg",
+          "crop": "p643-strip0.jpg",
+          "box": [0, 0, 1758, 1000],
+          "sha": "3c1765af507b02bd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "p643-strip0.jpg system 1, row 1: 'Love' is capitalised in 'O per-fect Love,' as a name of God addressed (stanza 2 prints 'Life' the same way, beside 'Thou'). The header's metre 11.10.11.10 counts the whole row, from 'O' to 'tran-scend-ing', as one 11-syllable line, so the capital opens no poem line.",
+      "settles": [
+        "656 shape (shape2-73): stanza 1 row 1 prints word 3 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    }
+  ]
+}

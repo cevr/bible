@@ -1,0 +1,27 @@
+{
+  "number": 67,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-08 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "067.png",
+          "crop": "067-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "c2bbaaa8a4ab407e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f01 (Opus, effort max)",
+      "why": "067-strip0.jpg system 1, stanza 2 row: word 11 is 'Light' in 'O glorious Light,', a title of Christ after the vocative 'O'; it ends the 6-syllable poem line opened at 'Your' (word 7), and the next line opens at 'Till' (word 12). So the capital opens no line and the database's line 2 stands.",
+      "settles": [
+        "67 shape (shape2-08): stanza 2 row 1 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    }
+  ]
+}

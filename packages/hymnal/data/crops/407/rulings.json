@@ -27,6 +27,35 @@
       "judge": "reach-judge-reach-t21 (Opus, effort max)",
       "why": "The page cannot tell these changes from the row: moveup:2.4: Sent_Forth_by_Gods_Blessing2-strip0.jpg system 1, stanza 2's row: the moved word follows a full stop and the word the change opens line 5 on is a pronoun of God, both printed with a capital anyway; the header prints no metre and no text is printed below the music. Words under copyright: no words written.",
       "unreachable": ["moveup:2.4"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-45 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "407.png",
+          "crop": "407-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "52ffff40710a6843",
+          "shows": ""
+        },
+        {
+          "image": "407.png",
+          "crop": "407-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "221c61746dc2ef25",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "407-strip0.jpg system 3, stanza 2 row (repeated on 407-strip800.jpg): word 6 'In' follows 'sharing,' and opens the second six-syllable half-line, as 'To' does in system 1 and 'With' (word 8) in system 5. The database's line 3 writes the two whole half-lines from 'Our' to 'caring' as one line, as its lines 1, 5 and 7 join theirs; the words are the same.",
+      "settles": [
+        "407 shape (shape2-45): stanza 2 row 3 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

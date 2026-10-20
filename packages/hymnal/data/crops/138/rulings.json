@@ -143,6 +143,50 @@
         "split:refrain.1.5",
         "join:refrain.1.6"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-16 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f959094319b78516",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f01 (Opus, effort max)",
+      "why": "138-strip800.jpg system 4 (bars 15-19), refrain row: word 7 is the second of 'Follow, Follow,', each capitalised as a one-word call after 'follow.', and the next line opens at 'Rise' (word 8). The database writes the two whole one-word calls as one line (its refrain line 5), the words and order the same.",
+      "settles": [
+        "138 shape (shape2-16): the refrain after stanza 1: row 3 prints word 7 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-16 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "138.png",
+          "crop": "138-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "f959094319b78516",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f01 (Opus, effort max)",
+      "why": "The refrain is printed once and sung after each stanza: on 138-strip800.jpg system 4, refrain row, word 7 is the second of 'Follow, Follow,', each capitalised as a one-word call, and the next line opens at 'Rise' (word 8). The database writes the two whole one-word calls as one line (its refrain line 5), the words and order the same.",
+      "settles": [
+        "138 shape (shape2-16): the refrain after stanza 2: row 3 prints word 7 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

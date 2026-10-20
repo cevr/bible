@@ -1,0 +1,27 @@
+{
+  "number": 383,
+  "rulings": [
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-43 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "p372.jpg",
+          "crop": "p372-strip1600.jpg",
+          "box": [0, 1600, 1758, 1000],
+          "sha": "78c2869f96674c04",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f03 (Opus, effort max)",
+      "why": "p372-strip1600.jpg system 4, stanza 1 row: word 2 'Holy' is capitalised because it opens the words to be sung after 'Sing,' (the threefold holy, a quote with no quote marks), not a poem line. The metre 7.6.7.6.D counts 7 syllables from 'Sing' to the third 'holy' and 6 from 'To' to 'One', where the database opens its lines 7 and 8.",
+      "settles": [
+        "383 shape (shape2-43): stanza 1 row 4 prints word 2 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    }
+  ]
+}

@@ -47,6 +47,50 @@
       "judge": "reach-judge-reach-t32 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:refrain.1.1: can: System 3 (the refrain's first), its row: line 2's first word is printed with a capital after an exclamation mark, while the same row prints a lowercase word after its first exclamation mark (as stanza 1's row does too) and opens its half-lines lowercase, so the capital marks the line opening the join removes. No metre is printed; in the stanzas the page capitalises every half-line, which the database holds mid-line, so this holds for the refrain's row only.",
       "gaps": ["join:refrain.1.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-68 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "614.png",
+          "crop": "614-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "fb105dc7471d3cdc",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "614-strip0.jpg system 2, row 2 (stanza 2): 'We' is capitalised after 'right,' on the pick-up into bar 8, where stanza 1 prints 'His' and stanza 3 'Be-fore'; the page opens every bar's short line with a capital ('Gleam-ing', 'Bat-tling' in this row). The database's line 4 joins the two short lines of bars 7-8 whole, the words the same.",
+      "settles": [
+        "614 shape (shape2-68): stanza 2 row 2 prints word 13 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-68 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "614.png",
+          "crop": "614-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "fb105dc7471d3cdc",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "614-strip0.jpg system 2, row 3 (stanza 3): 'And' is capitalised after 'done,' at the start of bar 6, where stanza 1 prints 'Stand' and stanza 2 'Gleam-ing'; the page opens every bar's short line with a capital. The database's line 3 joins the two short lines of bars 5-6 whole, the words the same.",
+      "settles": [
+        "614 shape (shape2-68): stanza 3 row 2 prints word 5 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
     }
   ]
 }

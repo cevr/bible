@@ -77,6 +77,35 @@
       "settles": [
         "54 shape (shape2-06): stanza 3 row 2 and stanza 3 row 3 span -1 and +1 words against their counts"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-06 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "054.jpg",
+          "crop": "054-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "322e09e280e315a8",
+          "shows": ""
+        },
+        {
+          "image": "055.jpg",
+          "crop": "055-strip800.jpg",
+          "box": [0, 800, 2268, 1000],
+          "sha": "322e09e280e315a8",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f01 (Opus, effort max)",
+      "why": "054-strip800.jpg system 3, stanza 2 row (the same spread again in 055-strip800.jpg): word 6 is the 'Holy' of 'Holy Spirit', a name of God; the poem line opens at 'And' (word 5) after 'Son,'. The capital opens no line, so the database's line 6 (words 5-8) stands.",
+      "settles": [
+        "54 shape (shape2-06): stanza 2 row 3 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }

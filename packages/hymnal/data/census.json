@@ -630,7 +630,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -861,7 +861,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 4,
@@ -1134,7 +1134,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 3,
+        "all": 4,
         "changes": 2
       },
       "stanzas": 3,
@@ -1408,7 +1408,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 2,
@@ -2522,7 +2522,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 4,
@@ -2900,7 +2900,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 5,
+        "all": 7,
         "changes": 0
       },
       "stanzas": 2,
@@ -2942,7 +2942,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 15,
+        "all": 16,
         "changes": 0
       },
       "stanzas": 5,
@@ -3216,7 +3216,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 1,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 3,
@@ -4037,7 +4037,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 1,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -4712,7 +4712,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 12,
+        "all": 14,
         "changes": 0
       },
       "stanzas": 5,
@@ -5406,7 +5406,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 4,
@@ -5427,7 +5427,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 12,
+        "all": 13,
         "changes": 0
       },
       "stanzas": 4,
@@ -5490,7 +5490,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 6,
+        "all": 7,
         "changes": 1
       },
       "stanzas": 3,
@@ -5700,7 +5700,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 3,
         "changes": 0
       },
       "stanzas": 4,
@@ -5763,7 +5763,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 1,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 4,
@@ -8053,7 +8053,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -8560,7 +8560,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 1,
+        "all": 2,
         "changes": 0
       },
       "stanzas": 2,
@@ -9778,7 +9778,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -10366,7 +10366,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 9,
+        "all": 10,
         "changes": 2
       },
       "stanzas": 3,
@@ -11353,7 +11353,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 4,
@@ -11500,7 +11500,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 10,
+        "all": 11,
         "changes": 1
       },
       "stanzas": 4,
@@ -12466,7 +12466,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 10,
+        "all": 13,
         "changes": 0
       },
       "stanzas": 3,
@@ -12529,7 +12529,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 10,
+        "all": 11,
         "changes": 0
       },
       "stanzas": 3,
@@ -12907,7 +12907,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 2,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -13159,7 +13159,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 29,
+        "all": 33,
         "changes": 0
       },
       "stanzas": 4,
@@ -13789,7 +13789,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 3,
@@ -14482,7 +14482,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 0,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 1,

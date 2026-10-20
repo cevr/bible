@@ -333,6 +333,64 @@
       "settles": [
         "224 shape (shape2-25): stanza 2 row 4 prints word 6 with a capital inside a line of stanza 2, where no line or sentence opens"
       ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "1fd78de6a562b1b9",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "04b3b5ee45a992dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "224-strip1600.jpg system 4, stanza 3's row (halves paired by row order; its end rhymes with row 3's): word 6 follows a comma at the 6+5 caesura of the 11-syllable row, and the header metre 11.11.11.11 on 224-strip0.jpg counts the whole row as one poem line, the database's line 4. The page capitalises that caesura on some rows only, so at most it marks a half-line the database joins whole, words the same.",
+      "settles": [
+        "224 shape (shape2-25): stanza 3 row 4 prints word 6 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "224.jpg",
+          "crop": "224-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "1fd78de6a562b1b9",
+          "shows": ""
+        },
+        {
+          "image": "224.jpg",
+          "crop": "224-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "04b3b5ee45a992dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "224-strip1600.jpg system 4, stanza 4's row (halves paired by row order; its end rhymes with row 3's): word 5 follows a comma at the 6+5 caesura of the 11-syllable row, and the header metre 11.11.11.11 on 224-strip0.jpg counts the whole row as one poem line, the database's line 4. The page capitalises that caesura on some rows only, so at most it marks a half-line the database joins whole, words the same.",
+      "settles": [
+        "224 shape (shape2-25): stanza 4 row 4 prints word 5 with a capital inside a line of stanza 4, where no line or sentence opens"
+      ]
     }
   ]
 }

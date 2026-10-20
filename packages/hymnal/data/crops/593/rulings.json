@@ -323,6 +323,93 @@
       "judge": "reach-judge-reach-t31 (Opus, effort max)",
       "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: join:varies.3.1.1: can: 593-strip800.jpg system 5, the row marked 1, 2.: the word that opens line 2 is printed with a capital right after a word with no stop or comma, which only a line opening explains; the join puts that capital mid-line.",
       "gaps": ["join:varies.3.1.1"]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ee69052d0cc6bf7c",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0322482bff184b1a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "593-strip800.jpg system 4 (bar 13), the refrain's one shared row: the page prints a capital on 'The' after 'Je-sus,', as system 3 prints 'Yes' after 'Je-sus,' in the first phrase. Each refrain phrase sings 9 syllables, like the stanza lines, so the capital opens at most a half-line, and the database's line 2 is that whole phrase, a whole join with the same words.",
+      "settles": [
+        "593 shape (shape2-66): the refrain after stanza 1: row 2 prints word 5 with a capital inside a line of stanza 1, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ee69052d0cc6bf7c",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0322482bff184b1a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "593-strip800.jpg system 4 (bar 13): the refrain row is one row shared by all stanzas, and 'The' after 'Je-sus,' is capitalised as 'Yes' is in system 3. The phrase sings 9 syllables like the stanza lines, so the database's line 2 is the whole phrase, a whole join with the same words.",
+      "settles": [
+        "593 shape (shape2-66): the refrain after stanza 2: row 2 prints word 5 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-66 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "593.png",
+          "crop": "593-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "ee69052d0cc6bf7c",
+          "shows": ""
+        },
+        {
+          "image": "593.png",
+          "crop": "593-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "0322482bff184b1a",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f04 (Opus, effort max)",
+      "why": "593-strip800.jpg system 4 (bar 13): the same shared refrain row after stanza 3; 'The' after 'Je-sus,' is capitalised as 'Yes' is in system 3. The phrase sings 9 syllables like the stanza lines, so the database's line 2 is the whole phrase, a whole join with the same words.",
+      "settles": [
+        "593 shape (shape2-66): the refrain after stanza 3: row 2 prints word 5 with a capital inside a line of stanza 3, where no line or sentence opens"
+      ]
     }
   ]
 }

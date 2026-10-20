@@ -158,6 +158,35 @@
       ],
       "judge": "judge-234 (Opus, effort max)",
       "why": "261-2164.jpg row 3 prints 'and to o-bey', so 'obey'."
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-29 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "layout",
+      "crops": [
+        {
+          "image": "261.jpg",
+          "crop": "261-strip0.jpg",
+          "box": [0, 0, 2268, 1000],
+          "sha": "2eed13aa2f09a2b7",
+          "shows": ""
+        },
+        {
+          "image": "261.jpg",
+          "crop": "261-strip1600.jpg",
+          "box": [0, 1600, 2268, 1000],
+          "sha": "758851cbbe6dfad7",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-f02 (Opus, effort max)",
+      "why": "261-strip1600.jpg system 3, stanza 2's row: word 8 opens a title of Christ (words 8-10) after the article at word 7, with no stop before it; it opens no poem line. Under the C.M.D. header on 261-strip0.jpg, words 6-10 are the whole 6-syllable sixth line, opened by the capital at word 6, which the database writes as its line 6.",
+      "settles": [
+        "261 shape (shape2-29): stanza 2 row 3 prints word 8 with a capital inside a line of stanza 2, where no line or sentence opens"
+      ]
     }
   ]
 }
