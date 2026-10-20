@@ -55,17 +55,21 @@ template editor and no analytics.
 - **Sign-up** is the form in the night close (`src/ui/mail.tsx`). It posts to
   `POST /subscribe` with no script; a honeypot field and a limit of five tries
   a minute from one connection keep bots out. Every address gets the same
-  answer, so the page never tells who is on the list. A new or pending address
-  is sent one email to confirm, at most once an hour.
+  answer, and the address is looked up only after it, so neither the page nor
+  its timing tells who is on the list. A new or pending address is sent one
+  email to confirm, at most once an hour, even across leaving and joining again.
 - **Confirm** is the link in that email, `GET /subscribe/confirm?token=`. A
-  link works for seven days, and only the newest one works.
+  link works for seven days, and only the newest one, sent since the address
+  last left, works.
 - **Leave** is the link at the foot of every film's email, `GET /unsubscribe`
   (one button), and its `POST`, which a mail app's one-click unsubscribe also
-  sends (`List-Unsubscribe`, RFC 8058).
+  sends (`List-Unsubscribe`, RFC 8058); it answers 200, never a redirect.
 - **A film's email** goes out through `bun run mail:send` (`scripts/mail-send.ts`),
   which calls `POST /mail/send` with the admin secret. The Worker puts one
   delivery per confirmed subscriber on a Cloudflare Queue and sends them a
-  batch at a time; the `sends` table records each, so no one gets a film twice.
+  batch at a time; the `sends` table claims each before it goes, so no one gets
+  a film twice. A send that stops between its claim and its outcome is counted
+  `unsure` and not sent again, since its email may have gone.
   The email is built from the film's entry in `src/content.ts` (`src/mail/letters.ts`).
 - **Where it lives:** the list is D1 (`migrations/`, applied on deploy), the
   emails go through Cloudflare Email Sending from `films@firsttheblade.com`,

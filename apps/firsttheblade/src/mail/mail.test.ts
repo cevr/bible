@@ -8,6 +8,7 @@ import { SERIES, type Series } from '../content.ts';
 import { Assets } from '../worker/assets.ts';
 import { CACHE, respond } from '../worker/respond.ts';
 import { Address } from './address.ts';
+import { Held } from './background.ts';
 import { deliver } from './deliver.ts';
 import { layerOf } from './films.ts';
 import { List } from './list.ts';
@@ -15,6 +16,7 @@ import { layerTest, TEST_ADMIN_TOKEN } from './local.ts';
 import { Mailbox, MailRefused, MailUnavailable } from './mailer.ts';
 import { MAIL_PAGES, SIGNUP_FIELDS } from './paths.ts';
 import { Queued } from './queue.ts';
+import { SqlError } from './sql.ts';
 import { SIGNUPS } from './throttle.ts';
 
 const ORIGIN = 'https://firsttheblade.test';
@@ -86,12 +88,23 @@ const test = it.effect.layer(
 const call = (path: string, init: RequestInit = {}) =>
   respond(HttpServerRequest.fromWeb(new Request(`${ORIGIN}${path}`, init)));
 
-const signUp = (fields: Readonly<Record<string, string>>, place = '192.0.2.1') =>
+/** The sign-up form's post, answered; its work after the answer not yet run. */
+const postSignUp = (fields: Readonly<Record<string, string>>, place = '192.0.2.1') =>
   call('/subscribe', {
     method: 'POST',
     body: new URLSearchParams(fields),
     headers: { 'cf-connecting-ip': place },
   });
+
+/** The sign-up form's post, answered, and its work after the answer run. */
+const signUp = Effect.fn('Test.signUp')(function* (
+  fields: Readonly<Record<string, string>>,
+  place?: string,
+) {
+  const response = yield* postSignUp(fields, place);
+  yield* (yield* Held).settle;
+  return response;
+});
 
 const header = (response: HttpServerResponse.HttpServerResponse, name: string) =>
   Option.getOrElse(Headers.get(response.headers, name), () => '');
@@ -140,6 +153,24 @@ describe('signing up', () => {
       expect(sent[0]?.to).toBe(Address.make('ann@example.com'));
       expect(sent[0]?.text).toContain(`${ORIGIN}/subscribe/confirm?token=`);
       expect(sent[0]?.html).toContain(`${ORIGIN}/subscribe/confirm?token=`);
+    }));
+
+  test('the answer comes before the list or the mailer is touched, the same for every address', () =>
+    Effect.gen(function* () {
+      yield* joined(ANN);
+      yield* TestClock.adjust(Duration.hours(2));
+      const known = yield* postSignUp({ email: ANN });
+      const fresh = yield* postSignUp({ email: 'ben@example.com' });
+      expect(yield* letters).toHaveLength(1);
+      for (const response of [known, fresh]) {
+        expect(response.status).toBe(303);
+        expect(header(response, 'location')).toBe(MAIL_PAGES.check);
+      }
+      expect(known.headers).toEqual(fresh.headers);
+      yield* (yield* Held).settle;
+      const sent = yield* letters;
+      expect(sent).toHaveLength(2);
+      expect(sent[1]?.to).toBe(Address.make('ben@example.com'));
     }));
 
   test('a second sign-up within the hour sends nothing more, and one after it sends again', () =>
@@ -278,6 +309,7 @@ describe('sending a film', () => {
         sent: 0,
         refused: 0,
         waiting: 2,
+        unsure: 0,
         queued: 0,
       });
       const queued = yield* Queued;
@@ -312,7 +344,13 @@ describe('sending a film', () => {
       expect(letter?.html).toContain(leave);
       expect(letter?.html).not.toContain('<img');
       const list = yield* List;
-      expect(yield* list.counts(FILM)).toEqual({ confirmed: 2, sent: 2, refused: 0, waiting: 0 });
+      expect(yield* list.counts(FILM)).toEqual({
+        confirmed: 2,
+        sent: 2,
+        refused: 0,
+        waiting: 0,
+        unsure: 0,
+      });
       yield* admin(`{"film":"${FILM}"}`);
       expect(yield* (yield* Queued).deliveries).toHaveLength(2);
     }));
@@ -332,9 +370,43 @@ describe('sending a film', () => {
       const failed = yield* Effect.flip(deliver(deliveries));
       expect(failed._tag).toBe('MailUnavailable');
       const list = yield* List;
-      expect(yield* list.counts(FILM)).toEqual({ confirmed: 3, sent: 0, refused: 1, waiting: 2 });
+      expect(yield* list.counts(FILM)).toEqual({
+        confirmed: 3,
+        sent: 0,
+        refused: 1,
+        waiting: 2,
+        unsure: 0,
+      });
       yield* deliver(deliveries);
-      expect(yield* list.counts(FILM)).toEqual({ confirmed: 3, sent: 2, refused: 1, waiting: 0 });
+      expect(yield* list.counts(FILM)).toEqual({
+        confirmed: 3,
+        sent: 2,
+        refused: 1,
+        waiting: 0,
+        unsure: 0,
+      });
+    }));
+
+  test('a letter sent whose outcome could not be kept is never sent again', () =>
+    Effect.gen(function* () {
+      yield* joined(ANN);
+      yield* admin(`{"film":"${FILM}"}`);
+      const deliveries = yield* (yield* Queued).deliveries;
+      const list = yield* List;
+      const forgetful = List.of({
+        ...list,
+        recordSend: () => SqlError.make({ statement: 'list.recordSend', reason: 'test' }),
+      });
+      const failed = yield* Effect.flip(
+        deliver(deliveries).pipe(Effect.provideService(List, forgetful)),
+      );
+      expect(failed._tag).toBe('SqlError');
+      yield* deliver(deliveries);
+      const films = (yield* letters).filter((letter) => letter.subject.startsWith('A new'));
+      expect(films).toHaveLength(1);
+      expect(yield* list.counts(FILM)).toMatchObject({ sent: 0, waiting: 0, unsure: 1 });
+      yield* admin(`{"film":"${FILM}"}`);
+      expect(yield* (yield* Queued).deliveries).toHaveLength(1);
     }));
 });
 
@@ -358,27 +430,32 @@ describe('leaving', () => {
       expect((yield* call('/unsubscribe')).status).toBe(400);
     }));
 
+  /** The left page, answered 200 and never as a redirect. */
+  const expectLeft = Effect.fn('Test.expectLeft')(function* (
+    left: HttpServerResponse.HttpServerResponse,
+  ) {
+    expect(left.status).toBe(200);
+    expect(header(left, 'location')).toBe('');
+    expect(header(left, 'cache-control')).toBe(CACHE.never);
+    const body = yield* Effect.promise(() => HttpServerResponse.toWeb(left).text());
+    expect(body).toContain(MAIL_PAGES.left);
+  });
+
   test('the button leaves, and leaving twice is leaving', () =>
     Effect.gen(function* () {
       const link = yield* leaveLink;
-      for (let n = 0; n < 2; n += 1) {
-        const left = yield* call(link, { method: 'POST' });
-        expect(left.status).toBe(303);
-        expect(header(left, 'location')).toBe(MAIL_PAGES.left);
-      }
+      for (let n = 0; n < 2; n += 1) yield* expectLeft(yield* call(link, { method: 'POST' }));
       const list = yield* List;
       expect((yield* list.counts(FILM)).confirmed).toBe(0);
     }));
 
-  test("a mail app's one click leaves (RFC 8058)", () =>
+  test("a mail app's one click leaves in either form encoding, never redirected (RFC 8058)", () =>
     Effect.gen(function* () {
       const link = yield* leaveLink;
-      const left = yield* call(link, {
-        method: 'POST',
-        body: 'List-Unsubscribe=One-Click',
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      });
-      expect(left.status).toBe(200);
+      const multipart = new FormData();
+      multipart.set('List-Unsubscribe', 'One-Click');
+      const bodies = [new URLSearchParams({ 'List-Unsubscribe': 'One-Click' }), multipart];
+      for (const body of bodies) yield* expectLeft(yield* call(link, { method: 'POST', body }));
       const list = yield* List;
       expect((yield* list.counts(FILM)).confirmed).toBe(0);
     }));

@@ -80,8 +80,8 @@ describe('bun run mail:send', () => {
       yield* send({ film: 'path/01', dryRun: false, origin: ORIGIN });
       const said = (yield* TestConsole.logLines).filter((line) => String(line).startsWith('path/'));
       expect(said).toEqual([
-        'path/01: 1 confirmed, 0 sent, 0 refused, 1 waiting. Dry run: nothing queued.',
-        'path/01: 1 confirmed, 0 sent, 0 refused, 1 waiting. Queued 1 to send now.',
+        'path/01: 1 confirmed, 0 sent, 0 refused, 1 waiting, 0 unsure. Dry run: nothing queued.',
+        'path/01: 1 confirmed, 0 sent, 0 refused, 1 waiting, 0 unsure. Queued 1 to send now.',
       ]);
       expect(yield* (yield* Queued).deliveries).toHaveLength(1);
     }));

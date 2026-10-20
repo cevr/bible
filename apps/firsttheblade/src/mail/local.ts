@@ -4,10 +4,12 @@
  *
  * - `layerTest`: what the tests run the routes against, with the films they
  *   name (`./films.ts`). Its mailer and its queue keep what they are given
- *   (`Mailbox`, `Queued`), and its admin token is `TEST_ADMIN_TOKEN`.
+ *   (`Mailbox`, `Queued`), a sign-up's work waits for `Held.settle`, and its
+ *   admin token is `TEST_ADMIN_TOKEN`.
  * - `layerPreview`: `bun run preview` and the contrast check. Each letter is
- *   written to a file in `outbox` instead of being sent, and a film's send is
- *   delivered at once; the admin token is `MAIL_ADMIN_TOKEN` when it is set.
+ *   written to a file in `outbox` instead of being sent, a sign-up's work and
+ *   a film's send run at once; the admin token is `MAIL_ADMIN_TOKEN` when it
+ *   is set.
  *
  * Both need the platform's file system (`BunServices.layer`).
  */
@@ -15,6 +17,7 @@ import { BunCrypto } from '@effect/platform-bun';
 import { Config, Crypto, Effect, Layer, Redacted } from 'effect';
 import { Hex } from 'effect/encoding';
 
+import { layerHeld, layerInline } from './background.ts';
 import { layerInlineQueue } from './deliver.ts';
 import { type Films, layerSite } from './films.ts';
 import { layer as listLayer } from './list.ts';
@@ -45,6 +48,7 @@ export const layerTest = <E, R>(films: Layer.Layer<Films, E, R>) =>
     mailerMemory,
     queueMemory,
     throttleMemory,
+    layerHeld,
     Layer.succeed(AdminToken, Redacted.make(TEST_ADMIN_TOKEN)),
   ).pipe(Layer.provideMerge(BunCrypto.layer));
 
@@ -57,7 +61,7 @@ export const layerPreview = (outbox: string) => {
       return yield* Config.Redacted('MAIL_ADMIN_TOKEN').pipe(Config.withDefault(fallback));
     }).pipe(Effect.orDie),
   );
-  return Layer.mergeAll(layerInlineQueue, throttleMemory, admin).pipe(
+  return Layer.mergeAll(layerInlineQueue, throttleMemory, layerInline, admin).pipe(
     Layer.provideMerge(core),
     Layer.provideMerge(BunCrypto.layer),
   );

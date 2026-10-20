@@ -20,6 +20,8 @@ export const SendCounts = Schema.Struct({
   sent: Schema.Int,
   refused: Schema.Int,
   waiting: Schema.Int,
+  /** Sends that stopped before their outcome was kept: never sent again (`./list.ts`). */
+  unsure: Schema.Int,
   queued: Schema.Int,
 });
 

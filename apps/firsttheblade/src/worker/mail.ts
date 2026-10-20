@@ -9,7 +9,9 @@
  *   time (`DELIVERY`).
  * - `SignupLimit`: the sign-up limit (`SIGNUPS`), a Rate Limiting binding.
  *
- * The bindings' clients answer only in the running Worker (`RuntimeContext`).
+ * The bindings' clients answer only in the running Worker (`RuntimeContext`),
+ * as does the request's `waitUntil`, which runs a sign-up's work after its
+ * answer (`../mail/background.ts`).
  * `layerCloudflare` is built in it, keeps that context, and gives services
  * that need nothing more.
  */
@@ -17,6 +19,7 @@ import { RuntimeContext } from 'alchemy';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Effect, Layer, Option, type Redacted, Schema } from 'effect';
 
+import { Background } from '../mail/background.ts';
 import { layerSite } from '../mail/films.ts';
 import { layer as listLayer } from '../mail/list.ts';
 import { logMail } from '../mail/log.ts';
@@ -60,6 +63,7 @@ export interface MailClients {
   readonly email: Cloudflare.Email.SendClient;
   readonly queue: Cloudflare.Queues.WriteQueueClient;
   readonly limit: Cloudflare.RateLimitClient;
+  readonly exec: Cloudflare.WorkerExecutionContext['Service'];
   readonly tokenKey: Redacted.Redacted<string>;
   readonly adminToken: Redacted.Redacted<string>;
 }
@@ -78,7 +82,7 @@ export const layerCloudflare = (clients: MailClients) =>
   Layer.unwrap(
     Effect.gen(function* () {
       const runtime = yield* RuntimeContext;
-      const here = <A, E>(effect: Effect.Effect<A, E, RuntimeContext>) =>
+      const here = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
         Effect.provideService(effect, RuntimeContext, runtime);
       const db = yield* here(clients.db.raw);
 
@@ -116,12 +120,15 @@ export const layerCloudflare = (clients: MailClients) =>
           ),
       });
 
+      const background = Background.of({ run: (work) => here(clients.exec.waitUntil(work)) });
+
       return Layer.mergeAll(
         listLayer.pipe(Layer.provide(layerD1(db))),
         tokensLayer(clients.tokenKey),
         Layer.succeed(Mailer, mailer),
         Layer.succeed(FilmQueue, queue),
         Layer.succeed(Throttle, throttle),
+        Layer.succeed(Background, background),
         Layer.succeed(AdminToken, clients.adminToken),
         layerWebCrypto,
         layerSite,

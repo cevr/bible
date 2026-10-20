@@ -7,8 +7,10 @@
  * again finishes a send that stopped and sends no one the film twice.
  *
  * `--dry-run` only counts: who is on the list, who was sent the film, who is
- * still waiting. `--origin` names the site to ask (a throwaway stage's
- * `workers.dev` address); the film's links lead back to it. The admin secret
+ * still waiting, and how many sends stopped before their outcome was kept
+ * (unsure: their letter may have gone, so they are not sent again).
+ * `--origin` names the site to ask (a throwaway stage's `workers.dev`
+ * address); the film's links lead back to it. The admin secret
  * is `MAIL_ADMIN_TOKEN`, read from the environment (Bun loads `.env` here),
  * the same value the Worker was deployed with.
  */
@@ -42,7 +44,7 @@ export const send = Effect.fn('MailSend.send')(function* (input: {
   if ('error' in answer) {
     return yield* SendFailed.make({ message: `${response.status} ${answer.error}` });
   }
-  const counts = `${answer.confirmed} confirmed, ${answer.sent} sent, ${answer.refused} refused, ${answer.waiting} waiting`;
+  const counts = `${answer.confirmed} confirmed, ${answer.sent} sent, ${answer.refused} refused, ${answer.waiting} waiting, ${answer.unsure} unsure`;
   if (input.dryRun)
     return yield* Console.log(`${answer.film}: ${counts}. Dry run: nothing queued.`);
   yield* Console.log(`${answer.film}: ${counts}. Queued ${answer.queued} to send now.`);

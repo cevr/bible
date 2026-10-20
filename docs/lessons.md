@@ -1463,3 +1463,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** A mark's chip that seeks was set in Geist on an 18 px line while a plain chip was set in the code's mono face, so the band's chips differed by whether they could be pressed.
 - **Cause:** The chip's font sat on one class (0,1,0), and the studio's button reset `.st-app button:where(…) { font: inherit }` (0,1,1) outranked it on a button.
 - **Guard:** code: `packages/film/e2e/lab/studio/code.dom.test.ts` `chip.fontFamily === code.fontFamily`
+
+### mail-send-claimed-before-it-goes
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A failed send record permits duplicate mail"
+- **Source:** ftb-mail/review-1.md F1
+- **Wrong:** The film's delivery sent the letter and then recorded it, so a record that failed after a good send left the subscriber waiting, and the queue's retry sent the film again.
+- **Cause:** The send was made idempotent by its record alone, which lands after the side effect it guards.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a letter sent whose outcome could not be kept is never sent again`
+
+### signup-work-after-the-answer
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Signup timing exposes list state"
+- **Source:** ftb-mail/review-1.md F2
+- **Wrong:** The sign-up gave every address the same 303, but a new address's answer waited for its confirm letter and a confirmed one's did not, so the time told who was on the list.
+- **Cause:** The same answer was taken for the same response; the work that depends on the address ran before it.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `the answer comes before the list or the mailer is touched, the same for every address`
+
+### one-click-leave-reads-no-body
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Multipart one-click unsubscribe returns a forbidden redirect"
+- **Source:** ftb-mail/review-1.md F3
+- **Wrong:** The leave route read a one click only from the urlencoded body text, so a multipart one click left the list and was answered with a 303, which RFC 8058 forbids.
+- **Cause:** The route told a mail app from the page's button by the body's spelling, one of the two encodings the RFC allows.
+- **Guard:** code: `apps/firsttheblade/src/mail/mail.test.ts` `a mail app's one click leaves in either form encoding, never redirected (RFC 8058)`
+
+### confirm-hour-survives-leaving
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Rejoining resets the hourly confirmation limit"
+- **Source:** ftb-mail/review-1.md F4
+- **Wrong:** Joining again after leaving cleared `confirm_sent_at`, so leave and sign-up in turn sent a confirm letter each time, past the hour between them.
+- **Cause:** One column held two meanings, the newest link and the start of the hour, and the rejoin cleared it for the first.
+- **Guard:** code: `apps/firsttheblade/src/mail/list.test.ts` `leaving and joining again does not start the hour between confirm letters again`

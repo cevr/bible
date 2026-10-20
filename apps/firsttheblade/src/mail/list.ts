@@ -3,8 +3,8 @@
  * database's port (`./sql.ts`), in the tables `migrations/0001_mail.sql`
  * makes. Each step that must not run twice is one statement, so two
  * requests at once cannot both take it: a sign-up claims its confirm email
- * in the same UPDATE that checks it may, and a film's send is recorded under
- * the (film, subscriber) key.
+ * in the same UPDATE that checks it may, and a film's email is claimed under
+ * the (film, subscriber) key before it is sent.
  */
 import { Context, Duration, Effect, Layer, Option, Schema } from 'effect';
 
@@ -27,6 +27,11 @@ export interface FilmCounts {
   readonly refused: number;
   /** Confirmed, and neither sent the film nor refused it. */
   readonly waiting: number;
+  /**
+   * Started and never finished: the send stopped before its outcome was
+   * kept. The letter may have gone, so it is never sent again.
+   */
+  readonly unsure: number;
 }
 
 export type Outcome = 'sent' | 'refused';
@@ -35,7 +40,8 @@ export interface ListService {
   /**
    * Puts an address on the list as pending (or back to pending, after it
    * left), and claims its confirm email when one may go now: none for an
-   * address already confirmed, nor within `RESEND_AFTER` of the last.
+   * address already confirmed, nor within `RESEND_AFTER` of the last, even
+   * one sent before the address left.
    */
   readonly signUp: (
     address: Address,
@@ -45,7 +51,8 @@ export interface ListService {
   readonly release: (claim: ConfirmClaim) => Effect.Effect<void, SqlError>;
   /**
    * Confirms the subscriber a claim's token names, when it is the newest
-   * claim; a subscriber already confirmed stays so.
+   * claim and was made after the address last left; a subscriber already
+   * confirmed stays so.
    */
   readonly confirm: (
     claim: ConfirmClaim,
@@ -65,8 +72,20 @@ export interface ListService {
     film: string,
     subscriber: number,
   ) => Effect.Effect<Option.Option<Address>, SqlError>;
-  /** Records the film's email to a subscriber; recording it again changes nothing. */
-  readonly record: (
+  /**
+   * Claims the film's email to a subscriber before it is sent: true when
+   * this call took it, false when it was taken before (sent, refused, or
+   * being sent).
+   */
+  readonly claimSend: (
+    film: string,
+    subscriber: number,
+    now: number,
+  ) => Effect.Effect<boolean, SqlError>;
+  /** Gives a claimed send back when its letter could not go now, so a retry sends it. */
+  readonly releaseSend: (film: string, subscriber: number) => Effect.Effect<void, SqlError>;
+  /** Keeps a claimed send's outcome. */
+  readonly recordSend: (
     film: string,
     subscriber: number,
     outcome: Outcome,
@@ -84,8 +103,7 @@ const NOT_SENT = 'NOT EXISTS (SELECT 1 FROM sends d WHERE d.film = ? AND d.subsc
 const UPSERT = statement(
   'list.upsert',
   `INSERT INTO subscribers (address, status, created_at) VALUES (?, 'pending', ?)
-   ON CONFLICT (address) DO UPDATE SET
-     status = 'pending', confirm_sent_at = NULL, confirmed_at = NULL, unsubscribed_at = NULL
+   ON CONFLICT (address) DO UPDATE SET status = 'pending', confirmed_at = NULL
    WHERE subscribers.status = 'unsubscribed'`,
 );
 
@@ -104,7 +122,8 @@ const RELEASE = statement(
 const CONFIRM = statement(
   'list.confirm',
   `UPDATE subscribers SET status = 'confirmed', confirmed_at = ?
-   WHERE id = ? AND status = 'pending' AND confirm_sent_at = ?`,
+   WHERE id = ? AND status = 'pending' AND confirm_sent_at = ?
+     AND (unsubscribed_at IS NULL OR unsubscribed_at < ?)`,
 );
 
 const STATUS = statement('list.status', `SELECT status FROM subscribers WHERE id = ?`);
@@ -121,7 +140,8 @@ const COUNTS = statement(
      (SELECT count(*) FROM subscribers WHERE status = 'confirmed') AS confirmed,
      (SELECT count(*) FROM sends WHERE film = ? AND outcome = 'sent') AS sent,
      (SELECT count(*) FROM sends WHERE film = ? AND outcome = 'refused') AS refused,
-     (SELECT count(*) FROM subscribers s WHERE s.status = 'confirmed' AND ${NOT_SENT}) AS waiting`,
+     (SELECT count(*) FROM subscribers s WHERE s.status = 'confirmed' AND ${NOT_SENT}) AS waiting,
+     (SELECT count(*) FROM sends WHERE film = ? AND outcome = 'sending') AS unsure`,
 );
 
 const WAITING = statement(
@@ -136,10 +156,21 @@ const RECIPIENT = statement(
   `SELECT address FROM subscribers s WHERE s.id = ? AND s.status = 'confirmed' AND ${NOT_SENT}`,
 );
 
-const RECORD = statement(
-  'list.record',
-  `INSERT INTO sends (film, subscriber_id, outcome, at) VALUES (?, ?, ?, ?)
+const CLAIM_SEND = statement(
+  'list.claimSend',
+  `INSERT INTO sends (film, subscriber_id, outcome, at) VALUES (?, ?, 'sending', ?)
    ON CONFLICT (film, subscriber_id) DO NOTHING`,
+);
+
+const RELEASE_SEND = statement(
+  'list.releaseSend',
+  `DELETE FROM sends WHERE film = ? AND subscriber_id = ? AND outcome = 'sending'`,
+);
+
+const RECORD_SEND = statement(
+  'list.recordSend',
+  `UPDATE sends SET outcome = ?, at = ?
+   WHERE film = ? AND subscriber_id = ? AND outcome = 'sending'`,
 );
 
 const IdRow = Schema.Struct({ id: Schema.Int });
@@ -150,6 +181,7 @@ const CountsRow = Schema.Struct({
   sent: Schema.Int,
   refused: Schema.Int,
   waiting: Schema.Int,
+  unsure: Schema.Int,
 });
 
 export const layer = Layer.effect(
@@ -193,7 +225,7 @@ export const layer = Layer.effect(
     });
 
     const confirm = Effect.fn('List.confirm')(function* (claim: ConfirmClaim, now: number) {
-      const changed = yield* sql.run(CONFIRM, [now, claim.subscriber, claim.issued]);
+      const changed = yield* sql.run(CONFIRM, [now, claim.subscriber, claim.issued, claim.issued]);
       if (changed > 0) return 'confirmed' as const;
       const [row] = yield* rows(StatusRow, STATUS, [claim.subscriber]);
       if (row?.status === 'confirmed') return 'confirmed' as const;
@@ -205,8 +237,8 @@ export const layer = Layer.effect(
     });
 
     const counts = Effect.fn('List.counts')(function* (film: string) {
-      const [row] = yield* rows(CountsRow, COUNTS, [film, film, film]);
-      return row ?? { confirmed: 0, sent: 0, refused: 0, waiting: 0 };
+      const [row] = yield* rows(CountsRow, COUNTS, [film, film, film, film]);
+      return row ?? { confirmed: 0, sent: 0, refused: 0, waiting: 0, unsure: 0 };
     });
 
     const waiting = Effect.fn('List.waiting')(function* (
@@ -223,13 +255,25 @@ export const layer = Layer.effect(
       return Option.map(Option.fromNullishOr(row), (found) => found.address);
     });
 
-    const record = Effect.fn('List.record')(function* (
+    const claimSend = Effect.fn('List.claimSend')(function* (
+      film: string,
+      subscriber: number,
+      now: number,
+    ) {
+      return (yield* sql.run(CLAIM_SEND, [film, subscriber, now])) > 0;
+    });
+
+    const releaseSend = Effect.fn('List.releaseSend')(function* (film: string, subscriber: number) {
+      yield* sql.run(RELEASE_SEND, [film, subscriber]);
+    });
+
+    const recordSend = Effect.fn('List.recordSend')(function* (
       film: string,
       subscriber: number,
       outcome: Outcome,
       now: number,
     ) {
-      yield* sql.run(RECORD, [film, subscriber, outcome, now]);
+      yield* sql.run(RECORD_SEND, [outcome, now, film, subscriber]);
     });
 
     return List.of({
@@ -240,7 +284,9 @@ export const layer = Layer.effect(
       counts,
       waiting,
       recipient,
-      record,
+      claimSend,
+      releaseSend,
+      recordSend,
     });
   }),
 );

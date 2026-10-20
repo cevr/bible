@@ -101,6 +101,7 @@ export default class Site extends Cloudflare.Worker<Site>()(
       email: yield* Cloudflare.Email.Send(MailSender),
       queue: yield* Cloudflare.Queues.WriteQueue(queue),
       limit: yield* SignupLimit,
+      exec: yield* Cloudflare.WorkerExecutionContext,
       tokenKey: yield* Config.Redacted('MAIL_TOKEN_KEY'),
       adminToken: yield* Config.Redacted('MAIL_ADMIN_TOKEN'),
     });

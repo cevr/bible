@@ -1,11 +1,14 @@
 /**
  * Delivering a batch of a film's send (`./queue.ts`): each subscriber still
  * confirmed and still waiting for the film is sent its letter, with a leave
- * link of its own, and the send is recorded. A subscriber already sent the
- * film, or gone from the list since the send was asked, is passed over, so a
- * batch tried again, or a film asked twice, reaches no one twice. A letter the
- * sender refuses for good is recorded as refused; one it cannot take now
- * fails the batch, which the queue tries again later from where it stopped.
+ * link of its own. The send is claimed before the letter goes and its
+ * outcome kept after, so a batch tried again, or a film asked twice, reaches
+ * no one twice; a subscriber gone from the list since the send was asked is
+ * passed over. A letter the sender refuses for good is kept as refused. One
+ * it cannot take now gives its claim back and fails the batch, which the
+ * queue tries again later from where it stopped. A send that stops after its
+ * claim and before its outcome stays claimed: its letter may have gone, so it
+ * is never sent again (`FilmCounts.unsure`).
  */
 import { Clock, Effect, Layer, Option } from 'effect';
 
@@ -31,7 +34,8 @@ export const deliver = Effect.fn('Mail.deliver')(function* (deliveries: Readonly
       continue;
     }
     const to = yield* list.recipient(film.value.ref, delivery.subscriber);
-    if (Option.isNone(to)) {
+    const now = yield* Clock.currentTimeMillis;
+    if (Option.isNone(to) || !(yield* list.claimSend(film.value.ref, delivery.subscriber, now))) {
       tally.passed += 1;
       continue;
     }
@@ -51,10 +55,10 @@ export const deliver = Effect.fn('Mail.deliver')(function* (deliveries: Readonly
           film: film.value.ref,
           subscriber: delivery.subscriber,
           code: failure.code,
-        }),
+        }).pipe(Effect.andThen(list.releaseSend(film.value.ref, delivery.subscriber))),
       ),
     );
-    yield* list.record(
+    yield* list.recordSend(
       film.value.ref,
       delivery.subscriber,
       outcome,
