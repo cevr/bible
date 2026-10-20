@@ -1,6 +1,6 @@
 {
   "rule": "historyComment",
-  "about": "The 176 comments effect 4.0.2's src holds where the deterministic noHistoryComment regex reported 'used to' (p6-guards review 1: none is history), and 6 hand cases (3 history). Each case: where it is, the reported line, the whole comment block holding it (`text`, the item the rule reads), and its label.",
+  "about": "The 176 comments effect 4.0.2's src holds where the deterministic noHistoryComment regex reported 'used to' (p6-guards review 1: none is history), and 7 hand cases (4 history). Each case: where it is, the reported line, the whole comment block holding it (`text`, the item the rule reads), and its label.",
   "cases": [
     {
       "source": "hand",
@@ -36,6 +36,12 @@
       "source": "hand",
       "line": "We switched to Rive after the canvas trials.",
       "text": "We switched to Rive after the canvas trials.",
+      "label": "history"
+    },
+    {
+      "source": "hand",
+      "line": "The draft wrote the thesis in the sky over the courtyard; here it is the thesis's card, and the picture cuts back to the courtyard after it.",
+      "text": "The draft wrote the thesis in the sky over the courtyard; here it is the thesis's card, and the picture cuts back to the courtyard after it.",
       "label": "history"
     },
     {

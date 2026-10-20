@@ -1673,3 +1673,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** Removing the preview's bar left `@bible/ui/press` re-exporting `LONG_PRESS_DELAY`, which only the bar's held tick read, and the gate went red on it.
 - **Cause:** The removal followed the bar's own imports out of the film and stopped at the package edge, so the kit's re-export of what the bar alone took stayed.
 - **Guard:** code: `packages/scripts/src/dead-exports/graph.ts` `deadExports`
+
+### concept-keeps-the-kept-picture
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The kept closing picture was rewritten"
+- **Source:** in-its-order/review-1.md F1
+- **Wrong:** The film's `thesis` picture replaced the kept draft's three-word answer, GROW IN GRACE, with a full-screen card of the whole 14-word verse and a hard cut, past CRAFT rule 1's 12 words; the fix sets the take's first clause, "Grow in grace", as the card.
+- **Cause:** The move of the sky lettering onto a card, which rule 1 asks, was made by carrying the whole say over, not the draft's own three words.
+- **Guard:** skill: whether a picture keeps the draft's intent is read beside the draft, and no check reads a picture's prose. Carried by `.claude/skills/film/SKILL.md`: "make the smallest change that holds the rule and name it in the set as a question for the owner; never rewrite the kept text silently"
+
+### cast-dress-change-goes-to-the-owner
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Jeremiah’s costume contradicts the kept Cast"
+- **Source:** in-its-order/review-1.md F2
+- **Wrong:** Jeremiah's `look.md` drew an olive mantle where the kept Cast row says a camel mantle, and the ledger recorded no change. The olive stays: camel drew as Christ's walnut in all 23 of his tries (dE 1–8 from walnut, measured), and a Bible figure confusable with Christ breaks a standing rule; the set now names the change as the owner's question.
+- **Cause:** The change was made to answer the route's drift and was told only in the set's prose, not put to the owner.
+- **Guard:** skill: the route's colour drift shows only in the drawn tries, and the choice between the kept dress and the Christ rule is the owner's. Carried by `.claude/skills/film/SKILL.md`: "Where a house rule or the image route forces a change (lettering a card must carry, a colour the route draws as Christ's)"
+
+### look-shade-keeps-saturation
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Two looks specify desaturated grey shades"
+- **Source:** in-its-order/review-1.md F3
+- **Wrong:** Jeremiah's and the sower's looks named violet-grey shades, #5f5f66 and #5c5f66, whose saturation falls from 0.227 to 0.069 and from 0.305 to 0.098; they are now #5e5470 and #5a4f74 (0.250 and 0.319, measured).
+- **Cause:** The shade was picked for its hue's direction and its value, and its saturation was not measured against the base.
+- **Guard:** skill: a `look.md` is prose the image route reads, and no check parses its colours. Carried by `.claude/skills/film/CRAFT.md`: "a shade keeps or raises its saturation as its value drops"
+
+### film-comment-tells-no-draft-history
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A comment recounts the previous presentation"
+- **Source:** in-its-order/review-1.md F4
+- **Wrong:** The film's `script.ts` header said how the draft drew the thesis and how the film now differs, which is the text's history; it now says what the card holds and why.
+- **Cause:** The comment was written while the draft and the film were being compared, and kept that comparison.
+- **Guard:** skill: the judged history rule only warns (now 4 positives in its corpus, `packages/scripts/src/judged/fixtures/history-comment.json`), so a reader holds it. Carried by `CLAUDE.md`: "A comment says what the code does now and why"

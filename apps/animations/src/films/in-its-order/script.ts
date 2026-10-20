@@ -74,9 +74,9 @@
 // (Jeremiah); `priest` goes from IDEA into STORY; the landing merges them.
 // The film has no black moment; its valley is a short dusk in `bottle`. The
 // narration's words appear on screen only as full-screen cards the engine
-// sets (CRAFT rule 1): no picture carries lettering. The draft wrote the
-// thesis in the sky over the courtyard; here it is the thesis's card, and
-// the picture cuts back to the courtyard after it.
+// sets (CRAFT rule 1): no picture carries lettering. The thesis's card is
+// the take's first clause, "Grow in grace", since a card holds 12 words at
+// most and those three are the answer to `cold`'s question.
 //
 // The cast (the draft's `## Cast`; character-design 2.3, casting.md). Every
 // figure wears sleeves, a circle hand at each sleeve's end and no thumbs, and
@@ -228,7 +228,7 @@ export const script = defineScript([
     lead: 1,
     min: 30,
     cite: ['2 Peter 3:18'],
-    picture: `STORY: after the held pause, the full-screen card, the film's last words: "Grow in grace, and in the knowledge of our Lord and Saviour Jesus Christ.", "Grow" large in gold, the answer to \`cold\`'s question (the draft's sky lettering, GROW IN GRACE, moved to the card: CRAFT rule 1); hard cut back to the courtyard. The music rises alone for about thirty seconds while the camera eases back and lifts over the courtyard, the grown man still at the host's side at the set table. Past the courtyard wall, the field from \`grain\` moves in the wind, full corn, and the hill of \`path\` rises beyond it. ${CARDS}`,
+    picture: `STORY: The answer comes as the only text, the take's own first clause on the full-screen card: "Grow in grace", "Grow" large in gold, the answer to \`cold\`'s question. The music rises alone for about thirty seconds while the camera eases back and lifts over the courtyard, the grown man still at the host's side at the set table. Past the courtyard wall, the field from \`grain\` moves in the wind, full corn, and the hill of \`path\` rises beyond it. ${CARDS}`,
   },
   {
     id: 'end',
