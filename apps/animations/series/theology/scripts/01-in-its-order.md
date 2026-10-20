@@ -2,7 +2,7 @@
 
 Series: The Path of the Just · Tier One (Milk) · opener
 Promise: by the end the viewer knows what the Bible means by milk and meat, why growing is normal and glad, and the path the series will walk.
-Length: about 6:50 (750 spoken words: 4:50 at 155 wpm, 5:18 with the marked breaths and holds, 5:00–5:27 at 165–150 wpm; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
+Length: about 7:05 (786 spoken words: 5:04 at 155 wpm, about 5:34 with the marked breaths and holds, 4:46–5:14 at 165–150 wpm before the holds; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
 Status: draft for the owner. Nothing narrated. Every KJV line below was printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15 (supplied-word brackets dropped for speech); every paraphrase source was printed by the corpus search (sources.md). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header (the `script.ts` comment, house style)
@@ -26,7 +26,7 @@ Tent poles (CRAFT rule 11), with their act's light and the question that opens t
 
 Registers: IDEA (parchment, flat figures, one gold prop) for `milk`, `stones`, `math`, `path`; STORY (cardboard diorama, faces) for `cold`, `bottle` (Corinth), `grain` (a field), `eat` (Jeremiah), `name`. The black moment is not in this film; its valley is a short dusk in `bottle`.
 
-Quoted Scripture: 9 passages, 130 of 750 spoken words (17.3 %; recounted 2026-10-15 after the wording revision; sources.md's verifier table holds the earlier count). One quotation per beat. 2 Peter 3:18 (`thesis`) is quoted from "Grow", its opening "But" dropped.
+Quoted Scripture: 10 passages, 149 of 786 spoken words (19.0 %; recounted 2026-10-20 after Proverbs 4:18 joined `path`; sources.md's verifier table holds the earlier count). One quotation per beat. 2 Peter 3:18 (`thesis`) is quoted from "Grow", its opening "But" dropped.
 
 ## Cast
 
@@ -138,12 +138,13 @@ New to the library: the grown man's festive dress on the plain lead; the wedding
 
 ### `grain` · STORY · ~46 s
 
-**say:** {how}So how does anyone grow? {/} {jesus}Jesus said the kingdom grows like {*}grain. {/} {sow}A man sows seed, {sleeps}and sleeps, and gets up, {knoweth}and it grows, he knows not {*}how. {/} {first}It comes up “first the blade, then the ear, after that the full corn in the ear.” {/} {watch}You cannot watch it happen. {/} {quiet}It is quiet, and it never {*}stops. {/} {stage}At every stage the plant can be all it should be. {/} {still}And still it keeps {*}growing. {/} {isaiah}Isaiah says God teaches the same way, a line at a time, here a little, and there a little. {/} {simple}Simple truths, again and again, {bottom}and not one of them has a {*}bottom.
-**cite:** Mark 4:26–28; Ellen G. White, Education, 105–106; Isaiah 28:9–10; E. J. Waggoner, The Present Truth, May 4, 1899, 277
-**picture:** STORY: a cardboard field on a hillside, peach morning, 3–5 planes (the far hills, the field, a low stone wall near). On `sow` a farmer (grey, a face at a third of the frame) scatters seed and walks off; quick sun arcs on `sleeps`/`knoweth` (day, night, day). On `first` a single blade tears up out of the soil, then the green ear, then the full gold ear, one per phrase, each a paper layer folding up. On `quiet` the camera holds low by the stalk while a snail crosses the wall: nothing seems to move, but the stalk is visibly taller at the end of the hold. On `isaiah` the field dissolves to the parchment: one line of gold writing drawn, then another under it; on `bottom` the camera drops through one line of the writing as if it were a well, and finds more light below.
+**say:** {how}So how does anyone grow? {/} {jesus}Jesus said the kingdom grows like {*}grain. {/} {sow}A man sows seed, {sleeps}and sleeps, and gets up, {knoweth}and it grows, he knows not {*}how. {/} {first}It comes up “first the blade, then the ear, after that the full corn in the ear.” {/} {watch}You cannot watch it happen. {/} {quiet}It is quiet, and it never {*}stops. {/} {blade}A blade is not a failed ear. {/} {stage}At every stage it can be {*}perfect, {still}and still it keeps {*}growing. {/} {isaiah}Isaiah says God teaches the same way, a line at a time, here a little, and there a little. {/} {bear}And Jesus gave them the word as much as they were able to {*}hear. {/} {simple}Simple truths, again and again, {bottom}and not one of them has a {*}bottom.
+**cite:** Mark 4:26–28; Ellen G. White, Education, 105–106; Isaiah 28:9–10; Mark 4:33; E. J. Waggoner, The Present Truth, May 4, 1899, 277
+**picture:** STORY: a cardboard field on a hillside, peach morning, 3–5 planes (the far hills, the field, a low stone wall near). On `sow` a farmer (grey, a face at a third of the frame) scatters seed and walks off; quick sun arcs on `sleeps`/`knoweth` (day, night, day). On `first` a single blade tears up out of the soil, then the green ear, then the full gold ear, one per phrase, each a paper layer folding up. On `blade` the camera returns to the young blade alone, upright and bright green, whole for what it is. On `quiet` the camera holds low by the stalk while a snail crosses the wall: nothing seems to move, but the stalk is visibly taller at the end of the hold. On `isaiah` the field dissolves to the parchment: one line of gold writing drawn, then another under it; on `bear` the next line waits, unwritten, until the one above it has filled with light; on `bottom` the camera drops through one line of the writing as if it were a well, and finds more light below.
 **paraphrase sources (not spoken):**
 
-- Ed 105.3 (Ellen G. White) — "There can be no life without growth. The plant must either grow or die. As its growth is silent and imperceptible, but continuous, so is the growth of character. At every stage of development our life may be perfect; yet … there will be constant advancement." → `watch`, `quiet`, `stage`, `still`
+- Ed 105.3 (Ellen G. White) — "There can be no life without growth. The plant must either grow or die. As its growth is silent and imperceptible, but continuous, so is the growth of character. At every stage of development our life may be perfect; yet … there will be constant advancement." → `watch`, `quiet`, `blade`, `stage`, `still`
+- Mark 4:33 (KJV, said in paraphrase, not quoted) — "And with many such parables spake he the word unto them, as they were able to hear it." → `bear`
 - PTUK May 4, 1899, page 277.2 (E. J. Waggoner) — "children, however, learn by accepting simple statements of fact. … Constant repetition of simple truths which, although simple, contain infinity, is the way to acquire “the wisdom which is from above.”" → `simple`, `bottom`
 
 ### `eat` · STORY · ~26 s
@@ -157,10 +158,10 @@ New to the library: the grown man's festive dress on the plain lead; the wedding
 
 ### `path` · IDEA · ~22 s
 
-**say:** {path}Here is the path ahead. {/} {stones}First, the six stones of the foundation. {/} {then}Then the meat Hebrews was eager to serve: {priest}a priest in heaven, {sanct}a sanctuary, {cov}a covenant, {rest}and a rest. {/} {last}And last, the strongest meat, {come}the things to {*}come. {/} {one}And all of it is {*}Christ.
-**cite:** Hebrews 6:1–2; Hebrews 8:1–2, 6; Hebrews 4:9; 2 Peter 1:19
-**picture:** IDEA: the series map. The parchment widens into a long hill: the six stones at its foot (Tier One), the gold path climbing past a veil, a small tent sanctuary, two tablets in an ark and a resting figure under a tree (Tier Two), up to a city on the summit under a dawn sky (Tier Three). On `one` the gold cross's light from `priest` spreads until the whole hill lies inside it.
-**paraphrase sources (not spoken):** none; Scripture only.
+**say:** {path}Here is the path ahead. {/} {just}“The path of the just is as the shining light, that shineth more and more unto the {*}perfect day.” {//} {stones}First, the six stones of the foundation. {/} {then}Then the meat Hebrews was eager to serve: {priest}a priest in heaven, {sanct}a sanctuary, {cov}a covenant, {rest}and a rest. {/} {last}And last, the strongest meat, {come}the things to {*}come. {/} {one}And all of it is {*}Christ.
+**cite:** Proverbs 4:18; Hebrews 6:1–2; Hebrews 8:1–2, 6; Hebrews 4:9; 2 Peter 1:19
+**picture:** IDEA: the series map. The parchment widens into a long hill: the six stones at its foot (Tier One), the gold path climbing past a veil, a small tent sanctuary, two tablets in an ark and a resting figure under a tree (Tier Two), up to a city on the summit under a dawn sky (Tier Three). On `just` the dawn behind the summit brightens in three soft steps, more and more, never all at once. On `one` the gold cross's light from `priest` spreads until the whole hill lies inside it.
+**paraphrase sources (not spoken):** none; Scripture only (Proverbs 4:18 quoted, its opening "But" dropped: the series' name and verse).
 
 ### `name` · STORY (landing; IDEA and STORY merge) · ~30 s
 
@@ -180,12 +181,14 @@ New to the library: the grown man's festive dress on the plain lead; the wedding
 **picture:** STORY: the credits over the landing's last pull back, the wedding courtyard from above under the landing sky, the field and the hill beyond its wall, nothing breathing. The film's name and its sources roll up a torn paper strip at the left for about 22 s; then the strip goes and the courtyard holds clear for the end screens.
 **credits (from the beats' cite):**
 
-- Scripture (KJV): Hebrews 5:10–14; 6:1–2, 19–20; 8:1–2, 6; 4:9 · 1 Peter 2:2 · 1 Corinthians 3:1–3 · Mark 4:26–28 · Isaiah 28:9–10 · Jeremiah 15:16 · Psalm 34:8 · Ephesians 4:13–15 · 2 Peter 1:19; 3:18
+- Scripture (KJV): Hebrews 5:10–14; 6:1–2, 19–20; 8:1–2, 6; 4:9 · Proverbs 4:18 · 1 Peter 2:2 · 1 Corinthians 3:1–3 · Mark 4:26–28, 33 · Isaiah 28:9–10 · Jeremiah 15:16 · Psalm 34:8 · Ephesians 4:13–15 · 2 Peter 1:19; 3:18
 - E. J. Waggoner, The Present Truth, August 17, 1893, 315; January 31, 1895, 65; May 4, 1899, 277
 - E. J. Waggoner, The Medical Missionary, September 1904, 286
 - Ellen G. White, Gospel Workers, 315; Education, 105–106; Medical Ministry, 124; The Signs of the Times, June 25, 1902
 
 ## Notes for the owner
+
+- Revised 2026-10-20 from the day's talk: `path` now speaks the series' own verse, Proverbs 4:18 (the title's name, "more and more unto the perfect day"); `grain` says the blade is perfect for its stage (Ed 105.3, the Christian perfection message's point) and that Jesus gave the word as they were able to hear it (Mark 4:33, which follows the grain parable; the message's point that God shows us as we can bear). The full case on perfection stays in 13b, Unto Perfection.
 
 - The series' thesis comes from one Waggoner devotional page (MEDM September 1904, 286.4–286.8): milk is good and necessary; teeth signal solid food; leaving the first principles means using them combined; "the man who eats hard food … gets it all and more." The script stays inside those words.
 - `priest` names the meat as Hebrews names it (5:10–11 runs straight into 6:19–20 and 8:1–2). It shows Christ entering the veil and does not say where he ministers when; that belongs to Tier Two.
