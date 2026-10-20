@@ -21,6 +21,25 @@ home, about, one page per series, and the not-found page.
 - **Pages and words** are data: `src/pages.ts` (paths, titles, link cards),
   `src/content.ts` (the verse, the four series). A series lists its films once
   they are added to its `episodes`.
+- **Search** reads each page's head and its JSON-LD graph (`src/structured.ts`):
+  the channel as an Organization linked to its YouTube channel, the page, its
+  breadcrumb, and on a series page the series and each film as a video. The
+  sitemap dates a series page by its newest film (`src/meta.ts`), and
+  `llms.txt` lists the pages.
+
+## Publishing a film
+
+The owner's choices (ask a358017aa44, 2026-10-20): each film gets a study page
+on the site, its vertical cuts go to YouTube Shorts, Facebook, Instagram and
+TikTok, and each film sends one email to the list. Pinterest waits until the
+country living, education and health series have films.
+
+1. Add the film to its series' `episodes` in `src/content.ts`, with its
+   YouTube id and the day it went up (`published`).
+2. Give it its study page: its words, the verses it cites and further reading.
+   The page is not built yet; the first film builds it, from the film's script
+   and sources.
+3. Deploy, and send the film's email.
 
 ## Commands
 
