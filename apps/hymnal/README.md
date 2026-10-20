@@ -25,9 +25,11 @@ under its number, and the refrain written out each time it is sung.
 - On the web a screen is mounted anew when the reader comes back to it, so
   the search's query and each list's scroll offset live in the app's
   registry (`src/reader/place.ts`), not in the screen. A list keeps its
-  offset as it unmounts and opens there again before its first paint; every
-  row is one line of one height (a long title ends in an ellipsis), so the
-  list can open at any row at once (`src/reader/HymnList.tsx`).
+  offset as it unmounts and opens there again before its first paint, and
+  holds its opening props only until it is there. A list at its top renders
+  as the server rendered it, whatever the window, so hydration keeps it.
+  Every row is one line of one height (a long title ends in an ellipsis), so
+  the list can open at any row at once (`src/reader/HymnList.tsx`).
 - Each row is a link (an anchor on the web): a press opens the hymn inside
   the app; Enter, a Cmd-click and "Open in New Tab" work as on any link.
 - `bun run test` runs the app's tests (`src`, with `src/test/setup.ts` as the
@@ -39,7 +41,8 @@ under its number, and the refrain written out each time it is sung.
   them: hydration keeps the server's list and a scroll made before it; Back,
   the header's back link and a tab switch, at offsets across the whole list
   and window heights from 320 to 1400 px, come back within one row with
-  every row on screen drawn; and a row is a real link. It needs Chromium installed once (`bunx playwright install chromium`).
+  every row on screen drawn; and a row is a real link. It needs Chromium
+  installed once (`bunx playwright install chromium`).
 
 ## The player
 
