@@ -1053,3 +1053,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The judged plugin reported a run's findings after `settings.judged.store` named another store, though the new store kept no such answer.
 - **Cause:** The findings file named the checkout, the model, the rules, the files and the day, and not the store its answers came from.
 - **Guard:** code: `packages/scripts/lint/judged.test.ts` `reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, a run of another store, or a run past the store's age`
+
+### reach-reads-printable-scripts
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Shell tokenization credits runners and filters that the shell omits"
+- **Source:** p6-guardloop/review-17.md F1
+- **Wrong:** The reach check credited `true \` and `# comment && bun test` on the next line, which the shell joins into `true` and a comment, and `bun test src<U+00A0>lint`, which the shell hands bun as one filter.
+- **Cause:** The script reader split words on JavaScript's whitespace and read a comment before it joined continued lines, where the shell splits on a space, a tab and a line's end alone and joins lines first.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that holds a character the shell may read otherwise than the reader`
