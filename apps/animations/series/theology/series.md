@@ -15,15 +15,17 @@ A playlist of narrated cut-paper explainer films (apps/animations, the house sty
 
 Hebrews hands us the syllabus. It names the milk as "the first principles of the oracles of God" (5:12) and lists them as six foundation stones: "repentance from dead works, … faith toward God, … the doctrine of baptisms, … laying on of hands, … resurrection of the dead, and … eternal judgment" (6:1–2). Then it serves the meat it said its readers were not ready for: "Of whom we have many things to say, and hard to be uttered" (5:11), Christ "an high priest for ever after the order of Melchisedec" (5:10; 6:20), his sanctuary, covenant and judgment (chapters 7–10), and the things to come (10:37; 12:22–29). The series walks that path in three tiers:
 
-1. **Tier One · Milk: "the first principles of the oracles of God"** (Heb 5:12; 6:1–2). God's word, God's character, sin, Christ, the cross, then Hebrews' six stones in Hebrews' order. The order inside the tier also follows the pioneers' own first book for seekers, _Steps to Christ_ (God's love, SC 9 → the sinner's need, SC 17 → repentance → faith and acceptance, SC 49 → growing up into Christ, SC 67).
-2. **Tier Two · Meat: "a priest for ever after the order of Melchisedec"** (Heb 5:10–11; 7–10). Christ's priesthood and humanity, the sanctuary and its two services, the covenant, the law in the ark, the Sabbath rest, the Day of Atonement, the prophetic timing (Dan 9, Dan 8), the pre-advent judgment, and the anchor within the veil.
-3. **Tier Three · Strong meat: "senses exercised to discern"** (Heb 5:14; 2 Pet 1:19). Prophecy and the last things: how prophecy reads, the great controversy, the three messages of Revelation 14, the seal, the latter rain, the close of probation, the second coming, the millennium, the end of sin, and the new earth.
+1. **Tier One · Milk: "the first principles of the oracles of God"** (Heb 5:12; 6:1–2). God's word, God's character, sin, Christ, the cross, then Hebrews' six stones in Hebrews' order, with how prophecy reads (Daniel 2) after the new life. The order inside the tier also follows the pioneers' own first book for seekers, _Steps to Christ_ (God's love, SC 9 → the sinner's need, SC 17 → repentance → faith and acceptance, SC 49 → growing up into Christ, SC 67).
+2. **Tier Two · Meat: "a priest for ever after the order of Melchisedec"** (Heb 5:10–11; 7–10). Christ's priesthood and humanity, the sanctuary and its two services, the covenant, the law in the ark, the Sabbath rest, the Day of Atonement, the beasts and the court of Daniel 7, the prophetic timing (Dan 9, Dan 8), the pre-advent judgment, and the anchor within the veil.
+3. **Tier Three · Strong meat: "senses exercised to discern"** (Heb 5:14; 2 Pet 1:19). Prophecy and the last things: the great controversy, the nature of man, the three messages of Revelation 14, the seal, the latter rain, the close of probation, the second coming, the millennium, the end of sin, and the new earth.
 
 Why that order (the pioneers' reasons, credited, never spoken):
 
 - **Christ first, and the cross at the centre of every tier.** "Do not make prominent the features of our faith which strike most decidedly against the customs and practices of the people until … they know that we are believers in Christ, that we believe in His divinity, and in His pre-existence" (PH130 26.1). "The sacrifice of Christ as an atonement for sin is the great truth around which all other truths cluster … every truth in the word of God, from Genesis to Revelation, must be studied in the light that streams from the cross of Calvary" (GW 315.2). So 05 (who Jesus is) and 06 (the cross) come before any distinctive doctrine, and every later episode opens or lands on the cross's light (the series' recurring IDEA motif).
-- **Line upon line, as they can bear it.** "Strongest Meat Not for Babes—Let the truth be presented as it is in Jesus, line upon line, precept upon precept … Speak of the love of God in words easy to be understood" (Ev 199.3). "Do not at the outset press before the people the most objectionable features of our faith, lest you close the ears of those to whom these things come as a new revelation" (Ev 141.2). So the Sabbath (20), the state of the dead (12, gently) and the prophetic dates (22–24) wait until the viewer has the love of God, the cross, the new birth and the high priest in hand.
+- **Line upon line, as they can bear it.** "Strongest Meat Not for Babes—Let the truth be presented as it is in Jesus, line upon line, precept upon precept … Speak of the love of God in words easy to be understood" (Ev 199.3). "Do not at the outset press before the people the most objectionable features of our faith, lest you close the ears of those to whom these things come as a new revelation" (Ev 141.2). So the Sabbath (20), the prophetic dates (21b–24) and the case on man's nature (27b) wait until the viewer has the love of God, the cross, the new birth and the high priest in hand. The resurrection hope (12) stays among the first principles (Heb 6:2).
+- **The conscience and Christ, then the prophecies, then the law, and the testing truths last.** Asked whether a new field should hear the Sabbath first, Ellen White counselled "subjects that would arouse the conscience" and "the self-denial, self-sacrificing life of Jesus" as our example: "Then present to them the prophecies; show them the purity and binding claims of the law of God" (4LtMs, Lt 23, 1885, par. 18). Truths "that will not involve so great a cross" come first and gain "the confidence of the people", while the hearers are carried "step by step through the important events in the prophecies", before "the Sabbath and immortality questions" (Ev 246.3–246.4). So how prophecy reads (11b) comes before the Sabbath (20), the case on man's nature (27b) comes after the Sabbath and the prophecies, and the resurrection hope stays a first principle (12). (Added 2026-10-20 with the owner's moves; [`pioneer-order.md`](pioneer-order.md) R7.)
 - **Meat is milk combined, not milk discarded.** "Leaving the principles does not mean repudiating them, but applying them in the higher branches" (Waggoner, PTUK January 31, 1895, 65.4); "The most profound problems consist only of simple principles in various combinations" (MEDM September 1904, 286.6). Each meat episode names the milk episodes it combines (Prerequisites).
+- **Prophet, priest and king; strong meat is readiness.** A. T. Jones studies Christ "in His office of prophet as preparatory" to His office as priest, and the priest "in order that we shall be able to consider Him in His office as king" (CWCP 8.4). The tiers keep that order: Tier One the Teacher on earth, Tier Two the Priest, Tier Three the King and His kingdom. The pioneers call a truth "strong meat" when the hearer is not yet ready for it, not because it is hard: new truth "is strong meat and should be dealt out judiciously" (Ev 177.1), and Paul spoke "of truths which they were not prepared to hear" (J. H. Waggoner, WDUS 126.4). So the tiers measure readiness, and the testing truths wait until the viewer can bear them. (Added 2026-10-20; [`pioneer-order.md`](pioneer-order.md) R7.)
 - **Growth is character, not trivia.** "Development of character, growth in knowledge and wisdom, will be the sure result of feeding on the word" (MM 124.2); "There can be no life without growth" (Ed 105.3). Each tier lands on a practical turn, not a puzzle solved.
 
 ## Audience
@@ -43,11 +45,11 @@ House rules for every episode (owner's, binding): quote only Scripture, KJV, ver
 - One small dose of the problem, answered within seconds.
 - The deepest turn at 55–65 %, the landing back in the cold open's layout, a thesis line of Scripture, about 30 s of music alone, credits. The thesis and the credits stay in the cold open's place (CRAFT rule 4, bookend the setting).
 - A recurring series motif: **the six stones** of Heb 6:1–2 (Tier One's map, each episode lights its stone), **the veil with gold light behind it** (Tier Two), **the hill path to the city** (Tier Three), all inside the widening light of the cross.
-- **The dictionary** (owner, 2026-10-19): the small cut-paper book with a gold ribbon from 02b. Each later episode that reads a word opens it to one entry before it reads, two pictures side by side, no lettering (sleep beside death in 12, beasts beside kingdoms in 28, rain beside teaching in 32, fire beside an end in 36, the pattern beside the real place in 16).
+- **The dictionary** (owner, 2026-10-19): the small cut-paper book with a gold ribbon from 02b. Each later episode that reads a word opens it to one entry before it reads, two pictures side by side, no lettering (sleep beside death in 12, beasts beside kingdoms in 21b, rain beside teaching in 32, fire beside an end in 36, the pattern beside the real place in 16).
 
 ## Episodes
 
-42 episodes, about 4⅓ hours in all (37 planned on 2026-10-11; on 2026-10-19 the owner added 02b, 03b, 04b, 06b and a new 08, and moved Righteousness by Faith to 18b). Each block gives the promise, the core KJV, the sources to paraphrase (refcodes as the corpus prints them; they become credit lines), what it builds on, rough length, and the church-history flag. The per-episode research (shapes, pictures, must-not-show, searches) is in `sources.md`. "(frame)" marks a quote already verified in `.claude/skills/film/frame/`.
+43 episodes, about 4 hours 24 minutes in all (37 planned on 2026-10-11; on 2026-10-19 the owner added 02b, 03b, 04b, 06b and a new 08, and moved Righteousness by Faith to 18b; on 2026-10-20 he moved Daniel 2 from 26 to 11b and Daniel 7 from 28 to 21b, and split the case on man's nature out of 12 as a new 27b, [`pioneer-order.md`](pioneer-order.md) R1–R3). The numbers 26 and 28 stay empty until the list is renumbered. Each block gives the promise, the core KJV, the sources to paraphrase (refcodes as the corpus prints them; they become credit lines), what it builds on, rough length, and the church-history flag. The per-episode research (shapes, pictures, must-not-show, searches) is in `sources.md`. "(frame)" marks a quote already verified in `.claude/skills/film/frame/`.
 
 History flag key:
 
@@ -57,7 +59,7 @@ History flag key:
 
 ### Tier One · Milk: "the first principles of the oracles of God" (Heb 5:12; 6:1–2)
 
-The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' order (07–13). The series motif: the six stones light one by one.
+The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' order (07–13), with 11b (how prophecy reads) between the new life and stone 5. The series motif: the six stones light one by one.
 
 **01 · Milk and Meat** (script: `scripts/01-milk-and-meat.md`)
 
@@ -193,12 +195,21 @@ The opener and the foundations (01–06), then Hebrews' six stones in Hebrews' o
 - **Builds on:** 08, 09, 10. **Length:** about 5½ min. **History:** OK.
 - **Note:** this is where the milk is named again. Episode 01's cup comes back full, and the viewer is now ready to feed themselves.
 
-**12 · Asleep in Jesus** (stone 5, "resurrection of the dead")
+**11b · The Sure Word of Prophecy** (alternative title: "Written Before It Happened"; moved here from 26 on 2026-10-20, owner: "Yes, Daniel 2 becomes 11b"; [`pioneer-order.md`](pioneer-order.md) R1)
 
-- **Promise:** In Scripture death is a dreamless sleep in the grave, not a doorway. The believer's hope is the resurrection at the last trump, when Jesus wakes His friends.
-- **Core KJV:** John 11:11; Gen 2:7; Ps 146:4; Eccl 9:5; Dan 12:2; 1 Thess 4:13–17; 1 Cor 15:51–53; John 5:28–29; Phil 1:23.
-- **Sources:** HHMLD 42.1 (Uriah Smith, frame); BQACM 4.3, 7.3 (A. T. Jones, 1890); DBC 7.4 (J. N. Andrews, frame); GC 549.3, GC 556.1 (frame); DA 527.3; DA 787.1 (EGW).
-- **Builds on:** 04, 09. **Length:** about 6 min. **History:** OK. Spiritualism appears only as a practice, never as a named movement. Do not use the label "soul sleep".
+- **Promise:** God wrote the order of empires ahead of time in Daniel 2. The statue teaches how prophecy reads: Scripture names its symbols, the sequence has no gaps, and it ends with God's kingdom replacing every earthly one.
+- **Core KJV:** 2 Pet 1:19; Dan 2:28, 31–45; Dan 5:28; Dan 8:20–21; Luke 2:1; Isa 46:9–10; John 14:29.
+- **Sources:** PK 535.1, 536.3 (EGW); RAR 41.2 (James White); DAR 70.1, 70.3, 532.2 (Uriah Smith, frame); MON 39.3 (A. T. Jones); FUMP 18.2 (James White, frame).
+- **Builds on:** 02. **Length:** about 6 min. **History:** OK; the empires are secular history.
+- **Note:** it lights no stone. It stands here because the pioneers taught the prophecies after the conscience and the life of Jesus, and before the law, the Sabbath and the immortality question (4LtMs, Lt 23, 1885, par. 18; Ev 246.3–246.4). Tier Three's rules for prophecy apply to it (see Tier Three).
+
+**12 · Asleep in Jesus** (stone 5, "resurrection of the dead"; split 2026-10-20: the case on man's nature is now 27b, owner: "Split it. 12 keeps the resurrection hope. Man's nature becomes a new 27b, before 29"; [`pioneer-order.md`](pioneer-order.md) R2a)
+
+- **Promise:** Jesus calls His friend's death a sleep, because He is going to wake him. The believer's hope is the resurrection at the last trump, when Jesus wakes His friends.
+- **Core KJV:** John 11:11–14; Dan 12:2; 1 Thess 4:13–17; 1 Cor 15:51–53; John 5:28–29.
+- **Sources:** GC 549.3 (frame); BQACM 4.3 (A. T. Jones, 1890); DA 527.3; DA 787.1 (EGW).
+- **Builds on:** 04, 09. **Length:** about 6 min. **History:** OK. Do not use the label "soul sleep".
+- **Note:** the sleep is told only as Jesus tells it in John 11, where He sets "sleepeth" beside "Lazarus is dead". The case on man's nature (Gen 2:7; Ps 146:4; Eccl 9:5; Phil 1:23) waits for 27b, after the prophecies and the Sabbath, where the pioneers taught it.
 
 **13 · Eternal Judgment** (stone 6; the bridge to meat)
 
@@ -281,6 +292,17 @@ The "many things … hard to be uttered". The series motif is the veil with gold
 - **Sources:** LOM 40.1 (O. R. L. Crosier, frame); AERS 220.1 (J. H. Waggoner, frame); CIS 210.1, 216.2, 222.1 (Haskell); LUJ 260.2 (Uriah Smith); PP 355.5, 358.3; GC 422.2 (EGW, frame).
 - **Builds on:** 16, 17, 19. **Length:** about 6½ min. **History:** OK. Crosier is credited for doctrine only. The scapegoat is never Christ.
 
+**21b · Four Winds, Four Beasts** (moved here from 28 on 2026-10-20, owner: "Yes"; [`pioneer-order.md`](pioneer-order.md) R3)
+
+- **Promise:** Daniel 7 retells Daniel 2 in heaven's light. The empires appear as beasts, and a last arrogant power grows out of divided Rome and wars on God's people until the court sits and gives the kingdom to the saints.
+- **Core KJV:** Dan 7:2–3, 8, 9–10, 13, 17, 21–27; Jer 49:36; Rev 17:15; Rev 12:6, 14; Rev 13:5; Num 14:34; Ezek 4:6.
+- **Sources:** DAR 113.4, 114.1, 114.3, 118.1; DAR1909 127.1 (Uriah Smith); RDAC 37.2 (J. H. Waggoner); SDP 90.1 (Haskell); ARSH January 26, 1864, 68.10 (unsigned; for "time = a year" only).
+- **Builds on:** 11b, 21. **Length:** about 7 min. **History:** CAUTION.
+  - The film establishes from Scripture: a horn rising among Rome's ten, different from them, speaking against the Most High, reaching for "times and laws", ruling 1260 prophetic years, and judged.
+  - It does not name the horn, nor the three plucked horns, 538 and 1798, or the fulfilment of "change times and laws"; those go to the later series.
+  - The horn must still be drawn rising out of divided Rome, so the viewer cannot take it for a future individual.
+- **Note:** Tier Two's motif rests on Dan 7:13: one "like the Son of man" is brought near before the Ancient of days, in the court of 7:9–10. The day-for-a-year key (Num 14:34; Ezek 4:6) is taught here first, before 22 uses it. Tier Three's rules for prophecy apply (see Tier Three).
+
 **22 · Messiah the Prince**
 
 - **Promise:** Daniel 9 set a 490-year clock from a Persian decree to the Messiah, and it was fulfilled to the year: Christ's anointing, His death "in the midst of the week", and the gospel turning to the nations.
@@ -303,7 +325,7 @@ The "many things … hard to be uttered". The series motif is the veil with gold
 - **Promise:** Before Christ returns, heaven's court sits with the books open. The cases of God's professed people are reviewed with Christ as their Advocate, so that when He comes His reward is already with Him.
 - **Core KJV:** Dan 7:9–10, 13, 22; Rev 14:6–7; Eccl 12:14; 1 Pet 4:17; Rev 22:12; 1 John 2:1; Zech 3:1–5.
 - **Sources:** GC 421.3 (frame); GC 479.3, 480.1, 484.2 (EGW); JEO 9.2, 15.1, 126.2 (Andrews); CIS 232.1 (Haskell); SITI June 8, 1888, 342.20 (E. J. Waggoner, signed "W.").
-- **Builds on:** 13, 21, 23. **Length:** about 6½ min. **History:** CAUTION. Rev 14:7 is told as prophecy; the movement that preached it is left out.
+- **Builds on:** 13, 21, 21b, 23. **Length:** about 6½ min. **History:** CAUTION. Rev 14:7 is told as prophecy; the movement that preached it is left out.
 
 **25 · Within the Veil**
 
@@ -314,14 +336,7 @@ The "many things … hard to be uttered". The series motif is the veil with gold
 
 ### Tier Three · Strong meat: "senses exercised to discern" (Heb 5:14; 2 Pet 1:19)
 
-The last things. The series motif is the hill path to the city. Every prophecy is told from Scripture plus secular empire history, and the frames' MUST NOT items (no futurism, no gap, no literal mark, no Sunday-keepers marked now) all apply.
-
-**26 · The Sure Word of Prophecy** (alternative title: "Written Before It Happened")
-
-- **Promise:** God wrote the order of empires ahead of time in Daniel 2. The statue teaches how prophecy reads: Scripture names its symbols, the sequence has no gaps, and it ends with God's kingdom replacing every earthly one.
-- **Core KJV:** 2 Pet 1:19; Dan 2:28, 31–45; Dan 5:28; Dan 8:20–21; Luke 2:1; Isa 46:9–10; John 14:29.
-- **Sources:** PK 535.1, 536.3 (EGW); RAR 41.2 (James White); DAR 70.1, 70.3, 532.2 (Uriah Smith, frame); MON 39.3 (A. T. Jones); FUMP 18.2 (James White, frame).
-- **Builds on:** 02. **Length:** about 6 min. **History:** OK; the empires are secular history.
+The last things. The series motif is the hill path to the city. Every prophecy, here and in 11b and 21b, is told from Scripture plus secular empire history, and the frames' MUST NOT items (no futurism, no gap, no literal mark, no Sunday-keepers marked now) all apply.
 
 **27 · War in Heaven**
 
@@ -331,15 +346,13 @@ The last things. The series motif is the hill path to the city. Every prophecy i
 - **Builds on:** 03, 04, 06. **Length:** about 6 min. **History:** CAUTION. The 1260 days are told as a period only, with no persecutor named. Rev 12:17 is read verbatim, and the gift of prophecy is not tied to anyone.
 - **Added 2026-10-12 (from the 05 round):** the council scene behind the rebellion. 7LtMs, Ms 43b, 1891, par. 3 (the covering cherub asks to govern the new world, "Jesus Christ was to rule the earthly kingdom; under God", and Lucifer "was jealous of Christ"); 3SG 37.3 (Satan "cannot submit to be under Christ’s command, that God’s commands alone will he obey"). Both were verified with the CLI.
 
-**28 · Four Winds, Four Beasts**
+**27b · A Living Soul** (alternative title: "What Is Man?"; new, 2026-10-20: the case on man's nature, split from 12; owner: "Split it. 12 keeps the resurrection hope. Man's nature becomes a new 27b, before 29"; [`pioneer-order.md`](pioneer-order.md) R2a)
 
-- **Promise:** Daniel 7 retells Daniel 2 in heaven's light. The empires appear as beasts, and a last arrogant power grows out of divided Rome and wars on God's people until the court sits and gives the kingdom to the saints.
-- **Core KJV:** Dan 7:2–3, 8, 9–10, 17, 21–27; Jer 49:36; Rev 17:15; Rev 12:6, 14; Rev 13:5; Num 14:34; Ezek 4:6.
-- **Sources:** DAR 113.4, 114.1, 114.3, 118.1; DAR1909 127.1 (Uriah Smith); RDAC 37.2 (J. H. Waggoner); SDP 90.1 (Haskell); ARSH January 26, 1864, 68.10 (unsigned; for "time = a year" only).
-- **Builds on:** 23, 24, 26. **Length:** about 7 min. **History:** CAUTION.
-  - The film establishes from Scripture: a horn rising among Rome's ten, different from them, speaking against the Most High, reaching for "times and laws", ruling 1260 prophetic years, and judged.
-  - It does not name the horn, nor the three plucked horns, 538 and 1798, or the fulfilment of "change times and laws"; those go to the later series.
-  - The horn must still be drawn rising out of divided Rome, so the viewer cannot take it for a future individual.
+- **Promise:** God formed man of the dust and breathed into him, and man "became a living soul": before the breath a lifeless man, after it a living one. Man is mortal; immortality is God's gift at the resurrection. When the breath goes, his thoughts perish and the dead know nothing, not even of those they loved, so death is not a doorway. Paul's wish "to depart, and to be with Christ" meets Christ at the resurrection, and to the sleeper the time between is but a moment.
+- **Core KJV:** Gen 2:7; Ps 146:4; Eccl 9:5; Phil 1:23.
+- **Sources:** HHMLD 42.1 (Uriah Smith, frame); BQACM 4.3, 7.3 (A. T. Jones, 1890); DBC 7.4 (J. N. Andrews, frame); GC 549.3, GC 556.1 (frame).
+- **Builds on:** 03b (its cold open forms Adam from the dust and the breath, Gen 2:7), 04b (its `death` beat: sin is not made immortal), 12, 27. **Length:** about 6 min. **History:** OK. Spiritualism appears only as a practice, never as a named movement. Do not use the label "soul sleep".
+- **Note on the slot:** the pioneers taught man's nature after the prophecies and the Sabbath, beside the state of the dead and the fate of the wicked (BSA hd. 21–26; TBI lessons 14–17; SYNPT ch. 12–15; Helps readings 22–25; BR 1914 Part 11, which opens with Satan, p. 499, then "What Is Man?", p. 505; the Gazette of 1884, which follows no course, also prints the three together as Nos. 28–30), and Ellen White names the immortality question among the truths to defer (Ev 246.3; Ev 248.4). It follows 27 as Helps and BR 1914 put Satan just before it, and it comes before 30, which counts this doctrine among Babylon's wine.
 
 **29 · The Everlasting Gospel**
 
@@ -353,7 +366,7 @@ The last things. The series motif is the hill path to the city. Every prophecy i
 - **Promise:** Babylon is Scripture's name for religion built on human self-exaltation. Its fall is moral, God's own people are still inside it, and the last call is a rescue, not a condemnation.
 - **Core KJV:** Gen 11:4, 9; Dan 4:30; Dan 5; Jer 51:6, 45; Ezra 1:2–3; Rev 14:8; Rev 17:1–6, 15; Rev 18:1–5.
 - **Sources:** GC88 380.3, 388.1, 390.2; GC 390.1; ST December 29, 1890, par. 2 (EGW); TAR 51.2 (Andrews, frame); GNT 137.3–137.4 (A. T. Jones); ARSH March 24, 1859, 140.14 (Uriah Smith).
-- **Builds on:** 12, 20, 26, 29 (and 36 for the wine's doctrines). **Length:** about 6½ min. **History:** CAUTION. Which bodies make up Babylon, and who the "mother" is, wait for the later series. No church is named or pictured.
+- **Builds on:** 11b, 12, 20, 27b, 29 (and 36 for the wine's doctrines). **Length:** about 6½ min. **History:** CAUTION. Which bodies make up Babylon, and who the "mother" is, wait for the later series. No church is named or pictured.
 
 **31 · The Seal of the Living God**
 
@@ -397,7 +410,7 @@ The last things. The series motif is the hill path to the city. Every prophecy i
 - **Promise:** Hell is not burning now, and it does not burn forever. After the second resurrection, fire from God ends sin and sinners, in just measure, and leaves nothing behind. It is God's "strange act", done by a God who takes no pleasure in death.
 - **Core KJV:** Rom 6:23; Mal 4:1, 3; Obad 16; 2 Thess 1:9; Rev 20:9, 14–15; Gen 19:28; Jude 7; Isa 28:21; Ezek 33:11.
 - **Sources:** SSII 46.2 (George Storrs, frame); TAR 130.2; WDNP 3.2 (J. N. Andrews, frame); HHMLD 277.1 (Uriah Smith, frame); 1SG 118.1 (frame); GC 674.1 (frame); GC88 627.1, 673.1 (EGW).
-- **Builds on:** 12, 13, 35. **Length:** about 6 min. **History:** OK.
+- **Builds on:** 12, 13, 27b, 35. **Length:** about 6 min. **History:** OK.
 - **Note:** Jude 7 ("suffering the vengeance of eternal fire", checked with the CLI) is the text that turns on Sodom. Its "eternal fire" went out, yet its result lasts.
 
 **37 · All Things New** (series finale)
@@ -405,8 +418,8 @@ The last things. The series motif is the hill path to the city. Every prophecy i
 - **Promise:** The same fire purifies the earth, and this real planet is remade as the home of the redeemed. God dwells with them, and the conflict that began in heaven ends with everything declaring that God is love.
 - **Core KJV:** 2 Pet 3:13; Ps 37:11, 29; Matt 5:5; Isa 65:17, 21–22; Rev 21:1–5; Rev 22:1–5; Isa 66:22–23; Dan 2:35.
 - **Sources:** PT November 1, 1850, par. 8; TTKGG 12.1; SAIN 3.1; DTIS 23.1; DAR 609.3; GC 675.1 (frame); GC88 678.3; 4SP 492.3 (EGW).
-- **Builds on:** 03, 26, 35, 36. **Length:** about 6 min. **History:** OK.
-- **Note:** this is the series' bookend. It closes on 1 John 4:8, the thesis of 03, and the Daniel 2 stone, now a mountain, closes the loop from 26.
+- **Builds on:** 03, 11b, 35, 36. **Length:** about 6 min. **History:** OK.
+- **Note:** this is the series' bookend. It closes on 1 John 4:8, the thesis of 03, and the Daniel 2 stone, now a mountain, closes the loop from 11b.
 
 ## Other series later (cannot be told without church history or naming a church)
 
@@ -422,7 +435,7 @@ The later church-history series is where these belong. Each item is split into w
   - Already here: the close of probation (33), built on Noah's door rather than Matt 25:10.
   - Waits: the history.
 - **The papacy and the 1260 years (538–1798), and who "changed times and laws".**
-  - Already here: the 1260-year period itself (27–28, from Scripture and the day-for-a-year rule).
+  - Already here: the 1260-year period itself (21b and 27, from Scripture and the day-for-a-year rule).
   - Waits: the naming and the fulfilment, including Justinian, Berthier and the three plucked horns.
 - **The two-horned beast, the Sunday law and the mark identified (Rev 13:11–17).**
   - Already here: the seal and the principle of the mark (31).
@@ -475,7 +488,7 @@ The later church-history series is where these belong. Each item is split into w
 5. **Christ's human nature (15).** The film would hold "took our sinful nature" and "no taint, no evil propensity" together, as EGW does, and gloss neither. Is that acceptable, or do you want a stated position?
 6. **Episode 10's title.** "The Laying On of Hands" promises a rite that the sources say is not commanded as the means of the Spirit. The proposal is "The Promise of the Father" (Acts 1:4), with the stone card keeping Hebrews' words.
 7. **Where 08 sits.** The existing _Righteousness by Faith_ film ends by reaching Dan 8:14, Rev 14 and Joel 2:23, which is Tier Two and Three ground. As stone 2 it works, because a forward glance is fine. Should a short re-cut end it at Heb 8:10, or is the glance kept?
-8. **How far 28 and 31 go.** Do you want the horn and the mark left unnamed, as here, with a card pointing to the later series? Or would you rather move 28–31 out of this series and into the later one entirely, so that no episode has to hold anything back?
+8. **How far 21b and 31 go.** Do you want the horn and the mark left unnamed, as here, with a card pointing to the later series? Or would you rather move 21b and 29–31 out of this series and into the later one entirely, so that no episode has to hold anything back?
 9. **Bylines.** These need a byline check before credits are final:
    - Several PTUK, AMS and SITI pieces credited to Waggoner or Jones (listed in `sources.md`);
    - GCDB 1897, which is Waggoner's sermon but carries the editor tag in the corpus;

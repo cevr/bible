@@ -425,17 +425,32 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - pioneer: as newborn babes; grow in grace; As ye have therefore received Christ Jesus; the secret of growth; secret prayer; Christ liveth in me; the word of God has in itself the power.
   - Not found: any Haskell text on prayer or the Word.
 
-### 12 · Asleep in Jesus
+### 11b · The Sure Word of Prophecy (moved from 26 on 2026-10-20)
 
 - **Key refs:**
-  - HHMLD 42.1 (frame): "a lifeless man; afterward, a living one".
-  - BQACM 4.3 (frame): "Man, being mortal, has it not; God has it".
-  - BQACM 7.3: "Death is wholly an unconscious sleep".
-  - DBC 7.4 (frame): "The departure is by death; the being with Christ is by the resurrection".
+  - PK 535.1: the four empires, each tested.
+  - PK 536.3: prophecy "traced on the pages of history".
+  - RAR 41.2: the stone replaces the image.
+  - DAR 70.1 and 70.3: the church is not the stone; at the cross the image had reached "only … to the thighs".
+  - MON 39.3: the whole statue falls at once.
+  - DAR 532.2 (frame).
+  - FUMP 18.2 (frame): "Down among the feet and toes".
+- **Shape:** God reveals secrets so "ye might believe" → the metals → iron and clay → the stone at the feet → "you are here".
+- **Pictures:** Daniel before the king; the statue as a timeline with a pin in the toes, ending as chaff.
+- **Must not:** the stone as the church filling the earth now; a gap or a revived empire; prophecy as timeless symbol.
+- **Searches:**
+  - egw: rise and fall of empires; link after link in the prophetic chain; Every nation that has come upon the stage.
+  - pioneer: five universal kingdoms; smiting of the image; stone strikes the image upon the feet; feet and toes divided kingdom; covers the same ground.
+
+### 12 · Asleep in Jesus
+
+Split on 2026-10-20: 12 keeps the resurrection hope, and the case on man's nature moved to 27b with its refs. The searches below served both.
+
+- **Key refs:**
   - GC 549.3 (frame): "Time … is but a moment to them".
-  - GC 556.1 (frame): the dead know nothing of the living.
+  - BQACM 4.3 (frame): man "will obtain it at the resurrection of the dead", at the last trump.
   - DA 527.3 and DA 787.1: death as sleep.
-- **Shape:** dust plus breath → breath goes and thoughts perish → "Lazarus sleepeth" → "depart … be with Christ", with the grave between → the last trump.
+- **Shape:** "Lazarus sleepeth", then plainly "Lazarus is dead" → Jesus goes to wake His friend → the last trump: the dead in Christ rise, and the living are changed.
 - **Pictures:** Bethany, from "sleepeth" to "come forth"; a clock that stops at death and resumes at the trumpet.
 - **Must not:** a soul leaving the body; the dead watching the living; the label "soul sleep".
 - **Searches:**
@@ -558,7 +573,7 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - STTHD 150.1: 1 Kings 8:9.
 - **Shape:** the finger of God → the tables inside, the book beside → named for the testimony; mercy over law → the heavenly ark (Rev 11:19) → the law written in the heart.
 - **Pictures:** an ark cutaway; Moses carving the second tables.
-- **Must not:** the law as one Torah that expired; Col 2:14 over the tables; Dan 7:25 (save it for 28).
+- **Must not:** the law as one Torah that expired; Col 2:14 over the tables; Dan 7:25 (save it for 21b).
 - **Searches:**
   - pioneer: ark of the testament tables of stone mercy seat; mercy seat covered the law; pot of manna Aaron's rod; ten commandments lay in unapproachable majesty.
   - egw: mercy-seat law ark cherubim justice; The ark was merely a receptacle; great original.
@@ -598,6 +613,23 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
 - **Searches:**
   - pioneer: scapegoat Azazel Satan; day of atonement afflict your souls; the Lord's goat blood sprinkled upon the mercy seat.
   - egw: Once a year, on the great Day of Atonement; Important truths concerning the atonement; the people were taught each day.
+
+### 21b · Four Winds, Four Beasts (moved from 28 on 2026-10-20)
+
+- **Key refs:**
+  - DAR 113.4: the literal interprets the figurative.
+  - DAR 114.1 and 114.3: wind means strife; sea means peoples.
+  - DAR1909 127.1: "The ground is passed over again and again".
+  - RDAC 37.2: Daniel 7 covers the ground of Daniel 2.
+  - SDP 90.1: the beasts rise out of the multitudes.
+  - DAR 118.1: the nondescript fourth beast.
+  - ARSH January 26, 1864, 68.10: "Time, in prophetic language, for a year".
+  - DAR 118.4 and DAR 141.1 were found, and they name the horn; they are held for the later series.
+- **Shape:** the winds and the sea → Daniel 2 again → the ten horns and a different horn → the throne and the books, and one like the Son of man brought near (Dan 7:13, Tier Two's motif) → the kingdom to the saints.
+- **Pictures:** the image and the beasts side by side, metal for beast; Daniel troubled on his bed.
+- **Must not:** a future single Antichrist; a gap; the beasts as generic empire.
+- **Searches:**
+  - pioneer: four winds of heaven strove upon the great sea; VERSE 2 (+ctx); same ground as the image; ground is passed over again and again; lion eagle's wings; little horn came up among them; seven times of Leviticus 26.
 
 ### 22 · Messiah the Prince
 
@@ -672,23 +704,6 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - pioneer: new and living way which he hath consecrated; anchor of the soul within the veil.
   - egw: hope anchor of the soul … forerunner; character of Christ stands in place of your character.
 
-### 26 · The Sure Word of Prophecy
-
-- **Key refs:**
-  - PK 535.1: the four empires, each tested.
-  - PK 536.3: prophecy "traced on the pages of history".
-  - RAR 41.2: the stone replaces the image.
-  - DAR 70.1 and 70.3: the church is not the stone; at the cross the image had reached "only … to the thighs".
-  - MON 39.3: the whole statue falls at once.
-  - DAR 532.2 (frame).
-  - FUMP 18.2 (frame): "Down among the feet and toes".
-- **Shape:** God reveals secrets so "ye might believe" → the metals → iron and clay → the stone at the feet → "you are here".
-- **Pictures:** Daniel before the king; the statue as a timeline with a pin in the toes, ending as chaff.
-- **Must not:** the stone as the church filling the earth now; a gap or a revived empire; prophecy as timeless symbol.
-- **Searches:**
-  - egw: rise and fall of empires; link after link in the prophetic chain; Every nation that has come upon the stage.
-  - pioneer: five universal kingdoms; smiting of the image; stone strikes the image upon the feet; feet and toes divided kingdom; covers the same ground.
-
 ### 27 · War in Heaven
 
 - **Key refs:**
@@ -706,22 +721,19 @@ Below, each episode gets its key refs with the thought each supplies, its shape,
   - pioneer: war in heaven; dragon primarily Satan; woman clothed with the sun.
   - egw: there was war in heaven; last link of sympathy; Satan's disguise was torn away; Infinite Wisdom did not destroy Satan; Not until the death of Christ.
 
-### 28 · Four Winds, Four Beasts
+### 27b · A Living Soul (new on 2026-10-20: the case on man's nature, split from 12)
 
-- **Key refs:**
-  - DAR 113.4: the literal interprets the figurative.
-  - DAR 114.1 and 114.3: wind means strife; sea means peoples.
-  - DAR1909 127.1: "The ground is passed over again and again".
-  - RDAC 37.2: Daniel 7 covers the ground of Daniel 2.
-  - SDP 90.1: the beasts rise out of the multitudes.
-  - DAR 118.1: the nondescript fourth beast.
-  - ARSH January 26, 1864, 68.10: "Time, in prophetic language, for a year".
-  - DAR 118.4 and DAR 141.1 were found, and they name the horn; they are held for the later series.
-- **Shape:** the winds and the sea → Daniel 2 again → the ten horns and a different horn → the throne and the books → the kingdom to the saints.
-- **Pictures:** the image and the beasts side by side, metal for beast; Daniel troubled on his bed.
-- **Must not:** a future single Antichrist; a gap; the beasts as generic empire.
-- **Searches:**
-  - pioneer: four winds of heaven strove upon the great sea; VERSE 2 (+ctx); same ground as the image; ground is passed over again and again; lion eagle's wings; little horn came up among them; seven times of Leviticus 26.
+- **Key refs** (all from 12's round; each read again with `bible egw lookup` on 2026-10-20):
+  - HHMLD 42.1 (frame): "a lifeless man; afterward, a living one".
+  - BQACM 4.3 (frame): "Man, being mortal, has it not; God has it".
+  - BQACM 7.3: "Death is wholly an unconscious sleep".
+  - DBC 7.4 (frame): "The departure is by death; the being with Christ is by the resurrection".
+  - GC 549.3 (frame): "Time … is but a moment to them".
+  - GC 556.1 (frame): the dead know nothing "of the joys or sorrows of those who were dearest to them on earth".
+- **Shape:** dust plus breath (03b's cold open, seen again) → breath goes and thoughts perish → the dead know nothing, not even of those they loved → "depart … be with Christ", with the grave between → immortality at the resurrection (12).
+- **Pictures:** 03b's clay figure and the breath; the clock that stops at death and resumes at the trumpet (shared with 12).
+- **Must not:** a soul leaving the body; the dead watching the living; the label "soul sleep"; spiritualism named as a movement (it appears only as a practice).
+- **Searches:** see 12; its round served both.
 
 ### 29 · The Everlasting Gospel
 
