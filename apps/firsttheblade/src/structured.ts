@@ -10,7 +10,7 @@ import { Match, Schema } from 'effect';
 
 import type { Episode, Series } from './content.ts';
 import { absolute, DESCRIPTION, type Page } from './pages.ts';
-import { CHANNEL, ORIGIN } from './site.ts';
+import { CHANNEL, ORIGIN, PROFILES } from './site.ts';
 
 const ORGANIZATION = `${ORIGIN}/#organization`;
 const WEBSITE = `${ORIGIN}/#website`;
@@ -22,7 +22,7 @@ const organization = {
   name: CHANNEL.name,
   url: absolute('/'),
   logo: { '@type': 'ImageObject', url: absolute('/icon-512.png'), width: 512, height: 512 },
-  sameAs: [CHANNEL.url],
+  sameAs: PROFILES.map((profile) => profile.url),
 };
 
 const website = {

@@ -7,7 +7,7 @@ import { For } from '@solidjs/web';
 import type { JSX } from '@solidjs/web';
 
 import { MARK_4_27, type Series, UNITS, type Verse } from '../content.ts';
-import { CHANNEL } from '../site.ts';
+import { CHANNEL, PROFILES } from '../site.ts';
 import { EMBLEMS, FIELD, MARK, NIGHT } from './art.ts';
 import { PRIVACY_PATH } from '../pages.ts';
 import { SignUp } from './mail.tsx';
@@ -171,9 +171,13 @@ export const Footer = () => (
             </li>
           )}
         </For>
-        <li>
-          <a href={CHANNEL.url}>YouTube</a>
-        </li>
+        <For each={PROFILES}>
+          {(profile) => (
+            <li>
+              <a href={profile.url}>{profile.name}</a>
+            </li>
+          )}
+        </For>
         <li>
           <a href={PRIVACY_PATH}>Privacy</a>
         </li>

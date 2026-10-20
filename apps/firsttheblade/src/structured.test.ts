@@ -30,11 +30,15 @@ const filmPage: Page = {
 };
 
 describe('the structured data', () => {
-  test('every listed page names the channel as its publisher, and its YouTube channel as the same one', () => {
+  test('every listed page names the channel as its publisher, and its YouTube, Instagram and Facebook profiles as the same one', () => {
     for (const page of PAGES.filter((candidate) => candidate.listed)) {
       expect(nodeOf(page, 'Organization')).toMatchObject({
         name: CHANNEL.name,
-        sameAs: [CHANNEL.url],
+        sameAs: [
+          CHANNEL.url,
+          'https://www.instagram.com/firsttheblade/',
+          'https://www.facebook.com/profile.php?id=61595704647167',
+        ],
       });
       expect(typesOf(page)).toContain('WebSite');
     }

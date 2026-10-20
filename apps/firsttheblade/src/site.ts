@@ -41,3 +41,14 @@ export const CHANNEL = {
   url: 'https://www.youtube.com/@firsttheblade',
   subscribe: 'https://www.youtube.com/@firsttheblade?sub_confirmation=1',
 } as const;
+
+/**
+ * The channel's profiles elsewhere, in the order the footer lists them. The
+ * Facebook Page is linked by its id, which stays the same if its username
+ * changes.
+ */
+export const PROFILES = [
+  { name: 'YouTube', url: CHANNEL.url },
+  { name: 'Instagram', url: 'https://www.instagram.com/firsttheblade/' },
+  { name: 'Facebook', url: 'https://www.facebook.com/profile.php?id=61595704647167' },
+] as const;
