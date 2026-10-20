@@ -1813,3 +1813,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** The split between the lead's legs began in a ragged notch.
 - **Cause:** The two legs met edge to edge above the split, and each one's boil opened a notch where they parted.
 - **Guard:** skill: the legs are traced by hand from a sheet, outside the repo's code. Carried by `.claude/skills/film/RIVE.md`: "Two legs traced side by side run past the middle at their tops so they overlap"
+
+### elbow-on-its-pivot
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "A zero-length upper arm passes both `JointedArm` and `figure` validation."
+- **Source:** rbf-lead/review-1.md F1
+- **Wrong:** A jointed arm whose elbow lay on its shoulder's pivot was made, and a reach of it answered NaN for its turn, its bend and its hand.
+- **Cause:** The figure checked that the elbow lay inside both sleeves, and nothing checked that the upper sleeve had a length.
+- **Guard:** code: `packages/film/src/style/figure.test.ts` `whose elbow lies outside either sleeve or on its shoulder's pivot, or whose hand lies short of its forearm's end, is refused`
+
+### traced-table-unread
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "`COLOURS` has no production consumer; `papers.ts` separately defines the palette."
+- **Source:** rbf-lead/review-1.md F2
+- **Wrong:** The lead's traced file exported the sheet's colours as a table that no module read.
+- **Cause:** The tracer wrote every table it measured, and the film's papers took their colours by hand.
+- **Guard:** skill: the tracer is a tool outside the repo's code, and the dead-export check sweeps packages, not a film's modules. Carried by `.claude/skills/film/RIVE.md`: "A tracer writes only the tables its rig reads"
+
+### comment-names-old-kind
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "The comment still describes the lead as “a round head.”"
+- **Source:** rbf-lead/review-1.md F3
+- **Wrong:** RBF's rig test called the lead a round head after his head was traced.
+- **Cause:** The comment named the lead's part kind in words, and the change of kind touched the rig file, not the test.
+- **Guard:** skill: a comment's words about another file's part kind carry no name a check can follow. Carried by `CLAUDE.md`: "A comment says what the code does now and why"
