@@ -1,14 +1,18 @@
 // A cast sheet's brief from the app's own house block: the block made a
 // sheet's, a block whose phrase moved stops the brief, every brief carries
-// the sheet rules the owner set, and a layout or a look that floats a hand
-// stops it: the library's and every film's records are read here.
+// the sheet rules the owner set, a figure stands its own heads (the canon's
+// unless the member names its own, a smaller figure its share of the grown
+// height), the hair is spoken of only where it shows, and a layout or a look
+// that floats a hand stops it: the library's and every film's records are
+// read here.
 
 import { BunServices } from '@effect/platform-bun';
+import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Result, Schema } from 'effect';
-import { SheetKind } from '../core/cast-sheet.ts';
-import { CastSheetJson } from '../core/cast-record.ts';
-import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
+import { CANON_HEADS, SheetKind, type ViewFigure } from '../core/cast-sheet.ts';
+import { CastSheetJson, castKindPlan, hairShows } from '../core/cast-record.ts';
+import { castSheetBrief, headsWords, turnaroundLayout } from './cast-sheet-brief.ts';
 
 /** The house block as the app keeps it. */
 const houseBlock = Effect.gen(function* () {
@@ -18,14 +22,26 @@ const houseBlock = Effect.gen(function* () {
   );
 }).pipe(Effect.provide(BunServices.layer));
 
-/** A sheet's brief over `house`, a turnaround's unless `kind` says. */
-const briefOver = (house: string, kind: SheetKind = 'turnaround') =>
+/** How a member is drawn across its sheet: its heads, its smaller figures, whether its hair shows. */
+interface Drawn {
+  readonly heads: number;
+  readonly figures: ReadonlyArray<ViewFigure>;
+  readonly hair: boolean;
+}
+
+/** How a canon member with hair is drawn: the default the tests vary. */
+const CANON_MEMBER: Drawn = { heads: CANON_HEADS, figures: [], hair: true };
+
+/** A sheet's brief over `house`, a turnaround's unless `kind` says, its figures the canon's unless `drawn` says. */
+const briefOver = (house: string, kind: SheetKind = 'turnaround', drawn: Partial<Drawn> = {}) =>
   castSheetBrief({
     kind,
     house,
     references: 'Image 1 is his kept concept.',
     look: 'He wears a cream robe.',
     layout: turnaroundLayout('Him'),
+    ...CANON_MEMBER,
+    ...drawn,
   });
 
 const briefOf = Effect.map(houseBlock, (house) => Result.getOrThrow(briefOver(house)));
@@ -148,15 +164,136 @@ describe("each kind's rules", () => {
   );
 });
 
+describe("a figure's height in its own heads", () => {
+  test('is said to the nearest quarter or third', () => {
+    expect([3.36, 2.6, 2.2, 3, 2.9].map(headsWords)).toEqual([
+      'three and a third',
+      'two and two thirds',
+      'two and a quarter',
+      'three',
+      'three',
+    ]);
+  });
+
+  it.effect('stands a canon member at the canon, and a member of its own design at its own', () =>
+    Effect.gen(function* () {
+      const house = yield* houseBlock;
+      const said = (kind: SheetKind, heads: number) =>
+        Result.getOrThrow(briefOver(house, kind, { heads }));
+      expect(said('turnaround', CANON_HEADS)).toContain(
+        'The person stands about three and a third heads tall.',
+      );
+      // The plain lead stands about 2.6 heads (character-design 2.3).
+      expect(said('turnaround', 2.6)).toContain(
+        'The person stands about two and two thirds heads tall.',
+      );
+      expect(said('turnaround', 2.6)).not.toContain('three and a third');
+      expect(said('poses', 2.6)).toContain(
+        'a standing figure stands about two and two thirds heads tall',
+      );
+    }),
+  );
+
+  it.effect("sizes a pose sheet's smaller figures by their share of the grown height", () =>
+    Effect.gen(function* () {
+      const brief = Result.getOrThrow(
+        briefOver(yield* houseBlock, 'poses', {
+          heads: 2.6,
+          figures: [
+            { view: 1, height: 0.67, heads: 2.2 },
+            { view: 2, height: 0.67, heads: 2.2 },
+            { view: 5, height: 0.75, heads: 2.2 },
+          ],
+        }),
+      );
+      expect(brief).toContain(
+        'Every grown figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing grown figure stands about two and two thirds heads tall.',
+      );
+      expect(brief).toContain(
+        "Figures 1 and 2 are the same figure smaller: two thirds of a grown figure's height and about two and a quarter of its own heads tall, its head a larger share of it.",
+      );
+      expect(brief).toContain(
+        "Figure 5 is the same figure smaller: three quarters of a grown figure's height and about two and a quarter of its own heads tall",
+      );
+    }),
+  );
+});
+
+describe('a smaller figure in a record', () => {
+  const poses = {
+    anchor: 1,
+    layout: 'Standing; sitting.',
+    slots: ['front', 'front'] as const,
+    standing: [1],
+    tries: [],
+  };
+  const held = (figures: ReadonlyArray<{ view: number; height: number; heads: number }>) =>
+    Schema.decodeSync(CastSheetJson)(
+      Schema.encodeSync(Schema.fromJsonString(Schema.Json))({
+        member: 'them',
+        scope: 'library',
+        who: 'them',
+        refs: [],
+        sheets: { poses: { ...poses, figures }, heads: { ...poses, figures } },
+      }),
+    );
+  const refusal = (kind: SheetKind, figures: Parameters<typeof held>[0]) =>
+    Result.match(castKindPlan(held(figures), kind), {
+      onSuccess: () => 'planned',
+      onFailure: (unset) => unset.reason,
+    });
+
+  test('is drawn on a pose sheet at its own height and heads', () => {
+    const plan = Result.getOrThrow(
+      castKindPlan(held([{ view: 2, height: 0.5, heads: 2 }]), 'poses'),
+    );
+    expect(plan.options.figures).toEqual([{ view: 2, height: 0.5, heads: 2 }]);
+  });
+
+  test('is refused on a heads sheet, off the sheet, and named twice', () => {
+    expect(refusal('heads', [{ view: 2, height: 0.5, heads: 2 }])).toContain(
+      'only a pose sheet draws a smaller figure',
+    );
+    expect(refusal('poses', [{ view: 3, height: 0.5, heads: 2 }])).toContain(
+      'a figure names view 3, not one of its 2',
+    );
+    expect(
+      refusal('poses', [
+        { view: 2, height: 0.5, heads: 2 },
+        { view: 2, height: 0.6, heads: 2 },
+      ]),
+    ).toContain('a figure names view 2, not one of its 2 or named twice');
+  });
+});
+
+describe('the hair in the brief', () => {
+  it.effect('is spoken of only on a member whose hair shows', () =>
+    Effect.gen(function* () {
+      const house = yield* houseBlock;
+      for (const kind of SheetKind.literals) {
+        expect(Result.getOrThrow(briefOver(house, kind))).toContain(
+          'so the beard never runs into the hair',
+        );
+        const bare = Result.getOrThrow(briefOver(house, kind, { hair: false }));
+        expect(bare).not.toContain('The hair and the beard are one brown');
+        expect(bare).not.toContain('the same hair');
+      }
+    }),
+  );
+});
+
 describe('a hand that floats', () => {
   it.effect('stops a brief whose layout or look says a hand floats, naming the clause', () =>
     Effect.gen(function* () {
       const house = yield* houseBlock;
       const refused = (layout: string, look: string) =>
-        Result.match(castSheetBrief({ kind: 'poses', house, references: '', look, layout }), {
-          onSuccess: () => 'drawn',
-          onFailure: (e) => `${e._tag}: ${e.message}`,
-        });
+        Result.match(
+          castSheetBrief({ kind: 'poses', house, references: '', look, layout, ...CANON_MEMBER }),
+          {
+            onSuccess: () => 'drawn',
+            onFailure: (e) => `${e._tag}: ${e.message}`,
+          },
+        );
       expect(
         refused(
           'one, at rest; two, His near hand raised before His chest, floating free; three, bowed.',
@@ -209,15 +346,20 @@ describe('a hand that floats', () => {
           );
           return kinds.flatMap(({ kind, sheet }) =>
             Result.match(
-              castSheetBrief({
-                kind,
-                house,
-                references: '',
-                look,
-                layout: Option.getOrElse(Option.fromUndefinedOr(sheet.layout), () =>
-                  turnaroundLayout(record.who),
-                ),
-              }),
+              Result.flatMap(castKindPlan(record, kind), (plan) =>
+                castSheetBrief({
+                  kind,
+                  house,
+                  references: '',
+                  look,
+                  layout: Option.getOrElse(Option.fromUndefinedOr(sheet.layout), () =>
+                    turnaroundLayout(record.who),
+                  ),
+                  heads: plan.options.heads ?? CANON_HEADS,
+                  figures: plan.options.figures ?? [],
+                  hair: hairShows(record),
+                }),
+              ),
               { onSuccess: () => [], onFailure: (e) => [`${folder} ${kind}: ${e.message}`] },
             ),
           );

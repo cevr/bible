@@ -9,7 +9,11 @@
 // The retry gate: a try the measure flags is drawn once more, each drift
 // named in its prompt in words, and a try flagged on facing or on the canon
 // rides with the underlay (`core/cast-underlay.ts`) as its last reference,
-// since words alone turned 3 of 9 prototype sheets the right way. A retry
+// since words alone turned 3 of 9 prototype sheets the right way. The
+// underlay stands each view's figure at its own size (`statureOf`: the
+// member's heads, and a smaller figure's share of the grown height), so a
+// sheet of a child beside the grown member gets a child in the child's
+// column. A retry
 // that still drifts is recorded with its flags, never dropped: the ask shows
 // it after the clean ones.
 
@@ -33,6 +37,7 @@ import {
   CastSheetJson,
   type CastSheetRecord,
   type CastTry,
+  hairShows,
   nextCastTry,
   withCastTry,
 } from '../core/cast-record.ts';
@@ -44,7 +49,9 @@ import {
   type SheetConcept,
   type SheetOptions,
   sheetLines,
+  grownHeadsOf,
   standingOf,
+  statureOf,
   sheetOverlay,
   sheetTable,
   type Slot,
@@ -54,7 +61,7 @@ import { colourWords, hexOf, opaqueOf } from '../core/cast-sheet-pixels.ts';
 import { mannequinUnderlay } from '../core/cast-underlay.ts';
 import { measureFigure } from '../core/figure.ts';
 import { cropRaster, type Raster } from '../core/raster.ts';
-import { castSheetBrief, turnaroundLayout } from './cast-sheet-brief.ts';
+import { castSheetBrief, headsWords, turnaroundLayout } from './cast-sheet-brief.ts';
 import { ContentStore } from './content-store.ts';
 import { FileInvalid } from './errors.ts';
 import { ImageRoute, PANEL_SIZE } from './image-route.ts';
@@ -140,6 +147,10 @@ interface Drifting {
   readonly views: ReadonlyArray<SheetMeasure['views'][number]>;
   /** A heads sheet: a head is held by its width to its turn's first head, not by its height to the anchor. */
   readonly heads: boolean;
+  /** How many of its own heads the anchor's figure stands. */
+  readonly anchorHeads: number;
+  /** Whether the sheet draws a smaller figure beside the grown member. */
+  readonly smaller: boolean;
 }
 
 /** A share in words, for a prompt beside its number: "about a third of". */
@@ -238,7 +249,7 @@ const driftOf = (check: SheetCheck, views: ReadonlyArray<number>, held: Drifting
     Match.when(
       'squash',
       () =>
-        "Every figure stands about three and a third of its own heads tall, as the underlay's figures do.",
+        `Every ${(held.smaller && 'grown ') || ''}figure stands about ${headsWords(held.anchorHeads)} of its own heads tall, as the underlay's figures do.`,
     ),
     Match.whenOr(
       'height',
@@ -303,13 +314,23 @@ const driftOf = (check: SheetCheck, views: ReadonlyArray<number>, held: Drifting
   );
 };
 
+/** How the underlay sizes its figures, in words: one height in heads, or each at its own size. */
+const underlaySizes = (options: SheetOptions): string =>
+  ((options.figures ?? []).length > 0 &&
+    `each at its figure's size: a grown one about ${headsWords(grownHeadsOf(options))} of its own heads tall, a smaller one shorter with its head a larger share of it`) ||
+  `each about ${headsWords(grownHeadsOf(options))} of its own heads tall`;
+
 /** The references' note: what each image is for, in the order they are sent. */
-const referencesNote = (record: CastSheetRecord, underlay: boolean): string =>
+const referencesNote = (
+  record: CastSheetRecord,
+  options: SheetOptions,
+  underlay: boolean,
+): string =>
   [
     'Image 1 is the house look: take its paper, its line and its light from it; its hands float free beside the body, which no figure on this sheet does.',
     ...record.refs.map((r, k) => `Image ${k + 2} is ${r.why}.`),
     ...((underlay && [
-      `Image ${record.refs.length + 2} is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and each about three and a third of its own heads tall. Take each figure's facing, place and size from it, and nothing else.`,
+      `Image ${record.refs.length + 2} is a layout, never a look: blank figures standing level, each turned the way its figure on this sheet faces and ${underlaySizes(options)}. Take each figure's facing, place and size from it, and nothing else.`,
     ]) ||
       []),
   ].join(' ');
@@ -342,9 +363,12 @@ const requestOf = (ctx: TryContext, drifts: ReadonlyArray<string>, underlay: boo
       castSheetBrief({
         kind: ctx.run.kind,
         house: ctx.run.house,
-        references: referencesNote(ctx.record, underlay),
+        references: referencesNote(ctx.record, ctx.options, underlay),
         look: ctx.look,
         layout: ctx.layout,
+        heads: grownHeadsOf(ctx.options),
+        figures: ctx.options.figures ?? [],
+        hair: hairShows(ctx.record),
       }),
     );
     const prompt = [
@@ -509,6 +533,8 @@ const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>
         anchor: Option.flatMap(measure, (m) => Arr.findFirst(m.views, (v) => v.view === m.anchor)),
         views: Option.match(measure, { onNone: () => [], onSome: (m) => m.views }),
         heads: ctx.run.kind === 'heads',
+        anchorHeads: statureOf(ctx.options, ctx.options.anchor).heads,
+        smaller: (ctx.options.figures ?? []).length > 0,
       };
       const drifts = first.flags.map((f) => driftOf(f.check, f.views, held));
       const underlay = ctx.underlay.shown && first.flags.some((f) => UNDERLAID.has(f.check));
@@ -556,9 +582,10 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
     [];
   const profiles = (run.kind === 'turnaround' && [3, 5]) || [];
   // Drawn afresh by each retry that sends it (the slots may have changed since the last run), whole: a lane never reads half of one.
-  const drawn = Effect.sync(() => encodePng(mannequinUnderlay({ slots, profiles, shown }))).pipe(
-    Effect.flatMap((bytes) => store.writeFile(file, bytes)),
-  );
+  const statures = slots.map((_, k) => statureOf(plan.options, k + 1));
+  const drawn = Effect.sync(() =>
+    encodePng(mannequinUnderlay({ slots, profiles, shown, statures })),
+  ).pipe(Effect.flatMap((bytes) => store.writeFile(file, bytes)));
   const options: SheetOptions = { ...plan.options, concepts: yield* conceptsOf(place, plan) };
   const ctx: TryContext = {
     place,

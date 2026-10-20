@@ -28,7 +28,7 @@ type Rgb = readonly [number, number, number];
 
 /** The house ink: dark and warm. */
 const INK: Rgb = [58, 38, 28];
-const PAPER: Rgb = [238, 230, 214];
+export const PAPER: Rgb = [238, 230, 214];
 const SKIN: Rgb = [226, 178, 146];
 const HAIR: Rgb = [170, 112, 64];
 /** Dark hair, lighter than the ink and greyer, and the grain's warm specks in it that read as ink one by one. */

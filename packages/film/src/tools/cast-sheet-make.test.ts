@@ -6,7 +6,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Exit, FileSystem, Layer, Path, Schema } from 'effect';
+import { ConfigProvider, Effect, Exit, FileSystem, Layer, Path, Result, Schema } from 'effect';
 import { CastSheetJson, type CastSheetRecord } from '../core/cast-record.ts';
 import { Segment } from '../core/segment.ts';
 import {
@@ -19,7 +19,7 @@ import {
 import { castLine, makeCastSheet } from './cast-sheet-make.ts';
 import { ContentStore } from './content-store.ts';
 import { ImageRoute } from './image-route.ts';
-import { encodePng } from './png.ts';
+import { decodePng, encodePng } from './png.ts';
 import { memoryFileSystem, memoryLocks, text } from './testing.ts';
 
 /** One image asked of the route. */
@@ -113,6 +113,33 @@ const ran = (
 
 const underlaid = (r: ImageRequest) => r.refs.includes(`${OUT}/underlay-poses.png`);
 
+/** A record of a member of its own design, no hair showing, its second figure a child. */
+const childBeside: CastSheetRecord = {
+  ...record,
+  hair: 'none',
+  heads: 2.6,
+  sheets: {
+    poses: {
+      ...record.sheets.poses!,
+      figures: [{ view: 2, height: 0.5, heads: 2 }],
+    },
+  },
+};
+
+/** Each column's mannequin height in pixels on a two-view underlay: from its first inked row to its last. */
+const standing = (png: Uint8Array) => {
+  const picture = Result.getOrThrow(decodePng(png));
+  const inked = (x: number, y: number) => picture.rgba[(y * picture.width + x) * 4] !== 243;
+  const half = Math.floor(picture.width / 2);
+  return [0, 1].map((k) => {
+    const xs = Array.from({ length: half }, (_, i) => k * half + i);
+    const rows = Array.from({ length: picture.height }, (_, y) => y).filter((y) =>
+      xs.some((x) => inked(x, y)),
+    );
+    return (rows.at(-1) ?? 0) - (rows[0] ?? 0);
+  });
+};
+
 describe('a try drawn the wrong way', () => {
   it.effect(
     'is drawn once more with its drift named and the underlay, and the retry lands clean',
@@ -153,6 +180,16 @@ describe('a try drawn the wrong way', () => {
           files.has(`${OUT}/poses-2.overlay.png`) && files.has(`${OUT}/poses-2.preview.png`),
         ).toBe(true);
         expect(castLine(lines[0]!)).toStartWith('made christ.poses try=1 flags=1 underlay=false');
+        // A member of the canon: briefed at its heads with its hair, its underlay's figures of one height.
+        expect(calls[0]?.prompt).toContain(
+          'a standing figure stands about three and a third heads tall',
+        );
+        expect(calls[0]?.prompt).toContain('The hair and the beard');
+        const [left, right] = standing(files.get(`${OUT}/underlay-poses.png`) ?? new Uint8Array());
+        expect(left).toBe(right);
+        // Its record written as the formatter leaves it: a short array on one line.
+        const written = new TextDecoder().decode(files.get(`${FOLDER}/cast-sheet.json`));
+        expect(written).toContain('\n      "slots": ["front", "left"],\n');
       }).pipe(Effect.provide(castOver(files, calls, (r) => (underlaid(r) && clean) || wrong)));
     },
   );
@@ -171,6 +208,32 @@ describe('a try drawn the wrong way', () => {
         ]);
         expect(calls).toHaveLength(2);
       }).pipe(Effect.provide(castOver(files, calls, () => wrong)));
+    },
+  );
+});
+
+describe('a member of its own sizes', () => {
+  it.effect(
+    'is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph',
+    () => {
+      const files = new Map<string, Uint8Array>();
+      const calls: Array<ImageRequest> = [];
+      return Effect.gen(function* () {
+        yield* ran(files, []);
+        expect(calls[0]?.prompt).toContain(
+          'a standing grown figure stands about two and two thirds heads tall',
+        );
+        expect(calls[0]?.prompt).toContain(
+          "Figure 2 is the same figure smaller: half of a grown figure's height and about two of its own heads tall",
+        );
+        expect(calls[0]?.prompt).not.toContain('The hair and the beard');
+        const [grown, child] = standing(files.get(`${OUT}/underlay-poses.png`) ?? new Uint8Array());
+        expect((child ?? 0) / (grown ?? 1)).toBeCloseTo(0.5, 1);
+      }).pipe(
+        Effect.provide(
+          castOver(files, calls, (r) => (underlaid(r) && clean) || wrong, childBeside),
+        ),
+      );
     },
   );
 });

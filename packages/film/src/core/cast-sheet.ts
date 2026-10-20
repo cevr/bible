@@ -10,10 +10,13 @@
 //   reads no face, is held to the three-quarter on its side the same way; a
 //   turnaround head tipped past 5° is a redraw.
 // - The canon: the anchor view's height in heads, and the squash a trace to
-//   the cast's canon (3.36 heads) would apply with the head held. A sheet
-//   never sets a height; the cast band does.
+//   the member's own heads would apply with the head held: the cast's canon
+//   (3.36 heads) unless the member's design names its own (the plain lead's
+//   2.6), and a smaller figure its own (a child's head is a larger share of
+//   it). A sheet never sets a height; the cast band does.
 // - Held to the anchor (the view that passes the concept's match): height
-//   on standing views, the head, the hand, the hair's fall under the chin on
+//   on standing views and the head, each a smaller figure's by its share of
+//   the grown one, the hand, the hair's fall under the chin on
 //   level heads, the papers; the partners' body widths, the hands cut out;
 //   one ground line. A heads sheet holds the head's height on its level
 //   heads and its width within each turn, and reads no hands.
@@ -95,6 +98,37 @@ export type SheetKind = typeof SheetKind.Type;
 /** The cast's canon: Christ's 3.36 heads, the owner's one height for the whole cast (character-design, the height band). */
 export const CANON_HEADS = 3.36;
 
+/**
+ * A smaller figure a sheet draws beside the grown member (a child, a baby):
+ * its view, its height as a share of the grown figure's (the cast band's
+ * child is about 0.64 to 0.7), and its height in its own heads.
+ */
+export interface ViewFigure {
+  readonly view: number;
+  readonly height: number;
+  readonly heads: number;
+}
+
+/** How tall a view's figure stands: its share of the grown member's height, and its height in its own heads. */
+export interface Stature {
+  readonly height: number;
+  readonly heads: number;
+}
+
+/** How many of its own heads the grown member stands: its own, else the canon's. */
+export const grownHeadsOf = (options: Pick<SheetOptions, 'heads'>): number =>
+  options.heads ?? CANON_HEADS;
+
+/** The figure in `view` as the options stand it: a smaller figure's own, else the grown member's. */
+export const statureOf = (
+  options: Pick<SheetOptions, 'heads' | 'figures'>,
+  view: number,
+): Stature =>
+  Option.getOrElse(
+    Arr.findFirst(options.figures ?? [], (f) => f.view === view),
+    () => ({ height: 1, heads: grownHeadsOf(options) }),
+  );
+
 /** How a sheet is read: its kind, how many figures it draws, the anchor view (1-based), each view's slot, the views that stand, and whether the member wears headgear. */
 export interface SheetOptions {
   readonly kind: SheetKind;
@@ -107,6 +141,10 @@ export interface SheetOptions {
   readonly level?: ReadonlyArray<number>;
   /** A headcloth or a veil: the head is read as its face opening, and the canon is not measured. */
   readonly headgear?: boolean;
+  /** How many of its own heads the grown member stands: the canon's (`CANON_HEADS`) when left out. */
+  readonly heads?: number;
+  /** The smaller figures the sheet draws beside the grown member, each its own size. */
+  readonly figures?: ReadonlyArray<ViewFigure>;
   /** Kept concepts, each held to the sheet's view that faces as it does. */
   readonly concepts?: ReadonlyArray<SheetConcept>;
 }
@@ -280,9 +318,10 @@ export const SheetMeasure = Schema.Struct({
   views: Schema.Array(SheetView),
   pairs: Schema.Array(SheetPair),
   sides: Schema.Array(SheetSide),
-  /** The anchor's height in heads and the squash to the canon (percent; negative, a stretch). */
+  /** The anchor's height in heads, the heads it is held to, and the squash to them (percent; negative, a stretch). */
   canon: Schema.Struct({
     heads: Schema.optionalKey(Schema.Finite),
+    against: Schema.optionalKey(Schema.Finite),
     squash: Schema.optionalKey(Schema.Finite),
   }),
   flags: Schema.Array(SheetFlag),
@@ -1289,23 +1328,22 @@ const headless = (v: SheetView): SheetView => {
   return rest;
 };
 
-/** The anchor's height in heads, and the squash a trace to the canon applies with the head held. */
-const canonOf = (
-  anchor: SheetView,
-  headgear: boolean,
-): { readonly heads?: number; readonly squash?: number } =>
-  Option.match(
-    Option.filter(Option.fromUndefinedOr(anchor.headsTall), () => !headgear),
-    {
-      onNone: () => ({}),
-      onSome: (heads) => ({ heads, squash: 100 * (1 - (CANON_HEADS - 1) / (heads - 1)) }),
-    },
-  );
+/** What the canon reads: the anchor's height in heads, the heads its figure stands, and the squash between. */
+interface Canon {
+  readonly heads?: number;
+  readonly against?: number;
+  readonly squash?: number;
+}
 
-const squashFlags = (
-  canon: { readonly squash?: number },
-  anchor: number,
-): ReadonlyArray<SheetFlag> =>
+/** The heads the anchor's figure stands (`against`), and where its head reads, its height in heads and the squash a trace to `against` applies with the head held; under headgear, nothing (the canon is read on the lock). */
+const canonOf = (anchor: SheetView, headgear: boolean, against: number): Canon =>
+  (headgear && {}) ||
+  Option.match(Option.fromUndefinedOr(anchor.headsTall), {
+    onNone: () => ({ against }),
+    onSome: (heads) => ({ heads, against, squash: 100 * (1 - (against - 1) / (heads - 1)) }),
+  });
+
+const squashFlags = (canon: Canon, anchor: number): ReadonlyArray<SheetFlag> =>
   Option.match(
     Option.filter(Option.fromUndefinedOr(canon.squash), (squash) => Math.abs(squash) > SQUASH_MAX),
     {
@@ -1318,7 +1356,7 @@ const squashFlags = (
             [anchor],
             squash,
             SQUASH_MAX,
-            `a trace to the canon (${CANON_HEADS} heads) would ${what} the body ${Math.abs(squash).toFixed(0)} %: a redraw`,
+            `a trace to its ${canon.against ?? CANON_HEADS} heads would ${what} the body ${Math.abs(squash).toFixed(0)} %: a redraw`,
           ),
         ];
       },
@@ -1406,7 +1444,9 @@ const headsFlags = (
 /**
  * Each view held to the anchor: the height on standing views, the head (on
  * a heads sheet, as `headsFlags` holds it), the hand, the hair's fall on
- * level heads, and the soles.
+ * level heads, and the soles. A smaller figure's height and head are read
+ * as the grown figure's would be: its height over its share, its head over
+ * its share of the grown head (its height share over its heads).
  */
 const anchorFlags = (
   views: ReadonlyArray<SheetView>,
@@ -1415,6 +1455,7 @@ const anchorFlags = (
     readonly standing: ReadonlyArray<number>;
     readonly level: ReadonlyArray<number>;
     readonly heads: boolean;
+    readonly stature: (view: number) => Stature;
   },
 ): ReadonlyArray<SheetFlag> => [
   ...heldTo(
@@ -1423,13 +1464,22 @@ const anchorFlags = (
     'height',
     (v) =>
       Option.liftPredicate(
-        v.height,
+        v.height / held.stature(v.view).height,
         () => held.standing.includes(v.view) && held.standing.includes(anchor.view),
       ),
     percentOff('the height'),
   ),
   ...((held.heads && headsFlags(views, anchor, held.level)) ||
-    heldTo(views, anchor, 'head', (v) => Option.fromUndefinedOr(v.head), percentOff('the head'))),
+    heldTo(
+      views,
+      anchor,
+      'head',
+      (v) => {
+        const { height, heads } = held.stature(v.view);
+        return Option.map(Option.fromUndefinedOr(v.head), (head) => (head * heads) / height);
+      },
+      percentOff('the head'),
+    )),
   ...heldTo(views, anchor, 'hand', (v) => Option.fromUndefinedOr(v.hand), percentOff('the hand')),
   ...heldTo(
     views,
@@ -1765,7 +1815,8 @@ const checked = (
         })) ||
       [],
   );
-  const canon = (heads && {}) || canonOf(held, headgear);
+  const stature = (view: number) => statureOf(options, view);
+  const canon = (heads && {}) || canonOf(held, headgear, stature(anchor.view).heads);
   const standing = standingOf(options, views);
   const pairs = pairsOf(reads, options.kind);
   const sides = sidesOf(reads, options.kind);
@@ -1812,7 +1863,7 @@ const checked = (
       ...pairFlags(pairs),
       ...sideFlags(sides),
       ...squashFlags(canon, anchor.view),
-      ...anchorFlags(viewsHeld, held, { standing, level, heads }).filter(
+      ...anchorFlags(viewsHeld, held, { standing, level, heads, stature }).filter(
         (f) => bodies || (f.check !== 'ground' && f.check !== 'height'),
       ),
       ...((bodies && paperFlags(views, anchor)) || []),
@@ -1851,7 +1902,7 @@ export const sheetTable = (name: string, m: SheetMeasure): string => {
   const canon = Option.match(some(m.canon.heads), {
     onNone: () => `Canon: not measured (view ${m.anchor} is the anchor).`,
     onSome: (heads) =>
-      `Canon: the anchor (view ${m.anchor}) stands ${heads.toFixed(2)} heads against ${CANON_HEADS}; a trace with the head held scales the body by ${(100 - (m.canon.squash ?? 0)).toFixed(0)} %.`,
+      `Canon: the anchor (view ${m.anchor}) stands ${heads.toFixed(2)} heads against ${m.canon.against ?? CANON_HEADS}; a trace with the head held scales the body by ${(100 - (m.canon.squash ?? 0)).toFixed(0)} %.`,
   });
   return [
     `### ${name}`,
@@ -1913,7 +1964,7 @@ const MAGENTA = [232, 0, 140] as const;
 const BLUE = [0, 150, 200] as const;
 const GREEN = [0, 170, 90] as const;
 
-/** The sheet with each view's box (blue), the anchor's top and sole across it (magenta), and where the canon puts the top of a figure with the anchor's head (green). */
+/** The sheet with each view's box (blue), the anchor's top and sole across it (magenta), and where its own heads put the top of a figure with the anchor's head (green). */
 export const sheetOverlay = (sheet: Raster, m: SheetMeasure): Raster => {
   const across = (y: number): RasterPath => ({
     points: [
@@ -1940,7 +1991,10 @@ export const sheetOverlay = (sheet: Raster, m: SheetMeasure): Raster => {
     onSome: (a) => strokeRaster(sheet, [across(a.box[1]), across(a.box[3])], MAGENTA, 2),
   });
   const band = Option.flatMap(anchor, (a) =>
-    Option.map(Option.fromUndefinedOr(a.head), (head) => a.box[3] - CANON_HEADS * head),
+    Option.map(
+      Option.fromUndefinedOr(a.head),
+      (head) => a.box[3] - (m.canon.against ?? CANON_HEADS) * head,
+    ),
   );
   const banded = Option.match(band, {
     onNone: () => lined,

@@ -702,6 +702,36 @@ The form of an entry, each field on its own line:
 - **Cause:** Not recorded.
 - **Guard:** skill: the cast library is designed, not built (p6-stylepit (g)). Carried by `.claude/skills/film/reference/character-design.md`: "**Drawn once, kept for every film.**"
 
+### cast-brief-heads-from-band
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the cast-sheet brief asks every member for 3⅓ heads"
+- **Source:** p6-casttools/findings.md F1
+- **Wrong:** The cast-sheet brief asked every member for about three and a third heads, and the measure squashed every anchor toward 3.36, so the plain figures (2.6 heads) and a child on a pose sheet were asked and held to the adult canon.
+- **Cause:** The brief and the measure read one constant, `CANON_HEADS`, and the record had no field for a member's own heads.
+- **Guard:** code: `packages/film/src/tools/cast-sheet-brief.test.ts` `stands a canon member at the canon, and a member of its own design at its own`, `packages/film/src/core/cast-sheet-poses.test.ts` `is held to its own heads, never the canon`
+
+### cast-brief-hair-only-when-shown
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the brief adds the hair paragraph to every member"
+- **Source:** p6-casttools/findings.md F2
+- **Wrong:** Every cast-sheet brief carried the hair-and-beard rule, so Jeremiah and the sower under their headcloths and the plain figures with no hair were asked for hair they do not show.
+- **Cause:** The rule was one sentence of the sheet rules, and the record said nothing of the hair.
+- **Guard:** code: `packages/film/src/tools/cast-sheet-brief.test.ts` `is spoken of only on a member whose hair shows`
+
+### cast-underlay-own-heights
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "the underlay stands every mannequin at one height"
+- **Source:** p6-casttools/findings.md F3
+- **Wrong:** The retry's underlay stood every standing mannequin at the canon's height, so the IDEA child was redrawn on an underlay that asks it to stand as tall as the grown figure.
+- **Cause:** `mannequinUnderlay` took one height for every view, and the record named no smaller figure.
+- **Guard:** code: `packages/film/src/core/cast-underlay.test.ts` `stands a smaller figure its share of the grown one's height, its head a larger share of it`, `packages/film/src/tools/cast-sheet-make.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
+
 ## Gate and review
 
 ### gate-not-ci

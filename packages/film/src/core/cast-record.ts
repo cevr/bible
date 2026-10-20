@@ -5,12 +5,26 @@
 // the anchor view and, for poses and heads, the layout and each view's slot;
 // the look paragraph is `look.md` beside it. `film concept cast` adds each
 // try as it lands: its file, the prompt and references it was drawn from,
-// whether the underlay rode along, and what the measure flagged. There is no
-// height anywhere in it: a sheet never sets a member's height (the cast
-// band does). Pure.
+// whether the underlay rode along, and what the measure flagged. It holds no
+// height: a sheet never sets a member's height (the cast band does). It
+// holds the member's proportion, how many of its own heads the grown member
+// stands (the cast's canon, 3.36, unless its design names its own: the plain
+// lead's 2.6), and, on a sheet that draws a smaller figure beside the grown
+// one (a child, a baby), that figure's share of the grown height as the
+// band gives it and its own heads; the brief, the underlay and the measure
+// read each figure's size from there. It says too whether the member's hair
+// shows, so a brief speaks of the hair only on a member whose hair is seen.
+// Pure.
 
 import { Array as Arr, Option, Predicate, Result, Schema } from 'effect';
-import { SheetCheck, SheetKind, type SheetOptions, Slot, TURNAROUND_SLOTS } from './cast-sheet.ts';
+import {
+  SheetCheck,
+  SheetKind,
+  type SheetOptions,
+  Slot,
+  TURNAROUND_SLOTS,
+  type ViewFigure,
+} from './cast-sheet.ts';
 import { PixelBox } from './figure.ts';
 import { repoJson } from './schema.ts';
 import { Segment } from './segment.ts';
@@ -52,6 +66,16 @@ const CastConcept = Schema.Struct({
 });
 type CastConcept = typeof CastConcept.Type;
 
+/** A figure's height in its own heads: more than one head, and no taller than a standing figure is drawn. */
+const Heads = Schema.Finite.check(Schema.isBetween({ minimum: 1.5, maximum: 8 }));
+
+/** A smaller figure a sheet draws (a child, a baby): its view, its share of the grown member's height, its own heads. */
+const CastFigure = Schema.Struct({
+  view: Schema.Int,
+  height: Schema.Finite.check(Schema.isBetween({ minimum: 0.2, maximum: 1 })),
+  heads: Heads,
+});
+
 /** One kind of sheet of the member: its anchor view, and for poses and heads the layout and the slots. */
 const CastSheetOf = Schema.Struct({
   /** The view the rest are held to, 1-based: the one that faces as the kept concept does. */
@@ -65,6 +89,8 @@ const CastSheetOf = Schema.Struct({
   level: Schema.optionalKey(Schema.Array(Schema.Int)),
   /** The kept concepts the views are critiqued against: a reference's file, the member's box in it, and the views that face as it does. */
   concepts: Schema.optionalKey(Schema.Array(CastConcept)),
+  /** The smaller figures the sheet draws beside the grown member, each its own size; every other view is the grown member. */
+  figures: Schema.optionalKey(Schema.Array(CastFigure)),
   tries: Schema.Array(CastTry),
 });
 type CastSheetOf = typeof CastSheetOf.Type;
@@ -98,6 +124,10 @@ export const CastSheetRecord = Schema.Struct({
   who: Schema.String,
   /** A headcloth or a veil: the head is read as its face opening. */
   headgear: Schema.optionalKey(Schema.Boolean),
+  /** Whether the member's hair shows: `covered` under a headcloth, `none` on a figure drawn with no hair; shown when left out. */
+  hair: Schema.optionalKey(Schema.Literals(['shown', 'covered', 'none'])),
+  /** How many of its own heads the grown member stands: the cast's canon (3.36) when left out. */
+  heads: Schema.optionalKey(Heads),
   refs: Schema.Array(CastRef),
   sheets: Schema.Struct({
     turnaround: Schema.optionalKey(CastSheetOf),
@@ -144,7 +174,7 @@ export const castKindPlan = (
   const unset = (reason: string) => CastKindUnset.make({ member: record.member, kind, reason });
   const sheet: Option.Option<CastSheetOf> = Option.fromUndefinedOr(record.sheets[kind]);
   if (Option.isNone(sheet)) return Result.fail(unset('the record has no entry for it'));
-  const { anchor, layout, slots, standing, level, concepts = [] } = sheet.value;
+  const { anchor, layout, slots, standing, level, concepts = [], figures = [] } = sheet.value;
   const turnaround = kind === 'turnaround';
   const viewSlots = Option.getOrElse(
     Option.fromUndefinedOr(slots),
@@ -159,6 +189,22 @@ export const castKindPlan = (
     return Result.fail(
       unset(`a concept names view ${offSheet.join(', ')}, not one of its ${viewSlots.length}`),
     );
+  if (figures.length > 0 && kind !== 'poses')
+    return Result.fail(
+      unset(
+        'only a pose sheet draws a smaller figure: a turnaround and a heads sheet draw one size',
+      ),
+    );
+  const figureViews = figures.map((f) => f.view);
+  const offFigures = figureViews.filter(
+    (v, k) => v < 1 || v > viewSlots.length || figureViews.indexOf(v) !== k,
+  );
+  if (offFigures.length > 0)
+    return Result.fail(
+      unset(
+        `a figure names view ${offFigures.join(', ')}, not one of its ${viewSlots.length} or named twice`,
+      ),
+    );
   return Result.succeed({
     layout: Option.fromUndefinedOr(layout),
     concepts,
@@ -170,9 +216,14 @@ export const castKindPlan = (
       ...((Predicate.isNotUndefined(standing) && { standing }) || {}),
       ...((Predicate.isNotUndefined(level) && { level }) || {}),
       headgear: record.headgear === true,
+      ...((Predicate.isNotUndefined(record.heads) && { heads: record.heads }) || {}),
+      ...((figures.length > 0 && { figures: figures satisfies ReadonlyArray<ViewFigure> }) || {}),
     },
   });
 };
+
+/** Whether the member's hair shows: a brief speaks of the hair and its parting from the beard only then. */
+export const hairShows = (record: CastSheetRecord): boolean => (record.hair ?? 'shown') === 'shown';
 
 /** The number the kind's next try takes. */
 export const nextCastTry = (record: CastSheetRecord, kind: SheetKind): number =>

@@ -10,10 +10,14 @@
 // painting a scene. A layout or a look whose clause says a hand floats is
 // `HandFloats`: the brief's own rule puts every hand at the end of an arm in
 // its sleeve, and a prompt that asks both ways spends a try on a hand
-// `sleeveReach` then flags.
+// `sleeveReach` then flags. How tall a figure stands, in its own heads, is
+// the member's (`statureOf`: the cast's canon unless its record names its
+// own), and a smaller figure a pose sheet draws (a child) is said with its
+// share of the grown height; the hair's paragraph is said only of a member
+// whose hair shows.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
-import type { SheetKind } from '../core/cast-sheet.ts';
+import type { SheetKind, ViewFigure } from '../core/cast-sheet.ts';
 
 /** The house block no longer says a phrase the sheet's swaps replace. */
 class HouseBlockMoved extends Schema.TaggedError<HouseBlockMoved>()('HouseBlockMoved', {
@@ -88,6 +92,52 @@ const sheetHouseBlock = (house: string): Result.Result<string, HouseBlockMoved> 
     Result.succeed(house.trim()),
   );
 
+/** The whole numbers a figure's height is said in. */
+const WHOLE = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+
+/** The fractions a share or a height is said in, nearest first. */
+const FRACTIONS: ReadonlyArray<readonly [number, string]> = [
+  [0, ''],
+  [1 / 4, 'a quarter'],
+  [1 / 3, 'a third'],
+  [1 / 2, 'a half'],
+  [2 / 3, 'two thirds'],
+  [3 / 4, 'three quarters'],
+  [1, ''],
+];
+
+/** The fraction nearest `x` (0 to 1), as its value and its words. */
+const nearestFraction = (x: number): readonly [number, string] =>
+  FRACTIONS.reduce((best, f) => (Math.abs(f[0] - x) < Math.abs(best[0] - x) && f) || best);
+
+/** A figure's height in heads in words, to the nearest quarter or third: 3.36 is "three and a third", 2.6 "two and two thirds". */
+export const headsWords = (heads: number): string => {
+  const [part, words] = nearestFraction(heads - Math.floor(heads));
+  const n = Math.floor(heads) + Number(part === 1);
+  const whole = WHOLE[n] ?? `${n}`;
+  return (words === '' && whole) || `${whole} and ${words}`;
+};
+
+/** A share of the grown figure's height in words: 0.67 is "two thirds of", 0.5 "half of". */
+const shareWords = (share: number): string => {
+  const [part, words] = nearestFraction(share);
+  return (part === 1 && 'nearly') || (words === 'a half' && 'half of') || `${words} of`;
+};
+
+/** The views of `figures` that share one size, in words: "Figures 1 and 2", "Figure 5". */
+const figuresNamed = (views: ReadonlyArray<number>): string =>
+  `${(views.length > 1 && 'Figures') || 'Figure'} ${[views.slice(0, -1).join(', '), ...views.slice(-1)].filter((x) => x !== '').join(' and ')}`;
+
+/** The sizes a pose sheet's smaller figures stand at, one sentence a size. */
+const smallerFigures = (figures: ReadonlyArray<ViewFigure>): ReadonlyArray<string> => {
+  const sizeOf = (f: ViewFigure) => `${f.height}:${f.heads}`;
+  const firsts = figures.filter((f, k) => figures.findIndex((g) => sizeOf(g) === sizeOf(f)) === k);
+  return firsts.map(({ height, heads }) => {
+    const same = figures.filter((f) => sizeOf(f) === `${height}:${heads}`);
+    return `${figuresNamed(same.map((f) => f.view))} ${(same.length > 1 && 'are') || 'is'} the same figure smaller: ${shareWords(height)} a grown figure's height and about ${headsWords(heads)} of its own heads tall, its head a larger share of it.`;
+  });
+};
+
 // What a sheet says, by its kind. The arm in its sleeve is the owner's
 // (2026-10-18, the look's v5: "I actually like the style when they have
 // sleeves and like arms, kind of like we have with Jesus and a lot of the
@@ -121,43 +171,59 @@ const HANDS =
 const NO_LETTERING =
   'No lettering anywhere: no labels, no names, no numbers, no arrows, no text, no grid, no boxes or frames round the figures.';
 
+/** How the member is drawn across its sheet: its grown height in its own heads, the smaller figures a pose sheet draws, and whether its hair shows. */
+interface SheetFigures {
+  readonly heads: number;
+  readonly figures: ReadonlyArray<ViewFigure>;
+  readonly hair: boolean;
+}
+
 /** Each kind's rules, in the order the brief says them. */
-const SHEET_RULES: Record<SheetKind, ReadonlyArray<string>> = {
-  turnaround: [
-    `${PAPER_GROUND}, one thin flat ground line in a slightly deeper cream under every figure, and a small soft violet contact shadow under each one.`,
-    'Every figure on the sheet is the same person at the same size: the same height, the same head size, the same garment length and the same hand size, their soles on the one ground line. The person stands about three and a third heads tall.',
-    OUTLINE,
-    HAIR_BEARD,
-    LIGHT,
-    HANDS,
-    NO_LETTERING,
-  ],
-  poses: [
-    `${PAPER_GROUND}, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one.`,
-    'Every figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing figure stands about three and a third heads tall.',
-    OUTLINE,
-    HAIR_BEARD,
-    LIGHT,
-    HANDS,
-    'A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride.',
-    NO_LETTERING,
-  ],
-  heads: [
-    `${PAPER_GROUND}, and nothing under the heads.`,
-    'Every head on the sheet is the same person at the same size: the same head size and the same hair, each head with the top of its shoulders only. No hands, no arms and no skin show below the neck.',
-    OUTLINE,
-    HAIR_BEARD,
-    LIGHT,
-    NO_LETTERING,
-  ],
+const sheetRules = (
+  kind: SheetKind,
+  { heads, figures, hair }: SheetFigures,
+): ReadonlyArray<string> => {
+  const hairBeard = (hair && [HAIR_BEARD]) || [];
+  const tall = headsWords(heads);
+  const smaller = figures.length > 0;
+  return {
+    turnaround: [
+      `${PAPER_GROUND}, one thin flat ground line in a slightly deeper cream under every figure, and a small soft violet contact shadow under each one.`,
+      `Every figure on the sheet is the same person at the same size: the same height, the same head size, the same garment length and the same hand size, their soles on the one ground line. The person stands about ${tall} heads tall.`,
+      OUTLINE,
+      ...hairBeard,
+      LIGHT,
+      HANDS,
+      NO_LETTERING,
+    ],
+    poses: [
+      `${PAPER_GROUND}, one thin flat ground line in a slightly deeper cream under the figures that stand, and a small soft violet contact shadow under each one.`,
+      `Every ${(smaller && 'grown ') || ''}figure on the sheet is the same person: the same head size, the same garment and the same hand size; each pose takes the height its pose gives it, and a standing ${(smaller && 'grown ') || ''}figure stands about ${tall} heads tall.`,
+      ...smallerFigures(figures),
+      OUTLINE,
+      ...hairBeard,
+      LIGHT,
+      HANDS,
+      'A walking figure glides: both soles flat on the ground line, the feet close together, the body leaning a little into the travel, the hem swung back, never a stride.',
+      NO_LETTERING,
+    ],
+    heads: [
+      `${PAPER_GROUND}, and nothing under the heads.`,
+      `Every head on the sheet is the same person at the same size: the same head size${(hair && ' and the same hair') || ''}, each head with the top of its shoulders only. No hands, no arms and no skin show below the neck.`,
+      OUTLINE,
+      ...hairBeard,
+      LIGHT,
+      NO_LETTERING,
+    ],
+  }[kind];
 };
 
 /** A turnaround's layout: six views in one row, as `TURNAROUND_SLOTS` reads them, `who` the member's pronoun ("Him", "her"). */
 export const turnaroundLayout = (who: string): string =>
   `Draw ${who} six times in one row, evenly spaced across the sheet, standing at rest with both arms hanging in their sleeves at the sides, each hand at its sleeve's end, left to right: one, facing the viewer straight on; two, turned three-quarters toward the viewer's left; three, in full profile facing the viewer's left; four, seen from directly behind; five, in full profile facing the viewer's right; six, turned three-quarters toward the viewer's right. In profile one eye shows; from behind no face shows, only the back of the hair or headcloth and the garment's back.`;
 
-/** What a sheet's brief is made of: its kind, the house block as the app keeps it, and the member's own paragraphs. */
-interface SheetBrief {
+/** What a sheet's brief is made of: its kind, the house block as the app keeps it, the member's own paragraphs, and how its figures are drawn. */
+interface SheetBrief extends SheetFigures {
   readonly kind: SheetKind;
   readonly house: string;
   /** What each reference image is for, in their order. */
@@ -179,7 +245,7 @@ export const castSheetBrief = (
         brief.references.trim(),
         brief.look.trim(),
         brief.layout.trim(),
-        SHEET_RULES[brief.kind].join(' '),
+        sheetRules(brief.kind, brief).join(' '),
       ].join('\n\n'),
     ),
   );

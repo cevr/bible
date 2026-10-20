@@ -1,7 +1,10 @@
 // A cast sheet's underlay: a layout picture the engine draws, never painted,
 // sent as a sheet try's last reference when a try faced the wrong way or
-// was drawn off the canon. Blank house mannequins standing level, each
-// the cast's canon of its own heads tall (3.36), each turned to its view's
+// was drawn off the canon. Blank house mannequins standing level, each at
+// its view's figure's size (`Stature`): the grown member its own heads tall
+// (the cast's canon, 3.36, unless its design names its own), and a smaller
+// figure (a child beside the grown one) its share of the grown height and
+// its own heads, its head a larger share of it; each turned to its view's
 // slot by where its eyes, nose and feet point, each arm hanging in its
 // sleeve down the body's side with its hand a circle at the sleeve's end,
 // touching the body (the house hand, CRAFT rule 12): the route copies what
@@ -14,7 +17,7 @@
 // every figure (3 of 3 tries) and drew one with none 2 of 3 times, facing
 // held both ways (2026-10-18). Pure: slots in, RGBA out.
 
-import { CANON_HEADS, type Slot } from './cast-sheet.ts';
+import { CANON_HEADS, type Slot, type Stature } from './cast-sheet.ts';
 import type { Raster } from './raster.ts';
 
 type Rgb = readonly [number, number, number];
@@ -50,9 +53,10 @@ const turnOf = (slot: Slot, profile: boolean): number =>
 const inEllipse = (x: number, y: number, cx: number, cy: number, rx: number, ry: number) =>
   ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
 
-/** A mannequin's frame: its head's size and the rows its head, chin and hem sit on. */
+/** A mannequin's frame: its head's size, its height in heads, and the rows its head, chin and hem sit on. */
 interface Frame {
   readonly h: number;
+  readonly heads: number;
   readonly hw: number;
   readonly hcy: number;
   readonly chin: number;
@@ -63,11 +67,12 @@ interface Frame {
   readonly hemHalf: number;
 }
 
-const frameOf = (p: Pose, ground: number, h: number): Frame => {
-  const top = ground - CANON_HEADS * h;
+const frameOf = (p: Pose, ground: number, h: number, heads: number): Frame => {
+  const top = ground - heads * h;
   const t = Math.abs(p.turn);
   return {
     h,
+    heads,
     hw: 0.84 * h,
     hcy: top + h / 2,
     chin: top + h * 0.96,
@@ -150,10 +155,10 @@ const inside = (p: Pose, f: Frame, x: number, y: number, handShare: number) =>
   (inHead(p, f, x, y) || inBody(p, f, x, y) || inArms(p, f, x, y, handShare) || inFeet(p, f, x, y));
 
 /** Whether (x, y) is one of a mannequin's eyes: two from the front, one in profile, none from behind. */
-const eyeAt = (p: Pose, x: number, y: number, ground: number, h: number) => {
+const eyeAt = (p: Pose, f: Frame, x: number, y: number) => {
   if (p.back) return false;
-  const hw = 0.84 * h;
-  const ey = ground - CANON_HEADS * h + h * 0.52;
+  const { h, hw } = f;
+  const ey = f.ground - f.heads * h + h * 0.52;
   const r = 0.045 * h;
   const s = Math.sign(p.turn);
   const centres =
@@ -178,28 +183,38 @@ const edgeAt = (mask: Uint8Array, W: number, H: number, x: number, y: number) =>
   return false;
 };
 
-/** A sheet's views as its underlay draws them: each view's slot, left to right; the views turned to full profile (a turnaround's third and fifth); the views it draws (those that stand). */
+/** A sheet's views as its underlay draws them: each view's slot, left to right; the views turned to full profile (a turnaround's third and fifth); the views it draws (those that stand); each view's figure's size, the canon's grown figure when left out. */
 interface UnderlayViews {
   readonly slots: ReadonlyArray<Slot>;
   readonly profiles: ReadonlyArray<number>;
   readonly shown: ReadonlyArray<number>;
+  readonly statures?: ReadonlyArray<Stature>;
 }
+
+/** The figure a view stands when the sheet names none: the canon's grown figure. */
+const CANON_STATURE: Stature = { height: 1, heads: CANON_HEADS };
 
 /**
  * The underlay of a sheet whose views face `slots`, left to right: one
- * mannequin per view shown, evenly spaced, their soles on one row; a view not
- * shown leaves its column empty. Views named in `profiles` turn to full
- * profile, the rest of a side's to three-quarter.
+ * mannequin per view shown, evenly spaced, their soles on one row, each at
+ * its stature's height and heads; a view not shown leaves its column empty.
+ * Views named in `profiles` turn to full profile, the rest of a side's to
+ * three-quarter.
  */
 export const mannequinUnderlay = (
-  { slots, profiles, shown }: UnderlayViews,
+  { slots, profiles, shown, statures = [] }: UnderlayViews,
   size: UnderlaySize = UNDERLAY_SIZE,
 ): Raster => {
   const { width: W, height: H } = size;
   const ground = Math.round(0.91 * H);
   const step = W / slots.length;
-  // A view's column holds its body and both arms (out to about 0.6 of a head each side).
-  const h = Math.min((0.8 * H) / CANON_HEADS, step / 2.1);
+  const sized = slots.map((_, k) => statures[k] ?? CANON_STATURE);
+  // The grown figure's height in pixels: the tallest stands in 0.8 of the picture, and each
+  // view's column holds its head, body and both arms (out to about 0.6 of a head each side).
+  const grown = Math.min(
+    ...sized.map((s) => (0.8 * H) / s.height),
+    ...sized.map((s) => ((step / 2.1) * s.heads) / s.height),
+  );
   const poses: ReadonlyArray<Pose> = slots.map((slot, k) => ({
     x: step * (k + 0.5),
     turn: turnOf(slot, profiles.includes(k + 1)),
@@ -208,7 +223,10 @@ export const mannequinUnderlay = (
   }));
   const column = (x: number) => Math.min(poses.length - 1, Math.max(0, Math.floor(x / step)));
   const nearest = (x: number) => poses[column(x)]!;
-  const frames = poses.map((p) => frameOf(p, ground, h));
+  const frames = poses.map((p, k) => {
+    const s = sized[k]!;
+    return frameOf(p, ground, (s.height * grown) / s.heads, s.heads);
+  });
   const mask = new Uint8Array(W * H);
   const arms = new Uint8Array(W * H);
   for (let y = 0; y < H; y++)
@@ -222,7 +240,7 @@ export const mannequinUnderlay = (
     const inked =
       edgeAt(mask, W, H, x, y) ||
       (arms[y * W + x] === 1 && edgeAt(arms, W, H, x, y)) ||
-      eyeAt(nearest(x), x, y, ground, h);
+      eyeAt(nearest(x), frames[column(x)]!, x, y);
     return inked ? MANNEQUIN_INK : MANNEQUIN;
   };
   const rgba = new Uint8Array(W * H * 4);

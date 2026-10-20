@@ -2830,14 +2830,17 @@ turnaround (six views, left to right: front, three-quarter and profile to
 the viewer's left, the back, profile and three-quarter to the right), a
 pose sheet or a heads sheet. `film concept brief --look <file> --references
 <file> (--turnaround <who> | --layout <file> --kind poses|heads) [--house
-<file>]` prints the
+<file>] [--heads <n>] [--hair shown|covered|none]` prints the
 prompt one try is painted from (`tools/cast-sheet-brief.ts`): the house
 block made a sheet's by two swaps (a model sheet, no place behind), each
 refused as `HouseBlockMoved` when the block no longer says its phrase, then
 the references' note, the member's look, the layout and the sheet rules (the
-canon, one outline round each figure's silhouette with the head's outline
+member's height in its own heads, in words: the canon's three and a third
+unless its record names its own `heads`, and each smaller figure a pose
+sheet draws at its share of the grown height and its own heads; one outline
+round each figure's silhouette with the head's outline
 the one line inside it, the hair a shape behind the head and
-the beard parted from it, each circle hand at the end of its arm in its
+the beard parted from it only when its record's `hair` shows, each circle hand at the end of its arm in its
 sleeve and never a bare arm, the glide, no lettering). A layout or a look
 with a clause that names a hand and says it floats is refused as
 `HandFloats`, naming the clause, so a prompt never asks for a sleeved hand
@@ -2846,7 +2849,7 @@ look, the library's and each film's, through it.
 
 `film concept measure <try.png> --kind turnaround|poses|heads --count <n>
 --anchor <view> [--slot <slot> ...] [--standing <view> ...] [--level <view>
-...] [--headgear] [--concept <crop.png>:<view> ...] [--out <dir>]` measures
+...] [--headgear] [--heads <n>] [--concept <crop.png>:<view> ...] [--out <dir>]` measures
 a try (`measureSheet`, `core/cast-sheet.ts`, pure; its pixel reads in
 `core/cast-sheet-pixels.ts`). It finds the figures (ink rings at least 0.15
 of the largest's box, each with its hands and feet) and reads the `count`
@@ -2859,7 +2862,7 @@ and checks, facing first:
 | Check                                                   | Flags                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `facing`, `sameWay`, `profileWay`, `roll`               | a head that does not face its slot (a turn past 0.06 off the front, or under 0.04 toward its side); a pair of partner views that face one way; a profile that faces away from the three-quarter on its side (it reads no face, so its head band, the top 0.3 of the figure, is held to that three-quarter's: it matches better flipped than not); a turnaround head tipped past 5°                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `squash`                                                | the anchor's trace to the canon (3.36 heads) would squash or stretch the body past 10 %; not read on a heads sheet, nor under headgear (the canon is read on the lock), nor when the anchor stands and its head reads over half its figure (under 2 heads tall: not a head, so the canon and the anchor's head are said unread, and no view is held to its head)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `squash`                                                | the anchor's trace to its heads (the canon's 3.36, or the record's own `heads`) would squash or stretch the body past 10 %; not read on a heads sheet, nor under headgear (the canon is read on the lock), nor when the anchor stands and its head reads over half its figure (under 2 heads tall: not a head, so the canon and the anchor's head are said unread, and no view is held to its head)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `height`, `head`, `hand`, `width`, `hairFall`, `ground` | a standing view's height, any view's head or hand (in head heights) off the anchor's past 5 %, but a view the sheet stands (each its `standing` names, or every view when it names none) whose head reads over half its figure (under 2 heads tall, not on a heads sheet) is said unmeasured for its head, and its head, hand and hair's fall are held to nothing, while a low pose it does not stand keeps its head; on a heads sheet, the head's height on the level heads, held to the anchor's, and the eyes' spacing among the heads of one turn, held to that turn's first level head (a lock of hair widens a head's box, never its eyes), and no hand; partners' body widths (the median row from 0.76 to 0.9 of the height, read on each row inside the span of the view's own body ring, so a neighbour's ink in its crop or its box and a hand floating beside it are left out) past 5 %; the hair's fall on level heads past 0.1 head; soles off the anchor's ground line past 2 % of its height |
 | `papers`, `grey`, `lit`                                 | a paper farther than ΔE 12 from the anchor's; a grey paper (CRAFT 12); a view lit on its right (the key light is upper left)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `mirror`                                                | a partner view that is the other flipped (a mean difference under 6)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -2917,11 +2920,19 @@ on the image route. The member's folder is its film's own role's,
 `src/library/cast/<member>/cast-sheet/` beside the films; neither is
 `CastUnfound`. It holds `cast-sheet.json` (`CastSheetRecord`,
 `core/cast-record.ts`, pure: the member's pronoun, its scope, each reference
-image and what it is for, and per kind the anchor view and, for poses and
+image and what it is for, whether its hair shows (`hair`: `shown`, the
+default, `covered` under a headcloth, or `none`), its own height in heads
+when it is not the canon's (`heads`, a member of its own design such as the
+plain figures at 2.6), and per kind the anchor view and, for poses and
 heads, the layout in words and each view's slot, the standing views and
-the level heads (as `--standing` and `--level` name them), and the kept concepts its
+the level heads (as `--standing` and `--level` name them), on a pose sheet
+each smaller figure (`figures`: its view, its share of the grown height and
+its own heads, a child or a baby beside the grown member), and the kept concepts its
 views are held to: a reference's file, the member's box in it and the views
-that face as it does), `look.md` and the reference images; the references
+that face as it does), `look.md` and the reference images; the record is
+written as the repo's formatter leaves JSON (`repoJson`, `core/schema.ts`:
+a short array on one line, a long one of numbers filled to the line), so a
+write leaves no diff for `bun run fmt`; the references
 stay out of git, as a board's images do. A kind the record does not set up
 is `CastKindUnset` before any draw, a concept whose box shows no figure is
 `CastConceptUnread`, and the brief is built once before any draw, so a
@@ -2932,8 +2943,9 @@ Tries run `--lanes` at once (three at most, the route's own limit). Each
 lands in `out/<film>/cast/<member>/` as `<kind>-<n>.png` with its
 `.measure.md`, `.overlay.png` and `.preview.png` (`sheetPreview`,
 `core/cast-preview.ts`, pure: each view cut out at one head height, a
-standing view's body under the chin drawn to the canon with its head held,
-as the trace will make it, the canon's band across), and is recorded in `cast-sheet.json` under
+standing view's body under the chin drawn to its own heads (the canon's,
+the record's, or a smaller figure's) with its head held, as the trace will
+make it, the anchor's band across), and is recorded in `cast-sheet.json` under
 the record's lock (`ContentStore.transact`): its prompt, its references (as
 the sheet's folder reaches them), whether the underlay rode along, the try
 it draws again, the measure's flags and the anchor's squash. A flagged try
@@ -2946,8 +2958,9 @@ spacing, in pixels, to its turn's first head); on `facing`,
 `sameWay`, `roll` or `squash` the retry also sends the underlay as its last
 reference (`mannequinUnderlay`, `core/cast-underlay.ts`, pure: a blank
 mannequin per standing view, their soles on one row with no line drawn
-under them (a drawn line came back as a rule under every figure), each the
-canon of its heads tall and turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a view that
+under them (a drawn line came back as a rule under every figure), each its
+own height and its own heads tall (a smaller figure at its share of the grown
+one's height, the grown one the record's heads or the canon's) and turned to its slot by its eyes, its nose and its feet, each hand a circle at the end of its arm in its sleeve (a profile draws its near arm alone); a view that
 does not stand leaves its column empty; a turnaround's profiles are its
 third and fifth views), written fresh as `underlay-<kind>.png`. A sheet with
 no standing view, as every heads sheet, is redrawn with no underlay. A retry that still drifts is recorded with its flags,

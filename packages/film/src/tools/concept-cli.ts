@@ -48,6 +48,7 @@ import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
 import { CAST_LANES, castLine, makeCastSheet } from './cast-sheet-make.ts';
 import {
+  CANON_HEADS,
   measureSheet,
   type SheetConcept,
   SheetKind,
@@ -156,6 +157,12 @@ const measure = Command.make(
         'a headcloth or a veil: the head is read as its face opening, the canon on the lock',
       ),
     ),
+    heads: Flag.Finite('heads').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        `how many of its own heads the grown member stands (the cast's canon, ${CANON_HEADS}, when left out)`,
+      ),
+    ),
     concept: Flag.String('concept').pipe(
       Flag.atLeast(0),
       Flag.withDescription(
@@ -182,6 +189,7 @@ const measure = Command.make(
       ...((input.standing.length > 0 && { standing: input.standing }) || {}),
       ...((input.level.length > 0 && { level: input.level }) || {}),
       headgear: input.headgear,
+      ...Option.match(input.heads, { onNone: () => ({}), onSome: (heads) => ({ heads }) }),
       concepts,
     };
     const measured = yield* Effect.fromResult(measureSheet(sheet, options));
@@ -231,6 +239,18 @@ const brief = (house: HouseLook) =>
         Flag.optional,
         Flag.withDescription("the house block every concept prompt opens with (the app's own)"),
       ),
+      heads: Flag.Finite('heads').pipe(
+        Flag.withDefault(CANON_HEADS),
+        Flag.withDescription(
+          `how many of its own heads the grown member stands (the cast's canon, ${CANON_HEADS})`,
+        ),
+      ),
+      hair: Flag.Literals('hair', ['shown', 'covered', 'none']).pipe(
+        Flag.withDefault('shown'),
+        Flag.withDescription(
+          "whether the member's hair shows: covered under a headcloth, none on a figure with no hair",
+        ),
+      ),
     },
     Effect.fn('film.concept.brief')(function* (input) {
       const fs = yield* FileSystem.FileSystem;
@@ -257,6 +277,9 @@ const brief = (house: HouseLook) =>
           house: yield* fs.readFileString(Option.getOrElse(input.house, () => house.text)),
           references: yield* fs.readFileString(input.references),
           look: yield* fs.readFileString(input.look),
+          heads: input.heads,
+          figures: [],
+          hair: input.hair === 'shown',
         }),
       );
       yield* Console.log(prompt);

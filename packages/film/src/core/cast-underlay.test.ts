@@ -2,7 +2,9 @@
 // as tall as the others, its eyes and its nose showing the way its slot
 // faces (two eyes from the front, one in profile, none from behind; the nose
 // past the head on the side it faces), each hand at the end of its sleeve on
-// the body.
+// the body; on a sheet of figures of their own sizes (a child beside the
+// grown member, a member of its own design), each mannequin stands its own
+// height and its own heads.
 
 import { describe, expect, test } from 'bun:test';
 import { CANON_HEADS, TURNAROUND_SLOTS } from './cast-sheet.ts';
@@ -112,5 +114,51 @@ describe("a pose sheet's underlay", () => {
         Math.floor(i / (x1 - x0)),
       ]).some(([x, y]) => poses.rgba[(y! * 256 + x!) * 4] === 120);
     expect([inked(0, 128), inked(128, 256)]).toEqual([true, false]);
+  });
+});
+
+describe('an underlay of figures of their own sizes', () => {
+  const [w, h] = [512, 512];
+  /** Each column's mannequin: its height in pixels and its head's, read from the top of the head to the neck, its narrowest row above the body. */
+  const sized = (statures: ReadonlyArray<{ height: number; heads: number }>) => {
+    const picture = mannequinUnderlay(
+      { slots: ['front', 'front'], profiles: [], shown: [1, 2], statures },
+      { width: w, height: h, hand: 0.33 },
+    );
+    const inked = (x: number, y: number) => picture.rgba[(y * w + x) * 4] !== 243;
+    return [0, 1].map((k) => {
+      const centre = Math.round((k + 0.5) * (w / 2));
+      const rows = Array.from({ length: h }, (_, y) => y).filter((y) => inked(centre, y));
+      const widths = rows.map(
+        (y) =>
+          Array.from({ length: w / 2 }, (_, i) => k * (w / 2) + i).filter((x) => inked(x, y))
+            .length,
+      );
+      const [top, soles] = [rows[0]!, rows.at(-1)!];
+      // The neck: the narrowest row from a tenth of the figure down to its half, the head's foot.
+      const from = Math.round(rows.length / 10);
+      const upper = widths.slice(from, Math.round(rows.length / 2));
+      const neck = rows[from + upper.indexOf(Math.min(...upper))]!;
+      return { tall: soles - top, head: neck - top };
+    });
+  };
+
+  test("stands a smaller figure its share of the grown one's height, its head a larger share of it", () => {
+    const [grown, child] = sized([
+      { height: 1, heads: CANON_HEADS },
+      { height: 0.7, heads: 2.2 },
+    ]);
+    expect(child!.tall / grown!.tall).toBeCloseTo(0.7, 1);
+    expect(grown!.tall / grown!.head).toBeCloseTo(CANON_HEADS, 0);
+    expect(child!.tall / child!.head).toBeCloseTo(2.2, 0);
+  });
+
+  test('stands a member of its own design its own heads tall', () => {
+    const [one, two] = sized([
+      { height: 1, heads: 2.6 },
+      { height: 1, heads: 2.6 },
+    ]);
+    expect(one!.tall).toBe(two!.tall);
+    expect(one!.tall / one!.head).toBeCloseTo(2.6, 0);
   });
 });

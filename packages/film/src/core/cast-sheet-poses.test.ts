@@ -1,12 +1,15 @@
 // The cast sheet's measure on pose, heads and headgear sheets drawn with known
 // faults (`fixtures/figure.ts`): each sleeve, arm, beard, size and paper
 // drawn wrong is the flag it was drawn for, and what a sheet cannot show is
-// said, never flagged. The turnarounds are read in `cast-sheet.test.ts`.
+// said, never flagged. A member of its own design is held to its own heads,
+// and a smaller figure (a child) to its share of the grown one. The
+// turnarounds are read in `cast-sheet.test.ts`.
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
-import { measureSheet, type SheetMeasure, type SheetOptions } from './cast-sheet.ts';
-import { drawFigure, drawSheet, type FigureSpec, PLAIN } from './fixtures/figure.ts';
+import { measureSheet, type SheetMeasure, type SheetOptions, sheetTable } from './cast-sheet.ts';
+import { drawFigure, drawSheet, type FigureSpec, PAPER, PLAIN } from './fixtures/figure.ts';
+import { type Raster, scaleRaster } from './raster.ts';
 
 const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
 const at = (extra: Partial<FigureSpec> = {}) => drawFigure({ ...base, eyeShift: 0, ...extra });
@@ -206,5 +209,62 @@ describe('a beard under a dark headcloth', () => {
       'headgear: the cloth hides the hair, so no parting is read',
       'headgear: the cloth hides the hair, so no parting is read',
     ]);
+  });
+});
+
+/** The lowest row of `r` that is not paper: the figure's soles. */
+const soleOf = (r: Raster): number => {
+  for (let y = r.height - 1; y >= 0; y--)
+    for (let x = 0; x < r.width; x++) {
+      const i = (y * r.width + x) * 4;
+      if (r.rgba[i] !== PAPER[0] || r.rgba[i + 1] !== PAPER[1] || r.rgba[i + 2] !== PAPER[2])
+        return y;
+    }
+  return r.height - 1;
+};
+
+/** `r` drawn `share` of its size on paper of its own size, centred, its soles on `r`'s ground line. */
+const smaller = (r: Raster, share: number): Raster => {
+  const small = scaleRaster(r, share);
+  const rgba = new Uint8Array(r.width * r.height * 4);
+  for (let i = 0; i < r.width * r.height; i++) rgba.set([...PAPER, 255], i * 4);
+  const dx = Math.floor((r.width - small.width) / 2);
+  const dy = soleOf(r) - soleOf(small);
+  for (let y = 0; y < small.height; y++)
+    rgba.set(
+      small.rgba.subarray(y * small.width * 4, (y + 1) * small.width * 4),
+      ((y + dy) * r.width + dx) * 4,
+    );
+  return { width: r.width, height: r.height, rgba };
+};
+
+describe('a member of its own design', () => {
+  // A short robe: the figure stands about 2.7 of its heads, as the plain lead's 2.6.
+  const short = at({ robeDepth: 220 });
+  const standing: SheetOptions = { kind: 'poses', count: 2, anchor: 1, standing: [1, 2] };
+
+  test('is held to its own heads, never the canon', () => {
+    const canon = read([short, short], standing);
+    expect(flagsOf(canon)).toEqual(['squash:1']);
+    const own = read([short, short], { ...standing, heads: 2.7 });
+    expect(flagsOf(own)).toEqual([]);
+    expect(own.canon.against).toBe(2.7);
+    expect(sheetTable('own', own)).toContain('heads against 2.7;');
+  });
+});
+
+describe('a pose sheet that draws a smaller figure beside the grown one', () => {
+  const grown = at();
+  const child = smaller(grown, 0.75);
+  const options: SheetOptions = { kind: 'poses', count: 2, anchor: 1, standing: [1, 2] };
+
+  test("holds the smaller figure's height and head to its share of the grown one's", () => {
+    expect(flagsOf(read([grown, child], options))).toEqual(['height:2,1', 'head:2,1']);
+    const m = read([grown, child], {
+      ...options,
+      figures: [{ view: 2, height: 0.75, heads: 3.44 }],
+      heads: 3.44,
+    });
+    expect(flagsOf(m)).toEqual([]);
   });
 });

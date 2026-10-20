@@ -2,6 +2,8 @@
   "member": "plain-figures",
   "scope": "library",
   "who": "them",
+  "hair": "none",
+  "heads": 2.6,
   "refs": [
     {
       "file": "plain-lead-sheet.png",
@@ -18,6 +20,28 @@
       "layout": "Draw the plain figures of the film's IDEA pages six times in one row, evenly spaced, each the same plain figure in its plain grey tunic with its arms in sleeves to the wrist, a child or a baby differing by size alone, left to right: one, a toddler about two thirds of a grown figure's height running toward the viewer's left, three-quarters, leaning far forward, both sleeved arms out behind; two, the same toddler sat down hard on the ground facing the viewer, legs out in front, surprised but unhurt; three, a grown plain figure in mid-hop toward the viewer's right, three-quarters, both stub legs tucked up off the ground, reaching ahead with one sleeved arm; four, a baby about half a grown figure's height sitting facing the viewer, grinning, one small white tooth showing in the one-line mouth; five, a child about three quarters of a grown figure's height standing three-quarters toward the viewer's right, one sleeved arm raised as if writing on a board at shoulder height, a stub of white chalk in the round hand; six, a grown plain figure standing at rest facing the viewer, both hands low, the height every other figure is measured against.",
       "slots": ["left", "front", "right", "front", "right", "front"],
       "standing": [5, 6],
+      "figures": [
+        {
+          "view": 1,
+          "height": 0.67,
+          "heads": 2.2
+        },
+        {
+          "view": 2,
+          "height": 0.67,
+          "heads": 2.2
+        },
+        {
+          "view": 4,
+          "height": 0.5,
+          "heads": 2
+        },
+        {
+          "view": 5,
+          "height": 0.75,
+          "heads": 2.2
+        }
+      ],
       "tries": [
         {
           "n": 1,

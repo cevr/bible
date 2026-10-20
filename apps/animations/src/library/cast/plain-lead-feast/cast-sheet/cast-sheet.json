@@ -2,6 +2,8 @@
   "member": "plain-lead-feast",
   "scope": "library",
   "who": "him",
+  "hair": "none",
+  "heads": 2.6,
   "refs": [
     {
       "file": "plain-lead-sheet.png",
