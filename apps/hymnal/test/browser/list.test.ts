@@ -97,11 +97,10 @@ let browser: Browser;
 
 /**
  * How many pages are open at once: four for every three cores. A page
- * spends most of its time waiting on frames and timers, so with one page a
- * core Chromium keeps about half the cores busy; more than this, and the
- * pages slow each other's waits, and in a gate run, where every
- * workspace's tests share the cores, the other tests. A page waits for a
- * place to open.
+ * spends most of its time waiting on frames and timers, so on 12 cores the
+ * run measured fastest with 16 pages, about 0.4 s faster than with 12; with
+ * 20 or 24 the pages slowed each other's waits and the run took longer. A
+ * page waits for a place to open.
  */
 const places = Math.ceil((navigator.hardwareConcurrency * 4) / 3);
 let taken = 0;

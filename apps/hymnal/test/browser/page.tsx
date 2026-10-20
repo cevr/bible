@@ -203,9 +203,9 @@ let hydrating = false;
 /** What `heard()` does when the event comes, while it waits. */
 let onHeard: (() => void) | undefined;
 
-// Apart from the jump listener above, so what it sees stays as it was. The
-// browser's own event alone counts: the list's `told()` dispatches an untrusted
-// one after hydration.
+// A listener of its own, so the jump listener above sees every scroll as the
+// reader makes it. The browser's own event alone counts: the list's `told()`
+// dispatches an untrusted one after hydration.
 document.addEventListener(
   'scroll',
   (event) => {
