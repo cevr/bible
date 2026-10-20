@@ -873,3 +873,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check called every test file reached by `true || bun test`, which passes and runs no test.
 - **Cause:** The shell reader dropped the separators between commands, so the reader counted a command that `||`, `;`, `&` or `|` may skip, or whose failure they hide.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+
+### reach-refuses-shell-changes
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Exported Bun options bypass the variable refusal"
+- **Source:** p6-guardloop/review-12.md F1
+- **Wrong:** The reach check called every test file reached by `export BUN_OPTIONS=-ttie && bun test`, which runs only the cases whose names match.
+- **Cause:** The variable refusal read only a bare assignment or `env` before a program, and not the shell's own commands (`export`, `source`, `alias`) that change what later commands run with.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+
+### reach-takes-the-last-config
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Playwright config resolution can select the wrong file"
+- **Source:** p6-guardloop/review-12.md F2
+- **Wrong:** The reach check read `-c wide.config.ts --config narrow.config.ts` by the wide config, and read a config named by an absolute or parent path as the default config, though playwright runs the narrow one, or the one named.
+- **Cause:** The reader gathered the values of `--config` and `-c` apart and took the last of their joined list, and fell back to the default config when it could not read the named path.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by the config the last --config or -c names, and by none for one not read`
+
+### reach-credits-runners-only
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Commands that only print paths count as test suites"
+- **Source:** p6-guardloop/review-12.md F3
+- **Wrong:** The reach check called `other/a.test.ts` reached by `echo ./other`, which runs no test.
+- **Cause:** The reader read any command it did not know as a wrapper of `bun test` that runs the files it names by path.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are run by hand by a script of their own: a bun test, a wrapper of it the repo names, or playwright`
