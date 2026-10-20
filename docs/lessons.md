@@ -1133,3 +1133,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='src\/guard'`, though bun reads the backslash as an escape and skips the folder (measured on bun 1.4.3), and so for `src/guard/parts.test.t\s`.
 - **Cause:** The reader refused a deny-list of glob characters and read every other pattern literally, so a character bun reads otherwise passed.
 - **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or a plain ignore pattern names, and are reached by no run that names an ignore glob`
+
+### reach-refuses-mixed-filters
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Mixed Bun filters credit files the runner never loads"
+- **Source:** p6-guardloop/review-21.md F1
+- **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test ./missing parts`, though bun reads every filter as a path once one is (measured on bun 1.4.3), and so for `/guard` and `..`, which run none.
+- **Cause:** The reader read each filter on its own, a `./` one as a path and any other as a part of one, where bun picks one reading for the whole command.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
+
+### reach-refuses-optional-values
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "Playwright snapshot modes become spurious file filters"
+- **Source:** p6-guardloop/review-21.md F2
+- **Wrong:** The reach check credited `all/left.spec.ts` to `playwright test --update-snapshots all narrow`, though playwright reads `all` as the snapshot mode and filters by `narrow` alone.
+- **Cause:** The allow-list read `--update-snapshots` and `-u` as taking no value, where playwright declares them `[mode]`, a value or none.
+- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
