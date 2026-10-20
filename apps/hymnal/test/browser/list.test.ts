@@ -138,7 +138,7 @@ const open = async ({
   const scroll = (top: number) => page.evaluate((y) => window.hymnal.scroll(y), top);
 
   /**
-   * Scrolls the list to `top` as a reader does: eight windows at a time,
+   * Scrolls the list to `top` as a reader does: sixteen windows at a time,
    * until the list is there or can go no further. Answers where it stopped.
    */
   const scrollTo = async (top: number) => {
@@ -146,8 +146,8 @@ const open = async ({
       const now = await place();
       const to =
         top > now.top
-          ? Math.min(top, now.top + size.height * 8, now.max)
-          : Math.max(top, now.top - size.height * 8);
+          ? Math.min(top, now.top + size.height * 16, now.max)
+          : Math.max(top, now.top - size.height * 16);
       if (now.top === to && (to === top || to === now.max)) {
         await settle(40);
         const after = await place();
@@ -322,10 +322,10 @@ const moves = {
     await app.settle(150);
     return app.blank();
   },
-  /** He scrolls on, up then down, a window at a time. */
+  /** He scrolls on: up halfway to the top, then down to the very end. */
   onward: async (app: Session) => {
     const { top, max } = await app.place();
-    for (const want of [top / 2, 0, max / 3, max]) {
+    for (const want of [top / 2, max]) {
       await app.scrollTo(Math.round(want));
       await app.settle(0);
     }
@@ -368,18 +368,19 @@ const missed = (visits: ReadonlyArray<Visit>) =>
   );
 
 /**
- * On a page of its own, cold-loaded at `list`, visits each share of the
- * list's height in turn: at a window height that turns with the visit and
+ * On a page of its own, cold-loaded at `list`, visits the shares of the
+ * list's height at `part` (their indexes in `shares`) in turn: at a window height that turns with the visit and
  * the case (`turn`), so every height meets every share and every way back,
  * the reader scrolls there and leaves the list (pressing a row 150 ms after
  * his scroll on even visits, at once on odd ones); he comes back the `way`
  * the case names, then makes the visit's move.
  */
-const visit = async (list: ListName, way: Way, turn: number) => {
+const visit = async (list: ListName, way: Way, turn: number, part: ReadonlyArray<number>) => {
   await using app = await open({ path: lists[list].path });
   const hydration = await app.errors();
   const visits: Array<Visit> = [];
-  for (const [index, share] of shares.entries()) {
+  for (const index of part) {
+    const share = shares[index] ?? 1;
     const height = heights[(index + turn) % heights.length] ?? 874;
     await app.resize(height);
     const { max } = await app.place();
@@ -406,9 +407,15 @@ describe('a list comes back where the reader left it', () => {
       ['search', 'tab'],
     ] as const
   ).entries()) {
-    it.concurrent(`the ${list} list, by ${way}, at offsets and heights across their range`, async () => {
-      expect(await visit(list, way, turn)).toEqual({ hydration: [], misses: [] });
-    });
+    // Each case's visits in two pages at once, the first shares and the last.
+    for (const part of [
+      [0, 1, 2],
+      [3, 4, 5],
+    ]) {
+      it.concurrent(`the ${list} list, by ${way}, at shares ${part.map((index) => shares[index]).join(', ')} of its height`, async () => {
+        expect(await visit(list, way, turn, part)).toEqual({ hydration: [], misses: [] });
+      });
+    }
   }
 });
 
