@@ -41,7 +41,6 @@ import type { BunPlugin } from 'bun';
 
 import type { First } from './page';
 import { type ListName, lists } from './routes';
-import { render, words } from './server';
 import {
   type Cold,
   type Move,
@@ -62,8 +61,8 @@ const rowHeight = 44;
 /** A window of `height`: a phone's width, or a Mac window's when it is tall. */
 const windowOf = (height: number) => ({ width: height > 1000 ? 1024 : 402, height });
 
-/** The bundler boundaries, as `src/test/setup.ts` sets them for the other tests. */
-const boundaries: BunPlugin = {
+/** The bundler boundaries, as `src/test/setup.ts` sets them for the other tests, with the hymns' `words` as JSON. */
+const boundaries = (words: string): BunPlugin => ({
   name: 'hymnal-browser-boundaries',
   setup(build) {
     const web = Bun.resolveSync('react-native-web', import.meta.dir);
@@ -79,12 +78,12 @@ const boundaries: BunPlugin = {
       loader: 'js',
     }));
   },
-};
+});
 
-const bundle = async (): Promise<string> => {
+const bundle = async (words: string): Promise<string> => {
   const output = await Bun.build({
     entrypoints: [`${import.meta.dir}/page.tsx`],
-    plugins: [boundaries],
+    plugins: [boundaries(words)],
     target: 'browser',
     define: { 'process.env.NODE_ENV': '"development"' },
   });
@@ -192,22 +191,39 @@ const open = async ({
    * until the list is there or can go no further. Answers where it stopped.
    */
   const scrollTo = async (top: number) => {
-    for (let step = 0; step < 200; step++) {
-      const now = await place();
+    /**
+     * Scrolls the list to `to` (none: leaves it), waits `ms` and two frames,
+     * and answers its place then: one round trip a step.
+     */
+    const step = (to: number | undefined, ms: number) =>
+      page.evaluate(
+        ([y, wait]) => {
+          if (y !== undefined) window.hymnal.scroll(y);
+          return new Promise<{ top: number; max: number } | undefined>((done) =>
+            setTimeout(
+              () =>
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => done(window.hymnal.place())),
+                ),
+              wait,
+            ),
+          );
+        },
+        [to, ms] as const,
+      );
+    let now = await place();
+    for (let steps = 0; steps < 200; steps++) {
       const to =
         top > now.top
           ? Math.min(top, now.top + size.height * 16, now.max)
           : Math.max(top, now.top - size.height * 16);
-      if (now.top === to && (to === top || to === now.max)) {
-        await settle(40);
-        const after = await place();
-        if (after.max === now.max && after.top === now.top) return now.top;
-        continue;
-      }
-      await scroll(to);
-      await settle(0);
+      const done = now.top === to && (to === top || to === now.max);
+      const after = await step(done ? undefined : to, done ? 40 : 0);
+      if (after === undefined) throw new Error('the list is not shown');
+      if (done && after.max === now.max && after.top === now.top) return now.top;
+      now = after;
     }
-    return (await place()).top;
+    return now.top;
   };
 
   /** Each time the list moved by itself since the last time this was asked. */
@@ -335,8 +351,12 @@ const open = async ({
 type Session = Awaited<ReturnType<typeof open>>;
 
 beforeAll(async () => {
-  const [script, launched] = await Promise.all([bundle(), chromium.launch()]);
-  browser = launched;
+  // Chromium starts while the server's app loads: neither needs the other.
+  const launching = chromium.launch().then((launched) => {
+    browser = launched;
+  });
+  const { render, words } = await import('./server');
+  const [script] = await Promise.all([bundle(words), launching]);
   server = Bun.serve({
     port: 0,
     fetch: (request) => {
