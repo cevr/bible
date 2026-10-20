@@ -1,7 +1,9 @@
 // The cast sheet's measure on sheets drawn with known faults (`fixtures/figure.ts`):
 // a clean turnaround reads no flag, and each fault drawn into a turnaround
 // is the flag it was drawn for. The poses, heads and headgear sheets are read
-// in `cast-sheet-poses.test.ts`, so the two files run side by side.
+// in `cast-sheet-poses.test.ts`, and the crowded turnarounds and the sheets
+// that do not read as drawn in `cast-sheet-crowded.test.ts`, so the three
+// files run side by side.
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result, Schema } from 'effect';
@@ -15,7 +17,6 @@ import {
 } from './cast-sheet.ts';
 import { measureFigure } from './figure.ts';
 import { drawFigure, drawSheet, type FigureSpec, flipRaster, PLAIN } from './fixtures/figure.ts';
-import { cropRaster } from './raster.ts';
 
 /** A figure as a turnaround draws it: the robe shaded on its right, the hand at the end of its sleeve, the eyes `eyeShift` px off the face's middle. */
 const base: FigureSpec = { ...PLAIN, robeShade: [60, 78, 150], arm: 'sleeve' };
@@ -184,180 +185,5 @@ describe("a turnaround's partners with a hand against the robe", () => {
   test("holds the partners' widths on the body under the hands, never on where the hands float", () => {
     expect(flagsOf(m)).toEqual([]);
     expect(Math.abs(m.pairs[1]?.widths ?? 99)).toBeLessThan(1);
-  });
-});
-
-describe('a turnaround painted close together', () => {
-  // Each view's robe straight down its sides, cut to its own ink with 3 px of paper each side and drawn with no hands, so a neighbour's ink stands 6 px off its side, inside the 12 px a view's crop is padded by; view 4 is the back.
-  const straight = { robeTop: 240, handless: true };
-  const tight = (r: ReturnType<typeof at>) => cropRaster(r, [70, 0, 330, 640]);
-  const close = drawSheet(
-    [
-      at(0, straight),
-      at(-14, straight),
-      at(-26, straight),
-      at(0, { ...straight, eyeW: 0 }),
-      flipRaster(at(-26, { ...straight, lit: 'right' })),
-      flipRaster(at(-14, { ...straight, lit: 'right' })),
-    ].map(tight),
-  );
-  const m = read(close, turnaround);
-
-  test("reads each view's width on its own body, never a neighbour's ink beside it", () => {
-    expect(new Set(m.views.map((v) => v.widthToHeight)).size).toBe(1);
-    expect(m.pairs.map((p) => p.widths)).toEqual([0, 0, 0]);
-  });
-});
-
-describe("a turnaround whose view's box overlaps its neighbour's", () => {
-  // As the close turnaround, with a lock of view 6's hair drawn out level from its head over view 5's shoulder (a band of ink from x 1244 to its head, never touching view 5): view 6's box now spans view 5's robe on the rows its width is read on.
-  const straight = { robeTop: 240, handless: true };
-  const tight = (r: ReturnType<typeof at>) => cropRaster(r, [70, 0, 330, 640]);
-  const sheet = drawSheet(
-    [
-      at(0, straight),
-      at(-14, straight),
-      at(-26, straight),
-      at(0, { ...straight, eyeW: 0 }),
-      flipRaster(at(-26, { ...straight, lit: 'right' })),
-      flipRaster(at(-14, { ...straight, lit: 'right' })),
-    ].map(tight),
-  );
-  for (let y = 96; y < 104; y++)
-    for (let x = 1244; x < 1392; x++) sheet.rgba.set([58, 38, 28, 255], (y * sheet.width + x) * 4);
-  const m = read(sheet, turnaround);
-
-  test("reads its width on its own ring's pixels, never on the neighbour its box spans", () => {
-    expect(new Set(m.views.map((v) => v.widthToHeight)).size).toBe(1);
-    expect(m.pairs.map((p) => p.widths)).toEqual([0, 0, 0]);
-  });
-});
-
-describe('a turnaround whose hands float low, in the band its width is read on', () => {
-  // The hands float free beside the robe at 480 px, inside the band (from 0.76 of the height); the back and the profiles read no face, so no hand's disc is cut out of them.
-  const limb = { hand: [372, 480] as const, kind: 'free' as const };
-  const low = (eyeShift: number, extra: Partial<FigureSpec> = {}) =>
-    at(eyeShift, { limb, ...extra });
-  const sheet = drawSheet([
-    low(0),
-    low(-14),
-    low(-26, { oneEye: true }),
-    low(0, { eyeW: 0 }),
-    flipRaster(low(-26, { oneEye: true, lit: 'right' })),
-    flipRaster(low(-14, { lit: 'right' })),
-  ]);
-  const m = read(sheet, turnaround);
-
-  test('reads the width on the body alone, faced or not, never on where the hands float', () => {
-    expect(new Set(m.views.map((v) => v.widthToHeight)).size).toBe(1);
-    expect(flagsOf(m).filter((f) => f.startsWith('width'))).toEqual([]);
-  });
-});
-
-describe('a turnaround whose profiles are swapped', () => {
-  // Each profile shows one eye, so neither reads a face; the hair falls behind it, away from the eye.
-  const profile = (eyeShift: number) => at(eyeShift, { oneEye: true });
-  const profileRight = flipRaster(at(-26, { oneEye: true, lit: 'right' }));
-  const views = (three: ReturnType<typeof at>, five: ReturnType<typeof at>) =>
-    drawSheet([at(0), at(-14), three, at(0, { eyeW: 0 }), five, turned(14)]);
-  const right = read(views(profile(-26), profileRight), turnaround);
-  const swapped = read(views(profileRight, profile(-26)), turnaround);
-
-  test('holds each profile to the three-quarter on its side, and flags both when they face away', () => {
-    expect(right.unmeasured.filter((u) => u.check === 'facing').map((u) => u.view)).toEqual([
-      3, 4, 5,
-    ]);
-    expect(flagsOf(right)).toEqual([]);
-    expect(flagsOf(swapped)).toEqual(['profileWay:2,3', 'profileWay:6,5']);
-  });
-});
-
-describe('a sheet painted on no paper', () => {
-  // The route can answer with the paper left out: every pixel round the figures transparent, its colour a dark grey no eye sees.
-  const opaque = drawSheet([at(0), at(-14)]);
-  const rgba = Uint8Array.from(opaque.rgba);
-  for (let i = 0; i < rgba.length; i += 4)
-    if (rgba[i] === 238 && rgba[i + 1] === 230 && rgba[i + 2] === 214) rgba.set([70, 70, 70, 0], i);
-  const options: SheetOptions = { kind: 'poses', count: 2, anchor: 1, slots: ['front', 'left'] };
-
-  test('reads its figures as on white paper', () => {
-    const m = read({ ...opaque, rgba }, options);
-    expect(m.views.map((v) => v.box)).toEqual(read(opaque, options).views.map((v) => v.box));
-    expect(flagsOf(m)).toEqual([]);
-  });
-});
-
-describe('a sheet that draws more figures than it names', () => {
-  const sheet = drawSheet([
-    at(0),
-    at(0, { rx: 50, ry: 55, robeDepth: 280, robeHem: 200 }),
-    at(-14),
-  ]);
-  const m = read(sheet, { kind: 'poses', count: 2, anchor: 1, slots: ['front', 'left'] });
-
-  test('reads the largest it names, and says how many it found', () => {
-    expect(m.found).toBe(3);
-    expect(sheetTable('three', m)).toContain('3 figures found, the sheet names 2');
-    expect(sheetLines('three', m)[0]).toContain('found=3');
-  });
-});
-
-describe('a sheet whose anchor reads a head over half its figure', () => {
-  const sheet = drawSheet([at(0, { robeDepth: 110, handless: true }), at(0)]);
-  const m = read(sheet, {
-    kind: 'poses',
-    count: 2,
-    anchor: 1,
-    slots: ['front', 'front'],
-    standing: [1, 2],
-  });
-
-  test("says the canon and the anchor's head unread, with no squash: its short body flags its height alone", () => {
-    expect(m.canon.heads).toBeUndefined();
-    expect(m.canon.squash).toBeUndefined();
-    expect(m.views[0]?.headsTall).toBeUndefined();
-    expect(flagsOf(m)).toEqual(['height:2,1', 'ground:2']);
-    const why = m.unmeasured.filter((u) => u.check === 'squash' || u.check === 'head');
-    expect(why.map((u) => u.check)).toEqual(['squash', 'head']);
-    for (const u of why) expect(u.why).toContain('over half its figure: not a head');
-  });
-});
-
-describe("a sheet whose view reads a head over half its figure, the anchor's whole", () => {
-  // A head drawn as tall as the body under it, on a figure as tall as the anchor's.
-  const sheet = drawSheet([at(0), at(0, { ry: 150, cy: 234, robeDepth: 162 }), at(0)]);
-  const m = read(sheet, {
-    kind: 'poses',
-    count: 3,
-    anchor: 1,
-    slots: ['front', 'front', 'front'],
-    standing: [1, 2, 3],
-  });
-
-  test("says that view's head unread, never held to the anchor's head or hand", () => {
-    expect(m.canon.heads).toBeCloseTo(3.44, 1);
-    expect(m.views[1]?.head).toBeUndefined();
-    expect(m.views[1]?.hand).toBeUndefined();
-    expect(flagsOf(m)).toEqual([]);
-    const why = m.unmeasured.filter((u) => u.check === 'head');
-    expect(why.map((u) => u.view)).toEqual([2]);
-    expect(why[0]?.why).toContain('over half its figure: not a head');
-  });
-});
-
-describe('a sheet whose low pose, which it does not stand, draws its head a quarter too big', () => {
-  // A crouching view: a short body under a head 25 % taller than the anchor's, so under two heads tall.
-  const sheet = drawSheet([at(0), at(0, { ry: PLAIN.ry * 1.25, robeDepth: 110, handless: true })]);
-  const m = read(sheet, {
-    kind: 'poses',
-    count: 2,
-    anchor: 1,
-    slots: ['front', 'front'],
-    standing: [1],
-  });
-
-  test("holds its head to the anchor's and flags it, never says it is not a head", () => {
-    expect(flagsOf(m)).toContain('head:2,1');
-    expect(m.unmeasured.filter((u) => u.check === 'head')).toEqual([]);
   });
 });
