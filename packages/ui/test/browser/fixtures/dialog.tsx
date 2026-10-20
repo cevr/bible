@@ -5,7 +5,8 @@
 // `owner=keep` for an owner that keeps `open` true through a close request,
 // `tall=true` for a page that scrolls, `titles=two` for a second title
 // after the first, which `window.__dropTitle()` unmounts, `portal=inline`
-// for a portal rendered in place. `animated` fades in and out over 200 ms.
+// for a portal rendered in place, `closes=owner` for a button and a row that
+// close it by the owner's `open` alone. `animated` fades in and out over 200 ms.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -57,6 +58,15 @@ function BasicDialog(): JSX.Element {
             </button>
             <input id="input" />
             <Dialog.Close id="close">Close</Dialog.Close>
+            {/* The owner's own closes, by its `open` alone (as ⌘K's chosen row closes it). */}
+            <Show when={param('closes') === 'owner'}>
+              <button type="button" id="owner-close" onClick={() => owner.setOpen(false)}>
+                Owner close
+              </button>
+              <div id="owner-close-row" onClick={() => owner.setOpen(false)}>
+                Owner close row
+              </div>
+            </Show>
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>

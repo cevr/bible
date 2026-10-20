@@ -259,6 +259,60 @@ describe('Dialog.Popup focus', () => {
   });
 });
 
+describe("Dialog.Popup return focus after the owner's own close", () => {
+  /** Whether the element with the focus shows the ring. */
+  const ringed = (page: Page) =>
+    page.evaluate(() => document.activeElement?.matches(':focus-visible') ?? false);
+
+  /**
+   * From now on, keep the `focusVisible` each focus of the opener asks for: the ring is
+   * the kit's to state, never the browser's heuristic to guess (which guesses right most
+   * of the time, and wrong under load).
+   */
+  const askedRings = (page: Page) =>
+    page.evaluate(() => {
+      const opener = document.getElementById('open');
+      const asked: Array<boolean | null> = [];
+      (window as unknown as { __asked: typeof asked }).__asked = asked;
+      if (opener === null) return;
+      const focus = opener.focus.bind(opener);
+      opener.focus = (options?: FocusOptions & { focusVisible?: boolean }) => {
+        asked.push(options?.focusVisible ?? null);
+        focus(options);
+      };
+    });
+  const asked = (page: Page) =>
+    page.evaluate(() => (window as unknown as { __asked: Array<boolean | null> }).__asked);
+
+  it('shows the ring on the opener when a key closed it', async () => {
+    const page = await h.open('dialog', { query: { closes: 'owner' } });
+    await page.click('#open');
+    await see.poll(() => focused(page)).toBe('first');
+    await askedRings(page);
+    await page.focus('#owner-close');
+    await page.keyboard.press('Enter');
+    await see(page.locator('#popup')).toHaveCount(0);
+    await see.poll(() => focused(page)).toBe('open');
+    expect(await asked(page)).toEqual([true]);
+    expect(await ringed(page)).toBe(true);
+  });
+
+  it('shows no ring on the opener when a pointer closed it, the focus left inside ringed', async () => {
+    const page = await h.open('dialog', { query: { closes: 'owner' } });
+    await page.focus('#open');
+    await page.keyboard.press('Enter');
+    await see.poll(() => focused(page)).toBe('first');
+    expect(await ringed(page)).toBe(true);
+    await askedRings(page);
+    // A press on a row that takes no focus leaves the ringed button focused, as ⌘K's query is.
+    await page.click('#owner-close-row');
+    await see(page.locator('#popup')).toHaveCount(0);
+    await see.poll(() => focused(page)).toBe('open');
+    expect(await asked(page)).toEqual([false]);
+    expect(await ringed(page)).toBe(false);
+  });
+});
+
 describe('dialogs side by side', () => {
   it('side-by-side modal dialogs close one at a time, newest first', async () => {
     const page = await h.open('side-by-side');

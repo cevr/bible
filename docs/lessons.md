@@ -1613,3 +1613,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** Confirming took two presses: the button in the letter, then the button on the confirm page.
 - **Cause:** The confirm page waited for its button so mail scanners, which open links, would confirm no one, and nothing pressed it for a person who had already pressed once in the letter.
 - **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `is one step: the confirm page's form carries the id the browser's entry submits as it opens`
+
+### kit-return-focus-states-the-ring
+
+- **Date:** 2026-10-20
+- **Kind:** review
+- **Said:** "a command run from ⌘K on Record sometimes moved the focus to the recorder's Close without the ring"
+- **Source:** p6-studio-cssdocs/findings.md F1
+- **Wrong:** A command chosen with Enter in ⌘K over the recorder sent the focus back to the recorder's Close with no ring in 1 of 8 runs on main, though the keyboard asked.
+- **Cause:** The kit's return focus asked for the ring only when the close came with a key's event, and ⌘K closes by its owner's `open` with none, so the ring was left to the browser's guess.
+- **Guard:** code: `packages/ui/test/browser/dialog.test.ts` `shows the ring on the opener when a key closed it`

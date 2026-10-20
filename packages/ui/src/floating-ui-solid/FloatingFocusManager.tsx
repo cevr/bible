@@ -669,12 +669,26 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             // Focus that moved elsewhere after open is respected (floating-ui#2607).
             (tabbableReturnElement !== activeEl && activeEl !== doc.body ? isFocusInside : true)
           ) {
+            // The ring shows iff a key closed it: an owner's own close (its `open` set false, no
+            // event) is closed by the input used last inside. Unknown, the browser decides; a
+            // text field rings whatever focused it. An element that has the focus already with
+            // the other look lets it go first, since a focus it already has changes nothing.
+            const type = closeType || lastInteractionType;
+            const shows =
+              type === ''
+                ? undefined
+                : type === 'keyboard' || isTypeableElement(tabbableReturnElement);
+            if (
+              shows !== undefined &&
+              tabbableReturnElement === activeElement(doc) &&
+              tabbableReturnElement.matches(':focus-visible') !== shows
+            ) {
+              tabbableReturnElement.blur();
+            }
             const focusOptions: FocusOptions & { focusVisible?: boolean } = {
               preventScroll: true,
+              ...(shows === undefined ? {} : { focusVisible: shows }),
             };
-            if (closeType === 'keyboard') {
-              focusOptions.focusVisible = true;
-            }
             tabbableReturnElement.focus(focusOptions);
           }
           // A cancelled return clears suppression before the next close too.

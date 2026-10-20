@@ -14,8 +14,10 @@
 //   browser's rule, and a field's caret is where the typing goes;
 // - the kit's menus (`@bible/ui`) move the focus to the item under the
 //   pointer, so after a keyboard opens one, the ring follows the mouse;
-// - the kit's own initial and return focus (a sheet's, the lightbox's,
-//   ⌘K's) is a plain focus, so Chromium's heuristic draws its ring.
+// - the kit's own initial focus (a sheet's, the lightbox's, ⌘K's) is a
+//   plain focus, so Chromium's heuristic draws its ring; its return focus
+//   rings iff a key closed the popup, its owner's own close (⌘K's chosen
+//   row) by the input used last inside it, as `focusFor` would.
 // `film/focus-through-focus-for` refuses any other focus move in the lab.
 
 import type { Input } from '../browser/keys.ts';
