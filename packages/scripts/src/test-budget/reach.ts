@@ -18,8 +18,12 @@
 // of the command's filters when it names any. The reader parses the config
 // and reads the object it exports (`settingsOf`); a config it cannot read
 // (none, one that does not parse or exports anything else, a spread or a
-// computed key in it, a `testDir`, `testMatch` or `testIgnore` set as
-// anything but a literal, `projects`) takes none. A by-hand script's other commands (a
+// computed key in it, a `testDir`, `testMatch`, `testIgnore` or
+// `respectGitIgnore` set as anything but a literal, `projects`) takes none.
+// Where playwright respects git's ignore rules (`respectGitIgnore: true`, or
+// neither it nor `testDir` set), a tracked file git ignores is not taken: git
+// reads every ignore file down from the root, playwright only those under
+// its `testDir`, so the check never calls reached a file playwright skips. A by-hand script's other commands (a
 // wrapper of `bun test`) reach a file only by naming it, or a folder that
 // holds it, by its path. A file named as a test that registers none
 // (`holdsTests`) needs no script.
@@ -28,7 +32,7 @@ import { Glob } from 'bun';
 import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { minimatch } from 'minimatch';
 import { type Expression, type ObjectExpression, parseSync } from 'oxc-parser';
-import { gateFiles } from '../guard/files.ts';
+import { gateFiles, ignoredTracked } from '../guard/files.ts';
 import { commandsOf } from './shell.ts';
 
 /** Whether bun's runner takes a file for a test by its name. */
@@ -239,6 +243,12 @@ const stringOf = (value: Expression): Option.Option<string> => {
   return Option.some(value.value);
 };
 
+/** A setting's boolean: none when it is set as anything but `true` or `false`. */
+const booleanOf = (value: Expression): Option.Option<boolean> => {
+  if (value.type !== 'Literal' || !Predicate.isBoolean(value.value)) return Option.none();
+  return Option.some(value.value);
+};
+
 /**
  * A `testMatch` or `testIgnore` setting as a test of a file's absolute
  * path, as playwright tests it: a regex literal as written, a string
@@ -272,9 +282,9 @@ const patternOf = (
  */
 const playwrightRun = (
   words: ReadonlyArray<string>,
-  configs: Readonly<Record<string, string>>,
-  absolute: string,
+  workspace: Pick<Workspace, 'configs' | 'absolute' | 'gitIgnored'>,
 ): Run => {
+  const { configs, absolute, gitIgnored } = workspace;
   const filters: Array<string> = [];
   let config = Option.none<string>();
   for (let at = 0; at < words.length; at++) {
@@ -306,7 +316,13 @@ const playwrightRun = (
           onNone: () => Option.some('.'),
           onSome: stringOf,
         });
-        return Option.flatMap(dir, (dir) =>
+        // Playwright skips what git ignores when the config says so, and by
+        // default when it sets neither `testDir` nor `respectGitIgnore`.
+        const gitPolicy = Option.match(Option.fromUndefinedOr(settings.get('respectGitIgnore')), {
+          onNone: () => Option.some(!settings.has('testDir')),
+          onSome: booleanOf,
+        });
+        return Option.flatMap(Option.all([dir, gitPolicy]), ([dir, respectsGit]) =>
           Option.flatMap(pathOf([...folder, dir].join('/')), (root) =>
             Option.map(
               Option.all([
@@ -319,7 +335,8 @@ const playwrightRun = (
                   const file = `${absolute}/${path}`;
                   const named =
                     filters.length === 0 || filters.some((f) => new RegExp(f).test(file));
-                  return under && matches(file) && !ignored(file) && named;
+                  const gitSkips = respectsGit && gitIgnored.has(path);
+                  return under && matches(file) && !ignored(file) && !gitSkips && named;
                 },
             ),
           ),
@@ -341,11 +358,11 @@ const programWords = (words: ReadonlyArray<string>) => {
 
 /** What the script `name` of a workspace runs, the scripts it runs with `bun run` followed. */
 const runsOf = (
-  workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute'>,
+  workspace: Pick<Workspace, 'scripts' | 'configs' | 'absolute' | 'gitIgnored'>,
   name: string,
   seen: ReadonlySet<string> = new Set(),
 ): ReadonlyArray<Run> => {
-  const { scripts, configs, absolute } = workspace;
+  const { scripts, configs, absolute, gitIgnored } = workspace;
   if (seen.has(name)) return [];
   const script = Option.fromUndefinedOr(scripts[name]);
   if (Option.isNone(script)) return [];
@@ -353,7 +370,7 @@ const runsOf = (
   return commandsOf(script.value).flatMap((command): ReadonlyArray<Run> => {
     const words = programWords(command);
     if (words[0] === 'playwright' && words[1] === 'test')
-      return [playwrightRun(words.slice(2), configs, absolute)];
+      return [playwrightRun(words.slice(2), { configs, absolute, gitIgnored })];
     if (words[0] !== 'bun') return [runOf('named', words.slice(1))];
     const at = subcommandAt(words);
     const sub = words[at] ?? '';
@@ -386,6 +403,8 @@ interface Workspace {
   readonly absolute: string;
   readonly scripts: Readonly<Record<string, string>>;
   readonly configs: Readonly<Record<string, string>>;
+  /** The files of the workspace git tracks and its ignore rules name, by their path from it. */
+  readonly gitIgnored: ReadonlySet<string>;
 }
 
 /** A file of the repo: its path from the root, and its text. */
@@ -474,6 +493,7 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
   );
   const named = globs.map((glob) => new Glob(`${glob.replace(/\/+$/, '')}/package.json`));
   const files = yield* gateFiles(root);
+  const ignored = yield* ignoredTracked(root);
   const workspaces = yield* Effect.forEach(
     files.filter((file) => named.some((glob) => glob.match(file))),
     (manifest) =>
@@ -486,7 +506,18 @@ export const repoTests = Effect.fn('reach.repoTests')(function* (root: string) {
         const configs = yield* playwrightConfigs(dir, scripts, (file) =>
           Effect.option(read(path.join(dir, file))),
         );
-        return { dir, absolute: path.join(root, dir), scripts, configs } satisfies Workspace;
+        const gitIgnored = new Set(
+          ignored
+            .filter((file) => file.startsWith(`${dir}/`))
+            .map((file) => file.slice(dir.length + 1)),
+        );
+        return {
+          dir,
+          absolute: path.join(root, dir),
+          scripts,
+          configs,
+          gitIgnored,
+        } satisfies Workspace;
       }),
     { concurrency: 16 },
   );

@@ -97,6 +97,16 @@ export const gateFiles = Effect.fn('guard.gateFiles')(function* (root: string) {
     .toSorted();
 });
 
+/**
+ * The files git tracks at `root` that its ignore rules name (a `.gitignore`,
+ * `.git/info/exclude`, the user's excludes), relative to it, sorted.
+ */
+export const ignoredTracked = Effect.fn('guard.ignoredTracked')(function* (root: string) {
+  return namesOf(
+    yield* git(root, ['ls-files', '-z', '--cached', '--ignored', '--exclude-standard']),
+  ).toSorted();
+});
+
 /** What the gate reads of the lint config: its ignore patterns. */
 const LintConfig = Schema.Struct({ ignorePatterns: Schema.optional(Schema.Array(Schema.String)) });
 
