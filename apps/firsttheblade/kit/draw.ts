@@ -5,6 +5,8 @@
  * - The YouTube kit, into `kit/out/`: the avatar, the banner and what each
  *   screen shows of it, the watermark, two thumbnails in the house style,
  *   and `channel.md` (what to paste and where).
+ * - The Facebook Page's cover, into `kit/out/`, and what a computer and a
+ *   phone show of it.
  * - The site's link cards and icons, into `public/`: a card per page
  *   (`og/<page>.jpg`, 1200 × 630), the app icons and `favicon.ico`.
  *
@@ -207,6 +209,33 @@ const thumb = (film: Thumb) =>
     )}</div>`,
   );
 
+// ── The Facebook Page ────────────────────────────────────────────────────
+
+/**
+ * The cover at twice the phone's 640 × 360: a phone shows all of it, a
+ * computer the band 1640 × 624 across its middle. The Page's profile picture
+ * is the disc, so the cover carries the wordmark alone.
+ */
+const COVER = { width: 1640, height: 924 } as const;
+const COVER_DESKTOP = { y: 150, height: 624 } as const;
+
+const cover = frame(
+  COVER.width,
+  COVER.height,
+  `${field('50% 58%')}<div style="position:absolute;left:50%;top:${COVER.height / 2}px;transform:translate(-50%,-50%) rotate(-1deg)">${strip(wordmark(104), '36px 72px')}</div>`,
+);
+
+/** What a computer and a phone show of the cover. */
+const coverCropsBoard = (src: string) => {
+  const label = (text: string) =>
+    `<div style="font:500 13px Newsreader;letter-spacing:.16em;color:${PALETTE.ink};margin-bottom:6px">${text}</div>`;
+  const desk = 820 / COVER.width;
+  const phone = 480 / COVER.width;
+  return `<div style="width:1360px;height:340px;padding:20px;background:${PALETTE.band};display:grid;grid-template-columns:820px 480px;gap:20px;align-items:start">
+<div>${label('COMPUTER · 1640 × 624')}<div style="width:820px;height:${COVER_DESKTOP.height * desk}px;background:url(${src}) 0 ${-COVER_DESKTOP.y * desk}px/820px ${COVER.height * desk}px"></div></div>
+<div>${label('PHONE · ALL 1640 × 924')}<div style="width:480px;height:${COVER.height * phone}px;background:url(${src}) 0 0/480px ${COVER.height * phone}px"></div></div></div>`;
+};
+
 // ── The site's link cards and icons ──────────────────────────────────────
 
 const OG = { width: 1200, height: 630 } as const;
@@ -251,6 +280,14 @@ const kit = Effect.gen(function* () {
     yield* draw(browser, thumb(film), `${OUT}/thumb-${name}.png`, { width: 1280, height: 720 });
   }
   yield* fs.copyFile(`${KIT}/channel.md`, `${OUT}/channel.md`);
+
+  yield* draw(browser, cover, `${OUT}/facebook-cover-1640x924.png`, COVER);
+  yield* draw(
+    browser,
+    coverCropsBoard(url(`${OUT}/facebook-cover-1640x924.png`)),
+    `${OUT}/facebook-cover-crops.png`,
+    { width: 1360, height: 340 },
+  );
 
   yield* draw(browser, homeCard, `${PUBLIC}/og/home.jpg`, OG, 'jpeg');
   for (const series of SERIES) {
