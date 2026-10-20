@@ -14,6 +14,9 @@ import { renderToString } from 'react-dom/server';
 
 import { readWords } from '../../vite/words';
 
+/** Every hymn's words as JSON, read once: the server's render and the page's bundle both take them. */
+export const words = JSON.stringify(readWords());
+
 plugin({
   name: 'hymnal-server-boundaries',
   setup(build) {
@@ -28,7 +31,7 @@ plugin({
       loader: 'js',
     }));
     build.module('virtual:hymnal', () => ({
-      contents: `export default ${JSON.stringify(readWords())};`,
+      contents: `export default ${words};`,
       loader: 'js',
     }));
   },

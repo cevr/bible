@@ -39,10 +39,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
 
-import { readWords } from '../../vite/words';
 import type { First } from './page';
 import { type ListName, lists } from './routes';
-import { render } from './server';
+import { render, words } from './server';
 import {
   type Cold,
   type Move,
@@ -76,7 +75,7 @@ const boundaries: BunPlugin = {
       namespace: 'hymnal',
     }));
     build.onLoad({ filter: /.*/, namespace: 'hymnal' }, () => ({
-      contents: `export default ${JSON.stringify(readWords())};`,
+      contents: `export default ${words};`,
       loader: 'js',
     }));
   },
@@ -633,39 +632,8 @@ describe('a list comes back where the reader left it', () => {
   });
 });
 
-describe('a list come back', () => {
-  for (const list of ['hymns', 'search'] as const) {
-    const other = list === 'hymns' ? 'search' : 'hymns';
-    for (const way of ['back', 'header', 'tab'] as const) {
-      it.concurrent(`the ${list} list, moved to its top as it is drawn back deep by ${way}, stays at its top`, async () => {
-        await using app = await open({ path: lists[list].path });
-        await app.scrollTo(20_000);
-        await app.settle(150);
-        if (way === 'tab') {
-          await app.tab(other);
-          await app.page.waitForFunction(
-            (path) => window.hymnal.on(path) && window.hymnal.place() !== undefined,
-            lists[other].path,
-          );
-        } else await app.press(list, 'later', 20_000);
-        const early = app.page.evaluate(() => window.hymnal.early());
-        await (way === 'back'
-          ? app.page.goBack()
-          : way === 'header'
-            ? app.page.getByText(`‹ ${lists[list].title}`, { exact: true }).click()
-            : app.tab(list));
-        const restored = await early;
-        await app.settle(150);
-        expect({ restored, top: (await app.place()).top, jumps: await app.jumps() }).toEqual({
-          restored: 20_000,
-          top: 0,
-          jumps: [],
-        });
-      });
-    }
-  }
-});
-
+// The cases run at once, each taking a page as one opens, in the order they are declared: the
+// longest first, so the short ones fill the last places and the run ends soon after its last page.
 describe('a list loaded cold hydrates the server’s list', () => {
   /**
    * On a page of its own in a window of `height`, loads the list cold once
@@ -730,6 +698,39 @@ describe('a list loaded cold hydrates the server’s list', () => {
           expect(await loads(list, height, part)).toEqual({ seed, misses: [] });
         });
       }
+    }
+  }
+});
+
+describe('a list come back', () => {
+  for (const list of ['hymns', 'search'] as const) {
+    const other = list === 'hymns' ? 'search' : 'hymns';
+    for (const way of ['back', 'header', 'tab'] as const) {
+      it.concurrent(`the ${list} list, moved to its top as it is drawn back deep by ${way}, stays at its top`, async () => {
+        await using app = await open({ path: lists[list].path });
+        await app.scrollTo(20_000);
+        await app.settle(150);
+        if (way === 'tab') {
+          await app.tab(other);
+          await app.page.waitForFunction(
+            (path) => window.hymnal.on(path) && window.hymnal.place() !== undefined,
+            lists[other].path,
+          );
+        } else await app.press(list, 'later', 20_000);
+        const early = app.page.evaluate(() => window.hymnal.early());
+        await (way === 'back'
+          ? app.page.goBack()
+          : way === 'header'
+            ? app.page.getByText(`‹ ${lists[list].title}`, { exact: true }).click()
+            : app.tab(list));
+        const restored = await early;
+        await app.settle(150);
+        expect({ restored, top: (await app.place()).top, jumps: await app.jumps() }).toEqual({
+          restored: 20_000,
+          top: 0,
+          jumps: [],
+        });
+      });
     }
   }
 });
