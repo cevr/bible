@@ -6,18 +6,12 @@
 import { For } from '@solidjs/web';
 import type { JSX } from '@solidjs/web';
 
-import { MARK_4_27, type Series, type Verse } from '../content.ts';
+import { MARK_4_27, type Series, UNITS, type Verse } from '../content.ts';
 import { CHANNEL } from '../site.ts';
 import { EMBLEMS, FIELD, MARK, NIGHT } from './art.ts';
 import { FOOTER_NAV_ID, NAV, SUBSCRIBE } from './nav.ts';
 
 export const seriesHref = (series: Series) => `/series/${series.slug}`;
-
-/** What a series' episodes are called, one and many. */
-const UNITS = {
-  'Cut-paper films': { one: 'film', many: 'films' },
-  Talks: { one: 'talk', many: 'talks' },
-} as const;
 
 export const unitOf = (series: Series) => UNITS[series.form].many;
 

@@ -33,13 +33,19 @@ export interface Part {
 
 export type SeriesId = 'path' | 'land' | 'taught' | 'remedies';
 
+/** What a series' episodes are called, one and many, by its form. */
+export const UNITS = {
+  'Cut-paper films': { one: 'film', many: 'films' },
+  Talks: { one: 'talk', many: 'talks' },
+} as const;
+
 export interface Series {
   readonly id: SeriesId;
   readonly slug: string;
   readonly name: string;
   /** What it is about, and what form it takes. */
   readonly subject: string;
-  readonly form: 'Cut-paper films' | 'Talks';
+  readonly form: keyof typeof UNITS;
   readonly verse: Verse;
   /** One sentence, for its card. */
   readonly line: string;
