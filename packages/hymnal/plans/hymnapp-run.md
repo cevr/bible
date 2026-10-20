@@ -35,6 +35,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Decisions
 
+- reader1 merged 2026-10-20 (5d339030e) after r3 `changes` (F1 hydration jump, F2 blank rows after a deep reopen, both web only, measured), instead of a rewrite. The reason is the owner's direction: "refine with the app rather than a component"; "I like to have more incremental changes here". Quality checks follow the app and never hold it for rounds on end (feedback-refine-in-the-app). Main gains the whole reader, which is better than its shell. F1 and F2 go to unit `listplace` on a new premise, with its property first. (reader1, listplace)
+
 - reader1 r3 (2026-10-20): hymn list rows are one line of fixed height, so Back restores any offset before the first paint, and a long title ends in "…". Measured: 1 title is cut at 402 px, about 10 at 375 px and 146 at 320 px. The full title stays in the row's label and on the hymn page. This is small and reversible, so the orchestrator decided it (smallest sufficient). The owner may ask for full titles; then rows are measured per title. (reader1)
 
 - Owner 2026-10-20: the hymnal plays the recordings in R2. Quote: "there should also be a player that plays the mp3s in r2". This is unit `player`, after reader1 and beside `palette`: play, pause, seek, a now-playing bar that persists, and background and lock-screen playback through One's `Audio`. (player)
