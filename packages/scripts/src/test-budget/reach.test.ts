@@ -9,17 +9,17 @@ const RUNNER = "import { test } from 'bun:test';\n";
 
 /**
  * How `scripts` (a workspace at `w`, `/repo/w`, its playwright configs
- * `configs`, the tracked files git ignores `gitIgnored`) reach each of
+ * `configs`, its `.gitignore` texts by folder `gitignores`) reach each of
  * `files` (paths from `w`), as `<file>: <script>`, or `none`.
  */
 const reaches = (
   scripts: Record<string, string>,
   files: ReadonlyArray<string>,
   configs: Record<string, string> = {},
-  gitIgnored: ReadonlyArray<string> = [],
+  gitignores: Record<string, string> = {},
 ) =>
   reachesIn(
-    [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitIgnored: new Set(gitIgnored) }],
+    [{ dir: 'w', absolute: '/repo/w', scripts, configs, gitignores }],
     files.map((file) => ({ file: `w/${file}`, text: RUNNER })),
   ).map(({ file, by }) => `${file.slice(2)}: ${Option.getOrElse(by, () => 'none')}`);
 
@@ -31,13 +31,13 @@ describe("a workspace's test files", () => {
       expect(
         reachesIn(
           [
-            { dir: 'w', absolute: '/repo/w', scripts: test, configs: {}, gitIgnored: new Set() },
+            { dir: 'w', absolute: '/repo/w', scripts: test, configs: {}, gitignores: {} },
             {
               dir: 'w/nested',
               absolute: '/repo/w/nested',
               scripts: {},
               configs: {},
-              gitIgnored: new Set(),
+              gitignores: {},
             },
           ],
           [
@@ -258,32 +258,48 @@ describe("a workspace's test files", () => {
             true,
             true,
           ]);
-        // A tracked file git ignores is not taken where playwright respects git's ignore
-        // rules: when the config says so, or sets neither respectGitIgnore nor testDir.
-        const ignoredBy = (text: string) =>
-          reaches(scripts, files, config(text), ['test/browser/a.spec.ts']);
-        for (const text of [
-          "export default { testDir: '.', respectGitIgnore: true };",
-          'export default { testMatch: /\\.ts$/ };',
-        ])
-          expect(ignoredBy(text)).toEqual([
-            'test/browser/a.spec.ts: none',
-            'test/browser/b.test.ts: test:browser',
-            'test/c.spec.ts: none',
-          ]);
+        // Where playwright respects git's ignore rules (the config says so, or sets neither
+        // respectGitIgnore nor testDir), it reads each .gitignore from its testDir down, by
+        // minimatch: a file one ignores is not taken.
+        const walk = (text: string, gitignores: Record<string, string>) =>
+          reaches(scripts, files, config(text), gitignores);
+        const spec = (a: string, b: string) => [
+          `test/browser/a.spec.ts: ${a}`,
+          `test/browser/b.test.ts: ${b}`,
+          'test/c.spec.ts: none',
+        ];
+        const on = "export default { testDir: '.', respectGitIgnore: true };";
+        expect(walk(on, { 'test/browser': 'a.spec.ts' })).toEqual(spec('none', 'test:browser'));
+        expect(
+          walk('export default { testMatch: /\\.ts$/ };', { 'test/browser': 'a.spec.ts' }),
+        ).toEqual(spec('none', 'test:browser'));
+        // An extglob git reads as a name, playwright as minimatch does.
+        expect(walk(on, { 'test/browser': '*.@(spec|xyz).ts' })).toEqual(
+          spec('none', 'test:browser'),
+        );
+        // A later negation takes a file back; a comment and a blank line set nothing.
+        expect(walk(on, { 'test/browser': '# all\n\n*.ts\n!b.test.ts' })).toEqual(
+          spec('none', 'test:browser'),
+        );
+        // A .gitignore above the testDir is not read; one in a folder above the file is.
+        expect(walk(on, { '': 'a.spec.ts' })).toEqual(spec('test:browser', 'test:browser'));
+        expect(
+          walk("export default { testDir: '..', respectGitIgnore: true };", { test: 'browser/' }),
+        ).toEqual(spec('none', 'none'));
+        // With the rules off, nothing a .gitignore says counts.
         for (const text of [
           "export default { testDir: '.' };",
           'export default { respectGitIgnore: false };',
         ])
-          expect(ignoredBy(text)).toEqual([
-            'test/browser/a.spec.ts: test:browser',
-            'test/browser/b.test.ts: test:browser',
-            'test/c.spec.ts: none',
-          ]);
-        expect(ignoredBy('export default { respectGitIgnore: flag };')).toEqual([
-          'test/browser/a.spec.ts: none',
-          'test/browser/b.test.ts: none',
-          'test/c.spec.ts: none',
+          expect(walk(text, { 'test/browser': 'a.spec.ts' })).toEqual(
+            spec('test:browser', 'test:browser'),
+          );
+        expect(walk('export default { respectGitIgnore: flag };', {})).toEqual(
+          spec('none', 'none'),
+        );
+        // Playwright enters no node_modules folder.
+        expect(reaches(scripts, ['test/browser/node_modules/x/a.spec.ts'], config(on))).toEqual([
+          'test/browser/node_modules/x/a.spec.ts: none',
         ]);
         // With no --config, playwright's own name in the workspace's folder.
         expect(
