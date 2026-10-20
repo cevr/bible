@@ -1,13 +1,13 @@
 # 01 · In Its Order
 
 Series: The Path of the Just · Tier One (Milk) · opener
-Promise: by the end the viewer knows what the Bible means by milk and meat, why growing is normal and glad, and the path the series will walk.
-Length: about 7:05 (786 spoken words: 5:04 at 155 wpm, about 5:34 with the marked breaths and holds, 4:46–5:14 at 165–150 wpm before the holds; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
+Promise: by the end the viewer knows what the Bible means by milk and meat, why growing is normal and glad, why its truths come in order (skip the first steps and we twist the rest), and the path the series will walk.
+Length: about 7:45 (884 spoken words: 5:42 at 155 wpm, about 6:16 with the marked breaths and holds, 5:21–5:54 at 165–150 wpm before the holds; plus title, beat leads and tails, about 30 s of music alone and 28 s of credits).
 Status: draft for the owner. Nothing narrated. Every KJV line below was printed by `bible verse` on 2026-10-10 and checked again on 2026-10-15 (supplied-word brackets dropped for speech); every paraphrase source was printed by the corpus search (sources.md). Wording revised 2026-10-15 to Christ's manner of speaking (series README, Language) and marked for delivery: `{*}` stress, `{/}` breath, `{//}` hold.
 
 ## Header (the `script.ts` comment, house style)
 
-The order: the joke (`cold`: a grown man at a feast with a baby's bottle; Hebrews says that to its readers), the title, then what milk is (`milk`: the plain word), which truths are the milk (`stones`: the six first principles of Heb 6:1–2, the series' first tier), the problem in one small dose (`bottle`, `teeth`: some never chew), the turn (`math`: meat leaves out nothing that was in the milk), what the meat is (`priest`: more of Christ, his priesthood now), how growth happens (`grain`, `eat`), the series map (`path`), and the landing back at the feast.
+The order: the joke (`cold`: a grown man at a feast with a baby's bottle; Hebrews says that to its readers), the title, then what milk is (`milk`: the plain word), which truths are the milk (`stones`: the six first principles of Heb 6:1–2, the series' first tier), the problem in one small dose (`bottle`, `teeth`: some never chew), its other side (`rush`: some skip the first steps and twist the rest, owner 2026-10-20), the turn (`math`: meat leaves out nothing that was in the milk), what the meat is (`priest`: more of Christ, his priesthood now), how growth happens (`grain`, `eat`), the series map (`path`), and the landing back at the feast.
 
 Motifs (CRAFT rule 4):
 
@@ -26,7 +26,7 @@ Tent poles (CRAFT rule 11), with their act's light and the question that opens t
 
 Registers: IDEA (parchment, flat figures, one gold prop) for `milk`, `stones`, `math`, `path`; STORY (cardboard diorama, faces) for `cold`, `bottle` (Corinth), `grain` (a field), `eat` (Jeremiah), `name`. The black moment is not in this film; its valley is a short dusk in `bottle`.
 
-Quoted Scripture: 10 passages, 149 of 786 spoken words (19.0 %; recounted 2026-10-20 after Proverbs 4:18 joined `path`; sources.md's verifier table holds the earlier count). One quotation per beat. 2 Peter 3:18 (`thesis`) is quoted from "Grow", its opening "But" dropped.
+Quoted Scripture: 11 passages, 161 of 884 spoken words (18.2 %; recounted 2026-10-20 after Proverbs 4:18 joined `path` and 2 Peter 3:16 `rush`; sources.md's verifier table holds the earlier count). One quotation per beat. 2 Peter 3:18 (`thesis`) is quoted from "Grow", its opening "But" dropped.
 
 ## Cast
 
@@ -41,7 +41,7 @@ Quoted Scripture: 10 passages, 149 of 786 spoken words (19.0 %; recounted 2026-1
 | The Corinthian church (casting.md #28) | crowd from the story crowd kit | shared | the crowd kit (casting.md 2.6) | `bottle` | two knots of figures arguing, fingers pointing (three-quarter), turning their backs (back), one from each knot offering a hand (profile) |
 | The sower (casting.md, parable figures) | parable figure | shared | listed, not drawn (P3) | `grain` | scattering seed in an arc from a seed bag (three-quarter), walking off (back); story cloth |
 | Jeremiah (casting.md #19) | Bible figure, supporting | shared | listed, not drawn (P3) | `eat` | seated with a scroll on his knees, reading (three-quarter), face lifting (front), laughing aloud (front, close); linen with a camel mantle |
-| The IDEA figures: the drinkers, the child at the slate, the eater and the watcher | plain figures (2.3) | series | the plain lead's sheet exists | `milk`, `stones`, `teeth`, `math`, `eat` | flat paper: a row of every height drinking from one cup; a baby grinning with one tooth; a child at a slate growing taller in three steps; one figure eating, one watching, then picking up a spoon |
+| The IDEA figures: the drinkers, the child at the slate, the toddler who runs, the one who skips the stones, the eater and the watcher | plain figures (2.3) | series | the plain lead's sheet exists | `milk`, `stones`, `teeth`, `math`, `eat` | flat paper: a row of every height drinking from one cup; a baby grinning with one tooth; a toddler running and sitting down hard; a figure hopping over the stones, then stepping back onto the first; a child at a slate growing taller in three steps; one figure eating, one watching, then picking up a spoon |
 
 Settings:
 
@@ -53,7 +53,7 @@ Settings:
 | A small room in Jerusalem | shared (Jeremiah's) | `eat` | lamplight |
 | The veil with gold light behind it (Tier Two's motif) | series | `priest` | gold behind the veil |
 | The series map: the long hill, the six stones at its foot, the path to the city | series | `path`, `thesis` | dawn |
-| The parchment page | series | `milk`, `stones`, `teeth`, `math`, `path`, `eat` (its close) | peach; dawn coming in `math` |
+| The parchment page | series | `milk`, `stones`, `teeth`, `rush`, `math`, `path`, `eat` (its close) | peach; dawn coming in `math` |
 
 Props:
 
@@ -61,7 +61,8 @@ Props:
 | --- | --- | --- |
 | The cup of milk and the loaf (the series' title motif; 02 brings the cup back) | series | `cold`, `title`, `milk`, `math`, `name` |
 | The baby's bottle | film | `cold`, `name` |
-| The six stones (Tier One's map) | series | `stones`, `priest`, `path`, `name` |
+| The six stones (Tier One's map) | series | `stones`, `rush`, `priest`, `path`, `name` |
+| The small book of the Bible's own words (a possible series motif, as-it-reads.md) | series | `rush` |
 | The gold cross whose light widens | series | `priest`, `path`, `name` |
 | The slate (the arc's 04b and 06b reuse it) | series | `math` |
 | The scroll with a gold seal | film | `cold` |
@@ -116,6 +117,17 @@ New to the library: the grown man's festive dress on the plain lead; the wedding
 **paraphrase sources (not spoken):**
 
 - MEDM September 1904, page 286.4 (E. J. Waggoner) — "By feeding on milk, babes develop teeth as they grow; and the appearance of teeth is an indication that now they must take solid food, instead of milk." → `teeth`, `sign`, `time`
+
+### `rush` · IDEA · ~34 s
+
+**say:** {other}There is a mistake on the other side, too. {/} {skip}Some reach for the strong meat before they have learned the milk, {run}like a child who tries to run before he can {*}walk. {/} {peter}Peter warns of things in Scripture “hard to be understood, which they that are unlearned and unstable wrest.” {/} {twist}To wrest is to twist. {/} {own}The Bible explains its own words, {/} and we learn them one at a time. {/} {fill}Skip those first steps, and we fill its words with meanings of our own, {want}until it says {*}what we wanted. {/} {order}That is why it serves its truth in {*}order.
+**cite:** 2 Peter 3:16; Ellen G. White, Education, 190; Ellen G. White, The Great Controversy, 520; Ellen G. White, The Bible Echo, August 26, 1895
+**picture:** IDEA: the parchment, the six stones from `stones` along the bottom. On `skip` a small grey figure hops over the stones without touching them and reaches for a heaped platter at the top of the page. On `run` a toddler figure sets off running, tips forward and sits down hard, unhurt, and gets up (a light moment). On `peter` a page of writing appears; on `twist` one line of it is wrung like a wet cloth, its letters bending. On `own` a small book opens beside the page, each word on the page linked to its entry in the book by a thin gold thread. On `fill` the figure who skipped writes over the empty entries in his own colour, and on `want` the page turns into a mirror and shows his face. On `order` the mirror clears to the page, and the figure steps back down onto the first stone.
+**paraphrase sources (not spoken):**
+
+- Ed 190.2 (Ellen G. White) — "The Bible is its own expositor. Scripture is to be compared with scripture." → `own`
+- GC 520.3 (Ellen G. White) — "the prevailing custom of wresting the Scriptures to support a favorite theory. Instead of carefully studying God’s word with humility of heart to obtain a knowledge of His will, many seek only to discover something odd or original." → `twist`, `want`
+- BEcho August 26, 1895, par. 7 (Ellen G. White) — "They interpret the Scriptures to suit themselves" → `fill`, `want`
 
 ### `math` · IDEA · ~38 s
 
@@ -181,14 +193,15 @@ New to the library: the grown man's festive dress on the plain lead; the wedding
 **picture:** STORY: the credits over the landing's last pull back, the wedding courtyard from above under the landing sky, the field and the hill beyond its wall, nothing breathing. The film's name and its sources roll up a torn paper strip at the left for about 22 s; then the strip goes and the courtyard holds clear for the end screens.
 **credits (from the beats' cite):**
 
-- Scripture (KJV): Hebrews 5:10–14; 6:1–2, 19–20; 8:1–2, 6; 4:9 · Proverbs 4:18 · 1 Peter 2:2 · 1 Corinthians 3:1–3 · Mark 4:26–28, 33 · Isaiah 28:9–10 · Jeremiah 15:16 · Psalm 34:8 · Ephesians 4:13–15 · 2 Peter 1:19; 3:18
+- Scripture (KJV): Hebrews 5:10–14; 6:1–2, 19–20; 8:1–2, 6; 4:9 · Proverbs 4:18 · 1 Peter 2:2 · 1 Corinthians 3:1–3 · 2 Peter 3:16 · Mark 4:26–28, 33 · Isaiah 28:9–10 · Jeremiah 15:16 · Psalm 34:8 · Ephesians 4:13–15 · 2 Peter 1:19; 3:18
 - E. J. Waggoner, The Present Truth, August 17, 1893, 315; January 31, 1895, 65; May 4, 1899, 277
 - E. J. Waggoner, The Medical Missionary, September 1904, 286
-- Ellen G. White, Gospel Workers, 315; Education, 105–106; Medical Ministry, 124; The Signs of the Times, June 25, 1902
+- Ellen G. White, Gospel Workers, 315; Education, 105–106, 190; The Great Controversy, 520; The Bible Echo, August 26, 1895; Medical Ministry, 124; The Signs of the Times, June 25, 1902
 
 ## Notes for the owner
 
 - Revised 2026-10-20 from the day's talk: `path` now speaks the series' own verse, Proverbs 4:18 (the title's name, "more and more unto the perfect day"); `grain` says the blade is perfect for its stage (Ed 105.3, the Christian perfection message's point) and that Jesus gave the word as they were able to hear it (Mark 4:33, which follows the grain parable; the message's point that God shows us as we can bear). The full case on perfection stays in 13b, Unto Perfection.
+- Added 2026-10-20 at the owner's word ("many mistakes come from rushing ahead without understanding clearly the foundational steps … it makes it very easy for us to come to conclusions that serve our own desires"): `rush`, the other side of `bottle`. Some skip the milk, and twist what they cannot yet understand (2 Pet 3:16). It plants the Bible's own dictionary (Ed 190.2), which As It Reads (as-it-reads.md) builds out, and it names the title's point: in its order.
 
 - The series' thesis comes from one Waggoner devotional page (MEDM September 1904, 286.4–286.8): milk is good and necessary; teeth signal solid food; leaving the first principles means using them combined; "the man who eats hard food … gets it all and more." The script stays inside those words.
 - `priest` names the meat as Hebrews names it (5:10–11 runs straight into 6:19–20 and 8:1–2). It shows Christ entering the veil and does not say where he ministers when; that belongs to Tier Two.
