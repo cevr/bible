@@ -85,6 +85,28 @@ export class HostFailed extends Schema.TaggedError<HostFailed>()('HostFailed', {
   }
 }
 
+/** The arguments did not parse: an unknown command or flag, a bad or missing value. */
+export class BadArguments extends Schema.TaggedError<BadArguments>()('BadArguments', {
+  /** The command path the parser reached, as `sim tap`. */
+  command: Schema.String,
+  /** Each problem the parser found, in its words. */
+  problems: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.command}: ${this.problems.join('; ')} (run ${this.command} --help)`;
+  }
+}
+
+/** A read-only check of the booted drive failed (`sim doctor`): which, and why. */
+export class Unhealthy extends Schema.TaggedError<Unhealthy>()('Unhealthy', {
+  check: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.check}: ${this.reason}`;
+  }
+}
+
 /** Any failure a command reports. */
 export const SimError = Schema.Union([
   NoSession,
@@ -95,5 +117,7 @@ export const SimError = Schema.Union([
   ToolFailed,
   NotOnPlatform,
   HostFailed,
+  BadArguments,
+  Unhealthy,
 ]);
 export type SimError = typeof SimError.Type;

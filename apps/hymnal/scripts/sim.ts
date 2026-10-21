@@ -6,20 +6,18 @@
  */
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
-import { Console, Effect, Layer, Path } from 'effect';
-import { Command } from 'effect/cli';
+import { Console, Effect, Layer, Path, Stdio } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 
-import { simCommand } from './sim/command.ts';
+import { runSim } from './sim/command.ts';
 
 const main = Effect.gen(function* () {
   const path = yield* Path.Path;
   const script = yield* path.fromFileUrl(new URL(import.meta.url));
   const app = path.dirname(path.dirname(script));
   const state = path.join(app, '..', '..', 'tmp', 'verify-hymnal');
-  return yield* Command.run(simCommand({ app, state: path.normalize(state), script }), {
-    version: '1.0.0',
-  });
+  const args = yield* Stdio.Stdio.pipe(Effect.flatMap((stdio) => stdio.args));
+  return yield* runSim({ app, state: path.normalize(state), script }, args);
 });
 
 // A command prints its own failure as its JSON result (stdout stays one JSON

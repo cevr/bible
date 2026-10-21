@@ -21,11 +21,10 @@ import {
   Sink,
   Stream,
 } from 'effect';
-import { Command } from 'effect/cli';
 import { HttpClient, HttpClientError } from 'effect/http';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
-import { simCommand } from './command.ts';
+import { runSim } from './command.ts';
 import type { Place } from './drive.ts';
 import { Result, type Session } from './result.ts';
 
@@ -143,13 +142,12 @@ const sim = (
     const console: Console.Console = {
       ...globalThis.console,
       log: (...line: ReadonlyArray<unknown>) => void printed.push(line.join(' ')),
+      error: () => {},
     };
     const exit = yield* Effect.exit(
-      Command.runWith(simCommand(place), { version: '1.0.0', renderErrors: false })([
-        ...args.map((arg) => arg.replace('{state}', state)),
-        '--state',
-        state,
-      ]).pipe(Effect.provideService(Console.Console, console)),
+      runSim(place, [...args.map((arg) => arg.replace('{state}', state)), '--state', state]).pipe(
+        Effect.provideService(Console.Console, console),
+      ),
     );
     return { exit, printed: printed.map((line) => decodeResult(line)) };
   }).pipe(Effect.provide(Layer.mergeAll(answers.layer, ServerDown)));
@@ -208,6 +206,74 @@ describe('sim commands', () => {
         error: { _tag: 'TargetMissing', target: 'label=Chords', platform: 'web' },
       });
       expect(answers.runs.some((run) => run.line.includes(' click '))).toBe(false);
+    }).pipe(Effect.provide(Host)),
+  );
+
+  it.scoped('a flag the command lacks prints BadArguments alone and runs nothing', () =>
+    Effect.gen(function* () {
+      const answers = standIn(() => ok());
+      const { exit, printed } = yield* sim(
+        ['tap', 'label=Hymns', '--bogus'],
+        answers,
+        Option.some('web'),
+      );
+      expect(Exit.isFailure(exit)).toBe(true);
+      expect(printed).toHaveLength(1);
+      expect(printed[0]).toMatchObject({
+        ok: false,
+        command: 'sim tap',
+        error: { _tag: 'BadArguments', problems: [expect.stringContaining('--bogus')] },
+      });
+      expect(answers.runs).toHaveLength(0);
+    }).pipe(Effect.provide(Host)),
+  );
+
+  it.scoped('a doctor whose server process is gone fails as Unhealthy at server-pid', () =>
+    Effect.gen(function* () {
+      const answers = standIn((line) => {
+        if (line.startsWith('kill -0')) return failed();
+        return ok();
+      });
+      const { exit, printed } = yield* sim(['doctor'], answers, Option.some('web'));
+      expect(Exit.isFailure(exit)).toBe(true);
+      expect(printed[0]).toMatchObject({
+        ok: false,
+        error: { _tag: 'Unhealthy', check: 'server-pid' },
+      });
+      expect(answers.runs.map((run) => run.line)).toEqual(['kill -0 4242']);
+    }).pipe(Effect.provide(Host)),
+  );
+
+  it.scoped('a doctor whose port another process holds fails as Unhealthy at port-owner', () =>
+    Effect.gen(function* () {
+      const answers = standIn((line) => {
+        if (line.startsWith('lsof')) return ok('999\n');
+        if (line.startsWith('ps')) return ok('1\n');
+        return ok();
+      });
+      const { exit, printed } = yield* sim(['doctor'], answers, Option.some('web'));
+      expect(Exit.isFailure(exit)).toBe(true);
+      expect(printed[0]).toMatchObject({
+        ok: false,
+        error: { _tag: 'Unhealthy', check: 'port-owner', reason: expect.stringContaining('999') },
+      });
+    }).pipe(Effect.provide(Host)),
+  );
+
+  it.scoped("a snapshot on the web keeps the page's accessibility tree", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const answers = standIn((line) => {
+        if (line.endsWith(' snapshot'))
+          return ok('- heading "Hymns"\n- link "100, Great Is Thy Faithfulness"\n');
+        return ok();
+      });
+      const { exit, printed } = yield* sim(['snapshot', 'list'], answers, Option.some('web'));
+      expect(Exit.isSuccess(exit)).toBe(true);
+      expect(printed[0]).toMatchObject({ ok: true, command: 'snapshot', detail: { lines: 2 } });
+      const file = `${printed[0]?.ok && printed[0].paths['snapshot']}`;
+      expect(file).toEndWith('/out/snapshots/list.txt');
+      expect(yield* fs.readFileString(file)).toContain('Great Is Thy Faithfulness');
     }).pipe(Effect.provide(Host)),
   );
 

@@ -27,6 +27,7 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import {
   HostFailed,
   NoSession,
+  Unhealthy,
   NotOnPlatform,
   SimulatorDown,
   TargetMissing,
@@ -336,6 +337,8 @@ const webSelector = (target: Target) => {
 
 const device = (args: ReadonlyArray<string>, limit = short) =>
   succeed('agent-device', [...args, '--session', DRIVER_SESSION], limit);
+/** The browser's launch flags: a drive never plays sound through the host's speakers. */
+const MUTED = '--mute-audio,--disable-audio-output';
 const browser = (args: ReadonlyArray<string>, limit = short) =>
   succeed('agent-browser', ['--session', DRIVER_SESSION, ...args], limit);
 
@@ -395,7 +398,7 @@ export const boot = Effect.fn('Sim.boot')(function* (place: Place, options: Boot
   yield* writeSession(place, session);
   if (options.platform === 'web')
     yield* browser(
-      ['open', `http://127.0.0.1:${options.port}/`],
+      ['--args', MUTED, 'open', `http://127.0.0.1:${options.port}/`],
       Duration.seconds(options.seconds),
     );
   return outcome(
@@ -439,12 +442,21 @@ const registerScheme = Effect.fn('Sim.registerScheme')(function* (file: string) 
   return true;
 });
 
-/** Build the checkout's Debug simulator app (prebuild first when `ios/` is missing); its path. */
-const buildApp = Effect.fn('Sim.buildApp')(function* (place: Place, out: string) {
+/**
+ * Build the checkout's Debug simulator app; its path. It prebuilds first
+ * when `ios/` is missing or `prebuild` asks: `ios/build/generated` holds the
+ * codegen pod install wrote, so an `ios/` whose `build/` was removed needs
+ * one too.
+ */
+const buildApp = Effect.fn('Sim.buildApp')(function* (
+  place: Place,
+  out: string,
+  prebuild: boolean,
+) {
   const fs = yield* FileSystem.FileSystem;
   const ios = `${place.app}/ios`;
   const hasIos = yield* fs.exists(`${ios}/Hymnal.xcworkspace`);
-  if (!hasIos)
+  if (prebuild || !hasIos)
     yield* succeed('bun', ['run', '--cwd', place.app, 'prebuild:native'], Duration.minutes(5));
   const registered = yield* registerScheme(plist(place));
   const args = [
@@ -495,12 +507,18 @@ const copyApp = Effect.fn('Sim.copyApp')(function* (given: string, out: string) 
   return { app, registered };
 });
 
-export const install = Effect.fn('Sim.install')(function* (
-  place: Place,
-  app: Option.Option<string>,
-  expect: string,
-  seconds: number,
-) {
+export interface InstallOptions {
+  /** A built app to install instead of building this checkout. */
+  readonly app: Option.Option<string>;
+  /** Run `one prebuild` before the build. */
+  readonly prebuild: boolean;
+  /** A target that shows once the app has drawn. */
+  readonly expect: string;
+  readonly seconds: number;
+}
+
+export const install = Effect.fn('Sim.install')(function* (place: Place, options: InstallOptions) {
+  const { app, expect, seconds } = options;
   const session = yield* readSession(place);
   if (session.platform === 'web')
     return yield* NotOnPlatform.make({ command: 'install', platform: 'web' });
@@ -508,7 +526,7 @@ export const install = Effect.fn('Sim.install')(function* (
   const started = yield* Clock.currentTimeMillis;
   const made = yield* Option.match(app, {
     onSome: (given) => copyApp(given, session.out),
-    onNone: () => buildApp(place, session.out),
+    onNone: () => buildApp(place, session.out, options.prebuild),
   });
   const builtMs = (yield* Clock.currentTimeMillis) - started;
   yield* succeed('xcrun', ['simctl', 'install', udid, made.app], Duration.minutes(2));
@@ -631,6 +649,52 @@ export const shot = Effect.fn('Sim.shot')(function* (place: Place, name: Option.
   return outcome(session.platform, { shot: file }, {});
 });
 
+/** Save the screen's accessibility tree as text under `<out>/snapshots`: what a step left on screen, by role and name. */
+export const snapshot = Effect.fn('Sim.snapshot')(function* (
+  place: Place,
+  name: Option.Option<string>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const session = yield* readSession(place);
+  const dir = `${session.out}/snapshots`;
+  yield* fs.makeDirectory(dir, { recursive: true });
+  const taken = yield* fs.readDirectory(dir);
+  const file = `${dir}/${Option.getOrElse(name, () => `snapshot-${taken.length + 1}`)}.txt`;
+  if (session.platform === 'ios') yield* booted(session);
+  const tree = yield* { ios: device, web: browser }[session.platform](['snapshot']);
+  yield* fs.writeFileString(file, tree);
+  return outcome(session.platform, { snapshot: file }, { lines: lines(tree) });
+});
+
+/** What `record` does: start a video, or stop and save it. */
+export const RECORD = ['start', 'stop'] as const;
+
+/**
+ * Record the screen: `start` begins `<out>/video/<name>.mp4` (the
+ * simulator) or `.webm` (the browser) through the driver, `stop` saves it.
+ * The browser starts muted, so its video has no sound.
+ */
+export const record = Effect.fn('Sim.record')(function* (
+  place: Place,
+  action: (typeof RECORD)[number],
+  name: Option.Option<string>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const session = yield* readSession(place);
+  if (session.platform === 'ios') yield* booted(session);
+  const run = { ios: device, web: browser }[session.platform];
+  if (action === 'stop') {
+    yield* run(['record', 'stop'], Duration.minutes(2));
+    return outcome(session.platform, {}, { action });
+  }
+  const dir = `${session.out}/video`;
+  yield* fs.makeDirectory(dir, { recursive: true });
+  const extension = { ios: 'mp4', web: 'webm' }[session.platform];
+  const file = `${dir}/${Option.getOrElse(name, () => 'journey')}.${extension}`;
+  yield* run(['record', 'start', file]);
+  return outcome(session.platform, { video: file }, { action });
+});
+
 /** The app log's file name: the simulator's unified log, or the page's console. */
 const LOG_NAME: Record<Platform, string> = { ios: 'app', web: 'console' };
 
@@ -688,4 +752,89 @@ export const down = Effect.fn('Sim.down')(function* (place: Place) {
   const kept = `${session.out}/session.json`;
   yield* fs.rename(sessionFile(place), kept);
   return outcome(session.platform, { session: kept }, { serverPid: session.serverPid });
+});
+
+// ---------------------------------------------------------------------------
+// The doctor: is this drive worth driving?
+
+/** The parent of `pid`, or none once the chain ends. */
+const parentOf = (pid: number) =>
+  Effect.map(attempt('ps', ['-o', 'ppid=', '-p', String(pid)], short), (done) => {
+    const parent = Number.parseInt(done.output.trim(), 10);
+    return Option.liftPredicate(parent, (ppid) => done.exitCode === 0 && ppid > 1);
+  });
+
+/** `pid` is `ancestor` or runs under it. */
+const descends = Effect.fn('Sim.descends')(function* (pid: number, ancestor: number) {
+  let at = Option.some(pid);
+  while (Option.isSome(at)) {
+    if (at.value === ancestor) return true;
+    at = yield* parentOf(at.value);
+  }
+  return false;
+});
+
+/** Lines of the dev server's log that report a failed request or build. */
+const FAILURE = /\b(error|failed|5\d\d)\b/i;
+
+/**
+ * Read-only checks of the booted drive, in order; the first that fails is
+ * the result (`Unhealthy` names it). Load above the core count fails
+ * nothing, but `timingsHold` says no timing of this drive claims anything.
+ */
+export const doctor = Effect.fn('Sim.doctor')(function* (place: Place) {
+  const fs = yield* FileSystem.FileSystem;
+  const session = yield* readSession(place);
+  const sick = (check: string, reason: string) => Effect.fail(Unhealthy.make({ check, reason }));
+  const alive = yield* attempt('kill', ['-0', String(session.serverPid)], short);
+  if (alive.exitCode !== 0)
+    return yield* sick('server-pid', `sim serve (pid ${session.serverPid}) is not running`);
+  const listening = yield* attempt(
+    'lsof',
+    ['-nP', `-iTCP:${session.port}`, '-sTCP:LISTEN', '-t'],
+    short,
+  );
+  const listeners = listening.output
+    .split('\n')
+    .map((line) => Number.parseInt(line.trim(), 10))
+    .filter((pid) => !Number.isNaN(pid));
+  const ours = yield* Effect.forEach(listeners, (pid) => descends(pid, session.serverPid));
+  if (!ours.includes(true))
+    return yield* sick(
+      'port-owner',
+      `port ${session.port} is held by ${listeners.join(', ') || 'nothing'}, not by sim serve (pid ${session.serverPid})`,
+    );
+  const status = yield* Effect.option(answers(session.port));
+  if (Option.isNone(status))
+    return yield* sick('server-answers', `http://127.0.0.1:${session.port}/ does not answer`);
+  if (session.platform === 'ios') yield* booted(session);
+  const server = `${session.out}/server.log`;
+  const serverText = yield* fs.readFileString(server);
+  const failures = serverText.split('\n').filter((line) => FAILURE.test(line));
+  if (failures.length > 0)
+    return yield* sick(
+      'server-log',
+      `${server} reports ${failures.length} failures, first: ${failures[0]}`,
+    );
+  const head = yield* succeed('git', ['-C', place.app, 'rev-parse', 'HEAD'], short);
+  const audio = yield* attempt('pmset', ['-g', 'assertions'], short);
+  const audioHolders = audio.output.split('\n').filter((line) => line.includes('audio-out')).length;
+  const load = yield* succeed('sysctl', ['-n', 'vm.loadavg'], short);
+  const cores = yield* succeed('sysctl', ['-n', 'hw.ncpu'], short);
+  const load1 = Number.parseFloat(load.replace(/[{}]/g, '').trim().split(/\s+/)[0] ?? 'NaN');
+  const ncpu = Number.parseInt(cores.trim(), 10);
+  return outcome(
+    session.platform,
+    { server },
+    {
+      head: head.trim(),
+      port: session.port,
+      serverPid: session.serverPid,
+      udid: session.udid,
+      audioHolders,
+      load: load1,
+      cores: ncpu,
+      timingsHold: load1 < ncpu,
+    },
+  );
 });

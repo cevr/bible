@@ -4,11 +4,15 @@
  * fails prints its tagged error and fails the command, so the process exits
  * non-zero.
  */
-import { Clock, Console, Effect, Schema } from 'effect';
-import { Argument, Command, Flag } from 'effect/cli';
+import { Clock, Console, Effect, Exit, Option, Schema } from 'effect';
+import { Argument, CliError, Command, Flag } from 'effect/cli';
 
 import {
   boot,
+  doctor,
+  RECORD,
+  record,
+  snapshot,
   down,
   install,
   DIRECTIONS,
@@ -21,7 +25,7 @@ import {
   shot,
   tap,
 } from './drive.ts';
-import { HostFailed, type SimError } from './errors.ts';
+import { BadArguments, HostFailed, type SimError } from './errors.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import { Failure, Platform, Success } from './result.ts';
 
@@ -119,6 +123,9 @@ export const simCommand = (place: Place) => {
         Flag.optional,
         Flag.withDescription('a built Hymnal.app to install instead of building this checkout'),
       ),
+      prebuild: Flag.Boolean('prebuild').pipe(
+        Flag.withDescription('run one prebuild first (ios/ is stale, or its build/ was removed)'),
+      ),
       expect: Flag.String('expect').pipe(
         Flag.withDefault('label=Hymns'),
         Flag.withDescription('a target that shows once the app has drawn'),
@@ -126,7 +133,16 @@ export const simCommand = (place: Place) => {
       timeout: seconds(180),
       state,
     },
-    (flags) => report('install', install(at(flags.state), flags.app, flags.expect, flags.timeout)),
+    (flags) =>
+      report(
+        'install',
+        install(at(flags.state), {
+          app: flags.app,
+          prebuild: flags.prebuild,
+          expect: flags.expect,
+          seconds: flags.timeout,
+        }),
+      ),
   ).pipe(Command.withDescription("Build this checkout's app, install it and launch it (iOS)"));
 
   const openCommand = Command.make(
@@ -172,9 +188,40 @@ export const simCommand = (place: Place) => {
     (flags) => report('shot', shot(at(flags.state), flags.name)),
   ).pipe(Command.withDescription('Save a screenshot under <out>/shots'));
 
+  const snapshotCommand = Command.make(
+    'snapshot',
+    {
+      name: Argument.String('name').pipe(
+        Argument.optional,
+        Argument.withDescription('the file name, without .txt'),
+      ),
+      state,
+    },
+    (flags) => report('snapshot', snapshot(at(flags.state), flags.name)),
+  ).pipe(Command.withDescription("Save the screen's accessibility tree under <out>/snapshots"));
+
+  const recordCommand = Command.make(
+    'record',
+    {
+      action: Argument.Literals('action', RECORD),
+      name: Argument.String('name').pipe(
+        Argument.optional,
+        Argument.withDescription('the video file name, without its extension (start only)'),
+      ),
+      state,
+    },
+    (flags) => report('record', record(at(flags.state), flags.action, flags.name)),
+  ).pipe(
+    Command.withDescription('Start a video of the screen under <out>/video, or stop and save it'),
+  );
+
   const logCommand = Command.make('log', { state }, (flags) =>
     report('log', log(at(flags.state))),
   ).pipe(Command.withDescription("Save the app's log since boot"));
+
+  const doctorCommand = Command.make('doctor', { state }, (flags) =>
+    report('doctor', doctor(at(flags.state))),
+  ).pipe(Command.withDescription('Check, read only, that the booted drive is worth driving'));
 
   const downCommand = Command.make('down', { state }, (flags) =>
     report('down', down(at(flags.state))),
@@ -195,9 +242,65 @@ export const simCommand = (place: Place) => {
       tapCommand,
       scrollCommand,
       shotCommand,
+      snapshotCommand,
+      recordCommand,
       logCommand,
+      doctorCommand,
       downCommand,
       serveCommand,
     ]),
   );
 };
+
+/** A parse failure (`ShowHelp` with the parser's errors), as opposed to a `--help` request. */
+const badArguments = (error: unknown): error is CliError.ShowHelp =>
+  CliError.isCliError(error) && error._tag === 'ShowHelp' && error.errors.length > 0;
+
+/**
+ * Run `sim <args>` so stdout holds one JSON result and nothing else. The
+ * parser prints its help as it fails, so the run's console lines are held
+ * until it ends: arguments that do not parse send the help to stderr and
+ * print a `BadArguments` result; any other run prints its lines (a result,
+ * or the help `--help` asked for) to stdout.
+ */
+export const runSim = (place: Place, args: ReadonlyArray<string>) =>
+  Console.consoleWith((console) =>
+    Effect.gen(function* () {
+      const lines: Array<string> = [];
+      const held: Console.Console = {
+        ...console,
+        log: (...parts: ReadonlyArray<unknown>) => void lines.push(parts.join(' ')),
+      };
+      const exit = yield* Command.runWith(simCommand(place), {
+        version: '1.0.0',
+        renderErrors: false,
+      })(args).pipe(
+        Effect.catchIf(badArguments, (help) =>
+          Effect.fail(
+            BadArguments.make({
+              command: help.commandPath.join(' '),
+              problems: help.errors.map((problem) => problem.message),
+            }),
+          ),
+        ),
+        Effect.provideService(Console.Console, held),
+        Effect.exit,
+      );
+      const bad = Option.filter(Exit.findErrorOption(exit), Schema.is(BadArguments));
+      if (Option.isNone(bad)) for (const line of lines) console.log(line);
+      else {
+        const error = bad.value;
+        for (const line of lines) console.error(line);
+        console.log(
+          encodeFailure({
+            ok: false,
+            command: error.command,
+            message: error.message,
+            error,
+            ms: 0,
+          }),
+        );
+      }
+      return yield* exit;
+    }),
+  );
