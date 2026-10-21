@@ -1173,6 +1173,55 @@ describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
   );
 });
 
+// O2 judges the page's give-up by what the page was told (orchestrator, after r3 part 6): a
+// phone's press restarts the offline run at its tell, in the order told, never at the press.
+describe('O2 by the acts the page was told (rw r3 part 7)', () => {
+  const rules = (w: World) => w.breaches.map((it) => it.rule);
+  // ios 227 and 818: a lock-screen play pressed in the same moment as the page's Pause, told
+  // after it. The page plays at the tell (a Resume), offline, and gives up 15 s on.
+  fixed(
+    'rw r3 part 7 (ios 227): a lock-screen play told after the page Pause, offline: Failed 15 s on is legal',
+    'ios',
+    { loadFor: () => 60_000, tellAfter: () => 300 },
+    (w) =>
+      Effect.gen(function* () {
+        w.connect(false);
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(3000);
+        w.press('play');
+        w.send(Command.Pause());
+        yield* w.run(1000);
+        // The page took the play's tell after its Pause: it waits on the load again.
+        expect(tag(w)).toBe('Loading');
+        // The world's reader paused after the press: the page cannot know it.
+        expect(w.wants).toBe(false);
+        expect(yield* w.until(() => tag(w) === 'Failed', 25_000)).toBe(true);
+      }),
+  );
+  // The attack on the change: a press the page was told of still restarts the run. Here the
+  // page is not handed the tell, so it gives up 15 s after the load, 5 s after the tell.
+  fixed(
+    'rw r3 part 7: a lock-screen play told 10 s into an offline load, unseen by the page: Failed 5 s on breaks O2',
+    'ios',
+    { loadFor: () => 60_000 },
+    (w) =>
+      Effect.gen(function* () {
+        w.connect(false);
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(10_000);
+        const listeners = w.remoteListeners.splice(0);
+        const pressed = w.t;
+        w.press('play');
+        yield* w.run(step);
+        w.remoteListeners.push(...listeners);
+        expect(yield* w.until(() => tag(w) === 'Failed', 10_000)).toBe(true);
+        expect(w.t - pressed).toBeLessThan(15_000 - span);
+        expect(rules(w)).toContain('O2 Failed with no cause');
+      }),
+    { judged: false },
+  );
+});
+
 // The oracle's repairs of round 2 (rw r2 M1 to M7): each world breaks the rule only by the
 // oracle's own fault, or the test body asks the device what a wrong page would.
 describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {

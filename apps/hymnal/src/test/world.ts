@@ -305,6 +305,13 @@ const initial = (platform: Platform, start: number) => ({
   acts: 0,
   /** When the JS side last learnt of an act, and of an act asking for sound. */
   toldAt: start,
+  /**
+   * The latest act the page knows: a page command at its send, a lock-screen press at its tell,
+   * a play at its ask (O2: a press the page was not told of starts no wait).
+   */
+  knownAct: start,
+  /** Whether the page was told the reader wants to hear the recording, in the order it was told (O2). */
+  toldWants: false,
   playTold: start,
   /** The latest pause: the reader's, the lock screen's or the device's own. */
   pauseAt: Number.NEGATIVE_INFINITY,
@@ -368,8 +375,12 @@ const initial = (platform: Platform, start: number) => ({
   /** Runs: silent and wanting; the same offline; the same online. */
   quiet: Number.NaN,
   offQuiet: Number.NaN,
-  /** Each start or break of the offline run, the latest two minutes: O2 reads it as of a read's sample. */
-  offQuietLog: new Array<{ readonly at: number; readonly since: number }>(),
+  /** The offline run by what the page was told the reader wants (O2). */
+  offTold: Number.NaN,
+  /** Each start or break of `offTold`, the latest two minutes: O2 reads it as of a read's sample. */
+  offToldLog: new Array<{ readonly at: number; readonly since: number }>(),
+  /** The latest landing the page knows of without a read: one it asked, or one a told press made. */
+  landedKnown: Number.NEGATIVE_INFINITY,
   onQuiet: Number.NaN,
   stops: 0,
   lastCommand: '',
@@ -469,8 +480,11 @@ export const makeWorld = (
       if (Math.abs(Math.min(from, w.length) - at) <= 2) w.fromPending = Option.none();
     });
   };
-  /** The device lands a seek at `to` (rounded to 1/600 s, as AVPlayer does). */
-  const land = (to: number) => {
+  /**
+   * The device lands a seek at `to` (rounded to 1/600 s, as AVPlayer does); `told` unless a
+   * press the page was not told of made it (Android's lock-screen seek, at its press).
+   */
+  const land = (to: number, told = true) => {
     const at = Math.max(0, Math.min(w.length, Math.round(to * 0.6) / 0.6));
     markLanded(at);
     w.landing = Option.none();
@@ -479,6 +493,7 @@ export const makeWorld = (
     // A landing breaks the sound's run, as the act that asked it does; a seek
     // still on its way is superseded, as a later seekTo supersedes it.
     w.landedAt = w.t;
+    if (told) w.landedKnown = w.t;
     w.place = at;
     // One says ended only once the device played to the end (didPlayToEndTime, iOS
     // HybridOneAudio.swift:148-152; OnCompletion, Android HybridOneAudio.kt:208-209), and a
@@ -695,6 +710,7 @@ export const makeWorld = (
       Effect.suspend(() => {
         w.plays.push({ t: w.t, from: fromMs });
         w.lastAct = w.t;
+        w.knownAct = w.t;
         w.acts += 1;
         w.fromPending = Option.liftPredicate(fromMs, (from) => from > 0);
         w.playAsk = w.fromPending;
@@ -845,6 +861,9 @@ export const makeWorld = (
     count(`D9 ${command._tag}`);
     if (insideClose(w.phase)) count(`act inside D5 ${w.phase}`);
     w.toldAt = w.t;
+    w.knownAct = w.t;
+    if (asksSound(command)) w.toldWants = true;
+    if (command._tag === 'Pause') w.toldWants = false;
     w.acts += 1;
     if (asksSound(command)) w.playTold = w.t;
     registry.set(player.send, command);
@@ -870,7 +889,7 @@ export const makeWorld = (
     // MediaPlayer seeks only once prepared (One catches the refusal and tells nothing,
     // HybridOneAudio.kt:999-1001; the world draws the wider case, told but not moved).
     if (kind === 'seek' && platform === 'android' && holding(w.phase) && w.ready) {
-      land(to);
+      land(to, false);
       completed(false);
     }
   };
@@ -886,6 +905,9 @@ export const makeWorld = (
    */
   const tellNow = (kind: Press, to: number, pressedAt: number) => {
     w.toldAt = w.t;
+    w.knownAct = w.t;
+    if (kind === 'play') w.toldWants = true;
+    if (kind === 'pause') w.toldWants = false;
     w.acts += 1;
     if (kind === 'play') w.playTold = Math.max(w.playTold, pressedAt);
     if (kind === 'play' && !phone) w.playTold = w.t;
@@ -1062,6 +1084,7 @@ export const makeWorld = (
     w.phase = 'paused';
     w.pauseAt = w.t;
     w.wants = false;
+    w.toldWants = false;
   };
 
   /** The item turns ready: a refused seek to the place it starts at is where the device is. */
@@ -1078,6 +1101,7 @@ export const makeWorld = (
     // device says it paused itself, and the reader is owed no sound.
     if (w.pausedEarly) {
       w.wants = false;
+      w.toldWants = false;
       w.pauseAt = w.t;
     }
     w.ahead = Math.max(w.ahead, 1500);
@@ -1159,6 +1183,7 @@ export const makeWorld = (
     w.phase = 'ended';
     w.endedAt = w.t + step;
     w.wants = false;
+    w.toldWants = false;
     count('D13 ended');
   };
   /** The device through one step. */
@@ -1183,12 +1208,14 @@ export const makeWorld = (
     w.soundSince = keepRun(w.soundSince, soundPhase(w.phase), w.t);
     const quiet = w.wants && silentPhase(w.phase);
     w.quiet = keepRun(w.quiet, quiet, w.t);
-    const offQuiet = keepRun(w.offQuiet, quiet && !w.online, w.t);
-    if (!Object.is(offQuiet, w.offQuiet)) {
-      w.offQuietLog.push({ at: w.t, since: offQuiet });
-      if (w.offQuietLog.length > 1000) w.offQuietLog.splice(0, 500);
+    w.offQuiet = keepRun(w.offQuiet, quiet && !w.online, w.t);
+    // O2 judges the page's give-up by what it was told: a press counts at its tell, in order.
+    const offTold = keepRun(w.offTold, w.toldWants && silentPhase(w.phase) && !w.online, w.t);
+    if (!Object.is(offTold, w.offTold)) {
+      w.offToldLog.push({ at: w.t, since: offTold });
+      if (w.offToldLog.length > 1000) w.offToldLog.splice(0, 500);
     }
-    w.offQuiet = offQuiet;
+    w.offTold = offTold;
     w.onQuiet = keepRun(w.onQuiet, quiet && w.online, w.t);
   };
 
@@ -1265,12 +1292,21 @@ export const makeWorld = (
       onNone: () => w.t,
       onSome: (read) => read.sampleAt,
     });
+    // The run starts again at an act the page knows (a press at its tell, never at the press),
+    // and at a landing it knows: one it asked or a told press made, or one a read sampled.
+    const landed = Math.max(
+      w.landedKnown,
+      Option.getOrElse(
+        Option.liftPredicate(w.landedAt, (at) => at <= sampled),
+        () => Number.NEGATIVE_INFINITY,
+      ),
+    );
     // A run broken at the sample (NaN) has held for no time.
     const offQuietFor = Option.getOrElse(
       Option.filter(
         Option.map(
-          Arr.findLast(w.offQuietLog, (it) => it.at <= sampled),
-          (it) => sampled - Math.max(it.since, w.lastAct, w.landedAt),
+          Arr.findLast(w.offToldLog, (it) => it.at <= sampled),
+          (it) => sampled - Math.max(it.since, w.knownAct, landed),
         ),
         (held) => !Number.isNaN(held),
       ),
