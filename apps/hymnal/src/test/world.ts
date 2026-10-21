@@ -1476,6 +1476,8 @@ export const makeWorld = (
     shownSince: (from: number) => w.history.filter((it) => it.t >= from).map((it) => it.tag),
     /** The device as One's `Audio` gives it to the adapter: the world tests read it directly. */
     audio,
+    /** The seam the player calls, judged as it is: the world tests call it as a wrong page would. */
+    playback: seam,
     story,
     note,
     dispose: () => registry.dispose(),

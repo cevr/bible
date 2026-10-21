@@ -1198,6 +1198,78 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         expect(yield* w.until(() => tag(w) === 'Playing', 15_000)).toBe(true);
       }),
   );
+  // A play answers the latest Resume told before it, by that Resume's places alone (r1 m1):
+  // a Resume from Paused asks no play, so its place does not wait for a later one. Here two
+  // such Resumes, from 1:00 and from the place 10 s on, and then a play from 1:00 as a wrong
+  // page would ask it.
+  fixed(
+    'rw r1 m1: two Resumes from Paused, then a play from the first one: O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        w.send(Command.Pause());
+        yield* w.run(1000);
+        const first = Option.getOrThrow(w.readerPlace);
+        const plays = w.plays.length;
+        w.send(Command.Resume());
+        yield* w.run(10_000);
+        w.send(Command.Pause());
+        yield* w.run(1000);
+        w.send(Command.Resume());
+        yield* w.run(1000);
+        expect(w.plays.length).toBe(plays);
+        expect(rules(w)).toEqual([]);
+        yield* Effect.forkChild(Effect.ignore(w.playback.play('wrong', first)));
+        yield* w.run(1000);
+        expect(rules(w)).toContain('O6 a Resume played from another place');
+      }),
+    { judged: false },
+  );
+  // A tell of the connection between the turning read's sample and its answer breaks the run
+  // (r1 m2): the page reads the connection at the answer. The first world waits offline until
+  // the page turns Failed, at a read's answer; the second, the same world, has the link back
+  // in that read's window: a page that turns Failed there has no cause. Under mutant
+  // `online-gives-up` the second world breaks O2.
+  it.effect(
+    'rw r1 m2: offline Buffering, the link back between the turning read sample and its answer: no rule broken',
+    () =>
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClockWith(Effect.succeed);
+        const start = yield* Clock.currentTimeMillis;
+        const waiting = (back: (w: World) => boolean) =>
+          Effect.gen(function* () {
+            const w = makeWorld(
+              'ios',
+              clock,
+              { ...fixedKnobs, lag: () => 600, sample: () => 0.1 },
+              start,
+            );
+            yield* playing(w);
+            w.connect(false);
+            w.stall(120_000);
+            expect(yield* w.until(() => tag(w) === 'Buffering', 10_000)).toBe(true);
+            const from = w.t;
+            yield* w.until(() => back(w) || tag(w) === 'Failed', 30_000);
+            if (back(w)) w.connect(true);
+            yield* w.run(3000);
+            w.dispose();
+            return { w, from };
+          });
+        const first = yield* waiting(() => false);
+        const turned = Option.getOrThrow(
+          Arr.findFirst(first.w.history, (it) => it.tag === 'Failed'),
+        );
+        const read = Option.getOrThrow(
+          Arr.findFirst(first.w.answered, (it) => it.answered === turned.t),
+        );
+        expect(read.answered - read.sampleAt).toBeGreaterThanOrEqual(500);
+        const second = yield* waiting((w) => w.t === read.sampleAt + step);
+        expect(second.w.onlineToldAt).toBeLessThan(read.answered);
+        expect(report(0, second.w)).toEqual([]);
+      }),
+  );
   // A read asked before an act cannot start P4's wait, even when it samples after the act
   // (android 351: press 15,550, read asked 15,300, sampled 15,700): the wait starts at the
   // first read asked after it. The press is told at that read's answer (D8), and one read's
