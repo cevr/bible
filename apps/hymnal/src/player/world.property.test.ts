@@ -1118,6 +1118,10 @@ describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
   seed('Playing with no sound, the part 5 O1 class', 'android', 72);
   seed('Playing with no sound, the part 5 O1 class', 'web', 122);
 
+  // O2 (orchestrator, after part 5): a landing restarts P4's wait, also at the place the device
+  // already stood at.
+  seed('offline, a seek refused while loading lands again at the place stood', 'ios', 889);
+
   /** Lags drawn in order, then 50 ms: the answers they time come in the order the test wants. */
   const lags = (first: ReadonlyArray<number>) => {
     const queue = [...first];

@@ -246,9 +246,9 @@ interface Answered {
  * act is still the pending one, known by the ask, and the answer's place
  * lies in the window, or when an answer asked since the latest act says
  * `ended`. An answer may come after later commands: an act known after its
- * ask is not the one it answers. A landing onto the place the device
- * already stood at keeps the silence run; one that moved it breaks the run.
- * The answer opens the next pair only if it was asked since the latest act:
+ * ask is not the one it answers. A landing is the device's answer to the
+ * reader's act, so it breaks the silence run and starts the wait again (P4),
+ * also onto the place the device already stood at. The answer opens the next pair only if it was asked since the latest act:
  * its status is the device's after the landing, never a sound pair's end.
  */
 export const answered = (proof: Proof, answer: Read, target: number): Answered => {
@@ -265,18 +265,13 @@ export const answered = (proof: Proof, answer: Read, target: number): Answered =
     return at >= to - slack && at <= to + slack + (answer.answered - pending.known);
   });
   if (!lands) return { proof, landed: false };
-  const after = Option.flatMap(proof.pending, (it) => it.after);
-  const quiet = Option.exists(after, (it) => pairOf(it, answer) === 'silence');
   return {
     proof: {
       ...proof,
       landed: answer.answered,
       pending: Option.none(),
       last: Option.liftPredicate(answer, () => fresh),
-      quietFrom: Option.flatMap(
-        Option.liftPredicate(after, () => quiet && fresh),
-        (it) => Option.orElse(proof.quietFrom, () => Option.map(it, (read) => read.answered)),
-      ),
+      quietFrom: Option.none(),
     },
     landed: true,
   };
