@@ -198,10 +198,17 @@ const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): P
   const outside = Option.filter(pending.seen, (before) =>
     Option.exists(pending.outside, (it) => it === before),
   );
-  // A device at that read's place stood still: no landing came between.
+  // A device at that read's place stood still: no landing came between. Unless the place lies
+  // past the target by no more than the time since that read's ask: then the device may have
+  // landed and sounded back up to it.
   const stood = Option.exists(
     outside,
-    (before) => Math.abs(read.status.positionMs - before.status.positionMs) <= slack,
+    (before) =>
+      Math.abs(read.status.positionMs - before.status.positionMs) <= slack &&
+      !(
+        before.status.positionMs > pending.target + slack &&
+        before.status.positionMs - pending.target - slack <= read.answered - before.asked
+      ),
   );
   // A refused device stands where it stood: it comes onto the place only by sound from short
   // of it, or by a phone's press that moves it there itself.
