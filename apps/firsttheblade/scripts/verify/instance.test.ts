@@ -1,12 +1,12 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Cause, Clock, Config, Effect, FileSystem, Layer, Schema, Stream } from 'effect';
+import { Cause, Clock, Config, Duration, Effect, FileSystem, Layer, Schema, Stream } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { ChildProcessSpawner } from 'effect/process';
 
-import { answersCheck } from './doctor.ts';
+import { ANSWER_WITHIN, answersCheck } from './doctor.ts';
 import { failed, failureLine } from './drive.ts';
-import { awaitReady, cwdIs, launch, previewCommand } from './instance.ts';
+import { READY, awaitReady, cwdIs, launch, previewCommand } from './instance.ts';
 import { LaunchRecord } from './model.ts';
 
 const services = Layer.mergeAll(BunServices.layer, FetchHttpClient.layer);
@@ -17,6 +17,28 @@ const silentOrigin = Effect.acquireRelease(
     // oxlint-disable-next-line effect/noGlobals -- a raw socket that never answers, which no Effect service offers.
     Bun.listen({ hostname: '127.0.0.1', port: 0, socket: { data: () => {} } }),
   ),
+  (server) => Effect.sync(() => server.stop(true)),
+).pipe(Effect.map((server) => `http://127.0.0.1:${server.port}`));
+
+/** A server that takes its first connection and never answers it, then answers 200. */
+const stallsOnceOrigin = Effect.acquireRelease(
+  Effect.sync(() => {
+    let seen = 0;
+    // oxlint-disable-next-line effect/noGlobals -- a raw socket that stalls once, which no Effect service offers.
+    return Bun.listen({
+      hostname: '127.0.0.1',
+      port: 0,
+      socket: {
+        open: () => {
+          seen += 1;
+        },
+        data: (socket) => {
+          if (seen < 2) return;
+          socket.end('HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n');
+        },
+      },
+    });
+  }),
   (server) => Effect.sync(() => server.stop(true)),
 ).pipe(Effect.map((server) => `http://127.0.0.1:${server.port}`));
 
@@ -40,6 +62,27 @@ describe('the verify instance', () => {
         expect((yield* Clock.currentTimeMillis) - started).toBeLessThan(2500);
       }),
     4000,
+  );
+
+  it.scopedLive.layer(services)(
+    'ends a try that stalls at its own deadline, so the next try is ready',
+    () =>
+      Effect.gen(function* () {
+        const origin = yield* stallsOnceOrigin;
+        yield* awaitReady(origin, Effect.never, '/no/log', {
+          each: '200 millis',
+          within: '3 seconds',
+        });
+      }),
+    5000,
+  );
+
+  it.effect('holds the deadlines the skill states: 1 s a try, 20 s a wait, 5 s a request', () =>
+    Effect.sync(() => {
+      expect(Duration.toMillis(Duration.fromInputUnsafe(READY.each))).toBe(1000);
+      expect(Duration.toMillis(Duration.fromInputUnsafe(READY.within))).toBe(20_000);
+      expect(Duration.toMillis(Duration.fromInputUnsafe(ANSWER_WITHIN))).toBe(5000);
+    }),
   );
 
   it.scopedLive.layer(services)(
@@ -118,6 +161,7 @@ describe('the verify instance', () => {
       );
       const error = yield* Effect.flip(launch(root, 8612));
       expect(error._tag).toBe('Refused');
+      expect(error.message).toContain('holds a running preview');
       expect(yield* fs.readFileString(`${root}/launch.json`)).toContain(String(record.pid));
     }),
   );

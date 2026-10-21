@@ -2113,3 +2113,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** `SKILL.md` and the not-found feature offered a stage as a way to verify, and only the proof's README said no stage had been deployed.
 - **Cause:** Not recorded.
 - **Guard:** skill: whether a helper has been proven is a fact of a run, not of the code. Carried by `.claude/skills/verify-firsttheblade/SKILL.md`: "The stage is unproven: no `agent-` stage has been deployed by this helper; report its first run as such."
+
+### verify-try-deadline-untested
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "no test holds the per-try deadline that SKILL.md states"
+- **Source:** verify-ftb/round-2-findings.md F1
+- **Wrong:** With the per-try `Effect.timeout` removed, a first try that stalled held the wait until its outer deadline, and every test stayed green because the outer deadline ended it as `NotReady` too.
+- **Cause:** The tests ended in `NotReady` either way, so neither deadline was told apart.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `ends a try that stalls at its own deadline, so the next try is ready`
+
+### verify-refusal-reason-unasserted
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the F4 test also passes on a refusal from the port check"
+- **Source:** verify-ftb/round-2-findings.md F2
+- **Wrong:** The busy-root test asserted only `Refused`, which the port check also answers, so it held with the root check removed.
+- **Cause:** Two checks answer the same tag, and the test read the tag alone.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `refuses a root whose preview still runs`
+
+### verify-production-deadlines-untested
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "no test holds the production deadlines, because the tests pass their own through test-only parameters"
+- **Source:** verify-ftb/round-2-findings.md F3
+- **Wrong:** The deadline tests passed short deadlines of their own, so `READY` or `ANSWER_WITHIN` could grow to minutes with every test green.
+- **Cause:** The defaults were parameters' defaults that no test read.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `holds the deadlines the skill states: 1 s a try, 20 s a wait, 5 s a request`

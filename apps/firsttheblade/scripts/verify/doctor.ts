@@ -46,7 +46,7 @@ const newestUnder = Effect.fn('Verify.newestUnder')(function* (dir: string) {
 });
 
 /** How long the doctor gives each request. */
-const ANSWER_WITHIN: Duration.Input = '5 seconds';
+export const ANSWER_WITHIN: Duration.Input = '5 seconds';
 
 /** The pages an instance answers, each request under `within`. */
 export const answersCheck = Effect.fn('Verify.answersCheck')(function* (

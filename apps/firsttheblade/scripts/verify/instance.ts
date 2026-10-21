@@ -43,7 +43,7 @@ export interface ReadyDeadlines {
   readonly within: Duration.Input;
 }
 
-const READY: ReadyDeadlines = { each: '1 second', within: '20 seconds' };
+export const READY: ReadyDeadlines = { each: '1 second', within: '20 seconds' };
 
 /** A command's whole output, and its exit code. */
 export const run = Effect.fn('Verify.run')(function* (
