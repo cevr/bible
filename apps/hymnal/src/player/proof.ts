@@ -348,11 +348,20 @@ export const readOf = (proof: Proof, read: Read, takenAt = Number.NEGATIVE_INFIN
     Option.map(proof.pending, (it) => it.target),
     () => proof.place,
   );
-  const stray = Option.flatMap(reader, (at) =>
-    Arr.findFirst(
-      proof.superseded,
-      (it) => Math.abs(read.status.positionMs - it) <= slack && Math.abs(at - it) > slack,
-    ).pipe(Option.map((it) => ({ it, at }))),
+  // Only a move no sound since the read before explains: sound passes such places too.
+  const jumped = Option.exists(
+    Option.orElse(proof.last, () => Option.flatMap(proof.pending, (it) => it.seen)),
+    (before) =>
+      read.status.positionMs < before.status.positionMs - slack ||
+      read.status.positionMs > before.status.positionMs + (read.answered - before.asked) + slack,
+  );
+  const stray = Option.flatMap(
+    Option.filter(reader, () => jumped),
+    (at) =>
+      Arr.findFirst(
+        proof.superseded,
+        (it) => Math.abs(read.status.positionMs - it) <= slack && Math.abs(at - it) > slack,
+      ).pipe(Option.map((it) => ({ it, at }))),
   );
   if (Option.isSome(stray))
     return {
