@@ -2033,3 +2033,83 @@ The form of an entry, each field on its own line:
 - **Wrong:** The test for a held lab held `initialize`, so the session's end never ran, and removing the end's time limit left it green.
 - **Cause:** The guard held the first request only, and no case let the lab open a session and then hold its end.
 - **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
+
+### verify-ready-wait-no-deadline
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the readiness wait and the doctor's requests have no deadline"
+- **Source:** verify-ftb/round-1-findings.md F1
+- **Wrong:** `verify:launch` and `verify:drive` retried the home page 200 times with no limit on one try, and the doctor's requests had none either, so a preview that took the connection and never answered held both forever instead of ending in `NotReady` or `DoctorFailed`.
+- **Cause:** The retry counted tries, not time, and a fetch waits as long as its own limit allows.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `fails a preview that takes the connection and never answers as NotReady, within its wait`; `apps/firsttheblade/scripts/verify/instance.test.ts` `fails at once as NotReady when the preview exits before it answers`; `apps/firsttheblade/scripts/verify/instance.test.ts` `fails the doctor's answers check on a request that never answers`
+
+### verify-preview-reads-root-env
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the preview child process is started without `--no-env-file`"
+- **Source:** verify-ftb/round-1-findings.md F2
+- **Wrong:** The preview was spawned as `bun <entry>` in the scratch root, so a `.env` put in the root gave it `MAIL_ADMIN_TOKEN`, though its comment said no secret reaches a run.
+- **Cause:** The scripts ran with `--no-env-file`, but the child they spawned did not, and Bun reads `.env` from its working directory.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `starts the preview with no root's .env read`
+
+### verify-failed-step-keeps-token
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "a failed browser step can keep the confirm URL, with its token, in the proof"
+- **Source:** verify-ftb/round-1-findings.md F3
+- **Wrong:** A failed step's message and the line its `failed` step kept were Playwright's own words, which name the confirm URL with its live token.
+- **Cause:** `redactTokens` covered letters and step URLs, not error messages.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `keeps no token in a failed step's message or its kept line`
+
+### verify-launch-clobbers-root
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`verify:drive` (or a second `verify:launch`) in a root that already holds a running preview overwrites its `launch.json`"
+- **Source:** verify-ftb/round-1-findings.md F4
+- **Wrong:** A second launch in a root checked only its port, then wrote its record over the first preview's, which `verify:stop` could then no longer find.
+- **Cause:** The skill stated "a root with no preview running", and no code held it.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `refuses a root whose preview still runs`
+
+### verify-hold-counts-capture
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the hold check measures time that includes the evidence capture"
+- **Source:** verify-ftb/round-1-findings.md F5
+- **Wrong:** The confirm journey timed the skeleton's hold from the link's load to after its own screenshot, ARIA snapshot and `steps.json`, so a slow capture could pass a hold cut to 250 ms.
+- **Cause:** The time was read on the drive's clock around its own work, not on the page's.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/drive.ts` `markHold`; `apps/firsttheblade/scripts/verify/drive.ts` `heldOn` (a build with the hold at 250 ms fails `verify:drive confirm` at "the skeleton held 260 ms")
+
+### verify-leave-runs-mail-send
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`features/leave.md` tells the reader to run `mail:send`, which defaults to prod and reads the real `.env`, and the file contradicts itself"
+- **Source:** verify-ftb/round-1-findings.md F6
+- **Wrong:** The leave feature's preconditions and step 2 told a verifier to send a film with `mail:send`, which sends to prod's list with the real admin token unless its origin is given.
+- **Cause:** Not recorded.
+- **Guard:** skill: whether a verifier runs a command is a choice no check sees. Carried by `.claude/skills/verify-firsttheblade/features/leave.md`: "`mail:send` defaults to prod's origin and loads `.env`: never run it in a verify run until a helper owns the send."
+
+### verify-stop-cwd-substring
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`stop` matches the root's directory by substring"
+- **Source:** verify-ftb/round-1-findings.md F7
+- **Wrong:** `verify:stop` took a PID whose directory began with the root's path, such as `<root>2`, as that root's preview.
+- **Cause:** The `lsof` output was searched with `includes`, not read line by line.
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `reads a root's directory from lsof by the whole path`
+
+### verify-stage-unproven-unsaid
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the skill offers `verify:stage up` with no note that it is unproven"
+- **Source:** verify-ftb/round-1-findings.md F8
+- **Wrong:** `SKILL.md` and the not-found feature offered a stage as a way to verify, and only the proof's README said no stage had been deployed.
+- **Cause:** Not recorded.
+- **Guard:** skill: whether a helper has been proven is a fact of a run, not of the code. Carried by `.claude/skills/verify-firsttheblade/SKILL.md`: "The stage is unproven: no `agent-` stage has been deployed by this helper; report its first run as such."
