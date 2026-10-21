@@ -256,8 +256,6 @@ interface Held {
   wants: Intent;
   proof: Proof.Proof;
   seeking: Option.Option<{ readonly to: number; asking: boolean }>;
-  /** From when a read may land the place asked: +Infinity once the device refused it, until it is asked again; a move onto the place lands it whatever this says. */
-  takenAt: number;
   id: number;
   announced: number;
 }
@@ -276,7 +274,6 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
     wants: 'play',
     proof: Proof.none,
     seeking: Option.none(),
-    takenAt: Number.NEGATIVE_INFINITY,
     id: 0,
     announced: -1,
   };
@@ -311,29 +308,37 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           const asked = yield* now;
           const status = yield* device.status;
           const read = { asked, answered: yield* now, status };
-          held.proof = Proof.readOf(held.proof, read, held.takenAt).proof;
+          held.proof = Proof.readOf(held.proof, read).proof;
         }).pipe(Effect.catchTag('PlaybackError', () => Effect.void));
-        /** The device took the place asked of it. */
-        const taken = Effect.sync(() => (held.seeking = Option.none()));
-        /** The place a seek asks, asked of the device until it takes it. */
+        /**
+         * The device answered the ask for `to` ms, asked at `asked`: the act lands
+         * when the answer's place is in its window (`Proof.answered`), and the
+         * place is asked no more. An answer outside it leaves the place asked.
+         */
+        const answeredAt = (asked: number, to: number) => (status: Status) =>
+          Effect.flatMap(now, (at) =>
+            Effect.sync(() => {
+              held.proof = Proof.answered(held.proof, { asked, answered: at, status }, to).proof;
+              if (Option.isNone(held.proof.pending)) held.seeking = Option.none();
+            }),
+          );
+        /** The place a seek asks, asked of the device until an answer lands it. */
         const askSeek = (to: number) =>
-          Effect.suspend(() => {
+          Effect.gen(function* () {
             const seeking = { to, asking: true };
             held.seeking = Option.some(seeking);
-            held.takenAt = Number.NEGATIVE_INFINITY;
-            return device.seek(to).pipe(
-              Effect.tap(() => taken),
+            const asked = yield* now;
+            yield* device.seek(to).pipe(
+              Effect.flatMap(answeredAt(asked, to)),
               Effect.catchTag('PlaybackError', (error) =>
                 Effect.logWarning('player.seek.refused').pipe(
-                  Effect.tap(() => Effect.sync(() => (held.takenAt = Number.POSITIVE_INFINITY))),
                   Effect.annotateLogs({ to, message: error.message }),
                 ),
               ),
               Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
-              Effect.asVoid,
             );
           });
-        /** A seek the device refused, or one a newer command cut off, asked again while it holds the recording. */
+        /** A seek the device refused, answered outside its window, or one a newer command cut off, asked again while it holds the recording. */
         const askAgain = (status: Status) =>
           Option.match(
             Option.filter(
@@ -410,14 +415,9 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           if (quiet >= Duration.toMillis(stand))
             return buffering(quiet >= Duration.toMillis(giveUpAfter) && !offline());
           return Player.$match(was, {
-            // A landing moved the device: sound before it was at the old place, so Playing
-            // waits for a pair after it.
-            Playing: () =>
-              Match.value(seen).pipe(
-                Match.when('landed', () => buffering(false)),
-                Match.when('superseded', () => buffering(false)),
-                Match.orElse(() => Player.Playing({ track, at, length })),
-              ),
+            // An act turned Playing to Buffering when the page learnt of it: a page still
+            // Playing has seen no act since its sound pair.
+            Playing: () => Player.Playing({ track, at, length }),
             // Under the stand the wait is under 15 s: no Retry.
             Buffering: () => buffering(false),
             Loading: () => Player.Loading({ track }),
@@ -452,7 +452,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             const asked = yield* now;
             const status = yield* device.status;
             const read = { asked, answered: yield* now, status };
-            const next = Proof.readOf(held.proof, read, held.takenAt);
+            const next = Proof.readOf(held.proof, read);
             held.proof = next.proof;
             const answer = yield* Effect.when(Deferred.await(answered), Deferred.isDone(answered));
             if (Option.contains(answer, false)) {
@@ -460,23 +460,14 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               return false;
             }
             if (next.seen === 'stale') return true;
-            // The device landed a seek a later act replaced: the reader's place is asked again.
-            if (next.seen === 'superseded')
-              held.seeking = Option.map(next.proof.pending, ({ target }) => ({
-                to: target,
-                asking: false,
-              }));
             yield* askAgain(status);
             // A give-up lets the recording go: the reads end, whether the ask answered or not.
             let gaveUp = false;
             const done = yield* Match.value(status.state).pipe(
               Match.when('failed', () => Effect.as(show(failed(track)), true)),
-              // A seek from the end still pending keeps the reads on until it lands.
+              // An end lands every act.
               Match.when('ended', () =>
-                Effect.as(
-                  show(Player.Ended({ track, length: lengthOf(status) })),
-                  next.seen !== 'pending',
-                ),
+                Effect.as(show(Player.Ended({ track, length: lengthOf(status) })), true),
               ),
               Match.when('idle', () => Effect.as(show(Player.Idle()), true)),
               Match.when('paused', () =>
@@ -575,15 +566,18 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           Effect.gen(function* () {
             held.wants = 'play';
             held.id += 1;
-            held.proof = Proof.loaded(yield* now, fromMs);
+            const asked = yield* now;
+            held.proof = Proof.loaded(asked, fromMs);
             const seeking = { to: fromMs, asking: true };
             held.seeking = Option.liftPredicate(seeking, () => fromMs > 0);
-            held.takenAt = Number.NEGATIVE_INFINITY;
             yield* show(Player.Loading({ track }));
-            const played = device.play(audioUrl(track.number), fromMs).pipe(
-              Effect.tap(() => taken),
-              Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
-            );
+            // The play's answer lands it: past 0, the adapter answers with its seek's answer.
+            const played = device
+              .play(audioUrl(track.number), fromMs)
+              .pipe(
+                Effect.tap(answeredAt(asked, fromMs)),
+                Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
+              );
             yield* ask(track, played, (error) =>
               Effect.logWarning('player.play.failed').pipe(
                 Effect.annotateLogs({ track: track.number, message: error.message }),
@@ -638,11 +632,9 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 const again = Option.filter(status, holdsRecording);
                 if (Option.isNone(again)) return yield* load(track, 0);
                 held.wants = 'play';
-                // The followed place supersedes any seek still asked from before the end, and
-                // the device is there already: no refusal stands in its way.
+                // The followed place supersedes any seek still asked from before the end.
                 held.seeking = Option.none();
-                held.takenAt = Number.NEGATIVE_INFINITY;
-                held.proof = Proof.acted(held.proof, asked, Option.some(again.value.positionMs));
+                held.proof = Proof.followed(held.proof, asked, again.value.positionMs);
                 yield* show(
                   Player.Buffering({
                     track,

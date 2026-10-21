@@ -82,18 +82,18 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   place stayed within 2 ms and both say `loading` or `playing`, whatever the
   gap; they prove sound when the place moved on and the second says
   `playing`. An act (a page command, a lock-screen press, a play from a
-  place) that moves the device is pending until a read shows its landing:
-  a place from its target to its target plus the time since the page learnt
-  of it, or since the ask of the latest read that saw the device elsewhere,
-  each within 2 ms (One rounds a place). A device that stands where such a
-  read saw it has not landed, and one that refused the place lands only by
-  coming onto it. A device that is not playing at the place it stood at
-  before the act has not landed either. A seek a later act replaced may
-  still land (an iOS lock-screen seek runs on AVPlayer before the item is
-  ready, while One refuses the page's own): a read there that sound since
-  the read before cannot explain puts the reader's place pending again,
-  and the player asks it once more. No pair is taken across an act, no length of a gap and no count of
-  reads proves anything, and the player alone owns the waits; the adapter
+  place) that moves the device is pending until it lands, and a read's
+  place never lands it: One answers a seek only at its completion, so the
+  act lands at the answer of the page's seek (or of a play's seek) when the
+  answer's place lies from its target (clamped to the length) to the target
+  plus the time since the page learnt of it, each within 2 ms (One rounds a
+  place), or the answer says `ended`. A read of `ended` lands every act. A
+  lock-screen seek with a place is the page's own seek, asked again; a seek
+  the device refused, answered outside its window, or a newer command cut
+  off is asked again while the device holds the recording. Two reads at one
+  place still prove silence while an act is pending.
+  No pair is taken across an act or while one is pending, no length of a
+  gap and no count of reads proves anything, and the player alone owns the waits; the adapter
   asks a play's place again while the device holds the recording, and never
   gives up by its own clock.
 - The rules. **P1:** after each act that asks for sound (Start, Resume, the
