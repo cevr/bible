@@ -2003,3 +2003,33 @@ The form of an entry, each field on its own line:
 - **Wrong:** The design doc gave the plain figures' baby no source for its 2.0 heads, and restated the child's band as 0.67.
 - **Cause:** The owner decided the baby's heads in chat, and the doc line was written before his decision was relayed.
 - **Guard:** skill: an owner's decision is words, which no check reads. Carried by `.claude/skills/film/reference/character-design.md`: "the plain figures' baby at 2.0 heads, as the owner kept it"
+
+### interrupted-handshake-orphans-session
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "an interrupted handshake leaves the lab a session no one ends"
+- **Source:** p6-casttools/round-2-findings.md F1
+- **Wrong:** The lab client's comment said an interrupted handshake leaves no session to end, though the lab may have opened one whose answer the interrupt dropped.
+- **Cause:** The lab names a session only in its answer, and its transport keeps no expiry, so a session whose answer never reached the client stays until the lab restarts.
+- **Guard:** none: the transport's missing expiry predates the unit and is its own work; one idle session per held handshake until the lab restarts, as a killed client leaves. The comment in `packages/film/src/tools/lab-client.ts` names it.
+
+### publish-limit-holds-the-session-end
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`film publish` can discard a listing it received, and can take 10 s while it says 5 s"
+- **Source:** p6-casttools/round-2-findings.md F2
+- **Wrong:** `film publish` printed the listing unknown when the lab answered `sets` and then held the session's DELETE.
+- **Cause:** The 5 s limit wrapped the scope, so it counted the session's end as well as the call.
+- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
+
+### session-end-limit-unguarded
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the F7 guard does not cover the release's time limit"
+- **Source:** p6-casttools/round-2-findings.md F3
+- **Wrong:** The test for a held lab held `initialize`, so the session's end never ran, and removing the end's time limit left it green.
+- **Cause:** The guard held the first request only, and no case let the lab open a session and then hold its end.
+- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
