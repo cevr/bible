@@ -1173,6 +1173,31 @@ describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
   );
 });
 
+describe('the player by the world: the part 6 sweep (rw r3 part 7)', () => {
+  /** One seed of `platform`, 90 s as the seeded case draws it: the rules it broke. */
+  const seed = (name: string, platform: Platform, at: number) =>
+    it.effect(`${name} (${platform} ${at}) breaks no rule`, () =>
+      Effect.gen(function* () {
+        expect((yield* seeded(platform, at, 1)).broken).toEqual([]);
+      }),
+    );
+
+  // One read in flight: a command takes the read it finds in flight, and none cuts a fresh
+  // read's answer off, so an end the device gave reaches the page.
+  seed('a command while a read that says ended is in flight', 'ios', 668);
+  seed('a command while a read that says ended is in flight', 'ios', 1359);
+  // A seek past the end while Ended: the play goes from 0:00, not from beyond the end.
+  seed('a seek past the end, then Resume', 'ios', 539);
+  // A lock-screen seek told while a Resume from Ended still reads: the play goes to the seek.
+  seed('a lock-screen seek while a Resume from Ended reads', 'ios', 222);
+  seed('a lock-screen seek while a Resume from Ended reads', 'ios', 1341);
+  seed('a Resume with a place the page kept', 'ios', 911);
+  seed('a Resume with a place the page kept', 'ios', 1441);
+  seed('a Resume with a place the page kept', 'android', 1259);
+  seed('a Resume with a place the page kept', 'android', 1454);
+  seed('a play from a place past the end', 'web', 711);
+});
+
 // O2 judges the page's give-up by what the page was told (orchestrator, after r3 part 6): a
 // phone's press restarts the offline run at its tell, in the order told, never at the press.
 describe('O2 by the acts the page was told (rw r3 part 7)', () => {

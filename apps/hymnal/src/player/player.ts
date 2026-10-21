@@ -270,6 +270,8 @@ interface Held {
   proof: Proof.Proof;
   seeking: Option.Option<{ readonly to: number; asking: boolean }>;
   moving: Option.Option<Fiber.Fiber<unknown, unknown>>;
+  reading: Option.Option<Deferred.Deferred<Proof.Read, PlaybackError>>;
+  resuming: boolean;
   id: number;
   announced: number;
 }
@@ -283,14 +285,17 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
   /**
    * What the player holds across the commands: the reader's intent, what the
    * reads have proved, the place a seek still asks the device for (and
-   * whether that ask is in flight), the ask that moves the device, and the
-   * recording's count and the count it was announced at.
+   * whether that ask is in flight), the ask that moves the device, the read
+   * in flight, whether a Resume from Ended still reads the device before it
+   * acts, and the recording's count and the count it was announced at.
    */
   const held: Held = {
     wants: 'play',
     proof: Proof.none,
     seeking: Option.none(),
     moving: Option.none(),
+    reading: Option.none(),
+    resuming: false,
     id: 0,
     announced: -1,
   };
@@ -321,13 +326,58 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               Player.Buffering({ track: was.track, at: was.at, length: was.length, retry: false }),
             );
           });
+        /**
+         * One status read, run in the player's scope: reads are one at a time (D7), so a read
+         * a command finds in flight is the one it takes, and a command that cuts off the reads
+         * before it never drops an answer the device gave.
+         */
+        const readDevice = Effect.suspend(() =>
+          Option.match(held.reading, {
+            onSome: Deferred.await,
+            onNone: () =>
+              Effect.gen(function* () {
+                const done = yield* Deferred.make<Proof.Read, PlaybackError>();
+                held.reading = Option.some(done);
+                const reading = Effect.gen(function* () {
+                  const asked = yield* now;
+                  const status = yield* device.status;
+                  return { asked, answered: yield* now, status };
+                }).pipe(
+                  // A read is taken while in flight: once answered, the next read is asked anew.
+                  Effect.onExit(() =>
+                    Effect.sync(() => {
+                      if (Option.exists(held.reading, (it) => it === done))
+                        held.reading = Option.none();
+                    }),
+                  ),
+                  Effect.exit,
+                  Effect.flatMap((exit) => Deferred.done(done, exit)),
+                );
+                yield* Effect.forkIn(reading, answers, { startImmediately: true });
+                return yield* Deferred.await(done);
+              }),
+          }),
+        );
+        /**
+         * A read asked since the latest act, and since any answer that said `ended` unless it says
+         * `ended` too: one asked before either may show the device before it, so the device is
+         * read again.
+         */
+        const readFresh = Effect.filterOrElse(
+          readDevice,
+          (read) =>
+            read.asked >= held.proof.known &&
+            (read.status.state === 'ended' || read.asked >= held.proof.endedAt),
+          () => readDevice,
+        );
         /** One read, taken into the proof and shown nowhere; a refused read changes nothing. */
-        const lastLook = Effect.gen(function* () {
-          const asked = yield* now;
-          const status = yield* device.status;
-          const read = { asked, answered: yield* now, status };
-          held.proof = Proof.readOf(held.proof, read).proof;
-        }).pipe(Effect.catchTag('PlaybackError', () => Effect.void));
+        const lastLook = readFresh.pipe(
+          Effect.tap((read) =>
+            Effect.sync(() => (held.proof = Proof.readOf(held.proof, read).proof)),
+          ),
+          Effect.asVoid,
+          Effect.catchTag('PlaybackError', () => Effect.void),
+        );
         /**
          * The device answered the ask for `to` ms, asked at `asked`: the act lands
          * when the answer's place is in its window (`Proof.answered`), and the
@@ -496,9 +546,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
          */
         const readOnce = (track: Track, answered: Deferred.Deferred<boolean>) =>
           Effect.gen(function* () {
-            const asked = yield* now;
-            const status = yield* device.status;
-            const read = { asked, answered: yield* now, status };
+            const read = yield* readFresh;
+            const status = read.status;
             const next = Proof.readOf(held.proof, read);
             held.proof = next.proof;
             const answer = yield* Effect.when(Deferred.await(answered), Deferred.isDone(answered));
@@ -621,6 +670,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         const load = (track: Track, fromMs: number) =>
           Effect.gen(function* () {
             held.wants = 'play';
+            held.resuming = false;
             held.id += 1;
             const asked = yield* now;
             held.proof = Proof.loaded(asked, fromMs);
@@ -688,9 +738,11 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 // device moves on from it no faster than time passes); a device still at its
                 // end plays the recording again, from the place of a seek asked since the end
                 // (an end leaves no place, so with none from 0:00).
-                const asked = yield* now;
-                const status = yield* device.status.pipe(Effect.option);
-                const again = Option.filter(status, holdsRecording);
+                // A command that cuts this Resume off before it acts carries its play (`seek`).
+                held.resuming = true;
+                const read = yield* readFresh.pipe(Effect.option);
+                held.resuming = false;
+                const again = Option.filter(read, (it) => holdsRecording(it.status));
                 if (Option.isNone(again))
                   return yield* load(
                     track,
@@ -700,11 +752,15 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 // The followed place supersedes any seek still asked from before the end.
                 held.seeking = Option.none();
                 yield* cut;
-                held.proof = Proof.followed(held.proof, asked, again.value.positionMs);
+                held.proof = Proof.followed(
+                  held.proof,
+                  again.value.asked,
+                  again.value.status.positionMs,
+                );
                 yield* show(
                   Player.Buffering({
                     track,
-                    at: seconds(again.value.positionMs),
+                    at: seconds(again.value.status.positionMs),
                     length,
                     retry: false,
                   }),
@@ -721,6 +777,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         const pause = (track: Track) =>
           Effect.gen(function* () {
             held.wants = 'pause';
+            held.resuming = false;
             if (letGo(current)) return;
             if (Player.$is('Loading')(current)) {
               // The device may have sounded since the last read: one more read before it lets
@@ -750,6 +807,9 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             // The device lands a seek past the end at the end.
             const end = Option.getOrElse(lengthIn(current), () => Number.POSITIVE_INFINITY);
             const ms = Math.min(Math.max(0, to), end) * 1000;
+            // A Resume from Ended cut off before it asked the device: told in this order, the
+            // reader plays from the sought place.
+            if (held.resuming && Player.$is('Ended')(current)) return yield* load(track, ms);
             yield* act(Option.some(ms));
             if (letGo(current)) {
               yield* show(

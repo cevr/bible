@@ -350,10 +350,10 @@ const initial = (platform: Platform, start: number) => ({
   seeks: new Array<number>(),
   /** Whether a phone's press is acting now, before its tell. */
   pressing: false,
-  /** When the page last sent a command. */
-  sentAt: Number.NEGATIVE_INFINITY,
-  /** When the reader last pressed the lock screen (a phone's act). */
-  pressedAt: Number.NEGATIVE_INFINITY,
+  /** The act count at the page's latest command: it orders acts in one ms too. */
+  sentAct: 0,
+  /** The act count at the reader's latest lock-screen press (a phone's act). */
+  pressedAct: 0,
   /** When the reader last sought, and when the Resume the next play answers was pressed or sent. */
   seekAt: Number.NEGATIVE_INFINITY,
   resumeAt: Number.NEGATIVE_INFINITY,
@@ -498,8 +498,8 @@ export const makeWorld = (
     // One says ended only once the device played to the end (didPlayToEndTime, iOS
     // HybridOneAudio.swift:148-152; OnCompletion, Android HybridOneAudio.kt:208-209), and a
     // seek's completion clears it (:204, :302): a paused device stays paused at the end, and
-    // plays to it, so ends, when resumed.
-    if (w.place >= w.length && w.phase === 'paused') return;
+    // plays to it, so ends, when resumed. A failed device plays nothing, so never ends.
+    if (w.place >= w.length && (w.phase === 'paused' || w.phase === 'failed')) return;
     if (w.place >= w.length) {
       w.phase = 'ended';
       w.endedAt = w.t;
@@ -721,7 +721,9 @@ export const makeWorld = (
         const resumed = places.length > 0;
         w.firstFrom = Option.filter(w.fromPending, () => resumed);
         const from = Math.min(fromMs, w.length);
-        if (resumed && !places.some((place) => near(from, place)))
+        // A place at the recording's end is its end: a play from there is from 0:00 (P8).
+        const legal = (place: number) => near(from, place) || (place >= w.length && from === 0);
+        if (resumed && !places.some(legal))
           breach(
             'O6 a Resume played from another place',
             `from=${fromMs} reader=${places.join('/')}`,
@@ -779,19 +781,29 @@ export const makeWorld = (
     // Whether the device stands at its end: it ended, and no landing, load or replay has moved
     // it since (a pause or a failure leaves it there). World truth, never the page's tag.
     // A read or a seek's answer must have sampled it ended: an end nothing sampled is one the
-    // page cannot know. A reader's seek since that sample is the reader's place, landed or
-    // refused (P7); a seek the device clamped to its end is sampled at its answer.
+    // page cannot know. A reader's seek since the end is the reader's place, landed or refused
+    // (P7), though a read since still says `ended`; a seek the device clamped to its end ends
+    // it at its landing, after the seek.
     w.endedBefore =
       w.endedAt > Number.NEGATIVE_INFINITY &&
       w.endedAt >= Math.max(w.landedAt, w.loadAt, w.leftEndAt) &&
       w.endedSampled >= w.endedAt &&
-      w.seekAt <= w.endedSampled;
+      w.seekAt <= w.endedAt;
     w.lastAct = w.t;
     w.acts += 1;
     // The first sound after a later act is that act's, not a play's from before it.
     w.firstFrom = Option.none();
     w.endedSeen = false;
     w.endedSaid = false;
+  };
+  /**
+   * A seek the page knows of after a Resume whose play has not gone yet: the reader's latest
+   * word is that place, so the play may go there.
+   */
+  const seekAfterResume = (to: number) => {
+    Option.map(Arr.last(w.resumePlaces), (last) => {
+      w.resumePlaces[w.resumePlaces.length - 1] = [...last, to];
+    });
   };
   const askSeek = (asked: number) => {
     w.seekAt = w.t;
@@ -804,7 +816,10 @@ export const makeWorld = (
       reported: false,
     });
     // The page learns a phone's press at its tell: its place joins the legal ones there.
-    if (!w.pressing) w.seeks.push(Math.max(0, asked));
+    if (!w.pressing) {
+      w.seeks.push(Math.max(0, asked));
+      seekAfterResume(to);
+    }
     w.readerPlace = Option.some(to);
     w.unseenFrom = Option.none();
     // A later seek is the place the device goes to, not a play's from before it. The play's
@@ -829,7 +844,7 @@ export const makeWorld = (
     note(`send ${told(command)}`);
     noteAct();
     w.playAsk = Option.none();
-    w.sentAt = w.t;
+    w.sentAct = w.acts;
     w.lastCommand = command._tag;
     Command.$match(command, {
       Start: () => {
@@ -970,6 +985,7 @@ export const makeWorld = (
     const pressedAt = w.t;
     w.pressing = true;
     pressed(kind, to);
+    const pressedAct = w.acts;
     w.pressing = false;
     pressPhone(kind, to);
     // An iOS seek pressed before acts at its tell, which the page gets first: its place is
@@ -993,8 +1009,11 @@ export const makeWorld = (
         // The page acts on tells in order: a seek told after a page command it could not
         // know of is the page's latest seek, so its place is the reader's from here.
         // A later press is told later still, and is the latest then.
-        if (kind === 'seek' && w.sentAt > pressedAt && w.pressedAt <= pressedAt) askSeek(to);
-        else if (kind === 'seek') w.seeks.push(Math.max(0, to));
+        if (kind === 'seek' && w.sentAct > pressedAct && w.pressedAct <= pressedAct) askSeek(to);
+        else if (kind === 'seek') {
+          w.seeks.push(Math.max(0, to));
+          seekAfterResume(Math.min(w.length, Math.max(0, to)));
+        }
         // The page plays at this tell (Resume), so a device that paused itself since the press
         // (D12) sounds again: the reader's latest word is still the play.
         if (kind === 'play' && w.readerPausedAt < pressedAt) w.wants = true;
@@ -1012,7 +1031,7 @@ export const makeWorld = (
   /** What the reader's press is to the world: an act, and what the reader wants. */
   const pressed = (kind: Press, to: number) => {
     noteAct();
-    w.pressedAt = w.t;
+    w.pressedAct = w.acts;
     w.lastCommand = pressCommand(kind);
     if (kind === 'play') wantSound();
     // The web's and an iOS seek's press acts at the tell, so it is known in order there.

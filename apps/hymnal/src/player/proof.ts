@@ -19,9 +19,10 @@
  * - nothing otherwise, though a place that moved on more than 2 ms shows
  *   the device sounded at some instant between them.
  *
- * A read asked before the latest act is stale. One asked before the answer
- * that landed it may show the device before the landing: it pairs with
- * nothing, though its `ended` still lands. An act that moves the device to a
+ * A read asked before the latest act is stale, and so is one asked before
+ * an answer that said `ended`: it may show the device before its end. One
+ * asked before the answer that landed the act may show the device before the
+ * landing: it pairs with nothing, though its `ended` still lands. An act that moves the device to a
  * place is pending until it lands, and a read's place never lands it:
  * One answers the page's seek only at the seek's completion (iOS
  * `HybridOneAudio.swift:198-207`, Android `HybridOneAudio.kt:293-304`, the
@@ -58,6 +59,8 @@ export interface Proof {
   readonly known: number;
   /** When the page had the answer that landed the latest act: a read asked before pairs with nothing. */
   readonly landed: number;
+  /** When the page had an answer that said `ended` since the latest act: a read asked before is stale. */
+  readonly endedAt: number;
   readonly pending: Option.Option<Pending>;
   /** The read the next read pairs with. */
   readonly last: Option.Option<Read>;
@@ -82,6 +85,7 @@ export interface Proved {
 export const none: Proof = {
   known: Number.NEGATIVE_INFINITY,
   landed: Number.NEGATIVE_INFINITY,
+  endedAt: Number.NEGATIVE_INFINITY,
   pending: Option.none(),
   last: Option.none(),
   quietFrom: Option.none(),
@@ -208,6 +212,7 @@ const placed = (after: Proved, read: Read): Proved => {
 export const readOf = (proof: Proof, read: Read): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
   if (read.status.state === 'ended') return { proof: ended(proof), seen: 'nothing' };
+  if (read.asked < proof.endedAt) return { proof, seen: 'stale' };
   if (read.asked < proof.landed) return { proof, seen: 'nothing' };
   return Option.match(proof.pending, {
     onNone: () => placed(paired(proof, read), read),
@@ -253,7 +258,8 @@ interface Answered {
  */
 export const answered = (proof: Proof, answer: Read, target: number): Answered => {
   const fresh = answer.asked >= proof.known;
-  if (answer.status.state === 'ended' && fresh) return { proof: ended(proof), landed: true };
+  if (answer.status.state === 'ended' && fresh)
+    return { proof: { ...ended(proof), endedAt: answer.answered }, landed: true };
   if (answer.status.state === 'ended') return { proof, landed: false };
   const lands = Option.exists(proof.pending, (pending) => {
     if (Math.abs(pending.target - target) > slack || pending.known > answer.asked) return false;
