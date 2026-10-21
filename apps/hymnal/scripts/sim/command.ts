@@ -14,6 +14,7 @@ import {
   record,
   snapshot,
   down,
+  fill,
   install,
   DIRECTIONS,
   log,
@@ -162,6 +163,17 @@ export const simCommand = (place: Place) => {
     report('tap', tap(at(flags.state), flags.target, flags.timeout)),
   ).pipe(Command.withDescription('Tap an element by accessibility id or label'));
 
+  const fillCommand = Command.make(
+    'fill',
+    {
+      target,
+      value: Argument.String('value').pipe(Argument.withDescription('the text to type')),
+      timeout: seconds(10),
+      state,
+    },
+    (flags) => report('fill', fill(at(flags.state), flags.target, flags.value, flags.timeout)),
+  ).pipe(Command.withDescription('Type into a text field by accessibility id or label'));
+
   const scrollCommand = Command.make(
     'scroll',
     {
@@ -240,6 +252,7 @@ export const simCommand = (place: Place) => {
       installCommand,
       openCommand,
       tapCommand,
+      fillCommand,
       scrollCommand,
       shotCommand,
       snapshotCommand,

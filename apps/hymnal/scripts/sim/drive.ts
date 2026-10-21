@@ -313,26 +313,54 @@ const serverUp = Effect.fn('Sim.serverUp')(function* (
 interface Target {
   readonly by: 'id' | 'label';
   readonly value: string;
+  /** The element's role, when a name alone matches more than one (`link`, `button`). */
+  readonly role: Option.Option<string>;
 }
 
-/** `id=<testID>` or `label=<accessibility label>`; a bare word is a label. */
+/**
+ * `id=<testID>` or `label=<accessibility label>`; a bare word is a label.
+ * A leading `role=<role> ` narrows it to elements of that role, as
+ * `role=link label=100, Great Is Thy Faithfulness`.
+ */
 export const parseTarget = (text: string): Target => {
   const unquote = (value: string) => value.replace(/^"(.*)"$/s, '$1');
-  if (text.startsWith('id=')) return { by: 'id', value: unquote(text.slice(3)) };
-  if (text.startsWith('label=')) return { by: 'label', value: unquote(text.slice(6)) };
-  return { by: 'label', value: text };
+  const narrowed = /^role=(\w+) (.*)$/s.exec(text);
+  const role = Option.fromNullishOr(narrowed?.[1]);
+  const rest = narrowed?.[2] ?? text;
+  if (rest.startsWith('id=')) return { by: 'id', value: unquote(rest.slice(3)), role };
+  if (rest.startsWith('label=')) return { by: 'label', value: unquote(rest.slice(6)), role };
+  return { by: 'label', value: rest, role };
 };
 
 /** A double-quoted selector value, its quotes and backslashes escaped. */
 const quoted = (value: string) => `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 
 /** agent-device's selector for the target. */
-const iosSelector = (target: Target) => `${target.by}=${quoted(target.value)}`;
+const iosSelector = (target: Target) =>
+  [
+    ...Option.toArray(Option.map(target.role, (role) => `role=${role}`)),
+    `${target.by}=${quoted(target.value)}`,
+  ].join(' ');
+
+/** The HTML elements whose role is implicit, by role: react-native-web renders a link as `<a>`. */
+const IMPLICIT = new Map([
+  ['link', 'a'],
+  ['button', 'button'],
+]);
 
 /** The CSS selector react-native-web renders the target as. */
 const webSelector = (target: Target) => {
-  if (target.by === 'id') return `[data-testid=${quoted(target.value)}]`;
-  return `[aria-label=${quoted(target.value)}]`;
+  const named = {
+    id: `[data-testid=${quoted(target.value)}]`,
+    label: `[aria-label=${quoted(target.value)}]`,
+  }[target.by];
+  return Option.match(target.role, {
+    onNone: () => named,
+    onSome: (role) =>
+      [`[role="${role}"]`, ...Option.toArray(Option.fromNullishOr(IMPLICIT.get(role)))]
+        .map((element) => `${element}${named}`)
+        .join(', '),
+  });
 };
 
 const device = (args: ReadonlyArray<string>, limit = short) =>
@@ -549,6 +577,32 @@ export const linkFor = (platform: Platform, port: number, link: string) => {
   return `http://127.0.0.1:${port}/${route}`;
 };
 
+/** The system's question before it hands a link to the app, and its answer. */
+const OPEN_PROMPT = 'label="Open in “Hymnal”?"';
+
+/**
+ * iOS asks "Open in “Hymnal”?" before it gives a `hymnal://` link to the
+ * app; a reader taps Open, so the drive does too. An earlier link left
+ * unanswered stacks its own prompt under this one, so each prompt up to
+ * three is answered; no prompt within 3 s (the app already has the link) is
+ * not a failure. How many were answered.
+ */
+const confirmOpen = Effect.fn('Sim.confirmOpen')(function* (session: Session) {
+  let answered = 0;
+  while (answered < 3) {
+    const asked = yield* attempt(
+      'agent-device',
+      ['wait', OPEN_PROMPT, '3000', '--session', DRIVER_SESSION],
+      short,
+    );
+    if (asked.exitCode !== 0) return answered;
+    yield* present(session, 'label=Open', 5);
+    yield* device(['press', 'label="Open"', '--settle']);
+    answered += 1;
+  }
+  return answered;
+});
+
 export const open = Effect.fn('Sim.open')(function* (
   place: Place,
   link: string,
@@ -557,12 +611,18 @@ export const open = Effect.fn('Sim.open')(function* (
 ) {
   const session = yield* readSession(place);
   const url = linkFor(session.platform, session.port, link);
+  let prompts = 0;
   if (session.platform === 'ios') {
     const udid = yield* booted(session);
     yield* succeed('xcrun', ['simctl', 'openurl', udid, url], short);
+    prompts = yield* confirmOpen(session);
   } else yield* browser(['open', url], Duration.seconds(seconds));
   if (Option.isSome(expect)) yield* present(session, expect.value, seconds);
-  return outcome(session.platform, {}, { url, expect: Option.getOrElse(expect, () => '') });
+  return outcome(
+    session.platform,
+    {},
+    { url, prompts, expect: Option.getOrElse(expect, () => '') },
+  );
 });
 
 export const tap = Effect.fn('Sim.tap')(function* (place: Place, text: string, seconds: number) {
@@ -573,6 +633,22 @@ export const tap = Effect.fn('Sim.tap')(function* (place: Place, text: string, s
   if (session.platform === 'ios') yield* device(['press', iosSelector(target), '--settle']);
   else yield* browser(['click', webSelector(target)]);
   return outcome(session.platform, {}, { target: text });
+});
+
+/** Type `value` into a text field, replacing what it held. */
+export const fill = Effect.fn('Sim.fill')(function* (
+  place: Place,
+  text: string,
+  value: string,
+  seconds: number,
+) {
+  const session = yield* readSession(place);
+  if (session.platform === 'ios') yield* booted(session);
+  yield* present(session, text, seconds);
+  const target = parseTarget(text);
+  if (session.platform === 'ios') yield* device(['fill', iosSelector(target), value, '--settle']);
+  else yield* browser(['fill', webSelector(target), value]);
+  return outcome(session.platform, {}, { target: text, value });
 });
 
 export const DIRECTIONS = ['up', 'down', 'left', 'right'] as const;

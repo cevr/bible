@@ -277,6 +277,46 @@ describe('sim commands', () => {
     }).pipe(Effect.provide(Host)),
   );
 
+  it.scoped("an iOS link answers the system's Open prompt once, as a reader taps it", () =>
+    Effect.gen(function* () {
+      const devices = encodeJson({
+        devices: { ios: [{ name: 'verify-hymnal', udid: UDID, state: 'Booted' }] },
+      });
+      let prompts = 0;
+      const answers = standIn((line) => {
+        if (line.startsWith('xcrun simctl list devices')) return ok(devices);
+        if (line.includes('Open in “Hymnal”?')) {
+          prompts += 1;
+          if (prompts > 1) return failed();
+        }
+        return ok();
+      });
+      const { exit, printed } = yield* sim(['open', 'hymns/100'], answers, Option.some('ios'));
+      expect(Exit.isSuccess(exit)).toBe(true);
+      expect(printed[0]).toMatchObject({
+        ok: true,
+        detail: { url: 'hymnal://hymns/100', prompts: 1 },
+      });
+      expect(answers.runs.filter((run) => run.line.includes('press label="Open"'))).toHaveLength(1);
+    }).pipe(Effect.provide(Host)),
+  );
+
+  it.scoped('a target with a role clicks only elements of that role', () =>
+    Effect.gen(function* () {
+      const answers = standIn(() => ok());
+      const { exit } = yield* sim(
+        ['tap', 'role=link label=100, Great Is Thy Faithfulness'],
+        answers,
+        Option.some('web'),
+      );
+      expect(Exit.isSuccess(exit)).toBe(true);
+      const click = answers.runs.find((run) => run.line.includes(' click '));
+      expect(click?.line).toEndWith(
+        'click [role="link"][aria-label="100, Great Is Thy Faithfulness"], a[aria-label="100, Great Is Thy Faithfulness"]',
+      );
+    }).pipe(Effect.provide(Host)),
+  );
+
   it.scoped('a command with no booted drive fails as NoSession', () =>
     Effect.gen(function* () {
       const answers = standIn(() => ok());
