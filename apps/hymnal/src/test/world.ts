@@ -300,6 +300,8 @@ const initial = (platform: Platform, start: number) => ({
   seeks: new Array<number>(),
   /** Whether a phone's press is acting now, before its tell. */
   pressing: false,
+  /** When the page last sent a command. */
+  sentAt: Number.NEGATIVE_INFINITY,
   landedAt: Number.NEGATIVE_INFINITY,
   failedAt: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
@@ -482,11 +484,12 @@ export const makeWorld = (
     if (served >= 0) w.seeks.splice(0, served);
     const asked =
       served >= 0 || Option.exists(w.playAsk, near2) || Option.exists(w.fromPending, near2);
-    if (!asked)
+    // A seek into the last 5 s never goes to 0 (r1 m4): a 0 no reader asked, while the latest
+    // seek is near the end.
+    const zero = positionMs <= 2 && Option.exists(w.target, (it) => it.to >= w.length - 5000);
+    if (!asked && zero) breach('O7 seek in the last 5 s asked 0', `to=${positionMs}`);
+    if (!asked && !zero)
       breach('O7 the device was asked a place the reader did not ask', `to=${positionMs}`);
-    // A seek into the last 5 s never goes to 0 (r1 m4): judged against the seek this one serves.
-    if (positionMs <= 2 && Option.exists(w.target, (it) => it.to >= w.length - 5000))
-      breach('O7 seek in the last 5 s asked 0', `to=${positionMs}`);
     if (!holding(w.phase) || (phone && !w.ready)) {
       count('D10 refused');
       return refuse('The item is not ready to seek');
@@ -675,6 +678,7 @@ export const makeWorld = (
   const send = (command: Command) => {
     note(`send ${told(command)}`);
     noteAct();
+    w.sentAt = w.t;
     w.lastCommand = command._tag;
     Command.$match(command, {
       Start: () => {
@@ -816,7 +820,10 @@ export const makeWorld = (
       at: w.t + knobs.tellAfter(),
       run: () => {
         if (kind === 'play') w.resumePlaces.push([placeThen]);
-        if (kind === 'seek') w.seeks.push(Math.max(0, to));
+        // The page acts on tells in order: a seek told after a page command it could not
+        // know of is the page's latest seek, so its place is the reader's from here.
+        if (kind === 'seek' && w.sentAt > pressedAt) askSeek(to);
+        else if (kind === 'seek') w.seeks.push(Math.max(0, to));
         // The page plays at this tell (Resume), so a device that paused itself since the press
         // (D12) sounds again: the reader's latest word is still the play.
         if (kind === 'play' && w.readerPausedAt < pressedAt) w.wants = true;
@@ -1032,8 +1039,10 @@ export const makeWorld = (
       w.answered.push({ sampleAt: read.sampleAt, answered: w.t });
       if (w.answered.length > 1000) w.answered.splice(0, 500);
       const seen = Option.getOrThrow(read.seen);
-      // The unseen sound is seen once a read sampled after it closes on sound, by the world.
-      if (read.sampleAt >= w.unseenSince && read.closes) w.unseenFrom = Option.none();
+      // The unseen sound is seen once a read sampled after the hold that kept it closes on
+      // sound, by the world.
+      if (read.sampleAt >= Math.max(w.unseenSince, w.holdEnd) && read.closes)
+        w.unseenFrom = Option.none();
       note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
       const current = read.acts === w.acts;
       if (seen.state === 'ended' && current) w.endedSaid = true;
