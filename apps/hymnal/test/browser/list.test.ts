@@ -99,7 +99,7 @@ let browser: Browser;
  * How many pages are open at once: four for every three cores. A page
  * spends most of its time waiting on frames and timers, so on 12 cores the
  * run measured fastest with 16 pages, about 0.4 s faster than with 12; with
- * 20 or 24 the pages slowed each other's waits and the run took longer. A
+ * 20 or 24 the run took longer. A
  * page waits for a place to open.
  */
 const places = Math.ceil((navigator.hardwareConcurrency * 4) / 3);
@@ -668,8 +668,9 @@ describe('a list loaded cold hydrates the server’s list', () => {
    * On a page of its own in a window of `height`, loads the list cold once
    * for each case: the reader scrolls the server's list to the case's share
    * before hydration, and to its share after it. Answers the loads whose
-   * scroll's event did not come before hydration, and those that reported a
-   * hydration error, lost or moved a scroll, or left rows blank.
+   * scroll's event did not come before hydration, those whose one-second
+   * wait for that event ran out, and those that reported a hydration error,
+   * lost or moved a scroll, or left rows blank.
    */
   const loads = async (list: ListName, height: number, cases: ReadonlyArray<Cold>) => {
     await using app = await open({ path: lists[list].path, height, hold: true });
