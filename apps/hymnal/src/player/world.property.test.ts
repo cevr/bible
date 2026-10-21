@@ -286,6 +286,68 @@ describe("the world draws One's seek completion order (rw r2 M8)", () => {
       }),
     { judged: false },
   );
+  // The web resolves a seek at the element's `seeked` event, never before (One 2.8.1,
+  // `src/platform/audio/index.ts:246-278`).
+  fixed(
+    'web: a page seek answers only after it lands',
+    'web',
+    { landAfter: () => 800 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const from = w.t;
+        const answer = asked(w, 30_000);
+        yield* w.run(700);
+        expect(answer.settled).toBe('no');
+        expect(yield* w.until(() => answer.settled !== 'no', 3000)).toBe(true);
+        expect(answer.settled).toBe('resolved');
+        expect(answer.at - from).toBeGreaterThanOrEqual(800);
+        expect(Option.map(answer.status, (it) => Math.abs(it.positionMs - 30_000) <= 2)).toEqual(
+          Option.some(true),
+        );
+      }),
+    { judged: false },
+  );
+  // Each seek adds its own `seeked` listener and none is removed by a later seek (:256-277): a
+  // superseded seek resolves at the next completion, with the status there.
+  fixed(
+    'web: a page seek a later page seek supersedes answers at the later one’s completion',
+    'web',
+    { landAfter: () => 800 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const first = asked(w, 30_000);
+        yield* w.run(100);
+        const second = asked(w, 60_000);
+        yield* w.run(700);
+        expect(first.settled).toBe('no');
+        expect(yield* w.until(() => second.settled !== 'no', 3000)).toBe(true);
+        expect(first.settled).toBe('resolved');
+        expect(first.status).toEqual(second.status);
+        expect(Option.map(first.status, (it) => Math.abs(it.positionMs - 60_000) <= 2)).toEqual(
+          Option.some(true),
+        );
+      }),
+    { judged: false },
+  );
+  // A play or a stop empties the element: the seek on its way is rejected at `emptied`
+  // (:256-277), never resolved.
+  fixed(
+    'web: a stop rejects a page seek on its way',
+    'web',
+    { landAfter: () => 800 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const answer = asked(w, 30_000);
+        yield* w.run(100);
+        void w.audio.stop();
+        yield* w.run(3000);
+        expect(answer.settled).toBe('rejected');
+      }),
+    { judged: false },
+  );
 });
 
 // Android's pause before MediaPlayer is prepared holds nothing (orchestrator, decision (a)): the
