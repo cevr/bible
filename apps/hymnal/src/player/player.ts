@@ -305,6 +305,13 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               Player.Buffering({ track: was.track, at: was.at, length: was.length, retry: false }),
             );
           });
+        /** One read, taken into the proof and shown nowhere; a refused read changes nothing. */
+        const lastLook = Effect.gen(function* () {
+          const asked = yield* now;
+          const status = yield* device.status;
+          const read = { asked, answered: yield* now, status };
+          held.proof = Proof.readOf(held.proof, read, held.takenAt).proof;
+        }).pipe(Effect.catchTag('PlaybackError', () => Effect.void));
         /** The device took the place asked of it. */
         const taken = Effect.sync(() => (held.seeking = Option.none()));
         /** The place a seek asks, asked of the device until it takes it. */
@@ -608,6 +615,9 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             held.wants = 'pause';
             if (letGo(current)) return;
             if (Player.$is('Loading')(current)) {
+              // The device may have sounded since the last read: one more read before it lets
+              // the recording go keeps the place it reached.
+              yield* lastLook;
               yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
               yield* device.stop.pipe(Effect.catchTag('PlaybackError', logged), Effect.asVoid);
               return;
