@@ -416,8 +416,10 @@ describe('the player by the world: each earlier counterexample', () => {
   const traced: Record<Platform, ReadonlyArray<number>> = {
     // The end class (a place past the end the page kept after a read saw it ended), and
     // ios 289: a Resume from Ended that followed a replaying phone kept a refused seek.
-    ios: [119, 120, 278, 289],
-    android: [235, 255],
+    // ios 144 and android 90: a refused seek taken as landed at a read that said `loading` at
+    // the place the device stood at before (O7 never landed).
+    ios: [119, 120, 278, 289, 144],
+    android: [235, 255, 90],
     web: [201, 320],
   };
   it.effect('rw r1 M8: each traced sweep seed breaks no rule', () =>
