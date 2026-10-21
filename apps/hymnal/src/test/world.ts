@@ -312,6 +312,8 @@ const initial = (platform: Platform, start: number) => ({
   onlineToldAt: Number.NEGATIVE_INFINITY,
   /** When a play from its end last took the device back to 0:00. */
   leftEndAt: Number.NEGATIVE_INFINITY,
+  /** When a read last sampled the device saying `ended`. */
+  endedSampled: Number.NEGATIVE_INFINITY,
   readyAt: Number.POSITIVE_INFINITY,
   /** Runs: silent and wanting; the same offline; the same online. */
   quiet: Number.NaN,
@@ -415,10 +417,12 @@ export const makeWorld = (
   const land = (to: number) => {
     const at = Math.max(0, Math.min(w.length, Math.round(to * 0.6) / 0.6));
     markLanded(at);
+    w.landing = Option.none();
+    // A landing at the end of a device already ended there moves nothing.
+    if (at >= w.length && w.phase === 'ended') return;
     // A landing breaks the sound's run, as the act that asked it does; a seek
     // still on its way is superseded, as a later seekTo supersedes it.
     w.landedAt = w.t;
-    w.landing = Option.none();
     w.place = at;
     if (w.place >= w.length) {
       w.phase = 'ended';
@@ -625,9 +629,11 @@ export const makeWorld = (
   const noteAct = () => {
     // Whether the device stands at its end: it ended, and no landing, load or replay has moved
     // it since (a pause or a failure leaves it there). World truth, never the page's tag.
+    // A read must have sampled it ended: an end no read saw is one the page cannot know.
     w.endedBefore =
       w.endedAt > Number.NEGATIVE_INFINITY &&
-      w.endedAt >= Math.max(w.landedAt, w.loadAt, w.leftEndAt);
+      w.endedAt >= Math.max(w.landedAt, w.loadAt, w.leftEndAt) &&
+      w.endedSampled >= w.endedAt;
     w.lastAct = w.t;
     w.acts += 1;
     // The first sound after a later act is that act's, not a play's from before it.
@@ -1225,6 +1231,7 @@ export const makeWorld = (
       if (Option.isNone(read.seen) && w.t >= read.sampleAt) {
         read.seen = Option.some(said());
         w.lastSampleAt = w.t;
+        if (said().state === 'ended') w.endedSampled = w.t;
         // The world's sound pair: the device sounded at the reader's place after the read
         // before was sampled, with no act since that read was asked and no landing since its
         // sample, and it says `playing` now.
