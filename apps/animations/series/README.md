@@ -2,11 +2,11 @@
 
 Research, plans and draft scripts for four content series. Nothing here is narrated, rendered or checked yet.
 
-**Names (owner, 2026-10-13: "I like the names you chose for all the series"):** _The Path of the Just_ (theology; renamed from _From Milk to Meat_, owner 2026-10-20, ask a879ff5af83), _Dwell in the Land_ (country), _Taught of the Lord_ (education), _The True Remedies_ (health). The channel is **First the Blade** (owner, 2026-10-13: "my wife really likes first the blade"), at firsttheblade.com; its site is `apps/firsttheblade`.
+**Names (owner, 2026-10-13: "I like the names you chose for all the series"):** _The Path of the Just_ (theology; renamed from _From Milk to Meat_, owner 2026-10-20, ask a879ff5af83), _Dwell in the Land_ (country), _Taught of the Lord_ (education), _Health and Cure_ (health; renamed from _The True Remedies_, owner 2026-10-21, ask a1c0dc5b995). The channel is **First the Blade** (owner, 2026-10-13: "my wife really likes first the blade"), at firsttheblade.com; its site is `apps/firsttheblade`.
 
 - [`theology/`](theology/series.md): **The Path of the Just**, cut-paper films that walk from the first principles of the faith (Heb 5:12; 6:1–2) to its deepest truths, in the order the Bible serves them.
 - [`education/`](education/series.md): **Taught of the Lord**, talk videos on true education from Scripture and Ellen White's education books.
-- [`health/`](health/series.md): **The True Remedies**, talk videos on health and the eight laws.
+- [`health/`](health/series.md): **Health and Cure**, talk videos on health and the eight laws.
 - [`country/`](country/series.md): **Dwell in the Land**, cut-paper films on country living (what, why, where and how), doctrine and education side by side, interleaved with the education series.
 
 ## Voice and audience (owner, 2026-10-13, binding on every series)

@@ -1,5 +1,5 @@
 ---
-series: The True Remedies (working name)
+series: Health and Cure
 number: 50
 strand: Medicine
 format: question # One Question, 45–65 s, speaker on screen 40–55%

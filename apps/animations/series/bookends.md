@@ -6,7 +6,7 @@ The owner's rule (2026-10-13): "for the films, i think a nice thing to do is tha
 - the middle can travel;
 - the landing and the coda's pull-back come home.
 
-For a talk, the place is its frame scene: the desk and the hook object in _Taught of the Lord_, and the hook's first picture in _The True Remedies_.
+For a talk, the place is its frame scene: the desk and the hook object in _Taught of the Lord_, and the hook's first picture in _Health and Cure_.
 
 Audited 2026-10-13: the 15 draft scripts in `series/*/scripts/` and the two built films.
 

@@ -1,6 +1,6 @@
-# The True Remedies: plan
+# Health and Cure: plan
 
-Status: research and planning (2026-10-10). Nothing recorded. The owner chooses the name,
+Status: research and planning (2026-10-10). Nothing recorded. The name is chosen (section 1); the owner chooses
 the first subjects and the cadence (talk-shorts decisions, OWNER row 8).
 
 Kind: **talk** (the owner on camera, cut with B-roll), not a cut-paper film. Two formats,
@@ -18,14 +18,12 @@ Pilot scripts are in `scripts/` (marked **pilot** below). The sources and search
 
 ## 1. Name
 
-| Proposal                            | Series line (spoken in Episodes)    | For                                                                                                                                       | Against                                                                                                       |
-| ----------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **The True Remedies** (recommended) | "This is The True Remedies."        | It names the series' spine: the eight remedies, and the claim that they are the real ones. Plain words, and it works as a playlist title. | The phrase comes from the source (MH 127). That is not naming anyone, but say so in the channel's About text. |
-| Eight Remedies                      | "This is Eight Remedies, number N." | Clear and countable.                                                                                                                      | The Medicine, Temperance and Mind strands fall outside the "eight".                                           |
-| The Lord That Healeth               | "…from The Lord That Healeth."      | Exodus 15:26. God is the healer and the remedies are His means, which is the series' theology.                                            | Long. Could read as a faith-healing channel.                                                                  |
-| Fearfully Made                      | "This is Fearfully Made."           | Psalm 139:14, the wonder of the body. Warm, and good for the physiology videos.                                                           | Says little about remedies or practice.                                                                       |
-| Life and Health                     | "This is Life and Health."          | Proverbs 4:22 ("life unto those that find them, and health to all their flesh").                                                          | Generic. Also the name of an old health magazine.                                                             |
-| Clay and Water                      | "This is Clay and Water."           | John 9: Christ healed with simple means. A memorable image that sets up Medicine.                                                         | Too oblique for search.                                                                                       |
+**Health and Cure** (owner, 2026-10-21, ask a1c0dc5b995). Its verse is Jeremiah 33:6: "Behold, I will
+bring it health and cure, and I will cure them, and will reveal unto them the abundance of peace and
+truth." The series line in Episodes is "This is Health and Cure." Its URL is
+`firsttheblade.com/series/health-and-cure`; the site answers the former path,
+`/series/the-true-remedies`, with a 301 to it. "The true remedies" stays the source's own phrase
+(MH 127.2), quoted as such.
 
 ## 2. Standing rules for every video
 
