@@ -327,7 +327,11 @@ const initial = (platform: Platform, start: number) => ({
   firstFrom: Option.none<number>(),
   /** The reader's latest seek, and every place the reader asked since the latest Start. */
   target: Option.none<Target>(),
-  /** The latest play's place from a Resume or a lock-screen play: the adapter asks it until it lands or a later play comes. */
+  /**
+   * The latest play's place from a Resume or a lock-screen play: the adapter asks it until it
+   * lands or a later play comes. Any later page act retires it; only phone presses the page
+   * has not been told of keep it.
+   */
   playAsk: Option.none<number>(),
   /** The places of the seeks the reader asked, in order, from the one the device was last asked for. */
   seeks: new Array<number>(),
@@ -746,11 +750,13 @@ export const makeWorld = (
   const noteAct = () => {
     // Whether the device stands at its end: it ended, and no landing, load or replay has moved
     // it since (a pause or a failure leaves it there). World truth, never the page's tag.
-    // A read must have sampled it ended: an end no read saw is one the page cannot know.
+    // A read must have sampled it ended: an end no read saw is one the page cannot know. A
+    // reader's seek since that read is the reader's place, landed or refused (P7).
     w.endedBefore =
       w.endedAt > Number.NEGATIVE_INFINITY &&
       w.endedAt >= Math.max(w.landedAt, w.loadAt, w.leftEndAt) &&
-      w.endedSampled >= w.endedAt;
+      w.endedSampled >= w.endedAt &&
+      w.seekAt <= w.endedSampled;
     w.lastAct = w.t;
     w.acts += 1;
     // The first sound after a later act is that act's, not a play's from before it.
@@ -793,6 +799,7 @@ export const makeWorld = (
   const send = (command: Command) => {
     note(`send ${told(command)}`);
     noteAct();
+    w.playAsk = Option.none();
     w.sentAt = w.t;
     w.lastCommand = command._tag;
     Command.$match(command, {
@@ -801,7 +808,6 @@ export const makeWorld = (
         w.resumePlaces = [];
         w.readerPlace = Option.none();
         w.target = Option.none();
-        w.playAsk = Option.none();
         w.seeks = [];
       },
       Resume: () => {

@@ -1050,3 +1050,51 @@ describe('the player by the world: each earlier counterexample', () => {
       }),
   );
 });
+
+// The oracle's repairs of round 2 (rw r2 M1 to M7): each world breaks the rule only by the
+// oracle's own fault, or the test body asks the device what a wrong page would.
+describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
+  const rules = (w: World) => w.breaches.map((it) => it.rule);
+  // A page seek retires a play's place: asked again, it is a place the reader did not ask.
+  fixed(
+    'rw r2 M5: Resume from 1:00, a seek to 2:00 lands, then 1:00 asked again: O7',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        w.fail();
+        expect(yield* w.until(() => tag(w) === 'Failed', 2000)).toBe(true);
+        const kept = Option.getOrThrow(atOf(w.state()));
+        w.send(Command.Resume());
+        expect(yield* w.until(() => tag(w) === 'Playing', 10_000)).toBe(true);
+        w.send(Command.Seek({ seconds: 120 }));
+        yield* w.run(3000);
+        expect(tag(w)).toBe('Playing');
+        expect(rules(w)).toEqual([]);
+        void w.audio.seek(kept * 1000);
+        yield* w.run(500);
+        expect(rules(w)).toContain('O7 the device was asked a place the reader did not ask');
+      }),
+    { judged: false },
+  );
+  // A lock-screen seek after an end is the reader's place: the end's 0:00 no longer holds.
+  fixed(
+    'rw r2 M6: ended, Failed, a lock-screen seek, Resume: plays from the seek',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, w.length / 1000 - 5);
+        expect(yield* w.until(() => tag(w) === 'Ended', 15_000)).toBe(true);
+        w.fail();
+        yield* w.run(1000);
+        w.press('seek', 200_000);
+        expect(yield* w.until(() => tag(w) === 'Failed', 3000)).toBe(true);
+        yield* w.run(1000);
+        w.send(Command.Resume());
+        yield* w.run(1000);
+        expect(Math.abs((w.plays.at(-1)?.from ?? 0) - 200_000)).toBeLessThan(2);
+      }),
+  );
+});
