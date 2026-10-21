@@ -62,13 +62,17 @@ interface Drive {
 }
 
 /** A step's failure, its message naming the journey, the step and where its evidence is. */
-const failed = (drive: Drive, step: string, message: string) =>
+export const failed = (drive: Pick<Drive, 'journey' | 'dir'>, step: string, message: string) =>
   JourneyFailed.make({
     journey: drive.journey,
     step,
-    message: `${drive.journey} ${step}: ${message} (evidence ${drive.dir})`,
+    message: redactTokens(`${drive.journey} ${step}: ${message} (evidence ${drive.dir})`),
     evidence: drive.dir,
   });
+
+/** The first line of a journey's failure, as its failed step keeps it. */
+export const failureLine = (cause: Cause.Cause<unknown>) =>
+  redactTokens(Cause.pretty(cause).split('\n')[0] ?? '');
 
 /** A browser call, failed as the step it belongs to. */
 const browser = <A>(drive: Drive, step: string, call: () => PromiseLike<A>) =>
@@ -454,12 +458,9 @@ const journey = Effect.fn('Verify.journey')(function* (name: JourneyName, option
   const ran = yield* Effect.exit(spec.run(drive));
   // A failed step keeps the page as it stood, beside the steps that passed.
   if (Exit.isFailure(ran))
-    yield* record(
-      drive,
-      'failed',
-      'the journey stopped here',
-      Cause.pretty(ran.cause).split('\n')[0] ?? '',
-    ).pipe(Effect.ignore);
+    yield* record(drive, 'failed', 'the journey stopped here', failureLine(ran.cause)).pipe(
+      Effect.ignore,
+    );
   const video = Option.fromNullOr(page.video());
   yield* Effect.promise(() => context.close());
   const steps = yield* Ref.get(drive.steps);

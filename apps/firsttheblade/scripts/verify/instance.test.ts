@@ -1,10 +1,11 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Clock, Config, Effect, FileSystem, Layer, Schema, Stream } from 'effect';
+import { Cause, Clock, Config, Effect, FileSystem, Layer, Schema, Stream } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { ChildProcessSpawner } from 'effect/process';
 
 import { answersCheck } from './doctor.ts';
+import { failed, failureLine } from './drive.ts';
 import { awaitReady, cwdIs, launch, previewCommand } from './instance.ts';
 import { LaunchRecord } from './model.ts';
 
@@ -126,6 +127,18 @@ describe('the verify instance', () => {
       const lsof = 'p42\nfcwd\nn/x/r2\n';
       expect(cwdIs(lsof, '/x/r2')).toBe(true);
       expect(cwdIs(lsof, '/x/r')).toBe(false);
+    }),
+  );
+
+  it.effect("keeps no token in a failed step's message or its kept line", () =>
+    Effect.sync(() => {
+      const at =
+        'page.goto: net::ERR_ABORTED at http://127.0.0.1:1/subscribe/confirm?token=sentinel';
+      const error = failed({ journey: 'confirm', dir: '/x' }, 'skeleton', at);
+      expect(error.message).toContain('token=<token>');
+      expect(error.message).not.toContain('sentinel');
+      expect(failureLine(Cause.fail(error))).not.toContain('sentinel');
+      expect(failureLine(Cause.die(new Error(at)))).not.toContain('sentinel');
     }),
   );
 });
