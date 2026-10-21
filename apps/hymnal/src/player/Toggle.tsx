@@ -1,14 +1,15 @@
 /**
- * The player's one button for a hymn, as the player stands: Play when it
- * holds another hymn or none, Pause while it plays or buffers, Play while paused
- * (from the start when paused before its first sound), Play again once ended
- * and Retry once failed; a spinner while it loads. The
+ * The player's buttons for a hymn, as the player stands: Play when it
+ * holds another hymn or none, Pause while it plays or buffers (and Retry
+ * beside it once a wait online runs long), Play while paused or stopped (from
+ * the reader's place), Play again once ended and Retry once failed; a spinner
+ * while it loads. Retry and Play from a place are Resume. The
  * button is in the accent (`AccentButton`): a `UIButton`'s title on iOS, an
  * accent fill under `onAccent` on the web and Android.
  */
 
 import { Option } from 'effect';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAccent } from '~/color';
 
@@ -41,10 +42,19 @@ export function Toggle({
       <ActivityIndicator color={accent} accessibilityLabel={`Loading hymn ${track.number}`} />
     ),
     Playing: () => button('Pause', `Pause hymn ${track.number}`, Command.Pause()),
-    Buffering: () => button('Pause', `Pause hymn ${track.number}`, Command.Pause()),
+    Buffering: ({ retry }) => (
+      <View style={styles.pair}>
+        {retry && button('Retry', `Retry hymn ${track.number}`, Command.Resume())}
+        {button('Pause', `Pause hymn ${track.number}`, Command.Pause())}
+      </View>
+    ),
     Paused: () => button('Play', `Play hymn ${track.number}`, Command.Resume()),
     Ended: () => button('Play again', `Play hymn ${track.number} again`, Command.Resume()),
-    Stopped: () => button('Play', `Play hymn ${track.number}`, Command.Start({ track })),
-    Failed: () => button('Retry', `Retry hymn ${track.number}`, Command.Start({ track })),
+    Stopped: () => button('Play', `Play hymn ${track.number}`, Command.Resume()),
+    Failed: () => button('Retry', `Retry hymn ${track.number}`, Command.Resume()),
   });
 }
+
+const styles = StyleSheet.create({
+  pair: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+});

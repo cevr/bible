@@ -14,11 +14,11 @@
  * so the page sets its own after each.
  */
 
-import { Effect, Layer, Match, Option, Queue, Stream } from 'effect';
+import { Duration, Effect, Layer, Match, Option, Queue, Stream } from 'effect';
 import { One } from 'one';
 import { Platform } from 'react-native';
 
-import { Playback, type PlaybackApi, PlaybackError, Remote } from './player';
+import { Playback, type PlaybackApi, PlaybackError, Remote, type Status } from './player';
 
 /** One's `Audio` and `Network` as the playback uses them. */
 export interface Device {
@@ -38,6 +38,13 @@ export interface Device {
 
 /** The Media Session's handlers as the page sets them. */
 export type Session = Pick<MediaSession, 'setActionHandler'>;
+
+/** How soon a refused seek is asked again: a cadence, never a limit. */
+const askAgainAfter = Duration.millis(100);
+
+/** Whether the device holds a recording that can take a seek. */
+const holdsRecording = (status: Status) =>
+  status.state === 'loading' || status.state === 'playing' || status.state === 'paused';
 
 const call = <A>(operation: string, run: () => Promise<A>) =>
   Effect.tryPromise({
@@ -108,6 +115,23 @@ export const playbackOn = (device: () => Device, session: Option.Option<Session>
       tell = (online) => void Queue.offerUnsafe(queue, online);
     }),
   );
+  /**
+   * Seek to `fromMs` until the device takes it: a phone refuses a seek until
+   * the recording is ready, so a refused seek is asked again while the
+   * device holds the recording (loading, playing or paused). The adapter
+   * gives nothing up by a time or a count of its own: the player owns the
+   * wait, and a newer command cuts the asking off.
+   */
+  const landAt = (fromMs: number): Effect.Effect<Status, PlaybackError> =>
+    call('seek', () => audio().seek(fromMs)).pipe(
+      Effect.catchTag('PlaybackError', (refused) =>
+        call('status', () => audio().getPlaybackStatus()).pipe(
+          Effect.filterOrFail(holdsRecording, () => refused),
+          Effect.andThen(Effect.sleep(askAgainAfter)),
+          Effect.andThen(Effect.suspend(() => landAt(fromMs))),
+        ),
+      ),
+    );
   return Playback.of({
     play: (uri, fromMs) =>
       call('play', () => {
@@ -118,7 +142,7 @@ export const playbackOn = (device: () => Device, session: Option.Option<Session>
       }).pipe(
         Effect.filterOrElse(
           () => fromMs <= 0,
-          () => call('seek', () => audio().seek(fromMs)),
+          () => landAt(fromMs),
         ),
       ),
     pause: call('pause', () => audio().pause()),

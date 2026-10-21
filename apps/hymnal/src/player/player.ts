@@ -6,7 +6,11 @@
  * on a phone and on the web (`playback.live.ts`), or one a test hands in.
  * One's playback tells no events of its own, so while the device says it
  * loads or plays, or has not answered an ask, the player reads its status
- * every `every` and shows it.
+ * every `every`. What the page shows comes from what the reads prove
+ * (`proof.ts`): Playing at a read that closes a sound pair; Loading, or
+ * Buffering once the load has sounded, after 2 s of proved silence; Retry
+ * beside Buffering after 15 s of it online; Failed after 15 s of it once
+ * told offline 15 s before.
  *
  * Every Play and Pause goes one way, whatever made it: the page's button
  * (or a key on it), Retry, the lock screen, Control Center and the web's
@@ -17,11 +21,11 @@
  * another loads or plays stops following the old one, and the device swaps
  * the recording (One's `Audio.play` replaces the one playing).
  *
- * A first load ends in sound or in `stop`: a Pause before the first sound
- * (Stopped), and a load given up (Failed), let the recording go, since none
- * of the three devices keeps such a pause (the web rejects the waiting
- * `play()` and says `failed`; MediaPlayer starts once prepared whatever was
- * asked). From either, any Play starts the recording again.
+ * A Pause before the first sound (Stopped), and a load given up (Failed),
+ * let the recording go. iOS keeps a pause before the first sound; Android
+ * and the web cannot (MediaPlayer starts once prepared whatever was asked,
+ * and the web rejects the waiting `play()` and says `failed`). One rule
+ * serves all three: Stopped, and a Play from the reader's place.
  */
 
 import {
@@ -34,12 +38,15 @@ import {
   Match,
   Layer,
   Option,
+  Predicate,
   Schema,
   Stream,
 } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 
 import { audioUrl } from '~/remote';
+
+import * as Proof from './proof';
 
 /** A hymn the player plays: its number names its recording. */
 export interface Track {
@@ -210,33 +217,12 @@ export const trackOf: (player: Player) => Option.Option<Track> = Player.$match({
 });
 
 /** Whether the device holds no recording for the player: it was let go, or it failed. */
-const letGo = (player: Player) => Player.$is('Stopped')(player) || Player.$is('Failed')(player);
+const letGo = Predicate.or(Player.$is('Stopped'), Player.$is('Failed'));
 
-/**
- * What a status read says of the playback: it moves (it loads or plays, and
- * the player reads it again), it is still, or it failed (the reads end).
- */
-type Seen = 'moving' | 'still' | 'failed';
-
-const seenOf = (status: Status): Seen =>
-  Match.value(status.state).pipe(
-    Match.when('loading', (): Seen => 'moving'),
-    Match.when('playing', (): Seen => 'moving'),
-    Match.when('failed', (): Seen => 'failed'),
-    Match.orElse((): Seen => 'still'),
-  );
-
-/**
- * How long a first load may show the spinner with no progress (the status
- * the same, read after read) before the player gives it up: a load that
- * stalls (the connection lost mid-load, which the web's element waits on
- * with no error) ends in Failed, which offers Retry.
- */
-const loadingLimit = Duration.seconds(15);
-
-/** A status as a mark: two reads with the same mark saw no progress. */
-const markOf = (status: Status) =>
-  `${status.state} ${status.positionMs} ${status.durationMs ?? '-'}`;
+/** The stand: silence proved this long shows Loading or Buffering. */
+const stand = Duration.seconds(2);
+/** The wait: silence proved this long offers Retry online, and gives the load up offline. */
+const giveUpAfter = Duration.seconds(15);
 
 const seconds = (ms: number) => ms / 1000;
 
@@ -258,160 +244,103 @@ const lengthOf = (status: Status) =>
     Option.map(seconds),
   );
 
-/**
- * The player showing `track` at the device's `status`, where it `was` before,
- * as the reader `wants` it. A failed recording says whether the device was
- * `offline` when it failed. A device that loads again once `track` has
- * played keeps its place, its length and its button, by the reader's last
- * ask: after a play it buffers (iOS waits to play on a resume), after a
- * pause it is paused (the web loads a paused place it does not hold).
- */
-export const fromStatus = (
-  track: Track,
-  status: Status,
-  offline: boolean,
-  was: Player,
-  wants: Intent,
-): Player => {
-  const at = seconds(status.positionMs);
-  const held = Option.filter(trackOf(was), (it) => it.number === track.number);
-  const length = Option.orElse(lengthOf(status), () => Option.flatMap(held, () => lengthIn(was)));
-  const placed = () =>
-    Match.value(wants).pipe(
-      Match.when('play', () => Player.Buffering({ track, at, length, retry: false })),
-      Match.when('pause', () => Player.Paused({ track, at, length })),
-      Match.exhaustive,
-    );
-  switch (status.state) {
-    case 'idle':
-      return Player.Idle();
-    case 'loading':
-      return Option.match(held, {
-        onNone: () => Player.Loading({ track }),
-        onSome: () =>
-          Player.$match(was, {
-            Playing: placed,
-            Buffering: placed,
-            Paused: placed,
-            Idle: () => Player.Loading({ track }),
-            Loading: () => Player.Loading({ track }),
-            Ended: () => Player.Loading({ track }),
-            Stopped: () => Player.Loading({ track }),
-            Failed: () => Player.Loading({ track }),
-          }),
-      });
-    case 'playing':
-      return Player.Playing({ track, at, length });
-    case 'paused':
-      return Player.Paused({ track, at, length });
-    case 'ended':
-      return Player.Ended({ track, length });
-    case 'failed':
-      return Player.Failed({ track, offline, at: Option.none() });
-  }
-};
+/** Whether the device holds the recording and may land a seek. */
+const holdsRecording = (status: Status) =>
+  status.state === 'loading' || status.state === 'playing' || status.state === 'paused';
 
-/**
- * The player as the reader's `intent` shows it, before the device answers:
- * a Play shows a paused or ended recording waiting to play (an ended one
- * from its start), a Pause shows a playing one paused, each at its place.
- */
-export const asked = (player: Player, intent: Intent): Player =>
-  Match.value(intent).pipe(
-    Match.when('play', () =>
-      Player.$match(player, {
-        Paused: ({ track, at, length }) => Player.Buffering({ track, at, length, retry: false }),
-        Ended: ({ track, length }) => Player.Buffering({ track, at: 0, length, retry: false }),
-        Idle: () => player,
-        Loading: () => player,
-        Playing: () => player,
-        Buffering: () => player,
-        Stopped: () => player,
-        Failed: () => player,
-      }),
-    ),
-    Match.when('pause', () =>
-      Player.$match(player, {
-        Playing: ({ track, at, length }) => Player.Paused({ track, at, length }),
-        Buffering: ({ track, at, length }) => Player.Paused({ track, at, length }),
-        Idle: () => player,
-        Loading: () => player,
-        Paused: () => player,
-        Ended: () => player,
-        Stopped: () => player,
-        Failed: () => player,
-      }),
-    ),
-    Match.exhaustive,
-  );
+/** The reader's place a let-go player keeps, in seconds. */
+const placeOf = (proof: Proof.Proof) => Option.map(proof.place, seconds);
+
+/** What the player holds across the commands (see `held` in `playerOn`). */
+interface Held {
+  wants: Intent;
+  proof: Proof.Proof;
+  seeking: Option.Option<{ readonly to: number; asking: boolean }>;
+  id: number;
+  announced: number;
+}
 
 /** The player's atoms over the device's `playback`, reading its status every `every` while it moves. */
 export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input) => {
   const runtime = Atom.runtime(Layer.provideMerge(linkLayer, playback));
   const state = Atom.make<Player>(Player.Idle()).pipe(Atom.keepAlive);
-  const wants = Atom.make<Intent>('play').pipe(Atom.keepAlive);
   /**
-   * The recording the player last started, across the commands that follow
-   * it: its count (`id`), the count it was announced at, the last status
-   * read of it as a mark, and since when its spinner has shown that mark.
+   * What the player holds across the commands: the reader's intent, what the
+   * reads have proved, the place a seek still asks the device for (and
+   * whether that ask is in flight), and the recording's count and the count
+   * it was announced at.
    */
-  const recording = { id: 0, announced: -1, mark: '', still: Option.none<number>() };
+  const held: Held = {
+    wants: 'play',
+    proof: Proof.none,
+    seeking: Option.none(),
+    id: 0,
+    announced: -1,
+  };
 
   const send = runtime
     .fn(
       Effect.fn('Player.send')(function* (command: Command, get: Atom.FnContext) {
         const device = yield* Playback;
         const link = yield* Link;
-        const online = Effect.sync(() => link.told().online);
+        const now = Clock.currentTimeMillis;
         const show = (player: Player) => Effect.sync(() => get.set(state, player));
+        const offline = () => !link.told().online;
         const failed = (track: Track) =>
-          Effect.map(online, (on) => Player.Failed({ track, offline: !on, at: Option.none() }));
-        const settle = (track: Track, status: Status) =>
-          Effect.map(online, (on) =>
-            fromStatus(track, status, !on, get.registry.get(state), get.registry.get(wants)),
-          );
+          Player.Failed({ track, offline: offline(), at: placeOf(held.proof) });
         /**
-         * The device's status, shown, what it says of the playback, and its
-         * mark; a status the device cannot read is a failure.
+         * An act the page knows now, moving the device to `target` ms if it
+         * names one. No pair spans it, so a page that showed Playing shows
+         * Buffering until a pair after it proves sound again.
          */
-        const read = (track: Track) =>
-          device.status.pipe(
-            Effect.flatMap((status) =>
-              settle(track, status).pipe(
-                Effect.flatMap(show),
-                Effect.as([seenOf(status), markOf(status)] as const),
+        const act = (target: Option.Option<number>) =>
+          Effect.flatMap(now, (at) => {
+            held.proof = Proof.acted(held.proof, at, target);
+            const was = get.registry.get(state);
+            if (!Player.$is('Playing')(was)) return Effect.void;
+            return show(
+              Player.Buffering({ track: was.track, at: was.at, length: was.length, retry: false }),
+            );
+          });
+        /** The place a seek asks, asked of the device until it takes it. */
+        const askSeek = (to: number) =>
+          Effect.suspend(() => {
+            const seeking = { to, asking: true };
+            held.seeking = Option.some(seeking);
+            return device.seek(to).pipe(
+              Effect.tap(() => Effect.sync(() => (held.seeking = Option.none()))),
+              Effect.catchTag('PlaybackError', (error) =>
+                Effect.logWarning('player.seek.refused').pipe(
+                  Effect.annotateLogs({ to, message: error.message }),
+                ),
               ),
+              Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
+              Effect.asVoid,
+            );
+          });
+        /** A seek the device refused, or one a newer command cut off, asked again while it holds the recording. */
+        const askAgain = (status: Status) =>
+          Option.match(
+            Option.filter(
+              held.seeking,
+              (it) => !it.asking && holdsRecording(status) && Option.isSome(held.proof.pending),
             ),
-            Effect.catchTag('PlaybackError', (error) =>
-              Effect.logWarning('player.status.failed').pipe(
-                Effect.annotateLogs({ message: error.message }),
-                Effect.andThen(failed(track)),
-                Effect.flatMap(show),
-                Effect.as(['failed', ''] as const),
+            {
+              onNone: () => Effect.void,
+              onSome: ({ to }) => Effect.forkChild(askSeek(to)).pipe(Effect.asVoid),
+            },
+          );
+        /** The hymn on the lock screen and in Control Center; a failure only logged. */
+        const announce = (track: Track) =>
+          device
+            .announce({ title: track.title, artist: `Hymn ${track.number}` })
+            .pipe(
+              Effect.catchTag('PlaybackError', (error) =>
+                Effect.logWarning('player.announce.failed').pipe(
+                  Effect.annotateLogs({ message: error.message }),
+                ),
               ),
-            ),
-          );
-        /** The load is given up: the page offers Retry, and the device lets the recording go. */
-        const stalled = (track: Track) =>
-          Effect.logWarning('player.load.stalled').pipe(
-            Effect.annotateLogs({ track: track.number }),
-            Effect.andThen(failed(track)),
-            Effect.flatMap(show),
-            Effect.andThen(Effect.ignore(device.stop)),
-          );
-        /** Whether the spinner has shown one mark for `loadingLimit`, after a read that saw `mark`. */
-        const stuck = (mark: string, now: number) => {
-          const loading = Player.$is('Loading')(get.registry.get(state));
-          recording.still = Option.liftPredicate(recording.still, () => loading).pipe(
-            Option.map((still) => Option.filter(still, () => mark === recording.mark)),
-            Option.map(Option.getOrElse(() => now)),
-          );
-          recording.mark = mark;
-          return Option.exists(
-            recording.still,
-            (since) => now - since >= Duration.toMillis(loadingLimit),
-          );
-        };
+            );
         /**
          * The recording on the lock screen and in Control Center, once per
          * recording: once the device holds it (it answered an ask, or it
@@ -422,37 +351,138 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           Effect.suspend(() => {
             const page = get.registry.get(state);
             const holds = Option.contains(answer, true) || Player.$is('Playing')(page);
-            if (!holds || letGo(page) || recording.announced === recording.id) return Effect.void;
-            recording.announced = recording.id;
+            if (!holds || letGo(page) || held.announced === held.id) return Effect.void;
+            held.announced = held.id;
             return Effect.uninterruptible(announce(track));
           });
+        /** The load given up: the page offers Retry, and the device lets the recording go. */
+        const giveUp = (track: Track) =>
+          Effect.logWarning('player.load.stalled').pipe(
+            Effect.annotateLogs({ track: track.number }),
+            Effect.andThen(show(failed(track))),
+            Effect.andThen(Effect.ignore(device.stop)),
+          );
+        /**
+         * The page after `read` of `track`, as the reader wants it: Playing at
+         * a read that closes a sound pair; Loading, or Buffering once this
+         * load has sounded, after the stand; Retry beside it after the wait
+         * online; else what it showed, at the read's place.
+         */
+        const seenAt = (track: Track, read: Proof.Read, seen: Proof.Seen): Player => {
+          const was = get.registry.get(state);
+          const sameTrack = Option.exists(trackOf(was), (it) => it.number === track.number);
+          const length = Option.orElse(lengthOf(read.status), () =>
+            Option.flatMap(
+              Option.liftPredicate(was, () => sameTrack),
+              lengthIn,
+            ),
+          );
+          const at = seconds(
+            Option.getOrElse(
+              Option.map(held.proof.pending, (it) => it.target),
+              () => read.status.positionMs,
+            ),
+          );
+          const quiet = Proof.silentFor(held.proof, read);
+          const buffering = (retry: boolean) =>
+            Match.value(held.proof.sounded).pipe(
+              Match.when(true, () => Player.Buffering({ track, at, length, retry })),
+              Match.orElse(() => Player.Loading({ track })),
+            );
+          if (seen === 'sound') return Player.Playing({ track, at, length });
+          if (held.wants === 'pause') return Player.Paused({ track, at, length });
+          if (quiet >= Duration.toMillis(stand))
+            return buffering(quiet >= Duration.toMillis(giveUpAfter) && !offline());
+          return Player.$match(was, {
+            Playing: () => Player.Playing({ track, at, length }),
+            Buffering: ({ retry }) => buffering(retry),
+            Loading: () => Player.Loading({ track }),
+            Idle: () => buffering(false),
+            Paused: () => buffering(false),
+            Ended: () => buffering(false),
+            Stopped: () => buffering(false),
+            Failed: () => buffering(false),
+          });
+        };
+        /** Whether the wait has run out offline: silence and the connection's loss each 15 s old. */
+        const givenUp = (read: Proof.Read) => {
+          const wait = Duration.toMillis(giveUpAfter);
+          const told = link.told();
+          return (
+            held.wants === 'play' &&
+            Proof.silentFor(held.proof, read) >= wait &&
+            !told.online &&
+            read.answered - told.since >= wait
+          );
+        };
+        /**
+         * Read the device's status once and show it; whether to read on. The
+         * reads end when the device fails, ends, is idle or paused with no
+         * place pending, or when the load is given up.
+         */
+        const readOnce = (track: Track, answered: Deferred.Deferred<boolean>) =>
+          Effect.gen(function* () {
+            const asked = yield* now;
+            const status = yield* device.status;
+            const read = { asked, answered: yield* now, status };
+            const next = Proof.readOf(held.proof, read);
+            held.proof = next.proof;
+            const answer = yield* Effect.when(Deferred.await(answered), Deferred.isDone(answered));
+            if (Option.contains(answer, false)) {
+              yield* show(failed(track));
+              return false;
+            }
+            if (next.seen === 'stale') return true;
+            yield* askAgain(status);
+            const done = yield* Match.value(status.state).pipe(
+              Match.when('failed', () => Effect.as(show(failed(track)), true)),
+              // A seek from the end still pending keeps the reads on until it lands.
+              Match.when('ended', () =>
+                Effect.as(
+                  show(Player.Ended({ track, length: lengthOf(status) })),
+                  next.seen !== 'pending',
+                ),
+              ),
+              Match.when('idle', () => Effect.as(show(Player.Idle()), true)),
+              Match.when('paused', () =>
+                Effect.as(
+                  show(
+                    Player.Paused({
+                      track,
+                      at: seconds(status.positionMs),
+                      length: Option.orElse(lengthOf(status), () =>
+                        lengthIn(get.registry.get(state)),
+                      ),
+                    }),
+                  ),
+                  Option.isNone(held.proof.pending),
+                ),
+              ),
+              Match.orElse(() =>
+                Effect.suspend(() => {
+                  if (givenUp(read)) return Effect.as(giveUp(track), true);
+                  return Effect.as(show(seenAt(track, read, next.seen)), false);
+                }),
+              ),
+            );
+            yield* announceOnce(track, answer);
+            return !done || Option.isNone(answer);
+          }).pipe(
+            Effect.catchTag('PlaybackError', (error) =>
+              Effect.logWarning('player.status.failed').pipe(
+                Effect.annotateLogs({ message: error.message }),
+                Effect.andThen(show(failed(track))),
+                Effect.as(false),
+              ),
+            ),
+          );
         /**
          * Show the device's status while the ask is not `answered`, and after
          * until its playback stops moving: a read every `every`, and one at
-         * once when the device answers. The reads end when the device fails,
-         * when the ask is refused and the refusal says so (`false`), or when
-         * the spinner has shown one status for `loadingLimit`.
+         * once when the device answers.
          */
         const watch = (track: Track, answered: Deferred.Deferred<boolean>) =>
           Effect.gen(function* () {
-            const once = Effect.gen(function* () {
-              const [seen, mark] = yield* read(track);
-              const answer = yield* Effect.when(
-                Deferred.await(answered),
-                Deferred.isDone(answered),
-              );
-              if (Option.contains(answer, false)) {
-                yield* failed(track).pipe(Effect.flatMap(show));
-                return false;
-              }
-              if (seen === 'failed') return false;
-              if (stuck(mark, yield* Clock.currentTimeMillis)) {
-                yield* stalled(track);
-                return false;
-              }
-              yield* announceOnce(track, answer);
-              return seen === 'moving' || Option.isNone(answer);
-            });
             /** Until the next read: `every`, or less once the device answers. */
             const rest = Deferred.isDone(answered).pipe(
               Effect.flatMap((done) =>
@@ -467,36 +497,13 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 ),
               ),
             );
-            let more = yield* once;
+            let more = yield* readOnce(track, answered);
             while (more) {
               yield* rest;
-              more = yield* once;
+              more = yield* readOnce(track, answered);
             }
           });
-        /** Show the device's status until its playback stops moving, whatever the page shows. */
-        const follow = (track: Track) =>
-          Deferred.make<boolean>().pipe(
-            Effect.tap((answered) => Deferred.succeed(answered, true)),
-            Effect.flatMap((answered) => watch(track, answered)),
-          );
-        /** The reader's ask, shown at once: the device's status follows it. */
-        const intend = (intent: Intent) =>
-          Effect.sync(() => {
-            get.set(wants, intent);
-            get.set(state, asked(get.registry.get(state), intent));
-          });
-        /** A refused ask is logged, and the status shown as it is. */
-        const logged = (error: PlaybackError) =>
-          Effect.logWarning('player.command.failed').pipe(
-            Effect.annotateLogs({ operation: error.operation, message: error.message }),
-            Effect.as(true),
-          );
-        /**
-         * Ask the device, and show its status while it answers and after: a web
-         * `play` and `resume` answer only once the element plays (or never,
-         * when it fails after its data), and a `seek` once it holds the new
-         * place. A refusal is `refused`: `true` reads on, `false` shows Failed.
-         */
+        /** Ask the device, and show its status while it answers and after. A refusal is `refused`: `true` reads on, `false` shows Failed. */
         const ask = (
           track: Track,
           operation: Effect.Effect<unknown, PlaybackError>,
@@ -513,86 +520,149 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             );
             yield* watch(track, answered);
           });
-        /** The hymn on the lock screen and in Control Center; a failure only logged. */
-        const announce = (track: Track) =>
-          device
-            .announce({ title: track.title, artist: `Hymn ${track.number}` })
-            .pipe(
-              Effect.catchTag('PlaybackError', (error) =>
-                Effect.logWarning('player.announce.failed').pipe(
-                  Effect.annotateLogs({ message: error.message }),
-                ),
+        /** Read the device's status until its playback stops moving. */
+        const follow = (track: Track) =>
+          Deferred.make<boolean>().pipe(
+            Effect.tap((answered) => Deferred.succeed(answered, true)),
+            Effect.flatMap((answered) => watch(track, answered)),
+          );
+        /** A refused ask is logged, and the status shown as it is. */
+        const logged = (error: PlaybackError) =>
+          Effect.logWarning('player.command.failed').pipe(
+            Effect.annotateLogs({ operation: error.operation, message: error.message }),
+            Effect.as(true),
+          );
+        /** A load: Loading at once, the device asked to play from `fromMs`, its status read while it loads. */
+        const load = (track: Track, fromMs: number) =>
+          Effect.gen(function* () {
+            held.wants = 'play';
+            held.id += 1;
+            held.proof = Proof.loaded(yield* now, fromMs);
+            const seeking = { to: fromMs, asking: true };
+            held.seeking = Option.liftPredicate(seeking, () => fromMs > 0);
+            yield* show(Player.Loading({ track }));
+            const played = device.play(audioUrl(track.number), fromMs).pipe(
+              Effect.tap(() => Effect.sync(() => (held.seeking = Option.none()))),
+              Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
+            );
+            yield* ask(track, played, (error) =>
+              Effect.logWarning('player.play.failed').pipe(
+                Effect.annotateLogs({ track: track.number, message: error.message }),
+                Effect.as(false),
               ),
             );
+          });
         const current = get.registry.get(state);
         const holding = trackOf(current);
-        /** Run `act` on the hymn the player holds; with none, nothing. */
-        const held = (act: (track: Track) => Effect.Effect<void>) =>
-          Option.match(holding, { onNone: () => Effect.void, onSome: act });
-        /** Run `act` on the recording the device holds; with none (let go, or failed), `instead`. */
-        const holds = (
-          act: (track: Track) => Effect.Effect<void>,
-          instead: (track: Track) => Effect.Effect<void>,
-        ) =>
-          held((track) =>
-            Match.value(letGo(current)).pipe(
-              Match.when(true, () => instead(track)),
-              Match.orElse(() => act(track)),
-            ),
-          );
-        /** Start and Retry: Loading at once, the status read while the device loads. */
-        const begin = (track: Track) =>
-          Effect.sync(() => {
-            get.set(wants, 'play');
-            Object.assign(recording, { id: recording.id + 1, mark: '', still: Option.none() });
-          }).pipe(
-            Effect.andThen(show(Player.Loading({ track }))),
-            Effect.andThen(
-              ask(track, device.play(audioUrl(track.number), 0), (error) =>
-                Effect.logWarning('player.play.failed').pipe(
-                  Effect.annotateLogs({ track: track.number, message: error.message }),
-                  Effect.as(false),
+        /** Run `run` on the hymn the player holds; with none, nothing. */
+        const onHeld = (run: (track: Track) => Effect.Effect<void>) =>
+          Option.match(holding, { onNone: () => Effect.void, onSome: run });
+        /** A Resume: from where the reader is, by what the page shows. */
+        const resume = (track: Track) => {
+          const fromPlace = () =>
+            load(
+              track,
+              Option.getOrElse(held.proof.place, () => 0),
+            );
+          const resumed = (target: Option.Option<number>, shown: Player) =>
+            Effect.gen(function* () {
+              held.wants = 'play';
+              yield* act(target);
+              yield* show(shown);
+              yield* ask(track, device.resume, logged);
+            });
+          return Player.$match(current, {
+            Stopped: fromPlace,
+            Failed: fromPlace,
+            Buffering: (it) =>
+              Match.value(it.retry).pipe(
+                Match.when(true, fromPlace),
+                Match.orElse(() => resumed(Option.none(), current)),
+              ),
+            Paused: ({ at, length }) =>
+              resumed(
+                Option.none(),
+                Match.value(held.proof.sounded).pipe(
+                  Match.when(true, () => Player.Buffering({ track, at, length, retry: false })),
+                  Match.orElse(() => Player.Loading({ track })),
                 ),
               ),
-            ),
-          );
-        /** A Pause before the first sound: Stopped at once, and the device lets the recording go. */
-        const halt = (track: Track) =>
-          Effect.sync(() => get.set(wants, 'pause')).pipe(
-            Effect.andThen(show(Player.Stopped({ track, at: Option.none() }))),
-            Effect.andThen(device.stop),
-            Effect.catchTag('PlaybackError', logged),
-            Effect.asVoid,
-          );
+            Ended: () => load(track, 0),
+            Idle: () => Effect.void,
+            Loading: () => resumed(Option.none(), current),
+            Playing: ({ at, length }) =>
+              resumed(Option.none(), Player.Buffering({ track, at, length, retry: false })),
+          });
+        };
+        /** A Pause: before the first sound the device lets the recording go (Stopped); after it, Paused. */
         const pause = (track: Track) =>
-          Match.value(current).pipe(
-            Match.tag('Loading', () => halt(track)),
-            Match.orElse(() =>
-              intend('pause').pipe(Effect.andThen(ask(track, device.pause, logged))),
-            ),
-          );
-        /** A Pause with nothing to pause: kept as the reader's ask, and nothing else is done. */
-        const keep = () => Effect.sync(() => get.set(wants, 'pause'));
+          Effect.gen(function* () {
+            held.wants = 'pause';
+            if (letGo(current)) return;
+            if (Player.$is('Loading')(current)) {
+              yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
+              yield* device.stop.pipe(Effect.catchTag('PlaybackError', logged), Effect.asVoid);
+              return;
+            }
+            yield* act(Option.none());
+            yield* Player.$match(current, {
+              Playing: ({ at, length }) => show(Player.Paused({ track, at, length })),
+              Buffering: ({ at, length }) => show(Player.Paused({ track, at, length })),
+              Idle: () => Effect.void,
+              Loading: () => Effect.void,
+              Paused: () => Effect.void,
+              Ended: () => Effect.void,
+              Stopped: () => Effect.void,
+              Failed: () => Effect.void,
+            });
+            yield* ask(track, device.pause, logged);
+          });
+        /** A Seek: the device asked for the place, which becomes the reader's; a let-go player keeps it for its Play. */
+        const seek = (track: Track, to: number) =>
+          Effect.gen(function* () {
+            // The device lands a seek past the end at the end.
+            const end = Option.getOrElse(lengthIn(current), () => Number.POSITIVE_INFINITY);
+            const ms = Math.min(Math.max(0, to), end) * 1000;
+            yield* act(Option.some(ms));
+            if (letGo(current)) {
+              yield* show(
+                Player.$match(current, {
+                  Stopped: () => Player.Stopped({ track, at: placeOf(held.proof) }),
+                  Failed: ({ offline: off }) =>
+                    Player.Failed({ track, offline: off, at: placeOf(held.proof) }),
+                  Idle: () => current,
+                  Loading: () => current,
+                  Playing: () => current,
+                  Buffering: () => current,
+                  Paused: () => current,
+                  Ended: () => current,
+                }),
+              );
+              return;
+            }
+            yield* ask(track, askSeek(ms), logged);
+          });
         /** The hymn the command is about: the one it starts, else the one held. */
         const subject = Option.liftPredicate(command, Command.$is('Start')).pipe(
           Option.map(({ track }) => track),
           Option.orElse(() => holding),
         );
         return yield* Command.$match(command, {
-          Start: ({ track }) => begin(track),
-          Pause: () => holds(pause, keep),
-          // From a recording let go, any Play starts it again.
-          Resume: () =>
-            holds(
-              (track) => intend('play').pipe(Effect.andThen(ask(track, device.resume, logged))),
-              begin,
+          Start: ({ track }) => load(track, 0),
+          Pause: () =>
+            Option.match(holding, {
+              onNone: () => Effect.sync(() => (held.wants = 'pause')),
+              onSome: pause,
+            }),
+          Resume: () => onHeld(resume),
+          Seek: ({ seconds: to }) => onHeld((track) => seek(track, to)),
+          Follow: () =>
+            onHeld((track) =>
+              Match.value(letGo(current)).pipe(
+                Match.when(true, () => Effect.void),
+                Match.orElse(() => act(Option.none()).pipe(Effect.andThen(follow(track)))),
+              ),
             ),
-          Seek: ({ seconds: to }) =>
-            holds(
-              (track) => ask(track, device.seek(Math.max(0, to) * 1000), logged),
-              () => Effect.void,
-            ),
-          Follow: () => holds(follow, () => Effect.void),
         }).pipe(
           // A defect is a bug, but the reader still sees the recording fail.
           Effect.catchDefect((defect) =>

@@ -112,11 +112,8 @@ describe('the player', () => {
       yield* app.until(Player.$is('Playing'));
 
       // A stall, or a seek past what the device holds: One says `loading`, its length unread.
+      // The page shows Buffering once silence is proved for 2 s (the world property's P3).
       app.device.now = { state: 'loading', positionMs: 61_000 };
-      expect(yield* app.until(Player.$is('Buffering'))).toEqual(
-        Player.Buffering({ track: morning, at: 61, length: Option.some(151), retry: false }),
-      );
-
       app.send(Command.Pause());
       expect(yield* app.until(Player.$is('Paused'))).toEqual(
         Player.Paused({ track: morning, at: 61, length: Option.some(151) }),
@@ -145,9 +142,13 @@ describe('the player', () => {
         Player.Ended({ track: morning, length: Option.some(151) }),
       );
 
+      // A Resume from Ended plays the recording again from 0:00.
       app.send(Command.Resume());
+      yield* app.until(Player.$is('Loading'));
+      expect(app.device.played).toEqual([audioUrl(100), audioUrl(100)]);
+      app.device.now = { state: 'playing', positionMs: 1000, durationMs: 151_000 };
       expect(yield* app.until(Player.$is('Playing'))).toEqual(
-        Player.Playing({ track: morning, at: 0, length: Option.some(151) }),
+        Player.Playing({ track: morning, at: 1, length: Option.some(151) }),
       );
     }),
   );
@@ -164,7 +165,7 @@ describe('the player', () => {
       app.device.online = true;
       app.send(Command.Start({ track: morning }));
       yield* app.until(Player.$is('Loading'));
-      app.device.now = { state: 'playing', positionMs: 0, durationMs: 151_000 };
+      app.device.now = { state: 'playing', positionMs: 1000, durationMs: 151_000 };
       yield* app.until(Player.$is('Playing'));
       expect(app.device.played).toEqual([audioUrl(100), audioUrl(100)]);
     }),
@@ -179,7 +180,7 @@ describe('the player', () => {
 
       app.device.now = { state: 'failed', positionMs: 30_000 };
       expect(yield* app.until(Player.$is('Failed'))).toEqual(
-        Player.Failed({ track: morning, offline: false, at: Option.none() }),
+        Player.Failed({ track: morning, offline: false, at: Option.some(30) }),
       );
     }),
   );
@@ -276,7 +277,7 @@ describe('the player', () => {
         app.device.press('play', { state: 'idle', positionMs: 0 });
         expect(yield* app.until(Player.$is('Loading'))).toEqual(Player.Loading({ track: morning }));
         expect(app.device.played).toEqual([audioUrl(100), audioUrl(100)]);
-        app.device.now = { state: 'playing', positionMs: 0, durationMs: 151_000 };
+        app.device.now = { state: 'playing', positionMs: 1000, durationMs: 151_000 };
         yield* app.until(Player.$is('Playing'));
         // Once per recording the device held: the one let go, and this one.
         expect(app.device.announced).toHaveLength(2);

@@ -12,12 +12,30 @@ import { Effect, Layer, Match, Option, Queue, Stream, SubscriptionRef } from 'ef
 
 import { type Announcement, Playback, PlaybackError, Remote, type Status } from '../player/player';
 
+/** How far a device set to play sounds before its place, ms: past the 2 ms a place keeps. */
+const sounds = 3;
+
 export const fakeDevice = () => {
   const remote = Effect.runSync(Queue.unbounded<Remote>());
   const connection = Effect.runSync(SubscriptionRef.make(true));
+  /** One item for each status read the player makes. */
+  const reads = Effect.runSync(Queue.unbounded<true>());
+  let now: Status = { state: 'idle', positionMs: 0 };
+  /** Whether the next read is the first since the device turned to `playing` at a place. */
+  let fresh = false;
   const device = {
-    /** The playback now. */
-    now: { state: 'idle', positionMs: 0 } satisfies Status as Status,
+    /**
+     * The playback now. A device set to play sounds into its place: the first
+     * read after says it is loading 3 ms short, so the read after it closes a
+     * sound pair at the place.
+     */
+    get now(): Status {
+      return now;
+    },
+    set now(next: Status) {
+      fresh = next.state === 'playing' && next.positionMs >= sounds;
+      now = next;
+    },
     /** The connection: setting it tells the player the change. */
     get online() {
       return Effect.runSync(SubscriptionRef.get(connection));
@@ -38,6 +56,12 @@ export const fakeDevice = () => {
      */
     waiting: 0,
     announced: new Array<Announcement>(),
+    /** Wait until the player has read the status `n` more times. */
+    reads: (n: number) =>
+      Queue.clear(reads).pipe(
+        Effect.andThen(Effect.forEach(Array.from({ length: n }), () => Queue.take(reads))),
+        Effect.asVoid,
+      ),
     /** How many times the player let the recording go (`stop`). */
     stopped: 0,
     /** The lock screen's play or pause: the session moves to `next`, then tells the app. */
@@ -100,9 +124,12 @@ export const fakeDevice = () => {
           );
         }),
       status: Effect.sync(() => {
-        const now = said(device.now);
+        Queue.offerUnsafe(reads, true);
+        const read = said(device.now);
         device.waiting = Math.max(0, device.waiting - 1);
-        return now;
+        if (!fresh || read.state !== 'playing') return read;
+        fresh = false;
+        return { ...read, state: 'loading', positionMs: read.positionMs - sounds } satisfies Status;
       }),
       stop: Effect.sync(() => {
         device.stopped += 1;

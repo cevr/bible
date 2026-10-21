@@ -277,6 +277,8 @@ describe('the hymn page’s recording control', () => {
       act(() => drag(bar, '75'));
       expect(page.device.sought).toEqual([]);
       act(() => void pointer(bar, 'pointerup'));
+      // The seek lands at 75_000; reads see it there before the device plays on.
+      yield* page.device.reads(3);
       // Playing on between the pointer's release and the browser's `change`.
       page.device.now = { ...page.device.now, positionMs: 75_400 };
       yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75.4);
@@ -368,12 +370,15 @@ describe('the hymn page’s recording control', () => {
         release(bar);
       });
       expect(page.device.sought).toEqual([75_000]);
-      // The device still plays at the old place while its seek goes.
+      // The device still plays at the old place while its seek goes: the page
+      // waits on the seek's place.
       page.device.now = { ...page.device.now, positionMs: 10_500 };
-      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 10.5);
+      yield* page.until((player) => Player.$is('Buffering')(player) && player.at === 75);
       expect(bar.getAttribute('aria-valuetext')).toBe('1:15 of 2:31');
 
       // The seek lands, and the bar follows the player again.
+      page.device.now = { ...page.device.now, positionMs: 75_000 };
+      yield* page.device.reads(3);
       page.device.now = { ...page.device.now, positionMs: 75_200 };
       yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75.2);
       page.device.now = { ...page.device.now, positionMs: 80_000 };
@@ -409,9 +414,9 @@ describe('the hymn page’s recording control', () => {
       page.device.now = { state: 'playing', positionMs: 60_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
 
+      // The page shows Buffering once silence is proved for 2 s (the world property's P3).
       page.device.now = { state: 'loading', positionMs: 61_000 };
-      yield* page.until(Player.$is('Buffering'));
-      expect(page.text()).toContain('Loading the recording…');
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 61);
       expect(page.bar().getAttribute('aria-valuetext')).toBe('1:01 of 2:31');
 
       page.press('Pause hymn 100');

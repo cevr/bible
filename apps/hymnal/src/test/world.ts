@@ -205,6 +205,7 @@ const initial = (platform: Platform, start: number) => ({
   online: true,
   holdUntil: start,
   holdEnd: Number.NEGATIVE_INFINITY,
+  holdStart: Number.POSITIVE_INFINITY,
   /** A seek landing later (D10, D8). */
   landing: Option.none<{ readonly to: number; readonly at: number }>(),
   reads: new Array<Read>(),
@@ -223,6 +224,10 @@ const initial = (platform: Platform, start: number) => ({
   playTold: start,
   /** The latest pause: the reader's, the lock screen's or the device's own. */
   pauseAt: Number.NEGATIVE_INFINITY,
+  /** The reader's place before sound a host hold kept unseen. */
+  unseenFrom: Option.none<number>(),
+  /** The latest step the device was ended. */
+  endedLast: Number.NEGATIVE_INFINITY,
   wants: false,
   /** Where the device last sounded, or the latest seek target since. */
   readerPlace: Option.none<number>(),
@@ -234,6 +239,7 @@ const initial = (platform: Platform, start: number) => ({
   /** The reader's latest seek, and every place the reader asked since the latest Start. */
   target: Option.none<Target>(),
   asks: new Array<number>(),
+  landedAt: Number.NEGATIVE_INFINITY,
   failedAt: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
   endedSeen: false,
@@ -264,14 +270,31 @@ const initial = (platform: Platform, start: number) => ({
  * `outOfOrder` tells presses late, after reads that show them (outside
  * One's order, for the census case that needs it).
  */
+/** A command or a page in a trace: its tag and fields, an option as its value or none. */
+const told = (value: { readonly _tag: string }) =>
+  Object.entries(value)
+    .map(([key, it]) => {
+      if (key === 'track') return '';
+      if (Option.isOption(it))
+        return `${key}=${Option.getOrElse(Option.map(it, String), () => 'none')}`;
+      return `${key}=${String(it)}`;
+    })
+    .filter((it) => it !== '')
+    .join(' ');
+
 export const makeWorld = (
   platform: Platform,
   clock: TestClock.TestClock,
   knobs: Knobs,
   start: number,
-  options: { readonly outOfOrder?: boolean } = {},
+  options: { readonly outOfOrder?: boolean; readonly trace?: boolean } = {},
 ) => {
   const w = initial(platform, start);
+  /** What happened, step by step, when `trace` is asked for (a failing seed's story). */
+  const story = new Array<string>();
+  const note = (line: string) => {
+    if (options.trace) story.push(`${w.t} ${line}`);
+  };
   const phone = platform !== 'web';
   const count = (item: string) => w.counts.set(item, (w.counts.get(item) ?? 0) + 1);
   const breach = (rule: string, detail: string) =>
@@ -307,13 +330,17 @@ export const makeWorld = (
       if (at === 0 && it.to >= w.length - 5000) breach('O7 seek in the last 5 s landed at 0', '');
     });
     Option.map(w.fromPending, (from) => {
-      if (Math.abs(from - at) <= 2) w.fromPending = Option.none();
+      if (Math.abs(Math.min(from, w.length) - at) <= 2) w.fromPending = Option.none();
     });
   };
   /** The device lands a seek at `to` (rounded to 1/600 s, as AVPlayer does). */
   const land = (to: number) => {
     const at = Math.max(0, Math.min(w.length, Math.round(to * 0.6) / 0.6));
     markLanded(at);
+    // A landing breaks the sound's run, as the act that asked it does; a seek
+    // still on its way is superseded, as a later seekTo supersedes it.
+    w.landedAt = w.t;
+    w.landing = Option.none();
     w.place = at;
     if (w.place >= w.length) {
       w.phase = 'ended';
@@ -362,10 +389,13 @@ export const makeWorld = (
   };
 
   const seek = (positionMs: number) => {
+    note(`device seek ${positionMs} phase=${w.phase} ready=${w.ready}`);
     w.sought.push(positionMs);
     const asked =
-      w.asks.some((it) => Math.abs(it - positionMs) <= 2) ||
-      Option.exists(w.fromPending, (from) => Math.abs(from - positionMs) <= 2);
+      w.asks.some(
+        (it) =>
+          Math.abs(Math.min(it, w.length) - positionMs) <= 2 || Math.abs(it - positionMs) <= 2,
+      ) || Option.exists(w.fromPending, (from) => Math.abs(from - positionMs) <= 2);
     if (!asked)
       breach('O7 the device was asked a place the reader did not ask', `to=${positionMs}`);
     if (!holding(w.phase) || (phone && !w.ready)) {
@@ -446,8 +476,11 @@ export const makeWorld = (
         const resumed = w.lastCommand === 'Resume';
         w.firstFrom = Option.filter(w.fromPending, () => resumed);
         const expected = Option.getOrElse(w.readerPlace, () => 0);
-        if (resumed && Math.abs(expected - fromMs) > 1000)
+        if (resumed && !near(Math.min(fromMs, w.length), expected))
           breach('O6 a Resume played from another place', `from=${fromMs} reader=${expected}`);
+        // The place a play goes to is the reader's from then on.
+        if (resumed) w.readerPlace = Option.some(Math.min(fromMs, w.length));
+        w.unseenFrom = Option.none();
         return api.play(uri, fromMs);
       }),
     stop: Effect.suspend(() => {
@@ -469,9 +502,15 @@ export const makeWorld = (
   const page = () => registry.get(player.state);
 
   const running = () => w.t >= w.holdUntil;
+  /** Whether a place the page keeps is the reader's, or the one before sound a hold kept unseen. */
+  const near = (at: number, expected: number) =>
+    Math.abs(at - expected) <= 1000 ||
+    Option.exists(w.unseenFrom, (from) => Math.abs(at - from) <= 1000);
   const settled = () => w.t >= w.holdEnd + span + step;
   const noteAct = () => {
     w.lastAct = w.t;
+    // The first sound after a later act is that act's, not a play's from before it.
+    w.firstFrom = Option.none();
     w.endedSeen = false;
   };
   const askSeek = (asked: number) => {
@@ -479,6 +518,9 @@ export const makeWorld = (
     w.target = Option.some({ to, asked: Math.max(0, asked), at: w.t, landed: false });
     w.asks.push(Math.max(0, asked));
     w.readerPlace = Option.some(to);
+    w.unseenFrom = Option.none();
+    // A later seek is the place the device goes to, not a play's from before it.
+    w.fromPending = Option.none();
     return to;
   };
   const wantSound = () => {
@@ -494,6 +536,7 @@ export const makeWorld = (
 
   /** A page command (D9): the reader acts only while the host runs. */
   const send = (command: Command) => {
+    note(`send ${told(command)}`);
     noteAct();
     w.lastCommand = command._tag;
     Command.$match(command, {
@@ -569,9 +612,29 @@ export const makeWorld = (
 
   /** A lock-screen press (D8): a phone acts at the press; the app is told later. */
   const press = (kind: Press, to = 0) => {
+    note(`press ${kind} ${to}`);
     countPress(kind, to);
     // One drops a seek with no place on a phone: nothing acts, nothing is told.
     if (kind === 'follow' && phone) return;
+    const tell = tellPress(kind, to);
+    // The web's session only calls the page's handler: the press acts when the page runs it.
+    if (!phone) {
+      w.tells.push({
+        pressedAt: w.t,
+        at: w.t + knobs.tellAfter(),
+        run: () => {
+          pressed(kind, to);
+          tell();
+        },
+      });
+      return;
+    }
+    pressed(kind, to);
+    pressPhone(kind, to);
+    w.tells.push({ pressedAt: w.t, at: w.t + knobs.tellAfter(), run: tell });
+  };
+  /** What the reader's press is to the world: an act, and what the reader wants. */
+  const pressed = (kind: Press, to: number) => {
     noteAct();
     w.lastCommand = pressCommand(kind);
     if (kind === 'play') wantSound();
@@ -580,8 +643,6 @@ export const makeWorld = (
       w.pauseAt = w.t;
     }
     if (kind === 'seek') askSeek(to);
-    if (phone) pressPhone(kind, to);
-    w.tells.push({ pressedAt: w.t, at: w.t + knobs.tellAfter(), run: tellPress(kind, to) });
   };
 
   /** The connection changes (D11); One tells it when the host runs. */
@@ -601,6 +662,7 @@ export const makeWorld = (
 
   /** The host holds the app's JS for `ms` (D7). */
   const hold = (ms: number) => {
+    if (w.t >= w.holdUntil) w.holdStart = w.t;
     w.holdUntil = Math.max(w.holdUntil, w.t + ms);
     w.holdEnd = w.holdUntil;
     count('D7 hold');
@@ -635,9 +697,16 @@ export const makeWorld = (
     count('D12 interrupted');
   };
 
-  const becomeReady = () => {
+  /** The item turns ready: a refused seek to the place it starts at is where the device is. */
+  const turnReady = () => {
     w.ready = true;
     w.readyAt = w.t;
+    Option.map(w.target, (it) => {
+      if (Math.abs(it.to - w.place) <= 2) it.landed = true;
+    });
+  };
+  const becomeReady = () => {
+    turnReady();
     w.ahead = Math.max(w.ahead, 1500);
     let silentFor = 0;
     if (platform === 'ios') silentFor = knobs.silentFor();
@@ -680,12 +749,18 @@ export const makeWorld = (
       count('D3 dry');
       return;
     }
+    // An item that sounds is ready, as on a first load a close cut off.
+    if (!w.ready) turnReady();
     w.place = Math.min(w.length, w.place + step);
     w.ahead -= step;
     w.lastSound = w.t + step;
+    // Sound before a seek or a play from a place lands is not where the reader is.
+    const seeking = Option.exists(w.target, (it) => !it.landed);
     if (Option.isSome(w.fromPending)) count('D4 lead-in');
-    else {
+    else if (!seeking) {
       firstSound();
+      // Sound in a host hold no read has sampled since is unseen (gap 3): the page may keep the place before it.
+      if (!running() && Option.isNone(w.unseenFrom)) w.unseenFrom = w.readerPlace;
       w.readerPlace = Option.some(w.place);
     }
     if (w.phase === 'held') {
@@ -736,6 +811,10 @@ export const makeWorld = (
     for (const read of due) {
       w.reads.splice(w.reads.indexOf(read), 1);
       const seen = Option.getOrThrow(read.seen);
+      // A read that shows the place sees the sound; one of a let-go device never can.
+      if (running() && seen.state !== 'idle' && seen.state !== 'failed')
+        w.unseenFrom = Option.none();
+      note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
       const current = read.asked >= Math.max(w.lastAct, w.toldAt);
       if (seen.state === 'ended' && settled() && current) w.endedSeen = true;
       read.answer(seen);
@@ -763,7 +842,10 @@ export const makeWorld = (
 
   /** O1 to O3: Playing only with sound, Failed only with a cause, Playing owed. */
   const judgeSound = (now: Player) => {
-    const heard = w.lastSound >= w.loadAt && w.t - w.lastSound <= allowance;
+    // Sound inside a host hold counts as heard until the hold ends: the page runs no sooner.
+    let heardAt = w.lastSound;
+    if (w.lastSound >= w.holdStart) heardAt = Math.max(w.lastSound, w.holdEnd);
+    const heard = w.lastSound >= w.loadAt && w.t - heardAt <= allowance;
     if (settled() && now._tag === 'Playing' && !heard)
       breach('O1 Playing with no sound', `lastSound=${w.lastSound} loadAt=${w.loadAt}`);
     if (now._tag === 'Failed' && w.was !== 'Failed') {
@@ -771,7 +853,7 @@ export const makeWorld = (
       if (!byDevice && quietFor(w.offQuiet) < 15_000 - span)
         breach('O2 Failed with no cause', `offQuietFor=${quietFor(w.offQuiet)}`);
     }
-    const unacted = w.t - Math.max(w.lastAct, w.holdEnd) >= 1500 + span;
+    const unacted = w.t - Math.max(w.lastAct, w.landedAt, w.holdEnd) >= 1500 + span;
     const sounding = w.t - w.soundSince >= 1500 && Option.isNone(w.fromPending);
     if (settled() && w.wants && sounding && unacted && now._tag !== 'Playing')
       breach('O3 sounding, not Playing', `page=${now._tag}`);
@@ -794,7 +876,8 @@ export const makeWorld = (
     if (isLetGo(now) && w.was !== now._tag)
       Option.map(now.at, (at) => {
         const expected = Option.getOrElse(w.readerPlace, () => 0);
-        if (Math.abs(at * 1000 - expected) > 1000)
+        // A place past an end the page cannot know yet lands at the end.
+        if (!near(Math.min(at * 1000, w.length), expected))
           breach('O6 the page keeps another place', `at=${at} reader=${expected}`);
       });
     const latest = w.fromSince >= w.lastAct - 1;
@@ -813,7 +896,11 @@ export const makeWorld = (
     });
   /** O8 and O9: Ended only once ended, Ended owed; Paused only after a pause. */
   const judgeEnd = (now: Player) => {
-    const endedNow = w.phase === 'ended' || w.endedAt >= w.lastAct;
+    // An ended device a seek moves on was ended since the act; the page learns it by a read.
+    const endedNow =
+      w.phase === 'ended' ||
+      w.endedAt >= w.lastAct ||
+      (w.endedLast >= w.lastAct && w.t - w.endedLast <= allowance);
     if (now._tag === 'Ended' && settled() && w.t - w.lastAct > span && !endedNow)
       breach('O8 Ended, not ended', '');
     if (settled() && w.endedSeen && w.phase === 'ended' && now._tag !== 'Ended')
@@ -829,8 +916,10 @@ export const makeWorld = (
     judgeSeek();
     judgeEnd(now);
     const retry = isRetry(now);
-    if (now._tag !== w.was || retry !== w.wasRetry)
+    if (now._tag !== w.was || retry !== w.wasRetry) {
       w.history.push({ t: w.t, tag: now._tag, retry });
+      note(`page ${told(now)}`);
+    }
     w.was = now._tag;
     w.wasRetry = retry;
   };
@@ -838,6 +927,7 @@ export const makeWorld = (
   /** One step of the world. */
   const tick = Effect.gen(function* () {
     engine();
+    if (w.phase === 'ended') w.endedLast = w.t;
     w.t += step;
     for (const read of w.reads)
       if (Option.isNone(read.seen) && w.t >= read.sampleAt) read.seen = Option.some(said());
@@ -873,6 +963,8 @@ export const makeWorld = (
       }),
     /** The states the page showed since `from`. */
     shownSince: (from: number) => w.history.filter((it) => it.t >= from).map((it) => it.tag),
+    story,
+    note,
     dispose: () => registry.dispose(),
   });
 };
@@ -991,6 +1083,12 @@ export const roam = (w: World, r: () => number) => {
     chance = 0.04;
     commandChance = 0.03;
   }
+  // A reader waits on a Buffering page, so a wait can run to its Retry.
+  const shown = w.state();
+  if (shown._tag === 'Buffering' && !isRetry(shown)) {
+    chance /= 10;
+    commandChance /= 10;
+  }
   if (w.phase !== 'idle' && r() < chance) pressDrawn(w, r);
   if (w.running() && r() < commandChance) commandDrawn(w, r);
   deviceDrawn(w, r);
@@ -998,11 +1096,11 @@ export const roam = (w: World, r: () => number) => {
 
 /** The device's and the server's own turns at one step, drawn from `r`. */
 const deviceDrawn = (w: World, r: () => number) => {
-  if (w.online && w.phase === 'sound' && r() < 0.003)
+  if (w.online && w.phase === 'sound' && r() < 0.005)
     w.stall(
       either(
         r,
-        0.3,
+        0.5,
         () => 100 + r() * 1900,
         () => 2000 + r() * 58_000,
       ),

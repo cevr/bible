@@ -31,7 +31,11 @@ import {
 } from '../test/world';
 import { Command, Player } from './player';
 
-const seeds = 24;
+/** The seeds of each seeded case: 24, or `WORLD_SEEDS` for a deep sweep, from `WORLD_FROM`. */
+// oxlint-disable-next-line effect/noGlobals -- the deep sweep's size comes from its shell, outside any Effect.
+const seeds = Number(process.env['WORLD_SEEDS'] ?? 24);
+// oxlint-disable-next-line effect/noGlobals -- as above, the sweep's first seed.
+const firstSeed = Number(process.env['WORLD_FROM'] ?? 1);
 const seconds = 90;
 
 /** Every rule a seed broke: the first time each, and how many steps after. */
@@ -74,7 +78,7 @@ describe('the player by the world: seeded', () => {
       `${platform}: ${seeds} seeds of ${seconds} s break no rule and reach every item`,
       () =>
         Effect.gen(function* () {
-          const { broken, counts } = yield* seeded(platform);
+          const { broken, counts } = yield* seeded(platform, firstSeed);
           const unreached = reachable(platform).filter((item) => !counts.get(item));
           yield* Console.log(
             `${platform} reached: ${reachable(platform)
@@ -112,6 +116,17 @@ const fixed = (
   );
 
 const sound = (w: World) => w.phase === 'sound';
+/** A first load as the fixed worlds draw it, then loads of `ms` each. */
+const loadsThen = (ms: number) => {
+  let loads = 0;
+  return () => {
+    loads += 1;
+    if (loads === 1) return fixedKnobs.loadFor();
+    return ms;
+  };
+};
+/** Whether the device has sounded since the world began. */
+const sounded = (w: World) => w.lastSound > Number.NEGATIVE_INFINITY;
 const tag = (w: World) => w.page();
 /** Start a hymn and play until the page shows Playing. */
 const playing = (w: World) =>
@@ -496,12 +511,13 @@ describe('the player by the world: each earlier counterexample', () => {
   fixed(
     'r2 m1: a Resume while the server stops, online: never Failed by a limit in the adapter',
     'android',
-    { loadFor: () => 150_000 },
+    { loadFor: loadsThen(150_000) },
     (w) =>
       Effect.gen(function* () {
         yield* playingAt(w, 30);
         w.fail();
         expect(yield* w.until(() => tag(w) === 'Failed', 2000)).toBe(true);
+        yield* w.run(step);
         const resumed = w.t;
         w.send(Command.Resume());
         yield* w.run(140_000);
@@ -522,8 +538,10 @@ describe('the player by the world: each earlier counterexample', () => {
         yield* w.until(() => w.phase === 'silent', 2000);
         yield* w.run(600);
         w.press('seek', w.place + 300);
-        yield* w.until(() => sound(w), 5000);
-        expect(w.history.map((it) => it.tag)).toEqual(['Loading']);
+        yield* w.until(() => sounded(w), 5000);
+        // A read across the first sound's step closes a sound pair at that step.
+        const first = w.t;
+        expect(w.history.filter((it) => it.t < first).map((it) => it.tag)).toEqual(['Loading']);
       }),
   );
 
@@ -538,8 +556,10 @@ describe('the player by the world: each earlier counterexample', () => {
         w.hold(500);
         yield* w.run(200);
         w.press('seek', w.place + 300);
-        yield* w.until(() => sound(w), 5000);
-        expect(w.history.map((it) => it.tag)).toEqual(['Loading']);
+        yield* w.until(() => sounded(w), 5000);
+        // A read across the first sound's step closes a sound pair at that step.
+        const first = w.t;
+        expect(w.history.filter((it) => it.t < first).map((it) => it.tag)).toEqual(['Loading']);
       }),
   );
 
