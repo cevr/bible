@@ -353,8 +353,10 @@ const open = async ({
 type Session = Awaited<ReturnType<typeof open>>;
 
 beforeAll(async () => {
-  // Chromium starts while the server's app loads: neither needs the other.
-  const launching = chromium.launch().then((launched) => {
+  // Chromium starts while the server's app loads: neither needs the other. Its pages run V8 with
+  // no optimizing compiler (TurboFan): with it, a run of the file measured about 7 CPU seconds more
+  // (55 against 48) and no shorter wall. Turning off Maglev as well measured slower.
+  const launching = chromium.launch({ args: ['--js-flags=--no-opt'] }).then((launched) => {
     browser = launched;
   });
   const { render, words } = await import('./server');
