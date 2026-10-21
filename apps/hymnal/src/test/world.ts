@@ -233,6 +233,8 @@ const initial = (platform: Platform, start: number) => ({
   playTold: start,
   /** The latest pause: the reader's, the lock screen's or the device's own. */
   pauseAt: Number.NEGATIVE_INFINITY,
+  /** When the page learnt of the latest lock-screen pause: a press told after a later page Play is still a pause. */
+  pauseTold: Number.NEGATIVE_INFINITY,
   /** The reader's place before sound a host hold kept unseen. */
   unseenFrom: Option.none<number>(),
   unseenSince: Number.POSITIVE_INFINITY,
@@ -258,6 +260,8 @@ const initial = (platform: Platform, start: number) => ({
   failedAt: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
   endedSeen: false,
+  /** Whether a read asked since the latest act said `ended` (O8: "has said ended since the latest act"). */
+  endedSaid: false,
   readyAt: Number.POSITIVE_INFINITY,
   /** Runs: silent and wanting; the same offline; the same online. */
   quiet: Number.NaN,
@@ -550,6 +554,7 @@ export const makeWorld = (
     // The first sound after a later act is that act's, not a play's from before it.
     w.firstFrom = Option.none();
     w.endedSeen = false;
+    w.endedSaid = false;
   };
   const askSeek = (asked: number) => {
     const to = Math.min(w.length, Math.max(0, asked));
@@ -637,6 +642,7 @@ export const makeWorld = (
     w.acts += 1;
     if (kind === 'play') w.playTold = Math.max(w.playTold, pressedAt);
     if (kind === 'play' && !phone) w.playTold = w.t;
+    if (kind === 'pause') w.pauseTold = w.t;
     if (!phone) {
       const details = Option.match(
         Option.liftPredicate(kind, (it) => it === 'seek'),
@@ -884,6 +890,7 @@ export const makeWorld = (
         w.unseenFrom = Option.none();
       note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
       const current = read.acts === w.acts;
+      if (seen.state === 'ended' && current) w.endedSaid = true;
       if (seen.state === 'ended' && settled() && current) w.endedSeen = true;
       read.answer(seen);
     }
@@ -987,6 +994,7 @@ export const makeWorld = (
     // An ended device a seek moves on was ended since the act; the page learns it by a read.
     const endedNow =
       w.phase === 'ended' ||
+      w.endedSaid ||
       w.endedAt >= w.lastAct ||
       (w.endedLast >= w.lastAct && w.t - w.endedLast <= allowance);
     // The page learns of an act at its tell; a read asked then answers within a span.
@@ -995,7 +1003,8 @@ export const makeWorld = (
       breach('O8 Ended, not ended', '');
     if (settled() && w.endedSeen && w.phase === 'ended' && now._tag !== 'Ended')
       breach('O8 Ended owed', `page=${now._tag}`);
-    if (isHalted(now) && w.pauseAt < w.playTold) breach('O9 Paused on its own', `page=${now._tag}`);
+    if (isHalted(now) && Math.max(w.pauseAt, w.pauseTold) < w.playTold)
+      breach('O9 Paused on its own', `page=${now._tag}`);
   };
   /** The rules O1 to O9, judged by the world at this step. */
   const judge = () => {
