@@ -99,14 +99,19 @@ describe("the gate's phases", () => {
   );
 
   it.effect(
-    "a package's own gate is Selah's native gate alone: a check with a time limit is its gate:timed, run with the tests",
+    "a package's own gate holds no time limit (Selah's native gate, firsttheblade's promise check): a check with a time limit is its gate:timed, run with the tests",
     () =>
       Effect.gen(function* () {
         const { scripts, turbo, packages } = yield* laid;
         const gates = packages
           .filter(({ manifest }) => Option.exists(manifest, ({ scripts }) => 'gate' in scripts))
           .map(({ dir }) => dir);
-        expect(gates).toEqual(['apps/selah']);
+        expect([...gates].sort()).toEqual(['apps/firsttheblade', 'apps/selah']);
+        const promise = packages
+          .filter(({ dir }) => dir === 'apps/firsttheblade')
+          .flatMap(({ manifest }) => Option.toArray(manifest))
+          .map(({ scripts }) => scripts['gate']);
+        expect(promise).toEqual(['bun run promise && bun run promise:census']);
         expect(turbo.tasks['gate:timed']).toBeDefined();
         const timed = commandsIn(scripts['gate:tests'] ?? '').filter((command) =>
           runsTask(command, 'gate:timed'),

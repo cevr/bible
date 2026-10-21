@@ -4,8 +4,9 @@
 #
 # 1. The checks, which hold no time limit (`gate:checks`): lint, the format
 #    check, the dead exports and turbo's `gate` task (every package's
-#    typecheck and build, and Selah's native gate, the one package `gate`
-#    script), all at once, at a lowered priority (`taskpolicy -c utility` on
+#    typecheck and build, then the packages' own `gate` scripts: Selah's
+#    native gate, and firsttheblade's promise check over its built output),
+#    all at once, at a lowered priority (`taskpolicy -c utility` on
 #    macOS, `nice -n 19` elsewhere), so the tests of another gate on the
 #    machine keep the cores they need.
 # 2. The work that holds a time limit (`gate:tests`): each workspace's

@@ -256,6 +256,74 @@ const seriesCard = (series: Series) =>
     )}</div>`,
   );
 
+/** A picture the kit draws: what it is drawn from, the file it goes to, its size and its format. */
+interface Picture {
+  readonly html: string;
+  readonly out: string;
+  readonly size: Size;
+  readonly format: Format;
+}
+
+/**
+ * Every picture a viewer or a reader sees, in the order the kit draws them:
+ * the channel's avatar, watermark, banner and thumbnails, the Page's cover,
+ * and the site's link cards and icons. The email list's promise check reads
+ * the words drawn on each (`../scripts/promise.ts`).
+ */
+export const SEEN: ReadonlyArray<Picture> = [
+  {
+    html: avatar(800),
+    out: `${OUT}/avatar-800.png`,
+    size: { width: 800, height: 800 },
+    format: 'png',
+  },
+  {
+    html: disc(150),
+    out: `${OUT}/watermark-150.png`,
+    size: { width: 150, height: 150 },
+    format: 'transparent',
+  },
+  {
+    html: banner,
+    out: `${OUT}/banner-2560x1440.png`,
+    size: { width: 2560, height: 1440 },
+    format: 'png',
+  },
+  ...Object.entries(THUMBS).map(([name, film]): Picture => ({
+    html: thumb(film),
+    out: `${OUT}/thumb-${name}.png`,
+    size: { width: 1280, height: 720 },
+    format: 'png',
+  })),
+  { html: cover, out: `${OUT}/facebook-cover-1640x924.png`, size: COVER, format: 'png' },
+  { html: homeCard, out: `${PUBLIC}/og/home.jpg`, size: OG, format: 'jpeg' },
+  ...SERIES.map((series): Picture => ({
+    html: seriesCard(series),
+    out: `${PUBLIC}/og/${series.id}.jpg`,
+    size: OG,
+    format: 'jpeg',
+  })),
+  // The manifest's icons are the disc on nothing, so a dark launcher shows no
+  // square; iOS fills a clear corner black, so its touch icon is the avatar's square.
+  ...(
+    [
+      ['icon-512.png', 512],
+      ['icon-192.png', 192],
+    ] as const
+  ).map(([file, size]): Picture => ({
+    html: disc(size),
+    out: `${PUBLIC}/${file}`,
+    size: { width: size, height: size },
+    format: 'transparent',
+  })),
+  {
+    html: avatar(180),
+    out: `${PUBLIC}/apple-touch-icon.png`,
+    size: { width: 180, height: 180 },
+    format: 'png',
+  },
+];
+
 const kit = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const browser = yield* Effect.acquireRelease(
@@ -263,25 +331,16 @@ const kit = Effect.gen(function* () {
     (opened) => Effect.promise(() => opened.close()),
   );
 
-  yield* draw(browser, avatar(800), `${OUT}/avatar-800.png`, { width: 800, height: 800 });
-  yield* draw(
-    browser,
-    disc(150),
-    `${OUT}/watermark-150.png`,
-    { width: 150, height: 150 },
-    'transparent',
+  yield* Effect.forEach(SEEN, (picture) =>
+    draw(browser, picture.html, picture.out, picture.size, picture.format),
   );
-  yield* draw(browser, banner, `${OUT}/banner-2560x1440.png`, { width: 2560, height: 1440 });
+  yield* fs.copyFile(`${KIT}/channel.md`, `${OUT}/channel.md`);
+
+  // The boards of what each screen shows, for the owner, drawn from the pictures above.
   yield* draw(browser, cropsBoard(url(`${OUT}/banner-2560x1440.png`)), `${OUT}/banner-crops.png`, {
     width: 1400,
     height: 400,
   });
-  for (const [name, film] of Object.entries(THUMBS)) {
-    yield* draw(browser, thumb(film), `${OUT}/thumb-${name}.png`, { width: 1280, height: 720 });
-  }
-  yield* fs.copyFile(`${KIT}/channel.md`, `${OUT}/channel.md`);
-
-  yield* draw(browser, cover, `${OUT}/facebook-cover-1640x924.png`, COVER);
   yield* draw(
     browser,
     coverCropsBoard(url(`${OUT}/facebook-cover-1640x924.png`)),
@@ -289,27 +348,7 @@ const kit = Effect.gen(function* () {
     { width: 1360, height: 340 },
   );
 
-  yield* draw(browser, homeCard, `${PUBLIC}/og/home.jpg`, OG, 'jpeg');
-  for (const series of SERIES) {
-    yield* draw(browser, seriesCard(series), `${PUBLIC}/og/${series.id}.jpg`, OG, 'jpeg');
-  }
-
-  // The manifest's icons and the favicon are the disc on nothing, so a dark
-  // tab strip or launcher shows no square; iOS fills a clear corner black, so
-  // its touch icon is the avatar's square.
-  for (const [file, size] of [
-    ['icon-512.png', 512],
-    ['icon-192.png', 192],
-  ] as const) {
-    yield* draw(
-      browser,
-      disc(size),
-      `${PUBLIC}/${file}`,
-      { width: size, height: size },
-      'transparent',
-    );
-  }
-  yield* draw(browser, avatar(180), `${PUBLIC}/apple-touch-icon.png`, { width: 180, height: 180 });
+  // The favicon is the disc on nothing, so a dark tab strip shows no square.
   const icons = [];
   for (const size of [16, 32, 48]) {
     const png = yield* draw(
@@ -328,4 +367,6 @@ const kit = Effect.gen(function* () {
   );
 }).pipe(Effect.scoped);
 
-kit.pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);
+if (import.meta.main) {
+  kit.pipe(Effect.provide(BunServices.layer), BunRuntime.runMain);
+}

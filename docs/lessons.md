@@ -1432,7 +1432,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-testspeed/findings.md F5
 - **Wrong:** A cold gate failed in firsttheblade's contrast check: its screenshots missed their 30 s limit, at the checks' lowered priority beside every cold typecheck and build and Selah's native build.
 - **Cause:** The checks phase was laid for work with no time limit, and a package's own `gate` script, which waits on a browser, was taken as one.
-- **Guard:** code: `packages/scripts/src/gate.test.ts` `a package's own gate is Selah's native gate alone: a check with a time limit is its gate:timed, run with the tests`
+- **Guard:** code: `packages/scripts/src/gate.test.ts` `a package's own gate holds no time limit (Selah's native gate, firsttheblade's promise check): a check with a time limit is its gate:timed, run with the tests`
 
 ### cpu-bound-cases-run-serial
 
@@ -2154,6 +2154,26 @@ The form of an entry, each field on its own line:
 - **Cause:** The defaults were parameters' defaults that no test read.
 - **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `holds the deadlines the skill states: 1 s a try, 20 s a wait, 5 s a request`
 
+### email-cadence-limits
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "The confirmed page drops the email list's limits"
+- **Source:** ftb-copy/round-2-findings.md F1 (the review's M1)
+- **Wrong:** The plain-copy rewrite cut the confirmed page to "We will email you when each new film is out." It and the confirm letter no longer said one email per film and nothing else, the list's promise that every other page states.
+- **Cause:** The rewrite read each sentence for its voice, and nothing held the list's promise to every sentence that says how often we email.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `STATED`; `apps/firsttheblade/scripts/promise-census.ts` `r2-M1 the confirmed page drops "and nothing else"`
+
+### email-promise-found-by-phrase
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the cadence guard misses a rewrite that drops the words \"each new film\""
+- **Source:** ftb-copy/round-3-findings.md F1 (repeat of round-2 M1)
+- **Wrong:** The guard for the email list's promise checked only the strings that held "each new film" or "each time a new film". "Thank you. We will email you when a new film is out." or "We send one email per film." dropped a limit and passed.
+- **Cause:** The guard assumed a sentence about how often we email can be found by its phrases. A rewording leaves the phrases, and the guard with them.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `PROMISE_SENTENCES`; `apps/firsttheblade/scripts/promise-census.ts` `r3-F1 the confirmed page drops "each new film"`
+
 ### copy-check-verse-field-order
 
 - **Date:** 2026-10-21
@@ -2234,6 +2254,26 @@ The form of an entry, each field on its own line:
 - **Cause:** The card's file name comes from the series' id, which the rename kept, since no reader sees it.
 - **Guard:** none: declined; no reader sees the file name, and the card is served with a day's cache, so the old card lapses.
 
+### email-promise-read-in-sources
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the email census misses cadence strings with no mail word, with a mail word that fails SENTENCE, or in kit/draw.ts"
+- **Source:** ftb-copy/round-4-findings.md F1 (repeat of round-3 F1)
+- **Wrong:** The promise's census read the site's source strings and took those with a mail word in a sentence, so "We will be in touch every week.", "EMAIL WEEKLY", `Email {"weekly"}` and a cadence on a thumbnail in `kit/draw.ts` passed.
+- **Cause:** The guard read the sources, where a sentence is split, spelled and placed as its code is, and not what a reader gets; each repair widened the net over the sources, and each review found a sentence the sources hid.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `NET`; `apps/firsttheblade/scripts/promise-census.ts` `r4-F1 a cadence split by a JSX expression`
+
+### email-promise-checked-by-spelling
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the census checks the spelling `${PROMISE}`, not the value the page uses"
+- **Source:** ftb-copy/round-4-findings.md F2 (repeat of round-3 F1)
+- **Wrong:** A page that bound its own `const PROMISE = 'a note every week'` kept the spelling `${PROMISE}`, so the census passed while every promise on the page said "a note every week".
+- **Cause:** The census held the source's spelling of the promise, not the words the page printed.
+- **Guard:** code: `apps/firsttheblade/scripts/promise-census.ts` `r4-F2 the form binds a PROMISE of its own`
+
 ### copy-check-verse-any-book
 
 - **Date:** 2026-10-21
@@ -2253,3 +2293,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** A screen reader announces the sign-up field as "Or get them by email", without the heading "See each new film" that tells what "them" is.
 - **Cause:** The label was written to be read under its heading.
 - **Guard:** none: the owner's copy choice; he kept the new copy (ask a1c0dc5b995).
+
+### email-promise-no-net-word
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "What is left is a sentence with no mail word and no frequency word"
+- **Source:** ftb-copy/round-4-findings.md F1
+- **Wrong:** A sentence that says how often we write with no word of mail, of the list or of how often ("Expect news from us when there is some.") passes the promise check.
+- **Cause:** The check finds a sentence about how often we email by its words, and no list of words reaches every way to say it.
+- **Guard:** none: a residual; a review reads each new sentence the site, its letters and its kit say.
+
+### email-promise-worker-answers
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "Domain: every page, letter and kit string a reader sees that speaks of how often we email."
+- **Source:** ftb-copy/round-4-findings.md F1
+- **Wrong:** The Worker's own plain-text answers (405, and the mail routes' 503) are not in the built output, so the promise check does not read them.
+- **Cause:** The Worker writes them as it answers, outside the build.
+- **Guard:** none: a residual; there are two, neither speaks of email, and a review reads a new one.
+
+### email-promise-browser-script
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "Domain: every page, letter and kit string a reader sees that speaks of how often we email."
+- **Source:** ftb-copy/round-4-findings.md F1
+- **Wrong:** Words the browser script draws (the phone menu's) are in `dist/assets/*.js`, which the promise check skips.
+- **Cause:** The bundle holds the library's own words beside the site's, and the check cannot tell them apart.
+- **Guard:** none: a residual; the menu's links are the served pages' own (`src/ui/nav.ts`), which the check reads there.
+
+### email-promise-painted-words
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "The kit includes `kit/draw.ts`, whose `lines` are drawn onto the thumbnails a viewer sees"
+- **Source:** ftb-copy/round-4-findings.md F1
+- **Wrong:** The promise check reads the words of each kit picture from the HTML it is drawn from (`kit/draw.ts` `SEEN`), not from its pixels, so words painted into a picture's art, or a picture put in `public/` by hand, are not read.
+- **Cause:** Reading a picture's words from its pixels would need text recognition.
+- **Guard:** none: a residual; the paintings hold no words, and the kit draws every picture the site serves with words on it.
