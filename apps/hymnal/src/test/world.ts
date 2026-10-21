@@ -114,6 +114,8 @@ interface Tell {
   readonly run: () => void;
   /** A phone press's reader place before it: the place the page knows until the tell. */
   readonly before?: Option.Option<number>;
+  /** A press that acts at its tell (an iOS seek): its place, the reader's from the press. */
+  readonly seekTo?: number;
 }
 
 interface Target {
@@ -695,6 +697,12 @@ export const makeWorld = (
       w.tells.push({
         pressedAt: w.t,
         at: w.t + knobs.tellAfter(),
+        ...Option.getOrUndefined(
+          Option.map(
+            Option.liftPredicate(kind, (it) => it === 'seek'),
+            () => ({ seekTo: Math.min(w.length, Math.max(0, to)) }),
+          ),
+        ),
         run: () => {
           pressed(kind, to);
           tell();
@@ -706,7 +714,15 @@ export const makeWorld = (
     const pressedAt = w.t;
     pressed(kind, to);
     pressPhone(kind, to);
-    const placeThen = Option.getOrElse(w.readerPlace, () => 0);
+    // An iOS seek pressed before acts at its tell, which the page gets first: its place is
+    // the reader's at this press.
+    const placeThen = Option.getOrElse(
+      Option.orElse(
+        Option.fromNullishOr(w.tells.findLast((it) => 'seekTo' in it)?.seekTo),
+        () => w.readerPlace,
+      ),
+      () => 0,
+    );
     w.tells.push({
       pressedAt,
       before,
