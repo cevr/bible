@@ -256,6 +256,8 @@ interface Held {
   wants: Intent;
   proof: Proof.Proof;
   seeking: Option.Option<{ readonly to: number; asking: boolean }>;
+  /** From when a read may land the place asked: +Infinity once the device refused it, until it is asked again. */
+  takenAt: number;
   id: number;
   announced: number;
 }
@@ -274,6 +276,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
     wants: 'play',
     proof: Proof.none,
     seeking: Option.none(),
+    takenAt: Number.NEGATIVE_INFINITY,
     id: 0,
     announced: -1,
   };
@@ -302,15 +305,19 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               Player.Buffering({ track: was.track, at: was.at, length: was.length, retry: false }),
             );
           });
+        /** The device took the place asked of it. */
+        const taken = Effect.sync(() => (held.seeking = Option.none()));
         /** The place a seek asks, asked of the device until it takes it. */
         const askSeek = (to: number) =>
           Effect.suspend(() => {
             const seeking = { to, asking: true };
             held.seeking = Option.some(seeking);
+            held.takenAt = Number.NEGATIVE_INFINITY;
             return device.seek(to).pipe(
-              Effect.tap(() => Effect.sync(() => (held.seeking = Option.none()))),
+              Effect.tap(() => taken),
               Effect.catchTag('PlaybackError', (error) =>
                 Effect.logWarning('player.seek.refused').pipe(
+                  Effect.tap(() => Effect.sync(() => (held.takenAt = Number.POSITIVE_INFINITY))),
                   Effect.annotateLogs({ to, message: error.message }),
                 ),
               ),
@@ -425,7 +432,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             const asked = yield* now;
             const status = yield* device.status;
             const read = { asked, answered: yield* now, status };
-            const next = Proof.readOf(held.proof, read);
+            const next = Proof.readOf(held.proof, read, held.takenAt);
             held.proof = next.proof;
             const answer = yield* Effect.when(Deferred.await(answered), Deferred.isDone(answered));
             if (Option.contains(answer, false)) {
@@ -540,9 +547,10 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             held.proof = Proof.loaded(yield* now, fromMs);
             const seeking = { to: fromMs, asking: true };
             held.seeking = Option.liftPredicate(seeking, () => fromMs > 0);
+            held.takenAt = Number.NEGATIVE_INFINITY;
             yield* show(Player.Loading({ track }));
             const played = device.play(audioUrl(track.number), fromMs).pipe(
-              Effect.tap(() => Effect.sync(() => (held.seeking = Option.none()))),
+              Effect.tap(() => taken),
               Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
             );
             yield* ask(track, played, (error) =>

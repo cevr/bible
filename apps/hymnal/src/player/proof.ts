@@ -16,7 +16,8 @@
  *   whatever the gap;
  * - sound, when the place moved on more than 2 ms and the second says
  *   `playing`;
- * - nothing otherwise.
+ * - nothing otherwise, though a place that moved on more than 2 ms shows
+ *   the device sounded at some instant between them.
  *
  * A read asked before the latest act is stale. An act that moves the device
  * to a place is pending until a read lands it: a place within
@@ -139,7 +140,16 @@ const paired = (proof: Proof, read: Read): Proved =>
           },
           seen: pair,
         };
-      return { proof: { ...next, quietFrom: Option.none() }, seen: pair };
+      // A place moved on with no act: the device sounded, though it may not play now.
+      const moved = read.status.positionMs - last.status.positionMs > slack;
+      return {
+        proof: {
+          ...next,
+          quietFrom: Option.none(),
+          sounded: proof.sounded || moved,
+        },
+        seen: pair,
+      };
     },
   });
 
@@ -149,9 +159,9 @@ const landsAt = (pending: Pending, read: Read) =>
   read.status.positionMs <= pending.target + (read.answered - pending.known);
 
 /** A pending act's landing at `read`: landed, or still pending. */
-const landing = (proof: Proof, pending: Pending, read: Read): Proved => {
+const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): Proved => {
   const landed = Option.none<Pending>();
-  if (landsAt(pending, read))
+  if (read.asked >= takenAt && landsAt(pending, read))
     return {
       proof: { ...proof, pending: landed, last: Option.some(read) },
       seen: 'opened',
@@ -171,8 +181,12 @@ const landing = (proof: Proof, pending: Pending, read: Read): Proved => {
   };
 };
 
-/** The proof after `read`, and what it proved. */
-export const readOf = (proof: Proof, read: Read): Proved => {
+/**
+ * The proof after `read`, and what it proved. A pending place lands only at
+ * a read asked from `takenAt`: a device that refused the place may stand
+ * anywhere, the place asked included, until it is asked again.
+ */
+export const readOf = (proof: Proof, read: Read, takenAt = Number.NEGATIVE_INFINITY): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
   // An end short of a pending place was read before the device moved there.
   const before = Option.filter(
@@ -194,7 +208,7 @@ export const readOf = (proof: Proof, read: Read): Proved => {
     };
   return Option.match(proof.pending, {
     onNone: () => placed(paired(proof, read), read),
-    onSome: (pending) => landing(proof, pending, read),
+    onSome: (pending) => landing(proof, pending, read, takenAt),
   });
 };
 

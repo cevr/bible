@@ -226,6 +226,7 @@ const initial = (platform: Platform, start: number) => ({
   pauseAt: Number.NEGATIVE_INFINITY,
   /** The reader's place before sound a host hold kept unseen. */
   unseenFrom: Option.none<number>(),
+  unseenSince: Number.POSITIVE_INFINITY,
   /** The latest step the device was ended. */
   endedLast: Number.NEGATIVE_INFINITY,
   wants: false,
@@ -582,9 +583,19 @@ export const makeWorld = (
     if (kind === 'seek' && platform === 'android' && holding(w.phase)) land(to);
   };
   /** The press told to the app: One's listeners on a phone, the page's handler on the web. */
-  const tellPress = (kind: Press, to: number) => () => {
+  const tellPress = (kind: Press, to: number) => {
+    const pressedAt = w.t;
+    return () => tellNow(kind, to, pressedAt);
+  };
+  /**
+   * The tell itself. A phone's play acted at its press, so a pause pressed
+   * after it is the later act, whenever either is told; the web's acts at
+   * its tell.
+   */
+  const tellNow = (kind: Press, to: number, pressedAt: number) => {
     w.toldAt = w.t;
-    if (kind === 'play') w.playTold = w.t;
+    if (kind === 'play') w.playTold = Math.max(w.playTold, pressedAt);
+    if (kind === 'play' && !phone) w.playTold = w.t;
     if (!phone) {
       const details = Option.match(
         Option.liftPredicate(kind, (it) => it === 'seek'),
@@ -617,8 +628,9 @@ export const makeWorld = (
     // One drops a seek with no place on a phone: nothing acts, nothing is told.
     if (kind === 'follow' && phone) return;
     const tell = tellPress(kind, to);
-    // The web's session only calls the page's handler: the press acts when the page runs it.
-    if (!phone) {
+    // The web's session only calls the page's handler, and an iOS seek lands after its
+    // tell: the press acts when the app is told.
+    if (!phone || (platform === 'ios' && kind === 'seek')) {
       w.tells.push({
         pressedAt: w.t,
         at: w.t + knobs.tellAfter(),
@@ -760,7 +772,10 @@ export const makeWorld = (
     else if (!seeking) {
       firstSound();
       // Sound in a host hold no read has sampled since is unseen (gap 3): the page may keep the place before it.
-      if (!running() && Option.isNone(w.unseenFrom)) w.unseenFrom = w.readerPlace;
+      if (!running() && Option.isNone(w.unseenFrom)) {
+        w.unseenFrom = w.readerPlace;
+        w.unseenSince = w.t;
+      }
       w.readerPlace = Option.some(w.place);
     }
     if (w.phase === 'held') {
@@ -811,8 +826,8 @@ export const makeWorld = (
     for (const read of due) {
       w.reads.splice(w.reads.indexOf(read), 1);
       const seen = Option.getOrThrow(read.seen);
-      // A read that shows the place sees the sound; one of a let-go device never can.
-      if (running() && seen.state !== 'idle' && seen.state !== 'failed')
+      // A read sampled after the unseen sound, showing the place, sees it; one of a let-go device never can.
+      if (read.sampleAt >= w.unseenSince && seen.state !== 'idle' && seen.state !== 'failed')
         w.unseenFrom = Option.none();
       note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
       const current = read.asked >= Math.max(w.lastAct, w.toldAt);
