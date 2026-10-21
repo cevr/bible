@@ -1903,3 +1903,103 @@ The form of an entry, each field on its own line:
 - **Wrong:** RBF's rig test called the lead a round head after his head was traced.
 - **Cause:** The comment named the lead's part kind in words, and the change of kind touched the rig file, not the test.
 - **Guard:** skill: a comment's words about another file's part kind carry no name a check can follow. Carried by `CLAUDE.md`: "A comment says what the code does now and why"
+
+### repo-json-fill-counts-comma
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`repoJson` fills a number line to 101 characters and keeps an exponent's `+`"
+- **Source:** p6-casttools/review-1.md F1
+- **Wrong:** `repoJson` wrote a filled number line one column past oxfmt's width, and wrote `1e+30` where oxfmt writes `1e30`.
+- **Cause:** The fill measured each number without the comma that follows it, and the scalars were written by `JSON.stringify`, which keeps an exponent's plus.
+- **Guard:** code: `packages/film/src/core/schema.test.ts` `breaks a filled line before a number its comma would carry past the line, and drops an exponent's plus`
+
+### retry-holds-smaller-to-anchor
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "a retry tells a smaller figure to stand as tall as the grown one, with the grown one's head"
+- **Source:** p6-casttools/review-1.md F2
+- **Wrong:** A cast sheet's retry told a child to stand as tall as the anchor, with the anchor's head and hands.
+- **Cause:** The drift sentences held every view to the anchor's numbers, and the record's per-view stature reached the measure but not the retry's words.
+- **Guard:** code: `packages/film/src/tools/cast-sheet-make.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
+
+### concept-cli-reads-the-record
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`concept measure` and `concept brief` cannot take a smaller figure"
+- **Source:** p6-casttools/review-1.md F3
+- **Wrong:** `film concept brief` and `measure` by hand could not name a smaller figure, so they printed another prompt and flagged a child that `cast` passes.
+- **Cause:** The two commands took one flag per field of the sheet, and the record gained fields that no flag carried.
+- **Guard:** code: `packages/film/src/tools/concept-cli.test.ts` `measure the smaller figure at the record's share and heads, where the canon's flags it` and `packages/film/src/tools/concept-cli.test.ts` `brief the prompt the member's record paints from: its smaller figure, and no hair`
+
+### smaller-figure-test-cannot-fail
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the measure test of the smaller figure cannot fail"
+- **Source:** p6-casttools/review-1.md F4
+- **Wrong:** The measure's smaller-figure test passed with the heads factor removed and with no hold on the child at all.
+- **Cause:** The test gave the child the grown member's heads, so the factor cancelled, and it asserted only that nothing was flagged.
+- **Guard:** code: `packages/film/src/core/cast-sheet-poses.test.ts` `flags a smaller figure drawn at the grown height, or with the grown head`
+
+### preview-head-by-own-heads
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the preview's head fallback scales the anchor's head by height only"
+- **Source:** p6-casttools/review-1.md F5
+- **Wrong:** A child whose head did not read was cut in the preview at the anchor's head scaled by height, about 18 % too large.
+- **Cause:** The fallback left out the two figures' own heads, and a smaller figure's head is a larger share of its height.
+- **Guard:** code: `packages/film/src/core/cast-preview.test.ts` `cuts a smaller figure whose head does not read at its own head, never the anchor's share of its height`
+
+### stamp-owned-by-the-store
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "only the MCP has the stamp's refusals, as strings, and the plan docs disagree about them"
+- **Source:** p6-casttools/review-1.md F6
+- **Wrong:** `publish_set` refused a production with no ledger and an unopened version, and `film publish` stamped both.
+- **Cause:** The MCP wrote its own check as strings beside the store's `publish`, so the rule had two owners, and the two plan docs said opposite things.
+- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `refuses a production with no ledger, a version never opened and a version with no production alike through publish_set and film publish, and stamps nothing`
+
+### publish-waits-on-a-held-lab
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`film publish` waits on the lab with no time limit before it prints"
+- **Source:** p6-casttools/review-1.md F7
+- **Wrong:** `film publish` stayed silent while a lab held its call, though the stamp had landed.
+- **Cause:** The listing had no time limit, and the lab client's handshake and session end could not be interrupted.
+- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `says the listing is unknown once a lab that takes the call never answers it`
+
+### underlay-sizes-read-loose
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the underlay test passes a child at 2.5 heads in place of 2.2"
+- **Source:** p6-casttools/review-1.md F8
+- **Wrong:** The underlay's size test passed a child drawn at 2.5 heads where 2.2 was asked.
+- **Cause:** The test read the heads with `toBeCloseTo(x, 0)`, half a head either way, and drew no wrong child to reject.
+- **Guard:** code: `packages/film/src/core/cast-underlay.test.ts` `tells a child drawn at the wrong heads or the wrong share from the one asked`
+
+### smaller-figure-words-stale
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "two sentences still hold each figure to the anchor and the canon"
+- **Source:** p6-casttools/review-1.md F9
+- **Wrong:** The measure's check table and the underlay's header still held every figure to the anchor and the canon after smaller figures had their own sizes.
+- **Cause:** A sentence's claim goes stale while no name in it changes, so the docs test cannot see it.
+- **Guard:** skill: the claim is in words, which no check reads. Carried by `CLAUDE.md`: "a unit's review request carries this list, and the reviewer reads those lines"
+
+### baby-heads-cite-the-owner
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the baby's 2.0 heads could cite the owner's decision"
+- **Source:** p6-casttools/review-1.md F10
+- **Wrong:** The design doc gave the plain figures' baby no source for its 2.0 heads, and restated the child's band as 0.67.
+- **Cause:** The owner decided the baby's heads in chat, and the doc line was written before his decision was relayed.
+- **Guard:** skill: an owner's decision is words, which no check reads. Carried by `.claude/skills/film/reference/character-design.md`: "the plain figures' baby at 2.0 heads, as the owner kept it"
