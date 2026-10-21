@@ -23,6 +23,7 @@ import { PALETTE } from '../palette.ts';
 import type { Address } from './address.ts';
 import type { Film } from './films.ts';
 import type { Letter } from './mailer.ts';
+import { PROMISE } from './promise.ts';
 
 const escape = (text: string) =>
   text
@@ -85,9 +86,10 @@ export const confirmLetter = (
 ): Letter => {
   const href = confirmLink(origin, token);
   const subject = `Confirm your email for ${CHANNEL.name}`;
-  const ask = `Someone, we hope you, asked for one email from ${CHANNEL.name} each time a new film is out. To confirm, open this link:`;
+  const asked = `Someone, we hope it was you, asked ${CHANNEL.name} for ${PROMISE}.`;
+  const ask = `${asked} To confirm, open this link:`;
   const after =
-    'The link works for seven days. If you did not ask, you need do nothing: no film will be sent to this address unless the link is opened.';
+    'The link works for seven days. If this was not you, you do not need to do anything. We will not send any films to this address unless the link is opened.';
   const text = ['Hello,', '', ask, '', href, '', after, '', ...signOff(origin, postal), ''].join(
     '\n',
   );
@@ -95,9 +97,7 @@ export const confirmLetter = (
     subject,
     [
       para('Hello,'),
-      para(
-        `Someone, we hope you, asked for one email from ${CHANNEL.name} each time a new film is out.`,
-      ),
+      para(asked),
       button(href, 'Confirm my email'),
       para(after),
       `<p style="margin:24px 0 0;color:${PALETTE.soft};">${escape(CHANNEL.name)}<br>${link(origin, signOff(origin, postal)[1] ?? origin)}${postalHtml(postal)}</p>`,
@@ -123,7 +123,7 @@ export const filmLetter = (
   const subject = `A new ${unit}: ${episode.title}`;
   const lead = `A new ${unit} is out in ${series.name}:`;
   const heading = `${episode.no} · ${episode.title}`;
-  const why = `You are on the ${CHANNEL.name} list: one email for each new film.`;
+  const why = `You get this because you joined the ${CHANNEL.name} list, which sends ${PROMISE}.`;
   const text = [
     lead,
     '',

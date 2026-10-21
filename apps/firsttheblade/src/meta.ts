@@ -48,7 +48,7 @@ export const llmsTxt = (pages: ReadonlyArray<Page>) =>
     '',
     `> ${DESCRIPTION}`,
     '',
-    `The films are on YouTube: ${CHANNEL.url}`,
+    `The channel is on YouTube: ${CHANNEL.url}`,
     '',
     '## Pages',
     '',

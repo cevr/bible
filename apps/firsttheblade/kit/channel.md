@@ -32,23 +32,23 @@ The kit is drawn by `bun run kit` in `apps/firsttheblade` (brand round 4: logo 1
 
 ### Description
 
-Paste everything from the verse down to "grow with us." It is 833 characters long, and YouTube allows 1,000.
+Paste everything from the verse down to "each new film." It is 911 characters long, and YouTube allows 1,000.
 
 "For the earth bringeth forth fruit of herself; first the blade, then the ear, after that the full corn in the ear." Mark 4:28
 
-Jesus said the kingdom of God grows like seed in the ground: first the blade, then the ear, then the full corn. First the Blade makes short films and plain talks that grow the way the Bible grows us: a little, and then a little more. They are for every Christian, and for anyone who wants to know God and live by His word.
+Jesus said the kingdom of God grows like seed in the ground: first the blade, then the ear, then the full corn. Faith grows the same way. First the Blade makes short films and talks about the Bible, starting with the first things and building from there. They are for any Christian, and for anyone who wants to know what the Bible says.
 
 Four series:
 
-• The Path of the Just: the faith from its first principles to its deepest truths.
+• The Path of the Just: what the Bible teaches, starting at the beginning.
 
-• Dwell in the Land: country living from the Bible.
+• Dwell in the Land: what the Bible says about living on the land.
 
-• Taught of the Lord: education from the Bible, for parents and teachers.
+• Taught of the Lord: what the Bible says about teaching children, for parents and teachers.
 
-• The True Remedies: health from the Bible, and the simple remedies God gave.
+• Health and Cure: sunlight, fresh air, water, rest and the other simple things God gave us for our health.
 
-Every verse is quoted from the King James Version. Subscribe, and grow with us.
+Every verse is quoted from the King James Version. Subscribe to see each new film.
 
 ### Keywords
 
@@ -72,12 +72,12 @@ Use `hello@firsttheblade.com`.
 
 Create these in series order, each one Public.
 
-| Playlist               | Description                                                                                                                                         |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `The Path of the Just` | The faith from its first principles to its deepest truths, in the order the Bible serves them, as a light that shines more and more. Start with 01. |
-| `Dwell in the Land`    | Country living from the Bible: what it is, why it matters, and where and how to begin.                                                              |
-| `Taught of the Lord`   | Education from the Bible, for parents and teachers: what school is for, and how a child is taught of the Lord.                                      |
-| `The True Remedies`    | Health from the Bible, and the simple remedies God gave: fresh air, sunlight, water, rest, exercise, good food, temperance and trust in Him.        |
+| Playlist               | Description                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `The Path of the Just` | What the Bible teaches, starting at the beginning. Each film builds on the ones before it, so start with 01. |
+| `Dwell in the Land`    | What the Bible says about living on the land, and how a family can start.                                    |
+| `Taught of the Lord`   | What the Bible says about teaching children, for parents and teachers.                                       |
+| `Health and Cure`      | Sunlight, fresh air, water, rest and the other simple things God gave us for our health.                     |
 
 ## The steps in YouTube Studio
 
@@ -102,7 +102,7 @@ Newer versions of Studio merge **Branding** and **Basic info** into one **Profil
    - **Video spotlight:** choose a channel trailer for people who haven't subscribed. Use The Path of the Just 01 once it's up.
    - Then choose a featured video for returning subscribers: the latest film.
    - **Featured sections:** choose **Add section → Videos**.
-   - Then choose **Add section → Single playlist** four times, in series order: The Path of the Just, Dwell in the Land, Taught of the Lord, The True Remedies.
+   - Then choose **Add section → Single playlist** four times, in series order: The Path of the Just, Dwell in the Land, Taught of the Lord, Health and Cure.
    - Choose **Publish**.
 5. **Settings → Channel → Basic info → Keywords**
    - Paste the keywords, then choose **Save**.

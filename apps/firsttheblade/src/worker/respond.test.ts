@@ -74,6 +74,21 @@ describe('the Worker policy', () => {
       expect(response.status).toBe(404);
     }));
 
+  test("answers the health series' former path, with or without its trailing slash, with a 301 to its page, query kept", () =>
+    Effect.gen(function* () {
+      const response = yield* get('/series/the-true-remedies');
+      expect(response.status).toBe(301);
+      expect(header(response, 'location')).toBe('/series/health-and-cure');
+      expect(header(response, 'cache-control')).toBe(CACHE.page);
+      expect(header(response, 'content-security-policy')).toBe(CONTENT_SECURITY_POLICY);
+      const tagged = yield* get('/series/the-true-remedies?utm_source=youtube', 'HEAD');
+      expect(tagged.status).toBe(301);
+      expect(header(tagged, 'location')).toBe('/series/health-and-cure?utm_source=youtube');
+      const slashed = yield* get('/series/the-true-remedies/?utm_source=youtube');
+      expect(slashed.status).toBe(301);
+      expect(header(slashed, 'location')).toBe('/series/health-and-cure?utm_source=youtube');
+    }));
+
   test('refuses methods other than GET and HEAD', () =>
     Effect.gen(function* () {
       const response = yield* get('/', 'POST');

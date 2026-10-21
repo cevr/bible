@@ -11,6 +11,7 @@ import type { JSX } from '@solidjs/web';
 import { Match } from 'effect';
 
 import { MARK_4_27, MARK_4_28, SERIES, type Series, type Verse } from './content.ts';
+import { PROMISE } from './mail/promise.ts';
 import type { Page, PageView } from './pages.ts';
 import { CHANNEL, CONTACT } from './site.ts';
 import { EMBLEMS, MARK } from './ui/art.ts';
@@ -48,16 +49,15 @@ const Home = () => (
         <figcaption class="ref">{MARK_4_28.ref}</figcaption>
       </figure>
       <div class="field-words">
-        <h2>The first films are on their way</h2>
-        <p>Nothing is published yet. The first films are being made now.</p>
+        <h2>We are making the first films now</h2>
+        <p>None are out yet. When the first one is ready, you will find it on YouTube and here.</p>
       </div>
     </HomeField>
 
     <section class="section" id="series" aria-labelledby="series-title">
       <div class="wrap">
         <h2 class="lead" id="series-title">
-          Short films and plain talks that grow the way the Bible grows us: a little, and then a
-          little more.
+          We are working on four series. Two are cut-paper films and two are talks.
         </h2>
         <Cards series={SERIES} />
       </div>
@@ -68,14 +68,12 @@ const Home = () => (
         <h2 id="about-title">Why we make these</h2>
         <div class="reading">
           <p>
-            These films and talks set the Bible out plainly, one step at a time: what it teaches,
-            from its first principles to its deepest truths, and how it reaches into the home, the
-            field, the schoolroom and the sickroom.
+            The Bible tells us who God is. It also speaks to the home, the farm, the classroom and
+            the sickroom. We make these films and talks to show both, as plainly as we can.
           </p>
           <p>
-            They are made for anyone who will come and see. The films are told in cut paper; the
-            talks are given simply, as to a friend across the table. Every verse is quoted from the{' '}
-            <span class="nowrap">King James Version.</span>
+            You do not need to know the Bible already. We explain as we go. Every verse is quoted
+            from the <span class="nowrap">King James Version.</span>
           </p>
           <p>
             <a class="more" href="/about">
@@ -103,11 +101,10 @@ const About = () => (
         <h2 id="what-title">What it is</h2>
         <div class="reading">
           <p>
-            {CHANNEL.name} is a new YouTube channel of short films and plain talks on the Bible.
-            They set it out one step at a time, from its first principles to its deepest truths, for
-            any Christian and for anyone who will come and see.
+            {CHANNEL.name} is a new YouTube channel of short films and talks about the Bible. They
+            are for any Christian, and for anyone who wants to know what the Bible says.
           </p>
-          <p>Nothing is published yet. The first films are being made now.</p>
+          <p>No film is out yet. We are working on the first ones.</p>
         </div>
       </div>
     </section>
@@ -124,8 +121,8 @@ const About = () => (
             <figcaption class="ref">Mark 4:26–28</figcaption>
           </figure>
           <p>
-            Faith grows that way too: first the blade, then the ear, after that the full corn. The
-            films and talks are made to follow that order, a little and then a little more.
+            Faith grows the same way. First the blade, then the ear, after that the full corn. So
+            each series starts at the beginning and builds from there.
           </p>
         </div>
       </div>
@@ -136,12 +133,12 @@ const About = () => (
         <h2 id="made-title">How they are made</h2>
         <div class="reading">
           <p>
-            The films are told in cut paper, with a small cast of characters who return from film to
-            film. The talks are given simply, as to a friend across the table.
+            The films are told in cut paper. A small cast of characters comes back from film to
+            film. The talks are short and plain.
           </p>
           <p>
             Every verse is quoted from the <span class="nowrap">King James Version.</span> Where a
-            film draws on other writers, its description and credits name them.
+            film draws on other writers, we name them in its description and credits.
           </p>
         </div>
       </div>
@@ -212,7 +209,7 @@ const SeriesPage = (props: SeriesProps) => {
             when={s.episodes.length > 0}
             fallback={
               <div class="reading">
-                <p>None are out yet. The first {unit} are being made now.</p>
+                <p>None are out yet. We are making the first {unit} now.</p>
               </div>
             }
           >
@@ -263,23 +260,23 @@ const PRIVACY: ReadonlyArray<PrivacySection> = [
     band: 'section',
     words: [
       'If you join the email list, we keep your email address, whether you have confirmed it, when you signed up, confirmed or left, and which films we have emailed you.',
-      'If you sign up and never confirm, we delete your address, and all we kept with it, thirty days later.',
-      'That is all. We ask for no name, and the emails carry no tracking: we do not know whether you open them or which links you follow.',
+      'If you sign up and never confirm, we delete your address, and everything we kept with it, thirty days later.',
+      'That is all. We do not ask for your name. The emails have no tracking, so we do not know if you open them or which links you click.',
     ],
   },
   {
     id: 'why',
     title: 'Why',
     band: 'section-band',
-    words: ['Only to send you one email when each new film is out.'],
+    words: [`We use it to send you ${PROMISE}.`],
   },
   {
     id: 'leave',
     title: 'How to leave',
     band: 'section',
     words: [
-      'Every email has a link at its foot to leave the list, and most mail apps show an unsubscribe button beside it. One press, and we send you no more.',
-      'Once you leave, your address is kept only as one that has left, so that no film is sent to it.',
+      'Every email has a link at the bottom to leave the list. Most mail apps also show an unsubscribe button. Press either one and we will not email you again.',
+      'After you leave, we keep your address only to mark it as left, so that no film is sent to it.',
     ],
   },
   {
@@ -287,15 +284,15 @@ const PRIVACY: ReadonlyArray<PrivacySection> = [
     title: 'Who sees it',
     band: 'section-band',
     words: [
-      'No one else. We do not sell, rent or share the list. It is kept on Cloudflare, which carries the emails for us.',
-      'To stop abuse, the sign-up counts how many tries come from one connection in a minute. We do not keep that connection’s address.',
+      'No one else. We do not sell, rent or share the list. It is stored on Cloudflare, which also sends the emails for us.',
+      'To stop abuse, the sign-up form counts how many tries come from one connection each minute. We do not keep that connection’s address.',
     ],
   },
   {
     id: 'contact',
     title: 'Write to us',
     band: 'section',
-    words: ['For any question about the list or your address, write to us.'],
+    words: ['If you have a question about the list or your address, email us.'],
     address: CONTACT,
   },
 ];
@@ -337,9 +334,7 @@ const NotFound = () => (
       <div class="wrap lost">
         <img src={MARK.large} alt="" width="320" height="320" />
         <h1>Page not found</h1>
-        <p>
-          There is nothing at this address. The link may be mistyped, or the page may have moved.
-        </p>
+        <p>There is no page here. The link may have a typo in it, or the page may have moved.</p>
         <a class="button" href="/">
           <span class="button-label">Go to the home page</span>
         </a>

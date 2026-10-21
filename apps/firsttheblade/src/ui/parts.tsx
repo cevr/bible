@@ -17,11 +17,11 @@ export const seriesHref = (series: Series) => `/series/${series.slug}`;
 
 export const unitOf = (series: Series) => UNITS[series.form].many;
 
-/** How far a series has come: how many are out, or that the first is coming. */
+/** How far a series has come: how many are out, or that none is out yet. */
 export const statusOf = (series: Series) => {
   const units = UNITS[series.form];
   const count = series.episodes.length;
-  if (count === 0) return `First ${units.many} coming soon`;
+  if (count === 0) return `No ${units.many} out yet`;
   if (count === 1) return `1 ${units.one} out`;
   return `${count} ${units.many} out`;
 };
@@ -144,10 +144,9 @@ export const NightClose = () => (
     <div class="night-words">
       <img class="mark" src={MARK.large} alt="" width="320" height="320" loading="lazy" />
       <Quote verse={MARK_4_27} />
-      <h2 id="night-title">A new film, now and then</h2>
+      <h2 id="night-title">See each new film</h2>
       <p>
-        Subscribe on YouTube to see each one when it is ready:{' '}
-        <span class="nowrap">{CHANNEL.handle}</span>
+        Subscribe to the channel on YouTube: <span class="nowrap">{CHANNEL.handle}</span>
       </p>
       <a class="button button-night" href={SUBSCRIBE.href}>
         <span class="button-label">{SUBSCRIBE.label}</span>

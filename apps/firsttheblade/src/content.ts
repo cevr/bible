@@ -42,6 +42,8 @@ export const UNITS = {
 export interface Series {
   readonly id: SeriesId;
   readonly slug: string;
+  /** The slugs it went by before, each answered with a 301 to its page (`worker/respond.ts`): a live link keeps working after a rename. */
+  readonly formerSlugs: ReadonlyArray<string>;
   readonly name: string;
   /** What it is about, and what form it takes. */
   readonly subject: string;
@@ -69,6 +71,7 @@ export const SERIES: ReadonlyArray<Series> = [
   {
     id: 'path',
     slug: 'the-path-of-the-just',
+    formerSlugs: [],
     name: 'The Path of the Just',
     subject: 'Theology',
     form: 'Cut-paper films',
@@ -76,10 +79,10 @@ export const SERIES: ReadonlyArray<Series> = [
       text: 'But the path of the just is as the shining light, that shineth more and more unto the perfect day.',
       ref: 'Proverbs 4:18',
     },
-    line: 'The faith from its first principles to its deepest truths, in the order the Bible serves them.',
+    line: 'What the Bible teaches, starting at the beginning.',
     about: [
-      'The Bible has an order for growing: the first principles of the faith first, then the deeper things a growing Christian is ready to take in. This series walks that road one short film at a time, in the order the Bible itself serves it.',
-      'Nothing learned first is left behind. Each film builds on the ones before it, and the cross stands at the centre of them all.',
+      'The Bible teaches some things first and saves others for later, when we are ready for them. These films go in that order, one short film at a time.',
+      'Each film builds on the ones before it, and every one comes back to the cross.',
     ],
     parts: [
       {
@@ -88,11 +91,11 @@ export const SERIES: ReadonlyArray<Series> = [
       },
       {
         title: 'The Priest in heaven',
-        question: 'Christ’s work for us now, as our High Priest, and what it means for us.',
+        question: 'What Jesus does for us now, as our High Priest.',
       },
       {
         title: 'The things to come',
-        question: 'How prophecy reads, the last things, and the earth made new.',
+        question: 'How to read prophecy, and how it all ends, with the earth made new.',
       },
     ],
     episodes: [],
@@ -100,6 +103,7 @@ export const SERIES: ReadonlyArray<Series> = [
   {
     id: 'land',
     slug: 'dwell-in-the-land',
+    formerSlugs: [],
     name: 'Dwell in the Land',
     subject: 'Country living',
     form: 'Cut-paper films',
@@ -107,14 +111,14 @@ export const SERIES: ReadonlyArray<Series> = [
       text: 'Trust in the LORD, and do good; so shalt thou dwell in the land, and verily thou shalt be fed.',
       ref: 'Psalm 37:3',
     },
-    line: 'Country living from the Bible: what it is, why it matters, where and how to begin.',
+    line: 'What the Bible says about living on the land, and how a family can start.',
     about: [
-      'God made the first home in a garden, and gave the first family work in the open air. This series asks what that pattern means for a family today, and how to move toward a quieter life on the land, carefully and without haste.',
-      'Trust comes first, and the dwelling follows. A move earns nothing; it is the life that faith works out, as it did for Abraham, who “went out, not knowing whither he went” (Hebrews 11:8).',
+      'God put the first family in a garden and gave them work outdoors. What does that mean for a family now? This series asks that question. It also asks how a family can move to the land, slowly and with care.',
+      'The psalm puts trust first, then the land. Moving to the country does not earn us anything with God. It is a step faith takes, as it was for Abraham, who “went out, not knowing whither he went” (Hebrews 11:8).',
     ],
     parts: [
       { title: 'What', question: 'What did God make a home to be?' },
-      { title: 'Why', question: 'Why does it matter where a family of faith lives?' },
+      { title: 'Why', question: 'Why does it matter where a Christian family lives?' },
       {
         title: 'Where and how',
         question: 'When, how fast, where, with what work, and with whom?',
@@ -125,6 +129,7 @@ export const SERIES: ReadonlyArray<Series> = [
   {
     id: 'taught',
     slug: 'taught-of-the-lord',
+    formerSlugs: [],
     name: 'Taught of the Lord',
     subject: 'Christian education',
     form: 'Talks',
@@ -132,10 +137,10 @@ export const SERIES: ReadonlyArray<Series> = [
       text: 'And all thy children shall be taught of the LORD; and great shall be the peace of thy children.',
       ref: 'Isaiah 54:13',
     },
-    line: 'True education from Scripture, for parents and teachers.',
+    line: 'What the Bible says about teaching children, for parents and teachers.',
     about: [
-      'Short talks for parents, and for anyone who teaches a child, on what education is for and how the Bible shapes it.',
-      'The series takes its name from a promise, not a program: all thy children shall be taught of the LORD.',
+      'Short talks for parents and for anyone who teaches a child. What is education for? And how should the Bible shape it?',
+      'The name comes from a promise in Isaiah: “all thy children shall be taught of the LORD.”',
     ],
     parts: [
       { title: 'Why', question: 'What is education for?' },
@@ -156,20 +161,24 @@ export const SERIES: ReadonlyArray<Series> = [
   },
   {
     id: 'remedies',
-    slug: 'the-true-remedies',
-    name: 'The True Remedies',
+    slug: 'health-and-cure',
+    formerSlugs: ['the-true-remedies'],
+    name: 'Health and Cure',
     subject: 'Health',
     form: 'Talks',
-    verse: { text: 'for I am the LORD that healeth thee.', ref: 'Exodus 15:26' },
-    line: 'Health from the Bible: air, sunlight, water, rest and the rest of God’s remedies.',
+    verse: {
+      text: 'Behold, I will bring it health and cure, and I will cure them, and will reveal unto them the abundance of peace and truth.',
+      ref: 'Jeremiah 33:6',
+    },
+    line: 'Sunlight, fresh air, water, rest and the other simple things God gave us for our health.',
     about: [
-      'Short talks on the simple means of health God has given: pure air, sunlight, temperance, rest, exercise, good food, water, and trust in God. Each takes one remedy or one question and sets out what Scripture says, what the body shows, and what a household can do with it.',
-      'God is the healer, and these are His means. The talks never stand in for a doctor where one is needed.',
+      'Short talks on the simple things God gave for our health: fresh air, sunlight, temperance, rest, exercise, good food, water and trust in God. Each talk takes one remedy, or one question, and ends with what you can do about it at home.',
+      'God is the one who heals, and these are the means He uses. The talks do not take the place of a doctor when you need one.',
     ],
     parts: [
       {
-        title: 'The frame',
-        question: 'Why God cares about the body, and the remedies as His.',
+        title: 'Why the body matters',
+        question: 'Why God cares about our bodies, and why these remedies are His.',
       },
       {
         title: 'The remedies',

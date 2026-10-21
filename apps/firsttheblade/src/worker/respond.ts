@@ -5,6 +5,9 @@
  * - the list's routes answer first, each with the methods it takes, and
  *   none of their answers is kept (`no-store`);
  * - a file is answered to GET and HEAD only; any other method is 405;
+ * - a series' former path answers a 301 to its page, query kept, so a
+ *   link shared before a rename still lands (`formerSlugs` in
+ *   `../content.ts`);
  * - a path that names no file answers with the not-found page, as 404;
  * - every response says how long to keep it: fingerprinted files under
  *   `/assets/` for a year, pages not at all without asking again, and the
@@ -17,6 +20,7 @@
 import { Effect, Option } from 'effect';
 import { Headers, type HttpServerRequest, HttpServerResponse } from 'effect/http';
 
+import { SERIES } from '../content.ts';
 import { mailRoute } from '../mail/routes.ts';
 import { Assets, pageRequest } from './assets.ts';
 
@@ -59,6 +63,16 @@ const ALLOWED_METHODS = new Set(['GET', 'HEAD']);
 
 /** The not-found page's path; asked for directly, it is still a 404. */
 const NOT_FOUND_PATH = '/404';
+
+/**
+ * Each series' former path, to the path of its page. The assets answer a
+ * path with or without its trailing slash, so a former path does too.
+ */
+export const MOVED: ReadonlyMap<string, string> = new Map(
+  SERIES.flatMap((series) =>
+    series.formerSlugs.map((former) => [`/series/${former}`, `/series/${series.slug}`] as const),
+  ),
+);
 
 const pathnameOf = (request: HttpServerRequest.HttpServerRequest) =>
   new URL(request.url, 'http://localhost').pathname;
@@ -116,6 +130,14 @@ export const respond = Effect.fn('Site.respond')(function* (
         status: 405,
         headers: { allow: 'GET, HEAD' },
       }),
+    );
+  }
+  const moved = Option.fromNullishOr(MOVED.get(pathname.replace(/(?<=.)\/$/, '')));
+  if (Option.isSome(moved)) {
+    const search = new URL(request.url, 'http://localhost').search;
+    return finish(
+      pathname,
+      HttpServerResponse.empty({ status: 301, headers: { location: `${moved.value}${search}` } }),
     );
   }
   const assets = yield* Assets;

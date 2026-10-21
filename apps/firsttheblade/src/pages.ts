@@ -38,7 +38,7 @@ export interface Page {
 }
 
 export const DESCRIPTION =
-  'Short films and plain talks that set the Bible out one step at a time, for anyone who will come and see. New on YouTube.';
+  'Short films and talks on what the Bible teaches, starting with the first things. A new channel on YouTube.';
 
 const title = (name: string) => `${name} · ${CHANNEL.name}`;
 
@@ -46,7 +46,7 @@ const seriesPage = (series: Series): Page => ({
   path: `/series/${series.slug}`,
   file: `series/${series.slug}.html`,
   title: title(series.name),
-  description: `${series.line} ${series.subject}, in ${series.form.toLowerCase()}, from ${CHANNEL.name}.`,
+  description: `${series.line} A series of ${series.form.toLowerCase()} from ${CHANNEL.name}.`,
   image: `/og/${series.id}.jpg`,
   imageAlt: `${series.name}, a series from ${CHANNEL.name}.`,
   listed: true,
@@ -61,7 +61,7 @@ export const NOTICE_TITLES: Readonly<Record<NoticeId, string>> = {
   address: 'Check your email address',
   busy: 'Too many tries',
   left: 'You have left the list',
-  badLink: 'This link is not valid',
+  badLink: 'This link does not work',
 };
 
 const HOME_CARD = {
@@ -107,7 +107,7 @@ export const PAGES: ReadonlyArray<Page> = [
     path: '/about',
     file: 'about.html',
     title: title('About'),
-    description: `What ${CHANNEL.name} is, where its name comes from, and how its films and talks are made.`,
+    description: `What ${CHANNEL.name} is, and where its name comes from.`,
     image: '/og/home.jpg',
     imageAlt: `${CHANNEL.name}: “${MARK_4_28.text}” ${MARK_4_28.ref}.`,
     listed: true,
@@ -118,7 +118,7 @@ export const PAGES: ReadonlyArray<Page> = [
     path: PRIVACY_PATH,
     file: 'privacy.html',
     title: title('Privacy'),
-    description: `What ${CHANNEL.name}'s email list keeps, why, and how to leave it.`,
+    description: `What the ${CHANNEL.name} email list keeps about you, and how to leave it.`,
     ...HOME_CARD,
     listed: true,
     view: { _tag: 'Privacy' },

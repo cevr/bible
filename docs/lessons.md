@@ -1794,6 +1794,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The one-step confirm submitted the form as the page opened, so the browser loaded a second page, and the press stayed visible until it did; drawing the answer in place still swapped one set of words for another, so the page now opens on a skeleton of the notice and the answer's words arrive into it.
 - **Guard:** code: `apps/firsttheblade/src/confirm.test.ts` `loads into the next step: a skeleton while the post runs, the answer drawn in place, the button only with no script`
 
+### ai-sounding-site-copy
+
+- **Date:** 2026-10-20
+- **Kind:** owner
+- **Said:** "Also, my wife made some comments that a lot of the copy here feels a little AI generated, if we can kind of tweak it."
+- **Source:** the owner's message on the First the Blade site, 2026-10-20 (unit ftb-copy)
+- **Wrong:** The site's words read as if no one wrote them: stock phrases ("from its first principles to its deepest truths", "one step at a time", "coming soon"), the "not X but Y" turn ("a promise, not a program") and tidy runs of three.
+- **Cause:** The copy was written to sound like the series' voice rules, phrase by phrase, and nothing read it back as plain speech.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the site's words hold no stock phrase, no not-X-but-Y turn and no em-dash`
+
 ### lead-hands-off-cuffs
 
 - **Date:** 2026-10-20
@@ -2143,3 +2153,103 @@ The form of an entry, each field on its own line:
 - **Wrong:** The deadline tests passed short deadlines of their own, so `READY` or `ANSWER_WITHIN` could grow to minutes with every test green.
 - **Cause:** The defaults were parameters' defaults that no test read.
 - **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `holds the deadlines the skill states: 1 s a try, 20 s a wait, 5 s a request`
+
+### copy-check-verse-field-order
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the Verse exemption depends on field order"
+- **Source:** ftb-copy/round-3-findings.md F2
+- **Wrong:** The copy check left out a Verse's `text` only when `text` came before `ref`, so `{ ref, text }` with "Wonderful" failed, and any object with `text` then `ref` passed, Scripture or not.
+- **Cause:** It matched the two fields as one run of source text, in one order, and never read the `ref`.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the checks catch what they are for`
+
+### copy-check-split-turns
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the copy check reads strings, not rendered sentences"
+- **Source:** ftb-copy/round-3-findings.md F3
+- **Wrong:** A turn or stock phrase split by a JSX expression, an inline element or a `+` (`<p>Not a rule {name}, but a gift</p>`) passes the copy check, since each string is read alone.
+- **Cause:** The check reads source strings, and Bun's tests cannot draw the Solid pages, which need the Vite SSR build.
+- **Guard:** none: declined; no page has such a split (round 3's scan of every built page), and the built pages quote Scripture with no mark the stock-phrase check could leave out, as it leaves out a Verse's text in the sources.
+
+### copy-check-strips-strings
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`uncommented` also strips comment markers that sit inside string or JSX text"
+- **Source:** ftb-copy/round-2-findings.md F2 (the review's m1)
+- **Wrong:** The copy check took out a `/* ... */` or a `//` that sat inside a string, and with it the words after it, so a stock phrase there passed.
+- **Cause:** It took comments out with regular expressions that cannot tell a string from code.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the checks catch what they are for`
+
+### copy-check-misses-wrapped-phrases
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "a phrase wrapped across two JSX lines is missed"
+- **Source:** ftb-copy/round-2-findings.md F3 (the review's m2)
+- **Wrong:** A stock phrase that the formatter wrapped onto a second JSX line ("grow with" / "us") passed the copy check.
+- **Cause:** The check matched the source text line for line, with its line breaks, not the words a reader sees.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the checks catch what they are for`
+
+### copy-check-blocks-scripture
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the never-words also block faithful KJV quotes"
+- **Source:** ftb-copy/round-2-findings.md F4 (the review's m3)
+- **Wrong:** A verse quoted word for word, such as Isaiah 9:6 with "Wonderful", would fail the copy check, though the site quotes the KJV exactly.
+- **Cause:** The check read Scripture as the site's own words.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the checks catch what they are for`
+
+### copy-check-skips-kit
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`kit/channel.md` is not scanned"
+- **Source:** ftb-copy/round-2-findings.md F5 (the review's m4)
+- **Wrong:** The YouTube description and playlist rows in `apps/firsttheblade/kit/channel.md`, rewritten with the site's copy, were outside the copy check.
+- **Cause:** The check read only the files under `src`.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the site's words hold no stock phrase, no not-X-but-Y turn and no em-dash`
+
+### moved-path-trailing-slash
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`/series/the-true-remedies/` gave a redirect to the page on the base. Now it gives 404"
+- **Source:** ftb-copy/round-2-findings.md F6 (the review's m5)
+- **Wrong:** The health series' former path with a trailing slash answered 404, not the 301.
+- **Cause:** The Worker looked a moved path up by its exact text, and the assets answer a path with or without its trailing slash.
+- **Guard:** code: `apps/firsttheblade/src/worker/respond.test.ts` `answers the health series' former path, with or without its trailing slash, with a 301 to its page, query kept`
+
+### og-card-file-name
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`public/og/remedies.jpg` keeps its file name. This is fine."
+- **Source:** ftb-copy/round-2-findings.md F7 (the review's o1)
+- **Wrong:** The health series' link card kept its old file name after the rename, so a link card scraper that cached it by its URL may show the old card for a while.
+- **Cause:** The card's file name comes from the series' id, which the rename kept, since no reader sees it.
+- **Guard:** none: declined; no reader sees the file name, and the card is served with a day's cache, so the old card lapses.
+
+### copy-check-verse-any-book
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the Verse exemption takes any capitalised word as a book"
+- **Source:** ftb-copy/round-4-findings.md F3
+- **Wrong:** The copy check left out the text of `{ ref: 'Trailer 1:1', text: 'a wonderful film' }` as Scripture, and kept the text of a verse from Song of Solomon, a book of three words.
+- **Cause:** It took a reference to be any capitalised word before a chapter and verse, not a book of the Bible.
+- **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `BOOKS`
+
+### signup-label-leans-on-heading
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the form label leans on a heading outside the form"
+- **Source:** ftb-copy/round-4-findings.md F4
+- **Wrong:** A screen reader announces the sign-up field as "Or get them by email", without the heading "See each new film" that tells what "them" is.
+- **Cause:** The label was written to be read under its heading.
+- **Guard:** none: the owner's copy choice; he kept the new copy (ask a1c0dc5b995).
