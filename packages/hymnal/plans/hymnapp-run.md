@@ -11,7 +11,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | manna     | testsplit, compile, glass      | .rifts/bible-tools/manna  |                                |        |
 | reader1   | appbase                        | .rifts/manna/reader1      | impl a4ef6ed (r1)              |        |
 | palette   | reader1                        |                           |                                |        |
-| playstall | playerfix                      | .rifts/manna/playstall-rw | acf748b93efd78f9d (rewrite r1) |        |
+| playstall | playerfix                      | .rifts/manna/playstall-rw | ae773736be9722996 (rewrite r3) |        |
 | census2   | hymnrows                       | .rifts/manna/census2      | impl a086825 (r2)              |        |
 | census3   | census2                        |                           |                                |        |
 | one29     | playerfix, coldload            |                           | impl a3d53ea (r1)              |        |
