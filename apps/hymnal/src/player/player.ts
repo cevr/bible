@@ -602,7 +602,29 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                   Match.orElse(() => Player.Loading({ track })),
                 ),
               ),
-            Ended: () => load(track, 0),
+            Ended: ({ length }) =>
+              Effect.gen(function* () {
+                // A phone plays the lock screen's press before One tells the page of it: a
+                // device that holds the recording again already played it from 0:00 to the
+                // place this read saw, an act the page follows, known from the read's ask (the
+                // device moves on from it no faster than time passes); a device still at its
+                // end plays the recording again.
+                const asked = yield* now;
+                const status = yield* device.status.pipe(Effect.option);
+                const again = Option.filter(status, holdsRecording);
+                if (Option.isNone(again)) return yield* load(track, 0);
+                held.wants = 'play';
+                held.proof = Proof.acted(held.proof, asked, Option.some(again.value.positionMs));
+                yield* show(
+                  Player.Buffering({
+                    track,
+                    at: seconds(again.value.positionMs),
+                    length,
+                    retry: false,
+                  }),
+                );
+                yield* ask(track, device.resume, logged);
+              }),
             Idle: () => Effect.void,
             Loading: () => resumed(Option.none(), current),
             Playing: ({ at, length }) =>
