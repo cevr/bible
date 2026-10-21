@@ -4,7 +4,7 @@ A subscriber leaves the list from the link at the foot of a film's letter:
 the page "Leave the list?" has one button, "Leave the list", and its press
 answers "You have left the list" (200, never a redirect). A mail app's
 one-click unsubscribe sends the same POST. Opening the link alone changes
-nothing. A link whose token does not read answers "This link is not valid"
+nothing. A link whose token does not read answers "This link does not work"
 (400).
 
 ## Sub-features
@@ -12,7 +12,7 @@ nothing. A link whose token does not read answers "This link is not valid"
 - `leave-page`: the leave link opens "Leave the list?" with its button.
 - `leave-press`: the press answers "You have left the list".
 - `leave-twice`: leaving twice is leaving; the same answer.
-- `leave-bad-link`: a cut-short link answers "This link is not valid".
+- `leave-bad-link`: a cut-short link answers "This link does not work".
 
 ## How to get to it (user POV)
 
@@ -34,7 +34,7 @@ nothing. A link whose token does not read answers "This link is not valid"
   `apps/firsttheblade/src/mail/mail.test.ts`.
 
 1. **Bad link.** `ab open "$O/unsubscribe?token=cut-short"`. The h1 is
-   "This link is not valid"; `ab get url` keeps `/unsubscribe?token=cut-short`.
+   "This link does not work"; `ab get url` keeps `/unsubscribe?token=cut-short`.
 2. **Leave (once a film is listed and a helper sends to the preview).**
    Confirm an address (Confirm), send the film to the preview's list, take
    the `film` letter's link from `verify:outbox --to <address>`,

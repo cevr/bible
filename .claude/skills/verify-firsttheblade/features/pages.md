@@ -21,7 +21,7 @@ which falls back to a link to the footer.
 
 - Typing the address: `/`, `/about`, `/series/the-path-of-the-just`,
   `/series/dwell-in-the-land`, `/series/taught-of-the-lord`,
-  `/series/the-true-remedies`.
+  `/series/health-and-cure`.
 - The home page's series headings, each a link.
 - The header: the wordmark link "First the Blade" (home), "Series" (`/#series`), "About".
 - The footer's Site navigation, on every page.
@@ -40,13 +40,13 @@ which falls back to a link to the footer.
   `bun run --cwd apps/firsttheblade contrast`.
 
 1. **Home.** `ab open $O/`. The snapshot holds the heading "First the Blade"
-   (level 1), a region named "Short films and plain talks…" with four level-3
-   headings, and the form's textbox "Or have each one sent to you by email".
+   (level 1), a region named "We are working on four series…" with four level-3
+   headings, and the form's textbox "Or get them by email".
 2. **Series from home.** `ab find role link click --name "The Path of the Just" --exact`.
    The URL ends `/series/the-path-of-the-just`; the h1 is "The Path of the
    Just", with the regions "About the series", "What it covers" and "The
-   films". Repeat for "Dwell in the Land", "Taught of the Lord" and "The True
-   Remedies".
+   films". Repeat for "Dwell in the Land", "Taught of the Lord" and "Health
+   and Cure".
 3. **Header.** `ab find role link click --name "About" --exact` inside the
    Main navigation (the first match); the URL ends `/about`. "Series" lands on
    `/#series`.

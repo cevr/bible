@@ -15,7 +15,7 @@ with the sign-up form like the others.
 ## How to get to it (user POV)
 
 - "Privacy" in the footer's Site navigation, on every page.
-- "How we keep your address" under the sign-up form.
+- "What we do with your address" under the sign-up form.
 - Typing `/privacy`.
 
 ## Driving it with agent-browser
@@ -25,7 +25,7 @@ with the sign-up form like the others.
 - **Regression:** `apps/firsttheblade/src/pages.test.ts`.
 
 1. **From the form.** `ab open $O/`, then
-   `ab find role link click --name "How we keep your address" --exact`.
+   `ab find role link click --name "What we do with your address" --exact`.
    `ab get url` ends `/privacy`; the h1 is "Privacy".
 2. **Sections.** `ab snapshot` holds the five level-2 headings above, in order.
 3. **Contact.** `ab get attr "a[href^='mailto:']" href` reads

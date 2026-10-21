@@ -15,7 +15,7 @@ sixth sign-up in a minute from one place to "Too many tries".
 - `signup-address`: an address the browser takes but the list does not (`a@b`); "Check your email address".
 - `signup-busy`: the sixth sign-up in a minute; "Too many tries" (429).
 - `signup-noscript`: the form posts with script off, the same answers.
-- `signup-privacy-link`: "How we keep your address" under the form leads to Privacy.
+- `signup-privacy-link`: "What we do with your address" under the form leads to Privacy.
 
 ## How to get to it (user POV)
 
@@ -35,7 +35,7 @@ sixth sign-up in a minute from one place to "Too many tries".
   `apps/firsttheblade/src/mail/letters.test.ts`.
 
 1. **New address.** `ab open $O/`, then
-   `ab find role textbox fill "verify-signup@example.com" --name "Or have each one sent to you by email" --exact`
+   `ab find role textbox fill "verify-signup@example.com" --name "Or get them by email" --exact`
    and `ab find role button click --name "Email me new films" --exact`.
    `ab get url` ends `/subscribe/check`; the h1 is "Check your inbox".
 2. **The letter.** `bun run --cwd apps/firsttheblade verify:outbox --root "$PWD/$ROOT" --to verify-signup@example.com`
