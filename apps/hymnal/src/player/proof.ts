@@ -49,6 +49,8 @@ interface Pending {
   readonly seen: Option.Option<Read>;
   /** The latest read since it that showed the device outside the place's window: not landed when it was sampled. */
   readonly outside: Option.Option<Read>;
+  /** The latest read before the act: where the device stood when it was asked to move. */
+  readonly before: Option.Option<Read>;
   /** A load's place: its lead-in from 0:00 (Android) sounds short of it and proves nothing. */
   readonly load: boolean;
 }
@@ -108,6 +110,9 @@ export const acted = (proof: Proof, now: number, target: Option.Option<number>):
         after: Option.none<Read>(),
         seen: Option.none<Read>(),
         outside: Option.none<Read>(),
+        before: Option.orElse(proof.last, () =>
+          Option.flatMap(proof.pending, (it) => Option.orElse(it.seen, () => it.before)),
+        ),
         load: false,
       }),
   }),
@@ -123,6 +128,7 @@ export const loaded = (now: number, from: number): Proof => ({
     after: Option.none<Read>(),
     seen: Option.none<Read>(),
     outside: Option.none<Read>(),
+    before: Option.none<Read>(),
     load: true,
   }),
   place: Option.liftPredicate(from, (at) => at > 0),
@@ -199,17 +205,29 @@ const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): P
     Option.exists(pending.outside, (it) => it === before),
   );
   // A device at that read's place stood still: no landing came between. Unless the place lies
-  // past the target by no more than the time since that read's ask: then the device may have
-  // landed and sounded back up to it.
-  const stood = Option.exists(
-    outside,
-    (before) =>
-      Math.abs(read.status.positionMs - before.status.positionMs) <= slack &&
-      !(
-        before.status.positionMs > pending.target + slack &&
-        before.status.positionMs - pending.target - slack <= read.answered - before.asked
-      ),
-  );
+  // past the target by no more than the time since that read's ask, and the device sounds now:
+  // then it may have landed and sounded back up to it. A device that says it is not playing at
+  // the place it stood at did not land and sound up to that very place and stop there.
+  const playing = read.status.state === 'playing';
+  const at = (before: Read) => Math.abs(read.status.positionMs - before.status.positionMs) <= slack;
+  const stood =
+    Option.exists(
+      outside,
+      (before) =>
+        at(before) &&
+        !(
+          playing &&
+          before.status.positionMs > pending.target + slack &&
+          before.status.positionMs - pending.target - slack <= read.answered - before.asked
+        ),
+    ) ||
+    // With no read since that saw it outside, the read before the act is where it stood.
+    (Option.isNone(outside) &&
+      !playing &&
+      Option.exists(
+        pending.before,
+        (before) => at(before) && Math.abs(before.status.positionMs - pending.target) > slack,
+      ));
   // A refused device stands where it stood: it comes onto the place only by sound from short
   // of it, or by a phone's press that moves it there itself.
   const onto = Option.exists(
