@@ -631,8 +631,10 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 const again = Option.filter(status, holdsRecording);
                 if (Option.isNone(again)) return yield* load(track, 0);
                 held.wants = 'play';
-                // The followed place supersedes any seek still asked from before the end.
+                // The followed place supersedes any seek still asked from before the end, and
+                // the device is there already: no refusal stands in its way.
                 held.seeking = Option.none();
+                held.takenAt = Number.NEGATIVE_INFINITY;
                 held.proof = Proof.acted(held.proof, asked, Option.some(again.value.positionMs));
                 yield* show(
                   Player.Buffering({

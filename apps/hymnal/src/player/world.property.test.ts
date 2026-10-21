@@ -414,8 +414,9 @@ describe('the player by the world: each earlier counterexample', () => {
 
   /** Each sweep seed traced and cleared: run alone, it breaks no rule. */
   const traced: Record<Platform, ReadonlyArray<number>> = {
-    // The end class (a place past the end the page kept after a read saw it ended).
-    ios: [119, 120, 278],
+    // The end class (a place past the end the page kept after a read saw it ended), and
+    // ios 289: a Resume from Ended that followed a replaying phone kept a refused seek.
+    ios: [119, 120, 278, 289],
     android: [235, 255],
     web: [201, 320],
   };
