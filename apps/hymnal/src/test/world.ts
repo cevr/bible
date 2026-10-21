@@ -151,6 +151,12 @@ interface Target {
 }
 
 export type Press = 'play' | 'pause' | 'seek' | 'follow';
+
+/** A page seek One has not answered yet. */
+interface SeekAsk {
+  readonly resolve: (status: Status) => void;
+  readonly reject: (error: Error) => void;
+}
 type RemoteListener = Parameters<Device['audio']['watchRemoteCommands']>[0];
 type NetworkListener = Parameters<Device['network']['addStateListener']>[0];
 
@@ -240,8 +246,10 @@ const initial = (platform: Platform, start: number) => ({
   online: true,
   holdUntil: start,
   holdEnd: Number.NEGATIVE_INFINITY,
-  /** A seek landing later (D10, D8). */
-  landing: Option.none<{ readonly to: number; readonly at: number }>(),
+  /** A seek landing later (D10, D8); `own` when the page asked it. */
+  landing: Option.none<{ readonly to: number; readonly at: number; readonly own: boolean }>(),
+  /** A phone's page seek One has not answered (r2 M8, `r3/premise-choice.md`). */
+  seekAsk: Option.none<SeekAsk>(),
   reads: new Array<Read>(),
   answers: new Array<{ readonly dueAt: number; readonly run: () => void }>(),
   tells: new Array<Tell>(),
@@ -402,8 +410,11 @@ export const makeWorld = (
 
   const said = (): Status => {
     // One 2.8.1 on Android says `failed` at 0 with no length whenever MediaPlayer has an error,
-    // before it reads the place (HybridOneAudio.kt:1024-1031).
+    // and `loading` at 0 with no length until it is prepared, before it reads the place
+    // (HybridOneAudio.kt:1018-1031).
     if (platform === 'android' && w.phase === 'failed') return { state: 'failed', positionMs: 0 };
+    if (platform === 'android' && w.phase !== 'idle' && !w.ready)
+      return { state: 'loading', positionMs: 0 };
     const status = { state: stateOf(platform, w.phase), positionMs: w.place };
     if (w.ready) return { ...status, durationMs: w.length };
     return status;
@@ -466,13 +477,51 @@ export const makeWorld = (
       w.phase = 'dry';
     }
   };
+  /**
+   * A page seek One will not resolve. iOS rejects it: a later seek cancels
+   * AVPlayer's (`finished == false`), and a new item fails `self.player ===
+   * player` (HybridOneAudio.swift:199-203). Android never settles it: a later
+   * seek's generation, or `clearPlayer`, drops its listener
+   * (HybridOneAudio.kt:295-300, :1131-1136).
+   */
+  const dropSeek = () => {
+    Option.map(w.seekAsk, (it) => {
+      if (platform === 'ios')
+        w.answers.push({
+          dueAt: w.t + knobs.lag(),
+          run: () => it.reject(new Error('The seek was superseded')),
+        });
+    });
+    w.seekAsk = Option.none();
+  };
+  /**
+   * A seek completed on the device. iOS resolves a page seek only at its own
+   * completion (HybridOneAudio.swift:198-207); Android's one listener takes
+   * whichever seek completes while its generation is the latest: the lock
+   * screen's `seekTo` and an ended item's `seekTo(0)` bump no generation
+   * (HybridOneAudio.kt:264-267, :977-980, :995-1001). The status is the
+   * device's at the completion, told after a lag.
+   */
+  const completed = (own: boolean) => {
+    Option.map(w.seekAsk, (it) => {
+      if (platform === 'ios' && !own) return;
+      w.seekAsk = Option.none();
+      const status = said();
+      w.answers.push({ dueAt: w.t + knobs.lag(), run: () => it.resolve(status) });
+    });
+  };
   /** A seek that lands after `after` ms, or at once. */
-  const landAfter = (to: number, after: number) => {
-    if (after <= 0) land(to);
-    else w.landing = Option.some({ to, at: w.t + after });
+  const landAfter = (to: number, after: number, own: boolean) => {
+    if (after > 0) {
+      w.landing = Option.some({ to, at: w.t + after, own });
+      return;
+    }
+    land(to);
+    completed(own);
   };
 
   const load = () => {
+    dropSeek();
     Object.assign(w, {
       phase: 'loading',
       place: 0,
@@ -492,6 +541,7 @@ export const makeWorld = (
       w.place = 0;
       w.leftEndAt = w.t;
       startSound();
+      if (platform === 'android') completed(false);
     } else if (w.phase === 'paused' && w.ready) startSound();
     else if (w.phase === 'paused') w.phase = 'loading';
   };
@@ -524,8 +574,16 @@ export const makeWorld = (
     let after = knobs.landAfter();
     // MediaPlayer sounds from 0:00 until a play from a place lands (D4, 50 to 400 ms).
     if (Option.isSome(w.fromPending) && platform === 'android') after = Math.min(300, after);
-    landAfter(positionMs, after);
-    return later(said);
+    if (!phone) {
+      landAfter(positionMs, after, true);
+      return later(said);
+    }
+    // One answers a phone's seek at its completion, never before (`r3/premise-choice.md`).
+    dropSeek();
+    return new Promise<Status>((resolve, reject) => {
+      w.seekAsk = Option.some({ resolve, reject });
+      landAfter(positionMs, after, true);
+    });
   };
 
   const audio: Device['audio'] = {
@@ -543,6 +601,7 @@ export const makeWorld = (
     },
     seek,
     stop: () => {
+      dropSeek();
       Object.assign(w, { phase: 'idle', place: 0, ready: false, landing: Option.none() });
       return later(() => {});
     },
@@ -758,7 +817,12 @@ export const makeWorld = (
   const pressPhone = (kind: Press, to: number) => {
     if (kind === 'play' && (w.phase === 'ended' || w.phase === 'paused')) resumeDevice();
     if (kind === 'pause') pauseDevice();
-    if (kind === 'seek' && platform === 'android' && holding(w.phase)) land(to);
+    // MediaPlayer seeks only once prepared (One catches the refusal and tells nothing,
+    // HybridOneAudio.kt:999-1001; the world draws the wider case, told but not moved).
+    if (kind === 'seek' && platform === 'android' && holding(w.phase) && w.ready) {
+      land(to);
+      completed(false);
+    }
   };
   /** The press told to the app: One's listeners on a phone, the page's handler on the web. */
   const tellPress = (kind: Press, to: number) => {
@@ -789,8 +853,11 @@ export const makeWorld = (
       );
       return;
     }
-    if (kind === 'seek' && platform === 'ios' && holding(w.phase))
-      landAfter(to, knobs.remoteLand());
+    // The lock screen's seek is a later AVPlayer seek: it cancels a page seek on its way.
+    if (kind === 'seek' && platform === 'ios' && holding(w.phase)) {
+      dropSeek();
+      landAfter(to, knobs.remoteLand(), false);
+    }
     const event = Option.match(
       Option.liftPredicate(kind, (it) => it === 'seek'),
       {
@@ -1040,6 +1107,7 @@ export const makeWorld = (
       (it) => {
         w.landing = Option.none();
         land(it.to);
+        completed(it.own);
       },
     );
     const filling = w.online && w.t >= w.stallUntil;
@@ -1351,6 +1419,8 @@ export const makeWorld = (
       }),
     /** The states the page showed since `from`. */
     shownSince: (from: number) => w.history.filter((it) => it.t >= from).map((it) => it.tag),
+    /** The device as One's `Audio` gives it to the adapter: the world tests read it directly. */
+    audio,
     story,
     note,
     dispose: () => registry.dispose(),

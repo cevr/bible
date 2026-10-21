@@ -30,7 +30,7 @@ import {
   step,
   type World,
 } from '../test/world';
-import { Command, Player } from './player';
+import { Command, Player, type Status } from './player';
 
 /** The seeds of each seeded case: 24, or `WORLD_SEEDS` for a deep sweep, from `WORLD_FROM`. */
 // oxlint-disable-next-line effect/noGlobals -- the deep sweep's size comes from its shell, outside any Effect.
@@ -166,6 +166,127 @@ const retry = (w: World) => {
   const shown = w.state();
   return shown._tag === 'Buffering' && shown.retry;
 };
+
+/** A seek asked of the world's device directly; what One answered, as it stands. */
+const asked = (w: World, positionMs: number) => {
+  const answer = {
+    settled: 'no' as 'no' | 'resolved' | 'rejected',
+    at: Number.NaN,
+    status: Option.none<Status>(),
+  };
+  w.audio.seek(positionMs).then(
+    (status) =>
+      Object.assign(answer, { settled: 'resolved', at: w.t, status: Option.some(status) }),
+    () => Object.assign(answer, { settled: 'rejected', at: w.t }),
+  );
+  return answer;
+};
+/** The world's device with a recording loaded and ready, the player never asked. */
+const readied = (w: World) =>
+  Effect.gen(function* () {
+    void w.audio.play('https://hymns.test/1.mp3');
+    expect(yield* w.until(() => w.ready, 10_000)).toBe(true);
+  });
+
+// One's completion order (`rewrite/r3/premise-choice.md`): a phone's seek answers at its
+// completion, never before it lands.
+describe("the world draws One's seek completion order (rw r2 M8)", () => {
+  // iOS resolves a seek only when AVPlayer finished it, on the same player
+  // (HybridOneAudio.swift:198-207).
+  fixed(
+    'ios: a page seek answers only after it lands',
+    'ios',
+    { landAfter: () => 800 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const from = w.t;
+        const answer = asked(w, 30_000);
+        yield* w.run(700);
+        expect(answer.settled).toBe('no');
+        expect(yield* w.until(() => answer.settled !== 'no', 3000)).toBe(true);
+        expect(answer.settled).toBe('resolved');
+        expect(answer.at - from).toBeGreaterThanOrEqual(800);
+        expect(Option.map(answer.status, (it) => Math.abs(it.positionMs - 30_000) <= 2)).toEqual(
+          Option.some(true),
+        );
+      }),
+    { judged: false },
+  );
+  // A later AVPlayer seek, the lock screen's included (:713-719), calls the earlier one's
+  // completion with `finished == false`: rejected (:199-203).
+  fixed(
+    "ios: a page seek a lock-screen seek supersedes is rejected, and the lock screen's answers nothing",
+    'ios',
+    { landAfter: () => 800, remoteLand: () => 300 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const answer = asked(w, 30_000);
+        yield* w.run(100);
+        w.press('seek', 90_000);
+        yield* w.run(3000);
+        expect(answer.settled).toBe('rejected');
+        expect(w.place).toBeGreaterThanOrEqual(90_000 - 2);
+      }),
+    { judged: false },
+  );
+  // Android: a later page seek bumps the generation and replaces the listener, so the earlier
+  // promise never settles (HybridOneAudio.kt:293-300).
+  fixed(
+    'android: a page seek a later page seek supersedes never answers',
+    'android',
+    { landAfter: () => 800 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const first = asked(w, 30_000);
+        yield* w.run(100);
+        const second = asked(w, 60_000);
+        yield* w.run(5000);
+        expect(first.settled).toBe('no');
+        expect(second.settled).toBe('resolved');
+      }),
+    { judged: false },
+  );
+  // The lock screen's `seekTo` bumps no generation (:995-1001): its completion resolves the
+  // page's latest seek, with the status there.
+  fixed(
+    "android: a lock-screen seek's completion answers the page's seek on its way",
+    'android',
+    { landAfter: () => 2000 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* readied(w);
+        const answer = asked(w, 30_000);
+        yield* w.run(100);
+        w.press('seek', 90_000);
+        expect(yield* w.until(() => answer.settled !== 'no', 1500)).toBe(true);
+        expect(Option.map(answer.status, (it) => Math.abs(it.positionMs - 90_000) <= 100)).toEqual(
+          Option.some(true),
+        );
+      }),
+    { judged: false },
+  );
+  // Until MediaPlayer is prepared, One says `loading` at 0 with no length (:1018-1031).
+  fixed(
+    'android: loading at 0 with no length until prepared, paused or not',
+    'android',
+    { loadFor: () => 3000 },
+    (w) =>
+      Effect.gen(function* () {
+        void w.audio.play('https://hymns.test/1.mp3');
+        yield* w.run(500);
+        void w.audio.pause();
+        yield* w.run(100);
+        let status = Option.none<Status>();
+        void w.audio.getPlaybackStatus().then((it) => (status = Option.some(it)));
+        yield* w.run(1000);
+        expect(status).toEqual(Option.some({ state: 'loading', positionMs: 0 }));
+      }),
+    { judged: false },
+  );
+});
 
 describe('the player by the world: each earlier counterexample', () => {
   fixed(
