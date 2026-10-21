@@ -10,9 +10,7 @@
  */
 
 import { describe, expect, it } from 'effect-bun-test';
-// oxlint-disable-next-line effect/noNodeBuiltinImport -- the test preload's happy-dom AbortSignal is not the one Bun's file system takes, so Effect's FileSystem fails here: the M1 guard reads the oracle's source with node's.
-import { readFileSync } from 'node:fs';
-import { Clock, Console, Effect, Option } from 'effect';
+import { Array as Arr, Clock, Console, Effect, Option } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import {
@@ -1127,14 +1125,27 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
           expect(yield* w.until(() => tag(w) === 'Playing', 8000)).toBe(true);
         }),
     );
-  // The oracle builds no sound pair (r1 M1, r2 M1): O5's first sound is O3's world bound, and
-  // the unseen-sound excuse ends by its time bound alone. A pair in the oracle would pass a
-  // product with the same pair defect (Risk 6).
-  it.effect('rw r2 M1: the oracle takes no read pair as sound', () =>
-    Effect.sync(() => {
-      const oracle = readFileSync(new URL('../test/world.ts', import.meta.url), 'utf8');
-      expect(oracle.match(/read\.closes|lastRead|soundSampled|lastHeard/g) ?? []).toEqual([]);
-    }),
+  // The oracle builds no sound pair (r1 M1, r2 M1): O5's first sound is O3's world bound. Here
+  // the page's one read answers 40 s late, so no sample brackets the sound: the load sounds
+  // 3.5 s with no act, then runs dry online. A page that stops reading cannot empty O5
+  // (Decided 11), so Retry is owed by world time; an oracle that waits for a read pair owes
+  // nothing.
+  fixed(
+    'rw r2 M1: sound for the proof that no read samples, then a dry spell online: Retry owed',
+    'ios',
+    { lag: () => 40_000, sample: () => 0.9 },
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(4000);
+        expect(w.t - w.lastSound).toBeLessThanOrEqual(step);
+        w.stall(60_000);
+        yield* w.run(25_000);
+        expect(w.answered).toEqual([]);
+        expect(w.reads.every((read) => read.sampleAt > w.t)).toBe(true);
+        expect(rules(w)).toContain('O5 Retry owed');
+      }),
+    { judged: false },
   );
   // O10 excuses a turn from Playing by a silence of the stand only when that silence began by
   // the turning read's sample: a silence in a host hold after it is not what the read saw.
@@ -1164,23 +1175,46 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
       }),
   );
   // A read asked before an act cannot start P4's wait, even when it samples after the act
-  // (android 351): the wait starts at the first read asked after it.
+  // (android 351: press 15,550, read asked 15,300, sampled 15,700): the wait starts at the
+  // first read asked after it. The press is told at that read's answer (D8), and one read's
+  // answer 250 ms puts the page's last ask before the give-up just short of 15 s past its
+  // wait's start: the page turns Failed 17 s after the older read's answer, past O4's 16.75 s
+  // from that answer and within it from the answer of the read asked after the press.
   for (const at of [100, 250, 400])
-    fixed(
-      `rw r2 M7: offline Buffering, a lock-screen play ${at} ms after a read's ask, before its sample: Failed by the read asked after it`,
-      'android',
-      { lag: () => 600, sample: () => 0.9 },
-      (w) =>
+    it.effect(
+      `rw r2 M7: offline Buffering, a lock-screen play ${at} ms after a read's ask, before its sample: Failed owed from the read asked after it`,
+      () =>
         Effect.gen(function* () {
+          const clock = yield* TestClock.testClockWith(Effect.succeed);
+          let quickAt = Number.POSITIVE_INFINITY;
+          let now = () => 0;
+          const lag = () => {
+            if (now() < quickAt) return 600;
+            quickAt = Number.POSITIVE_INFINITY;
+            return 250;
+          };
+          const w = makeWorld(
+            'android',
+            clock,
+            { ...fixedKnobs, lag, sample: () => 0.9, tellAfter: () => 10_000 },
+            yield* Clock.currentTimeMillis,
+          );
+          now = () => w.t;
           yield* playing(w);
           w.connect(false);
           w.stall(120_000);
           expect(yield* w.until(() => tag(w) === 'Buffering', 10_000)).toBe(true);
-          const asked = w.reads.length;
-          expect(yield* w.until(() => w.reads.length > asked, 2000)).toBe(true);
+          const count = w.reads.length;
+          expect(yield* w.until(() => w.reads.length > count, 2000)).toBe(true);
+          const read = Option.getOrThrow(Arr.last(w.reads));
           yield* w.run(at);
+          const pressedAt = w.t;
           w.press('play');
+          quickAt = w.t + 3000;
+          expect(read.sampleAt).toBeGreaterThan(pressedAt);
           expect(yield* w.until(() => tag(w) === 'Failed', 40_000)).toBe(true);
+          w.dispose();
+          expect(report(0, w)).toEqual([]);
         }),
     );
   // The ios 59 world with the late lock-screen seek landing as the load sounds: the read after
