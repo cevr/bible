@@ -81,7 +81,8 @@ second development log directory or transport.
 
 To run an app and check a change in it as its user does, use its verify
 skill: the First the Blade site is `.claude/skills/verify-firsttheblade`
-(launch, doctor, drive, proof).
+(launch, doctor, drive, proof); the hymnal, on its iOS simulator or the web,
+is `.claude/skills/verify-hymnal`.
 
 <!-- effect-solutions:start -->
 

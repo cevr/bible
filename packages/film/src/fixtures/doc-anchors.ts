@@ -235,6 +235,7 @@ export const SKILL_DIRS = ['.claude/skills/film', '.claude/skills/film-architect
  */
 export const VERIFY_SKILLS: ReadonlyArray<readonly [string, string]> = [
   ['.claude/skills/verify-firsttheblade', 'apps/firsttheblade'],
+  ['.claude/skills/verify-hymnal', 'apps/hymnal'],
 ];
 
 /**

@@ -1,0 +1,59 @@
+# Hymnal verification map
+
+The maintained source for verifying what a hymnal reader can do. Read this
+index before driving the app, then use the matching feature file as the
+recipe.
+
+## Baseline
+
+- `bun run --cwd apps/hymnal sim boot --platform ios --port $PORT --out "$EVIDENCE"`,
+  then `bun run --cwd apps/hymnal sim install` (iOS), or `--platform web`
+  (SKILL.md, Launch). Never ports 8191 or 8095, the owner's previews.
+- `bun run --cwd apps/hymnal sim doctor` passes before the first drive.
+- The recipes write `bun run --cwd apps/hymnal sim` as `sim`. A step's
+  "→" is its observable result: the JSON line's `ok`, and what the
+  snapshot or screenshot shows.
+- The app has no seed: its 695 hymns are compiled in, and its only stored
+  choice is the appearance setting. A drive that changes the setting puts
+  it back to `System` at the end.
+
+## Proof and skip reporting
+
+- Each journey records a video, `sim record start <feature>` to
+  `sim record stop`: `$EVIDENCE/video/<feature>.mp4` or `.webm`.
+- Each step appends its JSON line to `$EVIDENCE/results.jsonl` and saves
+  `sim snapshot <step>` and `sim shot <step>`.
+- A stored choice is proved by a second view: leave the screen and come
+  back, or relaunch, and read it again.
+- An entry point that is not on main is reported as the `TargetMissing`
+  line `sim tap` printed and the reason in its Gotchas. It never counts as
+  verified through another path.
+
+## Entry contract
+
+Each feature file has an H1, one paragraph of user-visible behavior, then
+exactly these H2s in order:
+
+1. `Sub-features`: short ids, one line each.
+2. `How to get to it (user POV)`: every entry point a reader has.
+3. `Driving it with sim`: starts with three lines, then labeled steps that
+   pair a reader's action, an exact command and the observable result.
+   - **Preconditions:** the state the steps need beyond the baseline.
+   - **States:** which of default, focus-visible, open, loading, empty and
+     error the steps exercise; mark the rest n/a.
+   - **Regression:** the automated tests that cover the feature.
+4. `Gotchas`: traps that waste or invalidate a run.
+
+Name reader paths, accessible names, commands and observable results. Keep
+source seams out.
+
+## Features
+
+| Feature                               | Id                  | Deep link (iOS / web)               | Proof                                            |
+| ------------------------------------- | ------------------- | ----------------------------------- | ------------------------------------------------ |
+| [Hymn list](hymn-list.md)             | `hymn-list`         | `hymnal://` / `/`                   | rows by number, scroll, open a row               |
+| [Hymn reader](hymn-reader.md)         | `hymn-reader`       | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll            |
+| [Chords and capo](chords-and-capo.md) | `chords`, `capo`    | none: not on main                   | `TargetMissing` for `label=Chords`               |
+| [Player](player.md)                   | `player`            | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control       |
+| [Settings and about](settings.md)     | `settings`, `about` | `hymnal://settings` / `/settings`   | appearance kept after leaving; about not on main |
+| [Search](search.md)                   | `search`            | `hymnal://search` / `/search`       | one match for "great is thy", open it            |
