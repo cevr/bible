@@ -251,6 +251,8 @@ const initial = (platform: Platform, start: number) => ({
   /** The latest step the device was ended. */
   endedLast: Number.NEGATIVE_INFINITY,
   wants: false,
+  /** The reader's latest pause, on the page or the lock screen (not the device's own, D12). */
+  readerPausedAt: Number.NEGATIVE_INFINITY,
   /** Where the device last sounded, or the latest seek target since. */
   readerPlace: Option.none<number>(),
   /**
@@ -276,6 +278,8 @@ const initial = (platform: Platform, start: number) => ({
   /** Runs: silent and wanting; the same offline; the same online. */
   quiet: Number.NaN,
   offQuiet: Number.NaN,
+  /** Each start or break of the offline run, the latest two minutes: O2 reads it as of a read's sample. */
+  offQuietLog: new Array<{ readonly at: number; readonly since: number }>(),
   onQuiet: Number.NaN,
   stops: 0,
   lastCommand: '',
@@ -614,6 +618,7 @@ export const makeWorld = (
       Pause: () => {
         w.wants = false;
         w.pauseAt = w.t;
+        w.readerPausedAt = w.t;
       },
       Seek: ({ seconds }) => void askSeek(seconds * 1000),
       Follow: () => {},
@@ -729,6 +734,9 @@ export const makeWorld = (
       at: w.t + knobs.tellAfter(),
       run: () => {
         if (kind === 'play') w.resumePlaces.push(placeThen);
+        // The page plays at this tell (Resume), so a device that paused itself since the press
+        // (D12) sounds again: the reader's latest word is still the play.
+        if (kind === 'play' && w.readerPausedAt < pressedAt) w.wants = true;
         // A page play between the press and its tell went to the place the page knew; told
         // the seek, the page goes to its place, so the play's own place is owed no more.
         if (kind === 'seek' && w.plays.some((play) => play.t > pressedAt)) {
@@ -750,6 +758,7 @@ export const makeWorld = (
     if (kind === 'pause') {
       w.wants = false;
       w.pauseAt = w.t;
+      w.readerPausedAt = w.t;
     }
     if (kind === 'seek') askSeek(to);
   };
@@ -915,7 +924,12 @@ export const makeWorld = (
     w.soundSince = keepRun(w.soundSince, soundPhase(w.phase), w.t);
     const quiet = w.wants && silentPhase(w.phase);
     w.quiet = keepRun(w.quiet, quiet, w.t);
-    w.offQuiet = keepRun(w.offQuiet, quiet && !w.online, w.t);
+    const offQuiet = keepRun(w.offQuiet, quiet && !w.online, w.t);
+    if (!Object.is(offQuiet, w.offQuiet)) {
+      w.offQuietLog.push({ at: w.t, since: offQuiet });
+      if (w.offQuietLog.length > 1000) w.offQuietLog.splice(0, 500);
+    }
+    w.offQuiet = offQuiet;
     w.onQuiet = keepRun(w.onQuiet, quiet && w.online, w.t);
   };
 
@@ -1001,8 +1015,26 @@ export const makeWorld = (
       breach('O1 Playing with no sound', `lastSound=${w.lastSound} loadAt=${w.loadAt}`);
     if (now._tag === 'Failed' && w.was !== 'Failed') {
       const byDevice = w.phase === 'failed' || w.failedAt >= w.lastAct;
-      if (!byDevice && quietFor(w.offQuiet) < 15_000 - span)
-        breach('O2 Failed with no cause', `offQuietFor=${quietFor(w.offQuiet)}`);
+      // The page turns Failed at a read's answer, and knows the device only up to that read's
+      // sample (Terms): the run is judged as it stood at the sample. An act since the sample
+      // still breaks it, since the page knows each act before the read's answer.
+      const sampled = Option.match(Arr.last(w.answered), {
+        onNone: () => w.t,
+        onSome: (read) => read.sampleAt,
+      });
+      // A run broken at the sample (NaN) has held for no time.
+      const offQuietFor = Option.getOrElse(
+        Option.filter(
+          Option.map(
+            Arr.findLast(w.offQuietLog, (it) => it.at <= sampled),
+            (it) => sampled - Math.max(it.since, w.lastAct, w.landedAt),
+          ),
+          (held) => !Number.isNaN(held),
+        ),
+        () => 0,
+      );
+      if (!byDevice && offQuietFor < 15_000 - span)
+        breach('O2 Failed with no cause', `offQuietFor=${offQuietFor}`);
     }
     const unacted = w.t - Math.max(w.lastAct, w.landedAt, w.holdEnd) >= 1500 + span;
     const sounding = w.t - w.soundSince >= 1500 && Option.isNone(w.fromPending);
