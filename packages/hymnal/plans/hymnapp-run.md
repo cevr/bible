@@ -52,7 +52,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | chords       | reader                         | .rifts/manna/chords                                |                                |                                                                                                                                                                       |
 | listen       | chords                         | .rifts/manna/listen                                |                                |                                                                                                                                                                       |
 | selah        | reader                         | .rifts/manna/selah                                 |                                |                                                                                                                                                                       |
-| verifyhymnal | coldload (proof target)        | .rifts/manna/verifyhymnal                          |                                |                                                                                                                                                                       |
+| verifyhymnal | coldload (proof target)        | .rifts/manna/verifyhymnal                          | impl abf1914 (r1 part 2)       | merged 9a6cdcfff                                                                                                                                                      |
 
 Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `inexact` (the 7 MIDI files whose verses do not split: 126 225 262 292 403 453 580), `decks` (syllable splits into feat/hymn-decks, last by the owner's word), `selah` (planned: after reader, see Decisions; macOS stays SwiftUI until react-native-gpui ships a real package).
 
@@ -194,6 +194,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - The owner's UI scrawls start now, not after playstall (owner, 2026-10-20: "What about the UI request that I made"). `shell` no longer waits for playstall: it takes the navigation and the list (no tab bar; search pulled down under the large title; settings as a sheet from a small top-right button; the hymn list on LegendList with sticky topic rows; no empty band above "Hymns"; no collapsed title bar). The bottom mini player and its full-player sheet move from `shell` to `hymnbar`, which now waits for shell and playstall, since both touch the player's controls. `topicdata` and the shell planner start at once; shell's implementor takes the next heavy slot. (shell, hymnbar, topicdata)
 
+- Every verifier in this run uses the `verify-hymnal` skill (`.claude/skills/verify-hymnal/`, `bun run sim` in `apps/hymnal`) to launch, drive and keep proof (owner, via the Mac retro session, 2026-10-21). verifyhymnal merged on the orchestrator's check of its proof (iOS and web, `verifyhymnal/proof/`), its gate and its merge-audit, with no separate reviewer (the one-agent budget). (verifyhymnal)
+
 ## Owner questions
 
 - hymnrows (2026-10-20): the rewrite failed its 3 rounds (r6 changes: M1, repeat of r5 M1). The data at head `ebb5933da` is sound by every check: 0 census problems, 518 crops re-cut byte-identical, 584 matches its crop, and the gate is green. The defect is the census's reach: 115 hand-made layout mutants in 25 hymns pass it unseen. Options: (A, recommended) merge the data now and open unit `census2` with the 115 mutants as red fixtures first; (B) one more rewrite before anything merges; (C) merge the data and drop the census's layout check. Answer: pending.
@@ -209,6 +211,7 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Follow-ups
 
+- verifyhymnal (merged 9a6cdcfff): register the `hymnal` link scheme in `apps/hymnal/vite.config.ts` (today `sim install` writes it into the git-ignored build settings); the three accessibility follow-ups in `verifyhymnal/round-1-request.md`; drive the hymn list, the player and web search as full journeys in the feature map (only the reader and chords ran end to end); a run on the Workbox.
 - coldload: the r3 verifier's helpers (`tmp/orchestrate/hymnapp/coldload/verify-3-evidence/helpers/`) move into the `verify-hymnal` skill or repo scripts (build the lever).
 - playstall failed three rounds (r3 M1-M4 repeat r1 F1, r2 M1/M2); rewritten on the read-as-interval premise (`tmp/orchestrate/hymnapp/playstall/rewrite/premise.md`); hymnbar stacks on its frozen `Player` seam.
 
