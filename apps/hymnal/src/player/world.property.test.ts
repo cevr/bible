@@ -1110,6 +1110,14 @@ describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
   seed('a lock-screen seek past the end, then a play', 'ios', 381);
   seed('a lock-screen seek past the end, a play, then a pause', 'ios', 400);
 
+  // O1: a read asked before a seek's answer lands it, answered after, may show the place before
+  // the landing, so it pairs with nothing: with the next read at the new place it would look
+  // like sound.
+  seed('a read in flight across a landing, in the D2 silence after an ended reload', 'ios', 641);
+  seed('Playing with no sound, the part 5 O1 class', 'ios', 178);
+  seed('Playing with no sound, the part 5 O1 class', 'android', 72);
+  seed('Playing with no sound, the part 5 O1 class', 'web', 122);
+
   /** Lags drawn in order, then 50 ms: the answers they time come in the order the test wants. */
   const lags = (first: ReadonlyArray<number>) => {
     const queue = [...first];
