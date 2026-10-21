@@ -2,9 +2,12 @@
  * `bun run promise:census`: holds the promise check (`./promise.ts`) to every
  * way the email list's promise was lost before (`docs/lessons.md`
  * `email-cadence-limits`, `email-promise-found-by-phrase`,
- * `email-promise-read-in-sources`). Each case injects one into a copy of the
+ * `email-promise-read-in-sources`, `email-promise-net-whole-words`,
+ * `email-promise-tags-split-words`, `email-promise-unread-attributes`,
+ * `email-promise-held-anywhere`). Each case injects one into a copy of the
  * app's sources, builds the copy as the gate builds the app, runs the check
- * there, and passes only when the check fails and names what was injected.
+ * there, and passes only when the check fails and says each line of the case
+ * (a `*` in a line stands for a build's content hash).
  * A case whose words the sources no longer hold fails too, so no case goes
  * stale unseen. The gate runs it after the check.
  *
@@ -27,8 +30,30 @@ interface Case {
 const CONFIRMED = 'Thank you. We will send you ${PROMISE}.';
 const LABEL = '      Or get them by email\n';
 const LEAVE_ANY_TIME = "'You can leave at any time, from the link in any of our emails.'";
+const NOTICE_WORDS = '<For each={notice.words}>{(words) => <p>{words}</p>}</For>';
+const BUTTON =
+  '<button class="button button-night" type="submit">\n        <span class="button-label">Email me new films</span>\n      </button>';
+const LABEL_CSS = '.signup-label {\n  display: block;';
 
-/** The census: every trigger of the promise's findings, rounds 2 to 4 of `ftb-copy`. */
+/** A case that says one more sentence after the promise, on the confirmed page. */
+const confirmedSays = (name: string, sentence: string): Case => ({
+  name,
+  file: 'src/ui/mail.tsx',
+  find: `\`${CONFIRMED}\``,
+  put: `\`${CONFIRMED} ${sentence}\``,
+  said: [`dist/subscribe/confirmed.html: unheld: ${sentence}`],
+});
+
+/** A case whose markup every notice page prints as it is, after its words; the lines are the confirmed page's. */
+const noticePrints = (name: string, html: string, said: ReadonlyArray<string>): Case => ({
+  name,
+  file: 'src/ui/mail.tsx',
+  find: NOTICE_WORDS,
+  put: `${NOTICE_WORDS}\n      <div innerHTML={String.raw\`${html}\`} />`,
+  said: said.map((line) => `dist/subscribe/confirmed.html: ${line}`),
+});
+
+/** The census: every trigger of the promise's findings, rounds 2 to 4 of `ftb-copy` and round 1 of its rewrite. */
 const CASES: ReadonlyArray<Case> = [
   {
     name: 'r2-M1 the confirmed page drops "and nothing else"',
@@ -125,6 +150,85 @@ const CASES: ReadonlyArray<Case> = [
     put: "const PROMISE = 'news from us now and then';",
     said: ['dist/privacy.html: unheld: We use it to send you news from us now and then.'],
   },
+  // rw-r1 F1: a word of time inside a longer word.
+  confirmedSays('rw-r1-F1 "biweekly"', 'Expect a new film from us biweekly.'),
+  confirmedSays('rw-r1-F1 "on weekends"', 'A new film lands in your box on weekends.'),
+  confirmedSays('rw-r1-F1 "quarterly"', 'Look for us quarterly.'),
+  confirmedSays('rw-r1-F1 "semimonthly"', 'And a roundup from us semimonthly.'),
+  confirmedSays('rw-r1-F1 "bimonthly"', 'Plus a bimonthly roundup.'),
+  confirmedSays('rw-r1-F1 "tonight and tomorrow"', 'Expect us tonight and tomorrow.'),
+  confirmedSays('rw-r1-F1 "nightly"', 'Expect a film from us nightly.'),
+  confirmedSays('rw-r1-F1 "twice a month"', 'You will get a new film from us twice a month.'),
+  confirmedSays(
+    'rw-r1-F1 "at Easter and Christmas"',
+    'Expect a roundup from us at Easter and Christmas.',
+  ),
+  confirmedSays('rw-r1-F1 "seasonal"', 'And our seasonal roundup.'),
+  // rw-r1 F4: a sentence held on one page, said on another.
+  confirmedSays(
+    'rw-r1-F4 "for an hour" said on the confirmed page',
+    'We will not send another one for an hour.',
+  ),
+  // rw-r1 F2: a word split by an inline element.
+  {
+    name: 'rw-r1-F2 the sign-up label splits "weekly" with <u>',
+    file: 'src/ui/mail.tsx',
+    find: LABEL,
+    put: '      Or get them <u>wee</u>kly\n',
+    said: ['dist/index.html: unheld: Or get them weekly'],
+  },
+  noticePrints('rw-r1-F2 <u>wee</u>kly', '<p>Find us here <u>wee</u>kly.</p>', [
+    'unheld: Find us here weekly.',
+  ]),
+  noticePrints('rw-r1-F2 <a>wee</a>kly', '<p>Find us here <a href=/x>wee</a>kly.</p>', [
+    'unheld: Find us here weekly.',
+  ]),
+  noticePrints('rw-r1-F2 <s></s>every Friday', '<p>Find us here <s></s>every Friday.</p>', [
+    'unheld: Find us here every Friday.',
+  ]),
+  // The layout check: a word the net takes in one layout and not in the other.
+  noticePrints('rw-r1-F2 a word split across two boxes', '<p>Find us here wee</p><p>kly.</p>', [
+    'layout: Find us here wee|kly.',
+  ]),
+  noticePrints(
+    'rw-r1-F2 a list word merged into an inline element',
+    '<p>Our list<span>ening</span> room.</p>',
+    ['layout: Our list|ening room.'],
+  ),
+  // rw-r1 F3: words a reader sees in attributes and stylesheets.
+  {
+    name: 'rw-r1-F3 the sign-up button as <input type=submit value>',
+    file: 'src/ui/mail.tsx',
+    find: BUTTON,
+    put: '<input class="button button-night" type="submit" value="Email me weekly" />',
+    said: ['dist/index.html: unheld: Email me weekly', 'dist/index.html: gone: Email me new films'],
+  },
+  noticePrints(
+    'rw-r1-F3 <input type=submit value>',
+    '<input type="submit" value="Get our weekly digest">',
+    ['unheld: Get our weekly digest'],
+  ),
+  noticePrints(
+    'rw-r1-F3 aria-description',
+    '<button aria-description="We email you weekly">x</button>',
+    ['unheld: We email you weekly'],
+  ),
+  noticePrints('rw-r1-F3 alt in single quotes', "<img alt='We email you weekly'>", [
+    'unheld: We email you weekly',
+  ]),
+  noticePrints('rw-r1-F3 title', '<abbr title="weekly">wk</abbr>', ['unheld: weekly']),
+  noticePrints(
+    'rw-r1-F3 CSS content in a <style>',
+    "<style>.x::after{content:'Weekly emails'}</style>",
+    ['unheld: Weekly emails'],
+  ),
+  {
+    name: 'rw-r1-F3 CSS content in the built stylesheet',
+    file: 'src/styles.css',
+    find: LABEL_CSS,
+    put: `.signup-label::after {\n  content: 'Weekly emails';\n}\n${LABEL_CSS}`,
+    said: ['dist/assets/client-*.css: unheld: Weekly emails'],
+  },
 ];
 
 /** What a copy of the app needs to build and to run the check. */
@@ -139,7 +243,13 @@ const COPIED = [
 ];
 
 /** Cases run at once, each building its own copy. */
-const CONCURRENCY = 4;
+const CONCURRENCY = 6;
+
+/** A case's line as the check prints it, a `*` standing for a build's content hash. */
+const saying = (line: string) =>
+  new RegExp(
+    `^promise ${line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '[\\w-]+')}$`,
+  );
 
 class CaseFailed extends Data.TaggedError('CaseFailed')<{ readonly reason: string }> {}
 
@@ -195,7 +305,8 @@ const runCase = (app: string, scratch: string, found: Case) =>
       return yield* new CaseFailed({ reason: `the build failed:\n${build.output}` });
     }
     const check = yield* exec('bun', ['scripts/promise.ts'], copy);
-    const unsaid = found.said.filter((line) => !check.output.includes(`promise ${line}`));
+    const lines = check.output.split('\n');
+    const unsaid = found.said.filter((line) => !lines.some((said) => saying(line).test(said)));
     if (check.code === 0 || unsaid.length > 0) {
       return yield* new CaseFailed({
         reason: `the check exited ${check.code} and did not say:\n${unsaid.join('\n')}\nit said:\n${check.output}`,

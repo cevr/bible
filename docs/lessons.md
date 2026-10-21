@@ -2300,9 +2300,9 @@ The form of an entry, each field on its own line:
 - **Kind:** review
 - **Said:** "What is left is a sentence with no mail word and no frequency word"
 - **Source:** ftb-copy/round-4-findings.md F1
-- **Wrong:** A sentence that says how often we write with no word of mail, of the list or of how often ("Expect news from us when there is some.") passes the promise check.
+- **Wrong:** A sentence that says how often we write with no word the net holds (`apps/firsttheblade/scripts/promise.ts` `NET`: no word of mail or of the list, no word of how often, and no word of time inside any word), such as "Expect news from us when there is some.", passes the promise check.
 - **Cause:** The check finds a sentence about how often we email by its words, and no list of words reaches every way to say it.
-- **Guard:** none: a residual; a review reads each new sentence the site, its letters and its kit say.
+- **Guard:** skill: which sentences speak of how often is a reading of their sense, and no word list holds every way to say it. Carried by `apps/firsttheblade/README.md`: "Say how often we email only in the promise's words."
 
 ### email-promise-worker-answers
 
@@ -2333,3 +2333,63 @@ The form of an entry, each field on its own line:
 - **Wrong:** The promise check reads the words of each kit picture from the HTML it is drawn from (`kit/draw.ts` `SEEN`), not from its pixels, so words painted into a picture's art, or a picture put in `public/` by hand, are not read.
 - **Cause:** Reading a picture's words from its pixels would need text recognition.
 - **Guard:** none: a residual; the paintings hold no words, and the kit draws every picture the site serves with words on it.
+
+### email-promise-net-whole-words
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`NET` matches whole words only (`\bweekly\b`). So compound and rarer frequency words do not match."
+- **Source:** ftb-copy/rw-round-1-findings.md F1 (repeat of round-4 F1)
+- **Wrong:** The promise check's net took a word of how often only whole, so "Expect a new film from us biweekly.", "Plus a bimonthly roundup.", "Look for us quarterly.", "Expect a film from us nightly.", "A new film lands in your box on weekends.", "Expect us tonight and tomorrow." and "And our seasonal roundup." passed.
+- **Cause:** The net listed whole words of how often, and a word of time is built into longer words (bi-, semi-, -ly, -s, to-).
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `NET`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r1-F1 "biweekly"`
+
+### email-promise-tags-split-words
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "Any tag that is not in `TAG_GAPS` (for example `u`, `s`, `label`) becomes a block break."
+- **Source:** ftb-copy/rw-round-1-findings.md F2
+- **Wrong:** The promise check read a page as a list of tags, each tag it did not list a break and `a` a space, so `<u>wee</u>kly` and `<a href=/x>wee</a>kly`, which a browser shows as "weekly", passed as fragments the net missed.
+- **Cause:** The page was read with patterns over its tags, not parsed as a browser parses it, and an element the list missed broke the words around it.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `markupWords`, `layoutProblems`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r1-F2 the sign-up label splits "weekly" with <u>`
+
+### email-promise-unread-attributes
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`SEEN_ATTRIBUTES` reads only double-quoted `alt`, `aria-label`, `title` and `placeholder`."
+- **Source:** ftb-copy/rw-round-1-findings.md F3
+- **Wrong:** Words a reader sees or hears in an `<input type="submit" value>`, an `aria-description`, a single-quoted `alt` and a stylesheet's `content:` passed the promise check unread.
+- **Cause:** The check named the attributes it read in one quote style, and did not read stylesheets.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `SEEN_ATTRIBUTES`, `cssWords`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r1-F3 the sign-up button as <input type=submit value>`
+
+### email-promise-held-anywhere
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`HELD` is one list for all artefacts, so a held sentence passes on any page"
+- **Source:** ftb-copy/rw-round-1-findings.md F4
+- **Wrong:** "We will not send another one for an hour.", held for the check page, passed on the confirmed page, where it reads as a cadence.
+- **Cause:** The held sentences were one list for every artefact.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `HELD`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r1-F4 "for an hour" said on the confirmed page`
+
+### email-promise-stale-dist
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "A replayed build leaves extra pages that a later build wrote. A stale page can satisfy `gone:` and `no such artefact` checks."
+- **Source:** ftb-copy/rw-round-1-findings.md F5
+- **Wrong:** The promise check read whatever `dist/` held, and a turbo replay of the build restores its files without taking away a page another build left there.
+- **Cause:** The gate ran the check on the build turbo gave it, which may be a replay.
+- **Guard:** code: `apps/firsttheblade/package.json` `"promise": "bun run build && bun scripts/promise.ts"`
+
+### merge-checks-run-by-hand
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "Rerun `bun run merge-audit --each` and `bun run redfirst` with the tools before the merge."
+- **Source:** ftb-copy/rw-round-1-findings.md F6
+- **Wrong:** Round 1 of the rewrite ran merge-audit's each-commit check and redfirst by hand, since the disk was full and the tools could not make their scratch worktree.
+- **Cause:** Other work had filled the disk.
+- **Guard:** none: the tools exist and refuse loudly on a full disk; round 2 ran them (`tmp/orchestrate/p5/ftb-copy/rw-merge-each-2.log`, `rw-redfirst-2.log`).

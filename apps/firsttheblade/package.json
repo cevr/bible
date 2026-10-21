@@ -11,7 +11,7 @@
     "gate": "bun run promise && bun run promise:census",
     "gate:timed": "bun run contrast",
     "contrast": "bun scripts/contrast.ts",
-    "promise": "bun scripts/promise.ts",
+    "promise": "bun run build && bun scripts/promise.ts",
     "promise:census": "bun scripts/promise-census.ts",
     "kit": "bun kit/draw.ts",
     "plan": "bun run build && alchemy plan alchemy.run.ts --stage prod",
@@ -36,6 +36,7 @@
     "@playwright/test": "1.64.0",
     "alchemy": "2.0.0-beta.83",
     "effect-bun-test": "catalog:",
+    "parse5": "7.3.0",
     "vite": "^8.3.4",
     "vite-plugin-solid": "catalog:"
   }

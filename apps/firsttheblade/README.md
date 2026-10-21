@@ -188,15 +188,25 @@ of the field at 3072 px, and the dusk band blends in oklab.
 ```bash
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
-bun run promise    # every sentence a reader gets that speaks of email or how often is the list's promise, or held (build first)
+bun run promise    # builds, then: every sentence a reader gets that speaks of email or how often is the list's promise, or held
 bun run promise:census  # the promise check, red on each way the promise was lost before, each injected and built
 ```
 
 The app's `gate` is `bun run promise && bun run promise:census`: `bun run
-gate` runs it with the checks, after the app's build. The promise check reads
-what a reader gets, the built pages, every letter the list sends and the
-channel kit, so a sentence about how often we email is checked as the reader
-reads it, whatever source wrote it (`docs/lessons.md` `email-cadence-limits`).
+gate` runs it with the checks. The promise check reads what a reader gets,
+the built pages (parsed as a browser parses them, with every attribute a
+reader sees or hears and the stylesheets' strings), every letter the list
+sends and the channel kit, so a sentence about how often we email is checked
+as the reader reads it, whatever source wrote it (`docs/lessons.md`
+`email-cadence-limits`). `bun run promise` builds the app first, so it never
+reads a page another build left in `dist/` (`email-promise-stale-dist`).
+
+The check finds a sentence about how often we email by its words (`NET`: of
+mail, of the list, and of time, inside longer words too), and no list of
+words holds every way to say it: "Expect news from us when there is some."
+holds none of them and passes (`email-promise-no-net-word`). So, in anything
+a reader gets:
+**Say how often we email only in the promise's words.**
 
 The app's `gate:timed` is `bun run contrast`: `bun run gate` runs it after
 the build, with the tests, alone under the host's test lock, since its
