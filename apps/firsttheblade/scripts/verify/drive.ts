@@ -20,7 +20,7 @@
  * `<journey>.webm` there.
  */
 import { chromium, type Browser, type Locator, type Page } from '@playwright/test';
-import { Clock, Effect, FileSystem, Option, Ref, Schedule, Schema } from 'effect';
+import { Cause, Clock, Effect, Exit, FileSystem, Option, Ref, Schedule, Schema } from 'effect';
 
 import { MAIL_PAGES, MAIL_ROUTES } from '../../src/mail/paths.ts';
 import { NOTICE_TITLES } from '../../src/pages.ts';
@@ -61,8 +61,14 @@ interface Drive {
   readonly posts: Array<string>;
 }
 
+/** A step's failure, its message naming the journey, the step and where its evidence is. */
 const failed = (drive: Drive, step: string, message: string) =>
-  JourneyFailed.make({ journey: drive.journey, step, message, evidence: drive.dir });
+  JourneyFailed.make({
+    journey: drive.journey,
+    step,
+    message: `${drive.journey} ${step}: ${message} (evidence ${drive.dir})`,
+    evidence: drive.dir,
+  });
 
 /** A browser call, failed as the step it belongs to. */
 const browser = <A>(drive: Drive, step: string, call: () => PromiseLike<A>) =>
@@ -446,6 +452,14 @@ const journey = Effect.fn('Verify.journey')(function* (name: JourneyName, option
       drive.posts.push(request.url());
   });
   const ran = yield* Effect.exit(spec.run(drive));
+  // A failed step keeps the page as it stood, beside the steps that passed.
+  if (Exit.isFailure(ran))
+    yield* record(
+      drive,
+      'failed',
+      'the journey stopped here',
+      Cause.pretty(ran.cause).split('\n')[0] ?? '',
+    ).pipe(Effect.ignore);
   const video = Option.fromNullOr(page.video());
   yield* Effect.promise(() => context.close());
   const steps = yield* Ref.get(drive.steps);

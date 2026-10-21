@@ -144,7 +144,10 @@ Proof goes to `$EVIDENCE/<feature>/`, outside the tree git tracks.
 Each is a script of the app (`apps/firsttheblade/scripts/verify/cli.ts`,
 Effect on Bun). Each prints one JSON line on success; on failure a tagged
 error (`Refused`, `NotBuilt`, `NotReady`, `DoctorFailed`, `JourneyFailed`,
-`CommandFailed`) and exit 1. Their logic is tested by
+`CommandFailed`) and exit 1. The error is one `ERROR` line on stdout, then
+its trace: `JourneyFailed: confirm skeleton: expected … (evidence <dir>)`
+names the journey, the step and its evidence, where `<n>-failed.png` and
+`<n>-failed.aria.txt` keep the page as it stood. Their logic is tested by
 `apps/firsttheblade/scripts/verify/verify.test.ts`.
 
 | Command                                                                                                          | What it prints                                                                                                |
