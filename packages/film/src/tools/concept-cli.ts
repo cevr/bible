@@ -1,21 +1,29 @@
 // `film concept`: a cast member's sheet, briefed and measured (the concept
 // stage's cast sheets, the film skill's Concept step).
 //
-//   film concept brief --look <file> --references <file>
-//       (--turnaround <who> | --layout <file> --kind poses|heads) [--house <file>]
+//   film concept brief (--member <film>/<member> --kind turnaround|poses|heads
+//       | --look <file> --references <file>
+//         (--turnaround <who> | --layout <file> --kind poses|heads)) [--house <file>]
 //     print the prompt one try of the sheet is painted from: the house block
 //     made a sheet's, the references' note, the member's look, the layout and
-//     its kind's rules (`cast-sheet-brief.ts`). The house block is the app's
-//     own (`FilmApp.house`), wherever the command runs, unless `--house` names
-//     another.
+//     its kind's rules (`cast-sheet-brief.ts`). With `--member` it is the
+//     prompt `cast` paints from, read from the member's record (its heads,
+//     hair and smaller figures); the files name a sheet that has no record
+//     yet, a grown member of the canon's heads whose hair shows. The house
+//     block is the app's own (`FilmApp.house`), wherever the command runs,
+//     unless `--house` names another.
 //
 //   film concept measure <sheet.png> --kind turnaround|poses|heads
-//       --count <n> --anchor <view> [--slot <slot> ...] [--standing <view> ...]
-//       [--level <view> ...] [--headgear] [--concept <crop.png>:<view> ...] [--out <dir>]
+//       (--member <film>/<member> | --count <n> --anchor <view> [--slot <slot> ...]
+//         [--standing <view> ...] [--level <view> ...] [--headgear])
+//       [--concept <crop.png>:<view> ...] [--out <dir>]
 //     measure a try (`core/cast-sheet.ts`): print a line for the sheet and one
 //     per flag, and write `<stem>.measure.md`, `<stem>.measure.json` and
-//     `<stem>.overlay.png` beside it (or in `--out`). Facing is read first;
-//     a flag guides the retry and the ask, it keeps or drops nothing.
+//     `<stem>.overlay.png` beside it (or in `--out`). With `--member` the
+//     record's plan for the kind is the measure's, as `cast` measures a try,
+//     its kept concepts held to their views; the flags name a sheet that has
+//     no record. Facing is read first; a flag guides the retry and the ask,
+//     it keeps or drops nothing.
 //
 //   film concept cast <film> <member> --kind turnaround|poses|heads
 //       [--tries 3] [--lanes 3] [--dry-run] [--house <file>] [--house-image <png>]
@@ -40,13 +48,13 @@
 //     recorded with his why (`cast-sheet-keep.ts`); a kind kept is refused.
 
 import { Argument, Command, Flag } from 'effect/cli';
-import { Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Array as Arr, Console, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import type { CritiqueRule } from '../core/critique.ts';
 import { critiqueCastTry } from './cast-sheet-critique.ts';
 import { keepCastSheet } from './cast-sheet-keep.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
-import { CAST_LANES, castLine, makeCastSheet } from './cast-sheet-make.ts';
+import { CAST_LANES, castLine, castPlanOf, castRequest, makeCastSheet } from './cast-sheet-make.ts';
 import {
   CANON_HEADS,
   measureSheet,
@@ -76,10 +84,26 @@ class ConceptUnread extends Schema.TaggedError<ConceptUnread>()('ConceptUnread',
   }
 }
 
-/** A brief given both a turnaround and a layout, or neither, or a layout with no kind. */
+/** A brief given a member and the files, or neither; a member with no kind; files with both a turnaround and a layout, or neither, or a layout with no kind. */
 class LayoutUnset extends Schema.TaggedError<LayoutUnset>()('LayoutUnset', {}) {
   override get message() {
-    return "name the sheet's layout once: --turnaround <who> for a turnaround, or --layout <file> --kind poses|heads";
+    return 'name the sheet once: --member <film>/<member> --kind <kind> reads its record; with no record, --look and --references, and --turnaround <who> for a turnaround or --layout <file> --kind poses|heads';
+  }
+}
+
+/** A measure given a member and the sheet's flags, or neither a member nor a count and an anchor. */
+class SheetUnset extends Schema.TaggedError<SheetUnset>()('SheetUnset', {}) {
+  override get message() {
+    return 'name the sheet once: --member <film>/<member> reads its record; with no record, --count and --anchor (and --slot, --standing, --level, --headgear)';
+  }
+}
+
+/** A `--member` that is not `<film>/<member>`. */
+class MemberUnnamed extends Schema.TaggedError<MemberUnnamed>()('MemberUnnamed', {
+  given: Schema.String,
+}) {
+  override get message() {
+    return `name the member as <film>/<member>, not ${this.given}`;
   }
 }
 
@@ -118,6 +142,30 @@ const conceptOf = (given: string) =>
     return { name: path.basename(file, '.png'), measure, view } satisfies SheetConcept;
   });
 
+/** `--member <film>/<member>`: the sheet read from the member's record, as `cast` reads it. */
+const memberFlag = Flag.String('member').pipe(
+  Flag.optional,
+  Flag.withDescription(
+    "the cast member whose cast-sheet.json names the sheet, <film>/<member> (the film's own role's, else the library's)",
+  ),
+);
+
+/** The member a `--member` names: its sheet folder, and the film's output folder for it. */
+const memberPlace = Effect.fn('film.concept.memberPlace')(function* (given: string) {
+  const path = yield* Path.Path;
+  const parts = given.split('/');
+  const [film, member] = yield* Effect.fromOption(
+    Option.all([Arr.get(parts, 0), Arr.get(parts, 1)]).pipe(
+      Option.filter(() => parts.length === 2 && parts.every((part) => part.length > 0)),
+    ),
+  ).pipe(Effect.mapError(() => MemberUnnamed.make({ given })));
+  const named = yield* filmNamed(film);
+  return {
+    folder: yield* castFolder(named, member),
+    out: path.join((yield* FilmFolder).paths(named).out, 'cast', member),
+  };
+});
+
 const measure = Command.make(
   'measure',
   {
@@ -127,8 +175,13 @@ const measure = Command.make(
         'turnaround (six views: front, left, left, back, right, right), poses or heads',
       ),
     ),
-    count: Flag.Int('count').pipe(Flag.withDescription('how many figures the sheet draws')),
+    member: memberFlag,
+    count: Flag.Int('count').pipe(
+      Flag.optional,
+      Flag.withDescription('how many figures a sheet with no record draws'),
+    ),
     anchor: Flag.Int('anchor').pipe(
+      Flag.optional,
       Flag.withDescription(
         "the view the rest are held to, 1-based: the one that passes the concept's match",
       ),
@@ -157,12 +210,6 @@ const measure = Command.make(
         'a headcloth or a veil: the head is read as its face opening, the canon on the lock',
       ),
     ),
-    heads: Flag.Finite('heads').pipe(
-      Flag.optional,
-      Flag.withDescription(
-        `how many of its own heads the grown member stands (the cast's canon, ${CANON_HEADS}, when left out)`,
-      ),
-    ),
     concept: Flag.String('concept').pipe(
       Flag.atLeast(0),
       Flag.withDescription(
@@ -181,17 +228,34 @@ const measure = Command.make(
     const path = yield* Path.Path;
     const sheet = opaqueOf(yield* pngAt(input.sheet));
     const concepts = yield* Effect.forEach(input.concept, conceptOf);
-    const options: SheetOptions = {
-      kind: input.kind,
-      count: input.count,
-      anchor: input.anchor,
-      ...((input.slot.length > 0 && { slots: input.slot }) || {}),
-      ...((input.standing.length > 0 && { standing: input.standing }) || {}),
-      ...((input.level.length > 0 && { level: input.level }) || {}),
-      headgear: input.headgear,
-      ...Option.match(input.heads, { onNone: () => ({}), onSome: (heads) => ({ heads }) }),
-      concepts,
-    };
+    const flagged =
+      Option.isSome(input.count) ||
+      Option.isSome(input.anchor) ||
+      [input.slot, input.standing, input.level].some((given) => given.length > 0) ||
+      input.headgear;
+    const options: SheetOptions = yield* Option.match(input.member, {
+      onSome: (given) =>
+        Effect.gen(function* () {
+          if (flagged) return yield* SheetUnset.make({});
+          const { options: planned } = yield* castPlanOf(yield* memberPlace(given), input.kind);
+          return { ...planned, concepts: [...(planned.concepts ?? []), ...concepts] };
+        }),
+      onNone: () =>
+        Option.match(Option.all([input.count, input.anchor]), {
+          onNone: () => Effect.fail(SheetUnset.make({})),
+          onSome: ([count, anchor]) =>
+            Effect.succeed({
+              kind: input.kind,
+              count,
+              anchor,
+              ...((input.slot.length > 0 && { slots: input.slot }) || {}),
+              ...((input.standing.length > 0 && { standing: input.standing }) || {}),
+              ...((input.level.length > 0 && { level: input.level }) || {}),
+              headgear: input.headgear,
+              concepts,
+            }),
+        }),
+    });
     const measured = yield* Effect.fromResult(measureSheet(sheet, options));
     const name = path.basename(input.sheet, '.png');
     const dir = Option.getOrElse(input.out, () => path.dirname(input.sheet));
@@ -213,12 +277,15 @@ const brief = (house: HouseLook) =>
   Command.make(
     'brief',
     {
+      member: memberFlag,
       look: Flag.String('look').pipe(
+        Flag.optional,
         Flag.withDescription(
           "a file of the member's look: face, hair, beard, skin, garments, as the kept concepts draw them",
         ),
       ),
       references: Flag.String('references').pipe(
+        Flag.optional,
         Flag.withDescription('a file saying what each reference image is for, in their order'),
       ),
       turnaround: Flag.String('turnaround').pipe(
@@ -231,29 +298,38 @@ const brief = (house: HouseLook) =>
           'a file of the poses or heads, left to right, each facing as its kept panel',
         ),
       ),
-      kind: Flag.Literals('kind', ['poses', 'heads']).pipe(
+      kind: Flag.Literals('kind', SheetKind.literals).pipe(
         Flag.optional,
-        Flag.withDescription("a layout's sheet: poses or heads"),
+        Flag.withDescription("the member's sheet, or a layout's: poses or heads"),
       ),
       house: Flag.String('house').pipe(
         Flag.optional,
         Flag.withDescription("the house block every concept prompt opens with (the app's own)"),
       ),
-      heads: Flag.Finite('heads').pipe(
-        Flag.withDefault(CANON_HEADS),
-        Flag.withDescription(
-          `how many of its own heads the grown member stands (the cast's canon, ${CANON_HEADS})`,
-        ),
-      ),
-      hair: Flag.Literals('hair', ['shown', 'covered', 'none']).pipe(
-        Flag.withDefault('shown'),
-        Flag.withDescription(
-          "whether the member's hair shows: covered under a headcloth, none on a figure with no hair",
-        ),
-      ),
     },
     Effect.fn('film.concept.brief')(function* (input) {
       const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const block = yield* fs.readFileString(Option.getOrElse(input.house, () => house.text));
+      const files = [input.look, input.references, input.turnaround, input.layout];
+      if (Option.isSome(input.member)) {
+        if (files.some(Option.isSome)) return yield* LayoutUnset.make({});
+        const kind = yield* Effect.fromOption(input.kind).pipe(
+          Effect.mapError(() => LayoutUnset.make({})),
+        );
+        const { prompt } = yield* castRequest(yield* memberPlace(input.member.value), {
+          kind,
+          tries: 1,
+          lanes: 1,
+          dryRun: true,
+          house: block,
+          houseImage: path.resolve(house.image),
+        });
+        return yield* Console.log(prompt);
+      }
+      const [look, references] = yield* Effect.fromOption(
+        Option.all([input.look, input.references]),
+      ).pipe(Effect.mapError(() => LayoutUnset.make({})));
       const sheet = yield* Option.match(input.turnaround, {
         onSome: (who) =>
           Option.match(
@@ -268,18 +344,23 @@ const brief = (house: HouseLook) =>
           Option.match(Option.all([input.layout, input.kind]), {
             onNone: () => Effect.fail(LayoutUnset.make({})),
             onSome: ([file, kind]) =>
-              Effect.map(fs.readFileString(file), (layout) => ({ kind, layout })),
+              Effect.map(fs.readFileString(file), (layout) => ({ kind, layout })).pipe(
+                Effect.filterOrFail(
+                  () => kind !== 'turnaround',
+                  () => LayoutUnset.make({}),
+                ),
+              ),
           }),
       });
       const prompt = yield* Effect.fromResult(
         castSheetBrief({
           ...sheet,
-          house: yield* fs.readFileString(Option.getOrElse(input.house, () => house.text)),
-          references: yield* fs.readFileString(input.references),
-          look: yield* fs.readFileString(input.look),
-          heads: input.heads,
+          house: block,
+          references: yield* fs.readFileString(references),
+          look: yield* fs.readFileString(look),
+          heads: CANON_HEADS,
           figures: [],
-          hair: input.hair === 'shown',
+          hair: true,
         }),
       );
       yield* Console.log(prompt);

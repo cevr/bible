@@ -2828,10 +2828,14 @@ and its findings are what `film review` records before an owner look
 A cast sheet is one painted image of a cast member in the house look: a
 turnaround (six views, left to right: front, three-quarter and profile to
 the viewer's left, the back, profile and three-quarter to the right), a
-pose sheet or a heads sheet. `film concept brief --look <file> --references
-<file> (--turnaround <who> | --layout <file> --kind poses|heads) [--house
-<file>] [--heads <n>] [--hair shown|covered|none]` prints the
-prompt one try is painted from (`tools/cast-sheet-brief.ts`): the house
+pose sheet or a heads sheet. `film concept brief (--member <film>/<member>
+--kind turnaround|poses|heads | --look <file> --references <file>
+(--turnaround <who> | --layout <file> --kind poses|heads)) [--house <file>]`
+prints the prompt one try is painted from (`tools/cast-sheet-brief.ts`).
+With `--member` it reads the member's `cast-sheet.json` and `look.md` and
+prints the prompt `film concept cast` paints its first try from
+(`castRequest`); the files name a sheet with no record yet, a grown member
+of the canon's heads whose hair shows. The prompt is the house
 block made a sheet's by two swaps (a model sheet, no place behind), each
 refused as `HouseBlockMoved` when the block no longer says its phrase, then
 the references' note, the member's look, the layout and the sheet rules (the
@@ -2847,11 +2851,15 @@ with a clause that names a hand and says it floats is refused as
 and a floating one at once; a test reads every cast record's layouts and
 look, the library's and each film's, through it.
 
-`film concept measure <try.png> --kind turnaround|poses|heads --count <n>
---anchor <view> [--slot <slot> ...] [--standing <view> ...] [--level <view>
-...] [--headgear] [--heads <n>] [--concept <crop.png>:<view> ...] [--out <dir>]` measures
-a try (`measureSheet`, `core/cast-sheet.ts`, pure; its pixel reads in
-`core/cast-sheet-pixels.ts`). It finds the figures (ink rings at least 0.15
+`film concept measure <try.png> --kind turnaround|poses|heads (--member
+<film>/<member> | --count <n> --anchor <view> [--slot <slot> ...] [--standing
+<view> ...] [--level <view> ...] [--headgear]) [--concept <crop.png>:<view>
+...] [--out <dir>]` measures a try. With `--member` the options are the
+record's plan for the kind (`castPlanOf`, as `film concept cast` measures a
+try: its heads, its smaller figures, its kept concepts held to their views);
+a member and the sheet's flags together, or neither, are refused as
+`SheetUnset`. The measure is `measureSheet` (`core/cast-sheet.ts`, pure; its
+pixel reads in `core/cast-sheet-pixels.ts`). It finds the figures (ink rings at least 0.15
 of the largest's box, each with its hands and feet) and reads the `count`
 largest; a sheet that draws more says "N figures found, the sheet names M".
 It reads each view's face with `measureFigure` where a `--concept` crop is held to

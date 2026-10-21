@@ -620,6 +620,26 @@ const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>
   );
 
 /**
+ * The member's record, look and plan for one kind of its sheet: the layout in
+ * words (a turnaround's from the record's pronoun) and the measure's options,
+ * each kept concept measured and held to its views. Every try is drawn and
+ * measured from these, and `film concept brief` and `measure` read a record
+ * through them.
+ */
+export const castPlanOf = Effect.fn('Cast.plan')(function* (place: CastPlace, kind: SheetKind) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const record = yield* fs
+    .readFileString(path.join(place.folder, 'cast-sheet.json'))
+    .pipe(Effect.flatMap((text) => Effect.fromResult(decodeRecord(text))));
+  const look = yield* fs.readFileString(path.join(place.folder, 'look.md'));
+  const plan = yield* Effect.fromResult(castKindPlan(record, kind));
+  const layout = Option.getOrElse(plan.layout, () => turnaroundLayout(record.who));
+  const options: SheetOptions = { ...plan.options, concepts: yield* conceptsOf(place, plan) };
+  return { record, look, plan, layout, options };
+});
+
+/**
  * Draw `run.tries` tries of the member's `run.kind` sheet, `run.lanes` at
  * once, each gated by the measure; every try lands in the record. A dry run
  * prints the first try's prompt and references and draws nothing.
@@ -630,14 +650,27 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
   emit: (line: CastLine) => Effect.Effect<void>,
 ) {
   const fs = yield* FileSystem.FileSystem;
+  const { ctx, first } = yield* tryPlan(place, run);
+  if (run.dryRun) {
+    yield* emit({ _tag: 'Planned', member: ctx.record.member, kind: run.kind, ...first });
+    return NONE_MADE;
+  }
+  yield* fs.makeDirectory(place.out, { recursive: true });
+  const made = yield* Effect.forEach(Arr.range(1, run.tries), () => gatedTry(ctx, emit), {
+    concurrency: Math.min(run.lanes, CAST_LANES),
+  });
+  return made.flat();
+});
+
+/** The prompt and references the first try of a run is drawn from, built as the run builds them: `film concept brief` prints its prompt. */
+export const castRequest = (place: CastPlace, run: CastRun) =>
+  Effect.map(tryPlan(place, run), ({ first }) => first);
+
+/** Everything a run's tries are drawn from, and its first try's request. */
+const tryPlan = Effect.fn('Cast.tryPlan')(function* (place: CastPlace, run: CastRun) {
   const path = yield* Path.Path;
   const store = yield* ContentStore;
-  const record = yield* fs
-    .readFileString(path.join(place.folder, 'cast-sheet.json'))
-    .pipe(Effect.flatMap((text) => Effect.fromResult(decodeRecord(text))));
-  const look = yield* fs.readFileString(path.join(place.folder, 'look.md'));
-  const plan = yield* Effect.fromResult(castKindPlan(record, run.kind));
-  const layout = Option.getOrElse(plan.layout, () => turnaroundLayout(record.who));
+  const { record, look, plan, layout, options } = yield* castPlanOf(place, run.kind);
   const file = path.join(place.out, `underlay-${run.kind}.png`);
   const slots = plan.options.slots ?? [];
   // The mannequins stand: a heads sheet draws none, and a pose sheet only its standing views.
@@ -654,7 +687,6 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
   const drawn = Effect.sync(() =>
     encodePng(mannequinUnderlay({ slots, profiles, shown, statures })),
   ).pipe(Effect.flatMap((bytes) => store.writeFile(file, bytes)));
-  const options: SheetOptions = { ...plan.options, concepts: yield* conceptsOf(place, plan) };
   const ctx: TryContext = {
     place,
     run,
@@ -666,16 +698,7 @@ export const makeCastSheet = Effect.fn('Cast.make')(function* (
     underlay: { file, drawn, shown: shown.length > 0 },
   };
   // The brief is built once before any draw: a house block that moved stops the run, not each try.
-  const first = yield* requestOf(ctx, [], false);
-  if (run.dryRun) {
-    yield* emit({ _tag: 'Planned', member: record.member, kind: run.kind, ...first });
-    return NONE_MADE;
-  }
-  yield* fs.makeDirectory(place.out, { recursive: true });
-  const made = yield* Effect.forEach(Arr.range(1, run.tries), () => gatedTry(ctx, emit), {
-    concurrency: Math.min(run.lanes, CAST_LANES),
-  });
-  return made.flat();
+  return { ctx, first: yield* requestOf(ctx, [], false) };
 });
 
 const decodeRecord = (text: string) =>
