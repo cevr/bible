@@ -468,7 +468,8 @@ describe('the player by the world: each earlier counterexample', () => {
     // ios 144 and android 90: a refused seek taken as landed at a read that said `loading` at
     // the place the device stood at before (O7 never landed).
     // ios 143: sound through a superseded seek's place taken as that seek landing (M4's repair).
-    ios: [119, 120, 278, 289, 144, 143],
+    // ios 2776: a play's place taken as a superseded seek's.
+    ios: [119, 120, 278, 289, 144, 143, 2776],
     android: [235, 255, 90],
     web: [201, 320],
   };
