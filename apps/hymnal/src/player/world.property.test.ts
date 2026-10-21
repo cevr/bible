@@ -57,6 +57,7 @@ const seeded = (platform: Platform, from = 1, count = seeds) =>
     const clock = yield* TestClock.testClockWith(Effect.succeed);
     const broken = new Array<string>();
     const counts = new Map<string, number>();
+    let readGap = 0;
     for (let seed = from; seed < from + count; seed++) {
       const r = rng(seed * 7919 + platform.length);
       const w = makeWorld(platform, clock, drawnKnobs(r), yield* Clock.currentTimeMillis);
@@ -68,8 +69,9 @@ const seeded = (platform: Platform, from = 1, count = seeds) =>
       w.dispose();
       broken.push(...report(seed, w));
       for (const [item, n] of w.counts) counts.set(item, (counts.get(item) ?? 0) + n);
+      readGap = Math.max(readGap, w.readGap);
     }
-    return { broken, counts };
+    return { broken, counts, readGap };
   });
 
 describe('the player by the world: seeded', () => {
@@ -78,12 +80,12 @@ describe('the player by the world: seeded', () => {
       `${platform}: ${seeds} seeds of ${seconds} s break no rule and reach every item`,
       () =>
         Effect.gen(function* () {
-          const { broken, counts } = yield* seeded(platform, firstSeed);
+          const { broken, counts, readGap } = yield* seeded(platform, firstSeed);
           const unreached = reachable(platform).filter((item) => !counts.get(item));
           yield* Console.log(
             `${platform} reached: ${reachable(platform)
               .map((item) => `${item}=${counts.get(item) ?? 0}`)
-              .join(', ')}`,
+              .join(', ')}; longest a Playing page's latest sound went unread: ${readGap} ms`,
           );
           if (broken.length > 0) yield* Console.log(broken.join('\n'));
           expect({ unreached, broken }).toEqual({ unreached: [], broken: [] });
