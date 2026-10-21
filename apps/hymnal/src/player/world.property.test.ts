@@ -1196,6 +1196,7 @@ describe('the player by the world: the part 6 sweep (rw r3 part 7)', () => {
   seed('a Resume with a place the page kept', 'android', 1259);
   seed('a Resume with a place the page kept', 'android', 1454);
   seed('a play from a place past the end', 'web', 711);
+  seed('a pause while a read is in flight keeps the place the device reached', 'android', 496);
 
   // O6 by what the page could know of an end: a seek after it is the reader's place, and an
   // answer in the ms the page let the recording go may come after the let-go.
