@@ -154,6 +154,7 @@ export type Press = 'play' | 'pause' | 'seek' | 'follow';
 interface SeekAsk {
   readonly resolve: (status: Status) => void;
   readonly reject: (error: Error) => void;
+  readonly asked: number;
 }
 type RemoteListener = Parameters<Device['audio']['watchRemoteCommands']>[0];
 type NetworkListener = Parameters<Device['network']['addStateListener']>[0];
@@ -371,6 +372,10 @@ const initial = (platform: Platform, start: number) => ({
   leftEndAt: Number.NEGATIVE_INFINITY,
   /** When a read last sampled the device saying `ended`. */
   endedSampled: Number.NEGATIVE_INFINITY,
+  /** When the page last let the recording go (a stop call). */
+  stoppedAt: Number.NEGATIVE_INFINITY,
+  /** When the page asked the latest read or seek whose answer said `ended`. */
+  endedAsked: Number.NEGATIVE_INFINITY,
   readyAt: Number.POSITIVE_INFINITY,
   /** Runs: silent and wanting; the same offline; the same online. */
   quiet: Number.NaN,
@@ -554,7 +559,10 @@ export const makeWorld = (
       const status = said();
       const at = w.t;
       const answer = (ask: typeof it) => () => {
-        if (status.state === 'ended') w.endedSampled = Math.max(w.endedSampled, at);
+        if (status.state === 'ended') {
+          w.endedSampled = Math.max(w.endedSampled, at);
+          w.endedAsked = ask.asked;
+        }
         ask.resolve(status);
       };
       for (const ask of [...w.seekAsksBefore.splice(0), it])
@@ -636,7 +644,7 @@ export const makeWorld = (
     // and the web's, at the element's `seeked` (One 2.8.1, `src/platform/audio/index.ts:246-278`).
     dropSeek(false);
     return new Promise<Status>((resolve, reject) => {
-      w.seekAsk = Option.some({ resolve, reject });
+      w.seekAsk = Option.some({ resolve, reject, asked: w.t });
       landAfter(positionMs, after, true);
     });
   };
@@ -737,6 +745,7 @@ export const makeWorld = (
       }),
     stop: Effect.suspend(() => {
       w.stops += 1;
+      w.stoppedAt = w.t;
       return api.stop;
     }),
   });
@@ -783,12 +792,15 @@ export const makeWorld = (
     // A read or a seek's answer must have sampled it ended: an end nothing sampled is one the
     // page cannot know. A reader's seek since the end is the reader's place, landed or refused
     // (P7), though a read since still says `ended`; a seek the device clamped to its end ends
-    // it at its landing, after the seek.
+    // it at its landing, after the seek. A page that let the recording go after it asked the
+    // answer that said `ended` may have let it go first (a stop and an answer in one ms): its
+    // place stands.
     w.endedBefore =
       w.endedAt > Number.NEGATIVE_INFINITY &&
       w.endedAt >= Math.max(w.landedAt, w.loadAt, w.leftEndAt) &&
       w.endedSampled >= w.endedAt &&
-      w.seekAt <= w.endedAt;
+      w.seekAt <= w.endedAt &&
+      w.stoppedAt < w.endedAsked;
     w.lastAct = w.t;
     w.acts += 1;
     // The first sound after a later act is that act's, not a play's from before it.
@@ -1257,6 +1269,11 @@ export const makeWorld = (
       note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
       const current = read.acts === w.acts;
       if (seen.state === 'ended' && current) w.endedSaid = true;
+      // The page knows an end once it has the read.
+      if (seen.state === 'ended') {
+        w.endedSampled = Math.max(w.endedSampled, read.sampleAt);
+        w.endedAsked = read.asked;
+      }
       if (seen.state === 'ended' && settled() && current) w.endedSeen = true;
       read.answer(seen);
     }
@@ -1506,7 +1523,6 @@ export const makeWorld = (
         read.seen = Option.some(said());
         w.lastSampleAt = w.t;
         if (said().state !== 'ended') continue;
-        w.endedSampled = w.t;
         // A read of `ended` lands every act (Terms): a seek asked before this sample is done,
         // when the device ended after it. O7 still owes a seek asked of a device already ended.
         Option.map(w.target, (it) => {

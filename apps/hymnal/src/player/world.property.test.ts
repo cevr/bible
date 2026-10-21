@@ -1196,6 +1196,27 @@ describe('the player by the world: the part 6 sweep (rw r3 part 7)', () => {
   seed('a Resume with a place the page kept', 'android', 1259);
   seed('a Resume with a place the page kept', 'android', 1454);
   seed('a play from a place past the end', 'web', 711);
+
+  // O6 by what the page could know of an end: a seek after it is the reader's place, and an
+  // answer in the ms the page let the recording go may come after the let-go.
+  seed('Ended, a lock-screen seek offline, then Resume', 'web', 322);
+  seed('Ended, a lock-screen seek offline, then Resume', 'web', 671);
+  seed('Ended, a seek to the end, then Resume', 'android', 62);
+  seed(
+    'a seek past the end while loading, a pause in the ms of its answer, then Resume',
+    'ios',
+    1177,
+  );
+  seed(
+    'a seek past the end while loading, a pause in the ms of its answer, then Resume',
+    'web',
+    1045,
+  );
+  seed(
+    'a seek past the end while loading, a pause in the ms of its answer, then Resume',
+    'web',
+    1412,
+  );
 });
 
 // O2 judges the page's give-up by what the page was told (orchestrator, after r3 part 6): a
