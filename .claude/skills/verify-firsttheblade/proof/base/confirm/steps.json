@@ -1,0 +1,37 @@
+[
+  {
+    "n": 1,
+    "step": "sign-up",
+    "action": "fill \"Or have each one sent to you by email\" with verify-confirm-1792566114926@example.com, press \"Email me new films\"",
+    "url": "http://127.0.0.1:8591/subscribe/check",
+    "observed": "/subscribe/check, heading \"Check your inbox\"",
+    "files": [
+      "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm/01-sign-up.png",
+      "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm/01-sign-up.aria.txt"
+    ],
+    "atMs": 296
+  },
+  {
+    "n": 2,
+    "step": "letter",
+    "action": "read the newest letter to verify-confirm-1792566114926@example.com from the outbox",
+    "url": "http://127.0.0.1:8591/subscribe/check",
+    "observed": "confirm letter \"Confirm your email for First the Blade\", link /subscribe/confirm",
+    "files": [
+      "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm/02-letter.txt"
+    ],
+    "atMs": 298
+  },
+  {
+    "n": 3,
+    "step": "failed",
+    "action": "the journey stopped here",
+    "url": "http://127.0.0.1:8591/subscribe/confirmed",
+    "observed": "JourneyFailed: confirm skeleton: expected the skeleton (role status) within 5000 ms (evidence /Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm)",
+    "files": [
+      "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm/03-failed.png",
+      "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm/03-failed.aria.txt"
+    ],
+    "atMs": 5356
+  }
+]

@@ -1,0 +1,1 @@
+[03:02:02.123] ERROR (#2): JourneyFailed: confirm skeleton: expected the skeleton (role status) within 5000 ms (evidence /Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof-base/evidence/confirm)

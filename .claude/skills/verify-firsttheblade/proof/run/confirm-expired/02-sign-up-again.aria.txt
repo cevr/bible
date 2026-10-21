@@ -1,0 +1,117 @@
+- link "Skip to content" [ref=e18]
+- banner
+  - link "First the Blade" [ref=e19]
+    - StaticText "First "
+    - StaticText "the"
+    - StaticText " Blade"
+  - navigation "Main" [ref=e20]
+    - link "Series" [ref=e26]
+    - link "About" [ref=e27]
+    - link "Subscribe on YouTube" [ref=e28]
+      - StaticText "Subscribe on YouTube"
+- main
+  - heading "First the Blade" [level=1, ref=e21]
+  - generic
+    - figure
+      - blockquote
+        - paragraph
+          - StaticText "“For the earth bringeth forth fruit of herself; first the blade, then the ear, after that the full corn in the ear.”"
+      - Figcaption
+        - StaticText "MARK 4:28"
+    - generic
+      - heading "The first films are on their way" [level=2, ref=e31]
+      - paragraph
+        - StaticText "Nothing is published yet. The first films are being made now."
+  - region "Short films and plain talks that grow the way the Bible grows us: a little, and then a little more." [ref=e22]
+    - heading "Short films and plain talks that grow the way the Bible grows us: a little, and then a little more." [level=2, ref=e29]
+    - list
+      - listitem [level=1]
+        - paragraph
+          - StaticText "THEOLOGY · CUT-PAPER FILMS"
+        - heading "The Path of the Just" [level=3, ref=e35]
+          - link "The Path of the Just" [ref=e48]
+            - StaticText "The Path of the Just"
+        - paragraph
+          - StaticText "The faith from its first principles to its deepest truths, in the order the Bible serves them."
+        - paragraph
+          - StaticText "First films coming soon"
+      - listitem [level=1]
+        - paragraph
+          - StaticText "COUNTRY LIVING · CUT-PAPER FILMS"
+        - heading "Dwell in the Land" [level=3, ref=e36]
+          - link "Dwell in the Land" [ref=e49]
+            - StaticText "Dwell in the Land"
+        - paragraph
+          - StaticText "Country living from the Bible: what it is, why it matters, where and how to begin."
+        - paragraph
+          - StaticText "First films coming soon"
+      - listitem [level=1]
+        - paragraph
+          - StaticText "CHRISTIAN EDUCATION · TALKS"
+        - heading "Taught of the Lord" [level=3, ref=e37]
+          - link "Taught of the Lord" [ref=e50]
+            - StaticText "Taught of the Lord"
+        - paragraph
+          - StaticText "True education from Scripture, for parents and teachers."
+        - paragraph
+          - StaticText "First talks coming soon"
+      - listitem [level=1]
+        - paragraph
+          - StaticText "HEALTH · TALKS"
+        - heading "The True Remedies" [level=3, ref=e38]
+          - link "The True Remedies" [ref=e51]
+            - StaticText "The True Remedies"
+        - paragraph
+          - StaticText "Health from the Bible: air, sunlight, water, rest and the rest of God’s remedies."
+        - paragraph
+          - StaticText "First talks coming soon"
+  - region "Why we make these" [ref=e23]
+    - heading "Why we make these" [level=2, ref=e30]
+    - paragraph
+      - StaticText "These films and talks set the Bible out plainly, one step at a time: what it teaches, from its first principles to its deepest truths, and how it reaches into the home, the field, the schoolroom and the sickroom."
+    - paragraph
+      - StaticText "They are made for anyone who will come and see. The films are told in cut paper; the talks are given simply, as to a friend across the table. Every verse is quoted from the King James Version."
+    - paragraph
+      - link "More about the channel" [ref=e32]
+  - region "A new film, now and then" [ref=e24]
+    - generic
+      - figure
+        - blockquote
+          - paragraph
+            - StaticText "“And should sleep, and rise night and day, and the seed should spring and grow up, he knoweth not how.”"
+        - Figcaption
+          - StaticText "MARK 4:27"
+      - heading "A new film, now and then" [level=2, ref=e33]
+      - paragraph
+        - StaticText "Subscribe on YouTube to see each one when it is ready: @firsttheblade"
+      - link "Subscribe on YouTube" [ref=e34]
+        - StaticText "Subscribe on YouTube"
+      - form
+        - LabelText
+          - StaticText "Or have each one sent to you by email"
+        - textbox "Or have each one sent to you by email" [required, ref=e39]
+        - button "Email me new films" [ref=e40]
+          - StaticText "Email me new films"
+        - paragraph
+          - StaticText "One email for each new film, and nothing else. "
+          - link "How we keep your address" [ref=e52]
+- contentinfo
+  - navigation "Site" [ref=e25]
+    - list
+      - listitem [level=1]
+        - link "Home" [ref=e41]
+      - listitem [level=1]
+        - link "Series" [ref=e42]
+      - listitem [level=1]
+        - link "About" [ref=e43]
+      - listitem [level=1]
+        - link "YouTube" [ref=e44]
+      - listitem [level=1]
+        - link "Instagram" [ref=e45]
+      - listitem [level=1]
+        - link "Facebook" [ref=e46]
+      - listitem [level=1]
+        - link "Privacy" [ref=e47]
+  - StaticText "Scripture quotations from the "
+  - StaticText "King James Version"
+  - StaticText "© 2026"

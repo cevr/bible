@@ -1,0 +1,11 @@
+{
+  "root": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof",
+  "port": 8590,
+  "origin": "http://127.0.0.1:8590",
+  "pid": 75314,
+  "head": "8a5b9e1590cb261ae07a766663210c8713bad514",
+  "dist": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/apps/firsttheblade/dist",
+  "outbox": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof/tmp/outbox",
+  "log": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof/preview.log",
+  "startedAt": "2026-10-21T07:02:24.421Z"
+}

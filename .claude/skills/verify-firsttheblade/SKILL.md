@@ -172,3 +172,9 @@ own context of one muted Chrome (`channel: 'chrome'`, headless).
   needs Google Chrome there (`chrome` channel), as the app's `contrast`
   check does. The owner opens a Workbox preview over Tailscale, so bind no
   port he uses.
+
+## Proof
+
+[proof/README.md](proof/README.md): this skill's first run, the confirm in
+place (0e9dc24f0, 549db804e) driven green with script on and off and the
+expired link, and the same drive red on the commit before 0e9dc24f0.

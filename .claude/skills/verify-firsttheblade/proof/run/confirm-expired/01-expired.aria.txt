@@ -1,0 +1,37 @@
+- link "Skip to content" [ref=e1]
+- banner
+  - link "First the Blade" [ref=e2]
+    - StaticText "First "
+    - StaticText "the"
+    - StaticText " Blade"
+  - navigation "Main" [ref=e3]
+    - link "Series" [ref=e5]
+    - link "About" [ref=e6]
+    - link "Subscribe on YouTube" [ref=e7]
+      - StaticText "Subscribe on YouTube"
+- main
+  - heading "This link has run out" [level=1, ref=e8]
+  - paragraph
+    - StaticText "A link to confirm works for seven days, and only the newest one works. Sign up again and we will send you a fresh one."
+  - link "Sign up again" [ref=e9]
+    - StaticText "Sign up again"
+- contentinfo
+  - navigation "Site" [ref=e4]
+    - list
+      - listitem [level=1]
+        - link "Home" [ref=e10]
+      - listitem [level=1]
+        - link "Series" [ref=e11]
+      - listitem [level=1]
+        - link "About" [ref=e12]
+      - listitem [level=1]
+        - link "YouTube" [ref=e13]
+      - listitem [level=1]
+        - link "Instagram" [ref=e14]
+      - listitem [level=1]
+        - link "Facebook" [ref=e15]
+      - listitem [level=1]
+        - link "Privacy" [ref=e16]
+  - StaticText "Scripture quotations from the "
+  - StaticText "King James Version"
+  - StaticText "© 2026"

@@ -1,0 +1,14 @@
+To: verify-confirm-1792566114926@example.com
+Subject: Confirm your email for First the Blade
+
+Hello,
+
+Someone, we hope you, asked for one email from First the Blade each time a new film is out. To confirm, open this link:
+
+http://127.0.0.1:8591/subscribe/confirm?token=<token>
+
+The link works for seven days. If you did not ask, you need do nothing: no film will be sent to this address unless the link is opened.
+
+First the Blade
+127.0.0.1:8591
+

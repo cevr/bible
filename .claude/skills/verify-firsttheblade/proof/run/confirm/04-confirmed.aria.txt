@@ -1,0 +1,44 @@
+- link "Skip to content":
+  - /url: "#main"
+- banner:
+  - link "First the Blade":
+    - /url: /
+  - navigation "Main":
+    - link "Series":
+      - /url: /#series
+    - link "About":
+      - /url: /about
+    - link "Subscribe on YouTube":
+      - /url: https://www.youtube.com/@firsttheblade?sub_confirmation=1
+- main:
+  - status:
+    - heading "You are on the list" [level=1]
+    - paragraph: We will send you one email when each new film is out, and nothing else.
+    - paragraph: Every email has a link to leave the list, at any time.
+    - link "Go to the home page":
+      - /url: /
+- contentinfo:
+  - navigation "Site":
+    - list:
+      - listitem:
+        - link "Home":
+          - /url: /
+      - listitem:
+        - link "Series":
+          - /url: /#series
+      - listitem:
+        - link "About":
+          - /url: /about
+      - listitem:
+        - link "YouTube":
+          - /url: https://www.youtube.com/@firsttheblade
+      - listitem:
+        - link "Instagram":
+          - /url: https://www.instagram.com/firsttheblade/
+      - listitem:
+        - link "Facebook":
+          - /url: https://www.facebook.com/profile.php?id=61595704647167
+      - listitem:
+        - link "Privacy":
+          - /url: /privacy
+  - paragraph: Scripture quotations from the King James Version © 2026

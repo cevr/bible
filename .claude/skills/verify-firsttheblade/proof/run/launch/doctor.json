@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "target": "http://127.0.0.1:8590",
+  "checks": [
+    {
+      "check": "record",
+      "detail": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof/launch.json reads"
+    },
+    { "check": "port", "detail": "port 8590 held by pid 75314" },
+    { "check": "head", "detail": "at 8a5b9e159, build newer than its sources" },
+    {
+      "check": "answers",
+      "detail": "http://127.0.0.1:8590: / 200 with its content policy, /privacy 200, a missing page 404"
+    },
+    {
+      "check": "log",
+      "detail": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof/preview.log: no failure lines"
+    },
+    { "check": "outbox", "detail": "0 letters, each with To: and Subject:" },
+    { "check": "audio", "detail": "no browser holds the audio output" },
+    { "check": "load", "detail": "load 3.17 on 12 cores" }
+  ],
+  "timingsValid": true
+}
