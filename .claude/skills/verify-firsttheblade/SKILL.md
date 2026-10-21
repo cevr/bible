@@ -64,7 +64,7 @@ bun run --cwd apps/firsttheblade verify:stage up --stage agent-<name> --root "$P
 
 It prints `{"stage":…,"action":"up","url":"https://….workers.dev","log":…}`
 and refuses any stage not named `agent-<name>`. Deploying needs the Alchemy
-Cloudflare profile and the app's `.env` (README, Commands).
+Cloudflare profile and the app's `.env` (README, Commands). The stage is unproven: no `agent-` stage has been deployed by this helper; report its first run as such.
 
 ## Doctor
 

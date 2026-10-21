@@ -27,7 +27,7 @@ firsttheblade.org, firsttheblade.net and their `www` are sent to
 
 - **Preconditions:** the baseline for `not-found`, `method-refused` and
   `mail-redirects`; a stage (`verify:stage up`) for `clean-paths`; prod,
-  read with GET only, for `host-redirects`.
+  read with GET only, for `host-redirects`. The stage is unproven: no `agent-` stage has been deployed by this helper; report its first run as such.
 - **States:** error (the 404, the 405). Default for the redirects. The rest n/a.
 - **Regression:** `apps/firsttheblade/src/worker/respond.test.ts`,
   `apps/firsttheblade/src/worker/assets.test.ts`,

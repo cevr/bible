@@ -24,8 +24,8 @@ nothing. A link whose token does not read answers "This link is not valid"
 
 - **Preconditions:** a film's letter in the outbox, which needs a film in a
   series' `episodes` (`apps/firsttheblade/src/content.ts`), a confirmed
-  subscriber, and a send (`bun run --cwd apps/firsttheblade mail:send <series>/<no> --origin $O`
-  with the preview's admin token). **No series lists a film yet**, so the
+  subscriber, and a send to the preview, which no helper offers yet (see
+  Gotchas). **No series lists a film yet**, so the
   leave link has no entry point: `leave-page`, `leave-press` and
   `leave-twice` are unreachable, and a run reports them so, never by building
   a token.
@@ -35,19 +35,20 @@ nothing. A link whose token does not read answers "This link is not valid"
 
 1. **Bad link.** `ab open "$O/unsubscribe?token=cut-short"`. The h1 is
    "This link is not valid"; `ab get url` keeps `/unsubscribe?token=cut-short`.
-2. **Leave (once a film is listed).** Confirm an address (Confirm), send the
-   film to the list, take the `film` letter's link from
-   `verify:outbox --to <address>`, `ab open <link>`: the h1 "Leave the
-   list?". `ab find role button click --name "Leave the list" --exact`: the
-   h1 "You have left the list", and the URL stays `/unsubscribe?token=…`.
+2. **Leave (once a film is listed and a helper sends to the preview).**
+   Confirm an address (Confirm), send the film to the preview's list, take
+   the `film` letter's link from `verify:outbox --to <address>`,
+   `ab open <link>`: the h1 "Leave the list?".
+   `ab find role button click --name "Leave the list" --exact`: the h1 "You
+   have left the list", and the URL stays `/unsubscribe?token=…`.
 3. **Twice.** `ab back`, press again: the same answer.
 4. **Proof.** `ab snapshot` and `ab screenshot` into `$EVIDENCE/leave/` per step.
 
 ## Gotchas
 
+- `mail:send` defaults to prod's origin and loads `.env`: never run it in a verify run until a helper owns the send.
 - The preview reads no `.env`, so its admin token is made fresh at launch
-  and no `mail:send` can name it: sending a film on the preview needs a
-  launch with `MAIL_ADMIN_TOKEN` set, which the helpers do not offer yet.
+  and no `mail:send` can name it.
 - The leave press answers 200 at the same URL, not a redirect: wait for the
   heading, not for a URL change.
 - `/unsubscribe` with no token is the bad-link page (400), not the leave page.
