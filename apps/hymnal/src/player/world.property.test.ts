@@ -1270,6 +1270,38 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         expect(report(0, second.w)).toEqual([]);
       }),
   );
+  // A Retry is early only once the page could know the silence it waits on (r2 m4, ios 3804):
+  // sound that comes and goes between two reads' samples starts a new silence the page learns
+  // at the answer of the first read sampled in it, and a Retry shown till then is not early.
+  fixed(
+    'rw r2 m4 (ios 3804): Retry, then sound between two samples and dry again: no Retry early',
+    'ios',
+    { lag: () => 600, sample: () => 0.1 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* playing(w);
+        w.stall(120_000);
+        expect(yield* w.until(() => retry(w), 25_000)).toBe(true);
+        expect(yield* w.until(() => w.reads.some((read) => read.sampleAt === w.t), 2000)).toBe(
+          true,
+        );
+        const sampled = w.t;
+        w.stall(0);
+        expect(yield* w.until(() => sound(w), 600)).toBe(true);
+        yield* w.run(100);
+        w.stall(120_000);
+        expect(yield* w.until(() => !sound(w), 200)).toBe(true);
+        const quietFrom = w.t;
+        // No read sampled the sound: the page is told of it by the first read after.
+        expect(
+          w.answered
+            .concat(w.reads)
+            .every((read) => read.sampleAt <= sampled || read.sampleAt >= quietFrom),
+        ).toBe(true);
+        expect(retry(w)).toBe(true);
+        yield* w.run(3000);
+      }),
+  );
   // A read asked before an act cannot start P4's wait, even when it samples after the act
   // (android 351: press 15,550, read asked 15,300, sampled 15,700): the wait starts at the
   // first read asked after it. The press is told at that read's answer (D8), and one read's

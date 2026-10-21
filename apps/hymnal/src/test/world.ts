@@ -1312,8 +1312,10 @@ export const makeWorld = (
     if (unheld && sounded && seenFor(w.onQuiet) >= owed && !isRetry(now))
       breach('O5 Retry owed', `page=${now._tag}`);
     // Judged at every step the page could have acted on: settled, with every press told.
+    // A new silence is the page's once a read sampled in it has answered, or a cadence after it
+    // began (`seenFor`): a Retry shown till then waits on the silence the page last saw.
     const known = settled() && !w.tells.some((tell) => tell.pressedAt < Number.POSITIVE_INFINITY);
-    if (isRetry(now) && known && quietFor(w.quiet) < 15_000 - span)
+    if (isRetry(now) && known && seenFor(w.quiet) >= 0 && quietFor(w.quiet) < 15_000 - span)
       breach('O5 Retry early', `quietFor=${quietFor(w.quiet)}`);
   };
   /** O6: the place a Failed or Stopped page keeps; a play from a place lands. */
