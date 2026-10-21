@@ -71,8 +71,8 @@ export const allowance = 2000 + 2 * span + 2 * answerMost + step;
  * by. The pair's reads sample inside their own spans, so the silence they bracket runs from the
  * first read's sample (at or before its answer) to the second's (at or after its ask): at least
  * the `asked_b − answered_a` the stand counts. The world dates the last sound at the end of its
- * step, the instant a read sampled after it sees. The page turns at the second read's answer, up
- * to an answer after its sample, so the silence may have ended within that answer (Decided 11).
+ * step, the instant a read sampled after it sees. The page turns at the second read's answer,
+ * after its sample, so the silence may have ended between the two (Decided 11).
  */
 export const standFloor = 2000;
 /** O3's `P`: the latest a correct page proves a sound pair, two read spans and an answer. */
@@ -258,7 +258,7 @@ const initial = (platform: Platform, start: number) => ({
   quietRun: { from: Number.NEGATIVE_INFINITY, to: Number.NEGATIVE_INFINITY },
   /** The latest seek sound carried onto (O10): a page cannot tell it from a landing that moved the device. */
   carriedAt: Number.NEGATIVE_INFINITY,
-  /** The sample of the read that last turned the page to Playing (O10): reads are sequential, so the latest. */
+  /** The sample of the read that last turned the page to Playing (O10): the latest answered. */
   playingFrom: Number.NEGATIVE_INFINITY,
   /** The latest read's sample, and the largest gap between two samples while the page reads and the host runs. */
   lastSampleAt: start,
@@ -1250,14 +1250,23 @@ export const makeWorld = (
    * what a correct proof can lead the device by (`standFloor`).
    */
   const judgeStand = (now: Player) => {
-    if (now._tag === 'Playing' && w.was !== 'Playing') w.playingFrom = w.lastSampleAt;
+    if (now._tag === 'Playing' && w.was !== 'Playing')
+      w.playingFrom = Option.match(Arr.last(w.answered), {
+        onNone: () => w.lastSampleAt,
+        onSome: (read) => read.sampleAt,
+      });
     const unacted =
       Math.max(w.lastAct, w.toldAt, w.landedAt, w.carriedAt, w.loadAt) < w.playingFrom;
-    // The proof's second read answers up to an answer after its sample: sound may start again
-    // in that time, so a silence that ended within an answer counts.
+    // The page turns at the answer of a read that sampled silence: sound may start between
+    // its sample and its answer (an answer, or a host hold), so a silence of the stand that
+    // ran up to that sample counts.
+    const turnSample = Option.match(Arr.last(w.answered), {
+      onNone: () => w.lastSampleAt,
+      onSome: (read) => read.sampleAt,
+    });
     const ranQuiet =
       w.t - w.lastSound >= standFloor ||
-      (w.t - w.quietRun.to <= answerMost && w.quietRun.to - w.quietRun.from >= standFloor);
+      (w.quietRun.to >= turnSample && w.quietRun.to - w.quietRun.from >= standFloor);
     if (isWaiting(now) && w.was === 'Playing' && unacted && !ranQuiet)
       breach('O10 Buffering early', `silentFor=${w.t - w.lastSound} page=${now._tag}`);
   };
