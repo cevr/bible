@@ -394,6 +394,32 @@ describe('the player by the world: each earlier counterexample', () => {
     }),
   );
 
+  // One's seek is refused before the item is ready (HybridOneAudio.swift:194-196), but the lock
+  // screen's runs `player.seek` with no such guard (:713-719), so AVPlayer lands it after the
+  // page's later, refused one.
+  for (const remoteLand of [300, 1200])
+    fixed(
+      `rw r1 M4 (ios 59): a told lock-screen seek far on lands ${remoteLand} ms after its tell, after the page's later seek was refused before ready: the page's place`,
+      'ios',
+      { loadFor: () => 3000, remoteLand: () => remoteLand },
+      (w) =>
+        Effect.gen(function* () {
+          w.send(Command.Start({ track: morning }));
+          yield* w.run(500);
+          const pressedAt = w.t;
+          w.press('seek', 218_900);
+          expect(yield* w.until(() => w.toldAt > pressedAt, 2000)).toBe(true);
+          w.send(Command.Seek({ seconds: 0 }));
+          yield* w.run(8000);
+          expect(tag(w)).toBe('Playing');
+          w.fail();
+          yield* w.run(2000);
+          const at = Option.getOrThrow(atOf(w.state())) * 1000;
+          expect(at).toBeLessThan(20_000);
+          expect(Math.abs(at - w.place)).toBeLessThan(1000);
+        }),
+    );
+
   for (const holdFor of [600, 650, 700])
     fixed(
       `rw r1 M3: a seek back 750 ms, read before it lands, then at the old place after a ${holdFor} ms hold: Playing, the place recovered`,
