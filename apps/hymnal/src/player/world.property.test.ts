@@ -1174,6 +1174,30 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         yield* w.run(3000);
       }),
   );
+  // Chained holds do not put O1 off (r2 m1): once a read sampled in the silence has answered,
+  // it and the first read after each later hold prove the silence across that hold (Decided
+  // 5), so O1 owes the turn a cadence after the hold, not a whole B. Here 100 ms holds come
+  // every 2.5 s through a 30 s dry spell. Under mutant `stand-8s` this world breaks O1.
+  fixed(
+    'rw r2 m1: a dry spell with a 100 ms hold every 2.5 s after a read saw it: Buffering',
+    'ios',
+    { lag: () => 600, sample: () => 0.9 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* playing(w);
+        yield* w.run(2000);
+        w.stall(30_000);
+        expect(
+          yield* w.until(() => w.answered.some((read) => read.sampleAt > w.lastSound), 3000),
+        ).toBe(true);
+        for (const _ of Arr.range(1, 8)) {
+          w.hold(100);
+          yield* w.run(2500);
+        }
+        expect(tag(w)).toBe('Buffering');
+        expect(yield* w.until(() => tag(w) === 'Playing', 15_000)).toBe(true);
+      }),
+  );
   // A read asked before an act cannot start P4's wait, even when it samples after the act
   // (android 351: press 15,550, read asked 15,300, sampled 15,700): the wait starts at the
   // first read asked after it. The press is told at that read's answer (D8), and one read's

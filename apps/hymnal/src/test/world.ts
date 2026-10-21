@@ -277,10 +277,18 @@ const initial = (platform: Platform, start: number) => ({
   lastSampleAt: start,
   /**
    * Where O1's B counts from: the latest sound, moved to the end of each hold that began
-   * before B ran out, since the page reads nothing in a hold (D7) and the cadence B assumes
-   * starts again at its end.
+   * before B ran out and before any read sampled in the silence answered, since the page reads
+   * nothing in a hold (D7) and the cadence B assumes starts again at its end.
    */
   silentFrom: Number.NEGATIVE_INFINITY,
+  /**
+   * The end of the latest hold that began inside B after a read sampled in the silence had
+   * answered: that read and the first after the hold prove the silence across it (Decided 5),
+   * so O1 owes Playing's turn a cadence after it, not a whole B.
+   */
+  heldUntil: Number.NEGATIVE_INFINITY,
+  /** The latest sample of an answered read. */
+  answeredSample: Number.NEGATIVE_INFINITY,
   /** When the page last turned to a reading state (Loading, Playing, Buffering). */
   readingFrom: start,
   readGap: 0,
@@ -1189,6 +1197,7 @@ export const makeWorld = (
     for (const read of due) {
       w.reads.splice(w.reads.indexOf(read), 1);
       w.answered.push({ asked: read.asked, sampleAt: read.sampleAt, answered: w.t });
+      w.answeredSample = Math.max(w.answeredSample, read.sampleAt);
       if (w.answered.length > 1000) w.answered.splice(0, 500);
       const seen = Option.getOrThrow(read.seen);
       note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
@@ -1267,8 +1276,12 @@ export const makeWorld = (
   /** O1 to O3: Playing only with sound, Failed only with a cause, Playing owed. */
   const judgeSound = (now: Player) => {
     // The device sounded in [t − B, t] after the latest load, B counted from the latest sound,
-    // or from the end of a hold that cut into B (`silentFrom`): world time alone.
-    const heard = w.lastSound >= w.loadAt && w.t - w.silentFrom <= allowance;
+    // or from the end of a hold that cut into B (`silentFrom`), or it sounded before a hold a
+    // read had already seen silent that ended a cadence ago: world time alone.
+    const heard =
+      w.lastSound >= w.loadAt &&
+      (w.t - w.silentFrom <= allowance ||
+        (w.heldUntil >= w.lastSound && w.t - w.heldUntil <= cadence));
     // The cadence the bounds assume, measured: the gap since the latest sample while the page
     // shows a reading state and the host has run for a span.
     if (isReading(now) && !reading.has(w.was)) w.readingFrom = w.t;
@@ -1417,8 +1430,12 @@ export const makeWorld = (
       2 * cadence + answerMost
     )
       w.unseenFrom = Option.none();
-    if (!running() && w.t - w.silentFrom <= allowance)
-      w.silentFrom = Math.max(w.silentFrom, w.holdUntil);
+    // A hold inside B before any read sampled in the silence has answered moves B's start to its
+    // end; one after only owes a cadence past its end (`heldUntil`).
+    if (!running() && w.t - w.silentFrom <= allowance) {
+      if (w.answeredSample > w.lastSound) w.heldUntil = Math.max(w.heldUntil, w.holdUntil);
+      else w.silentFrom = Math.max(w.silentFrom, w.holdUntil);
+    }
     for (const read of w.reads)
       if (Option.isNone(read.seen) && w.t >= read.sampleAt) {
         read.seen = Option.some(said());
