@@ -1125,6 +1125,33 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
           expect(yield* w.until(() => tag(w) === 'Playing', 8000)).toBe(true);
         }),
     );
+  // O10 excuses a turn from Playing by a silence of the stand only when that silence began by
+  // the turning read's sample: a silence in a host hold after it is not what the read saw.
+  // Under mutant `stand-1s` this world breaks O10.
+  fixed(
+    'rw r2 M2: a 1.1 s dry spell, a read at its end held 3 s, a 2.2 s dry spell inside the hold: no Buffering',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playing(w);
+        yield* w.run(2000);
+        w.stall(1100);
+        expect(
+          yield* w.until(
+            () => w.t - w.lastSound >= 1000 && w.reads.some((read) => read.asked === w.t),
+            3000,
+          ),
+        ).toBe(true);
+        w.hold(3500);
+        expect(yield* w.until(() => w.phase === 'sound', 2000)).toBe(true);
+        yield* w.run(200);
+        w.stall(2200);
+        yield* w.run(300);
+        expect(yield* w.until(() => w.phase === 'sound', 3000)).toBe(true);
+        yield* w.run(3000);
+      }),
+  );
   // A read asked before an act cannot start P4's wait, even when it samples after the act
   // (android 351): the wait starts at the first read asked after it.
   for (const at of [100, 250, 400])

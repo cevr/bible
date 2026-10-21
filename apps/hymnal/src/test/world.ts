@@ -1377,8 +1377,11 @@ export const makeWorld = (
         onNone: () => w.lastSampleAt,
         onSome: (read) => read.sampleAt,
       });
+    // An act, tell, landing, carry or load excuses a turn only within a cadence of it: the
+    // page learns each by then, and one earlier in the episode does not end the rule.
     const unacted =
-      Math.max(w.lastAct, w.toldAt, w.landedAt, w.carriedAt, w.loadAt) < w.playingFrom;
+      Math.max(w.lastAct, w.toldAt, w.landedAt, w.carriedAt, w.loadAt) < w.playingFrom ||
+      w.t - Math.max(w.lastAct, w.toldAt, w.landedAt, w.carriedAt, w.loadAt) > cadence;
     // The page turns at the answer of a read that sampled silence: sound may start between
     // its sample and its answer (an answer, or a host hold), so a silence of the stand that
     // ran up to that sample counts.
@@ -1388,7 +1391,9 @@ export const makeWorld = (
     });
     const ranQuiet =
       w.t - w.lastSound >= standFloor ||
-      (w.quietRun.to >= turnSample && w.quietRun.to - w.quietRun.from >= standFloor);
+      (w.quietRun.from <= turnSample &&
+        w.quietRun.to >= turnSample &&
+        w.quietRun.to - w.quietRun.from >= standFloor);
     if (isWaiting(now) && w.was === 'Playing' && unacted && !ranQuiet)
       breach('O10 Buffering early', `silentFor=${w.t - w.lastSound} page=${now._tag}`);
   };
