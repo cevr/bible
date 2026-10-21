@@ -740,8 +740,9 @@ describe('the player by the world: each earlier counterexample', () => {
     // the place the device stood at before (O7 never landed).
     // ios 143: sound through a superseded seek's place taken as that seek landing (M4's repair).
     // ios 2776: a play's place taken as a superseded seek's.
+    // android 42: an interruption before prepare, then 23 s offline with no sound: Failed is right.
     ios: [119, 120, 278, 289, 144, 143, 2776],
-    android: [235, 255, 90],
+    android: [235, 255, 90, 42],
     web: [201, 320],
   };
   it.effect('rw r1 M8: each traced sweep seed breaks no rule', () =>
