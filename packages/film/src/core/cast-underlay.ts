@@ -1,6 +1,7 @@
 // A cast sheet's underlay: a layout picture the engine draws, never painted,
 // sent as a sheet try's last reference when a try faced the wrong way or
-// was drawn off the canon. Blank house mannequins standing level, each at
+// was drawn off its heads (the member's own: the canon's, its design's, or
+// a smaller figure's). Blank house mannequins standing level, each at
 // its view's figure's size (`Stature`): the grown member its own heads tall
 // (the cast's canon, 3.36, unless its design names its own), and a smaller
 // figure (a child beside the grown one) its share of the grown height and
