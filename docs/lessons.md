@@ -2493,3 +2493,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The promise check joins runs of words in the order the page holds them, so a stylesheet that moves a box out of that order (`order`, a reversed flex row, an absolute position) can set side by side two runs the check never reads joined.
 - **Cause:** Where a box is drawn is the browser's layout, and the check reads the page, not its layout.
 - **Guard:** none: a residual; the built stylesheet sets `order: 0` only and reverses no row, and a review reads a stylesheet that moves a box with words.
+
+### email-promise-paste-ready-entry
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the closed lists refuse ordinary edits, and the message is not ready to paste"
+- **Source:** ftb-copy/rw-round-3-findings.md F6
+- **Wrong:** A refused sentence printed only its words, so each ordinary edit of the site's copy (a page's first words, a new page, the first talk of a series) left the owner or an agent to work out which list of `HELD` holds it and how to write it there.
+- **Cause:** The check was written to refuse, not to say how to hold what it refuses; the owner kept it and asked for its errors to print a ready-to-paste exception (ask a3e589137f5, ship-keep).
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `entriesOf`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r3-F6 a refused sentence, held by the entry it prints`

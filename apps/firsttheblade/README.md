@@ -214,6 +214,13 @@ the run until the check reads them or holds them word for word
 by side, the sentence they make joined is held too, named with a `|` at each
 break.
 
+Each sentence it refuses (`unheld:`, `layout:`) comes with the entry that
+holds it, printed ready to paste into `HELD` in `scripts/promise.ts` with
+its indent: the line names the list it goes under, or `HELD` itself for a
+kind it holds nothing on yet (`email-promise-paste-ready-entry`). A pasted
+line is a change to what the site tells a reader about its email, and a
+review reads it as one.
+
 The check finds a sentence about how often or what we email by its words
 (`NET`: of mail, of the list, of what we send, and of time, inside longer
 words too), and no list of words holds every way to say it: "Expect a word

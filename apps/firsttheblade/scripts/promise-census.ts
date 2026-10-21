@@ -16,7 +16,7 @@
  *   bun run promise:census    # prints `promise-census <case> red` per case; exits 1 when one is not
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
-import { Console, Data, Effect, FileSystem, Path, Stream } from 'effect';
+import { Array as Arr, Console, Data, Effect, FileSystem, Option, Path, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
@@ -33,6 +33,8 @@ interface Case {
   readonly put: string;
   readonly said: ReadonlyArray<string>;
   readonly after?: boolean;
+  /** The check's printed entries, pasted into the copy's `HELD` as printed, turn it green. */
+  readonly held?: boolean;
 }
 
 const CONFIRMED = 'Thank you. We will send you ${PROMISE}.';
@@ -144,6 +146,21 @@ const CASES: ReadonlyArray<Case> = [
     find: "lines: ['You did it.']",
     put: "lines: ['We email you weekly.']",
     said: ['kit/out/thumb-court.png: unheld: We email you weekly.'],
+  },
+  {
+    ...confirmedSays(
+      'rw-r3-F6 a refused sentence, held by the entry it prints',
+      "We'll write weekly.",
+    ),
+    held: true,
+  },
+  {
+    name: 'rw-r3-F6 a refused sentence on a kind HELD does not name, held by the entry it prints',
+    file: 'kit/draw.ts',
+    find: "lines: ['You did it.']",
+    put: "lines: ['We email you weekly.']",
+    said: ['kit/out/thumb-court.png: unheld: We email you weekly.'],
+    held: true,
   },
   {
     name: 'r4-F2 the form binds a PROMISE of its own',
@@ -427,6 +444,9 @@ const COPIED = [
   'vite.config.ts',
 ];
 
+/** The repo's formatter, from a copy of the app (two levels down, as the app is). */
+const OXFMT = '../../node_modules/.bin/oxfmt';
+
 /** Cases run at once, each building its own copy. */
 const CONCURRENCY = 6;
 
@@ -463,6 +483,71 @@ const exec = (command: string, args: ReadonlyArray<string>, cwd: string) =>
     );
     return { output: `${stdout}${stderr}`, code: Number(code) };
   }).pipe(Effect.scoped);
+
+/** A printed entry's instruction: the `HELD` list it goes in (its key as the source writes it), or `HELD` itself for a key it does not name. */
+const ENTRY =
+  /^promise to hold (?:it|them), paste into HELD(?: under (.+))? in apps\/firsttheblade\/scripts\/promise\.ts:$/;
+
+/** Where a printed entry goes in the check's source: after its list's key, or after `HELD`'s opening. */
+const anchorOf = (key: Option.Option<string>) =>
+  Option.match(key, {
+    onNone: () => 'const HELD = new Map<string, ReadonlyArray<string>>(\n  Object.entries({\n',
+    onSome: (list) => `\n    ${list}: [\n`,
+  });
+
+/**
+ * Pastes each entry the check printed into the copy's `scripts/promise.ts`
+ * exactly as printed, then holds the copy to what the entry promises: the
+ * check passes, and the pasted file is formatted as the repo formats it.
+ */
+const holdAsPrinted = (copy: string, output: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const lines = output.split('\n');
+    const entries = lines.flatMap((line, at) =>
+      Option.toArray(
+        Option.map(Option.fromNullishOr(ENTRY.exec(line)), (instruction) => ({
+          key: Option.fromNullishOr(instruction[1]),
+          paste: Arr.takeWhile(lines.slice(at + 1), (next) => /^ {4,}\S/.test(next))
+            .map((pasted) => `${pasted}\n`)
+            .join(''),
+        })),
+      ),
+    );
+    if (entries.length === 0) {
+      return yield* new CaseFailed({ reason: `the check printed no entry to paste:\n${output}` });
+    }
+    const file = path.join(copy, 'scripts', 'promise.ts');
+    const source = yield* fs.readFileString(file);
+    const misplaced = entries
+      .map(({ key }) => anchorOf(key))
+      .filter((anchor) => source.split(anchor).length - 1 !== 1);
+    if (misplaced.length > 0) {
+      return yield* new CaseFailed({
+        reason: `an entry's place is not in scripts/promise.ts once:\n${misplaced.join('\n')}`,
+      });
+    }
+    yield* fs.writeFileString(
+      file,
+      entries.reduce(
+        (held, { key, paste }) => held.replace(anchorOf(key), (anchor) => `${anchor}${paste}`),
+        source,
+      ),
+    );
+    const again = yield* exec('bun', ['scripts/promise.ts'], copy);
+    if (again.code !== 0) {
+      return yield* new CaseFailed({
+        reason: `with the printed entries pasted, the check exited ${again.code}:\n${again.output}`,
+      });
+    }
+    const formatted = yield* exec(path.join(copy, OXFMT), ['--check', file], copy);
+    if (formatted.code !== 0) {
+      return yield* new CaseFailed({
+        reason: `the pasted entries are not formatted as the repo formats them:\n${formatted.output}`,
+      });
+    }
+  });
 
 /** One case, in its own copy of the app under the repo's `tmp/` (two levels down, as the app is, so its tsconfig's `extends` holds). */
 const runCase = (app: string, scratch: string, found: Case) =>
@@ -510,6 +595,7 @@ const runCase = (app: string, scratch: string, found: Case) =>
         reason: `the check exited ${check.code} and did not say:\n${unsaid.join('\n')}\nit said:\n${check.output}`,
       });
     }
+    if (found.held === true) yield* holdAsPrinted(copy, check.output);
   }).pipe(Effect.scoped);
 
 const census = Effect.gen(function* () {

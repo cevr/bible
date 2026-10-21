@@ -1102,9 +1102,17 @@ const kitArtefacts = Effect.fn('Promise.kit')(function* (app: string) {
   }) satisfies Read;
 });
 
-/** What breaks the promise in what a reader gets. */
-const problemsOf = ({ artefacts, unread }: Read): ReadonlyArray<string> => {
-  const netted = artefacts.map((artefact) => ({
+/** A sentence the check refuses: where it is said, and its words as `HELD` holds them (a join's with a `|` at each break). */
+interface Refused {
+  readonly name: string;
+  readonly kind: string;
+  readonly why: 'unheld' | 'layout';
+  readonly shown: string;
+}
+
+/** An artefact's sentences and joins that the net takes. */
+const nettedOf = (artefacts: ReadonlyArray<Artefact>) =>
+  artefacts.map((artefact) => ({
     ...artefact,
     netted: artefact.sentences.filter((sentence) => NET.test(sentence)),
     joined: [
@@ -1115,6 +1123,114 @@ const problemsOf = ({ artefacts, unread }: Read): ReadonlyArray<string> => {
       ).values(),
     ],
   }));
+
+/** Every netted sentence and join that is neither a promise sentence nor held on its kind. */
+const refusedOf = (artefacts: ReadonlyArray<Artefact>): ReadonlyArray<Refused> => {
+  const netted = nettedOf(artefacts);
+  return [
+    ...netted.flatMap(({ name, kind, netted: found }) =>
+      found
+        .filter(
+          (sentence) =>
+            !PROMISE_SENTENCES.includes(sentence) && !(HELD.get(kind) ?? []).includes(sentence),
+        )
+        .map((shown) => ({ name, kind, why: 'unheld' as const, shown })),
+    ),
+    ...netted.flatMap(({ name, kind, joined }) =>
+      joined
+        .filter(
+          ({ shown, sentence }) =>
+            !PROMISE_SENTENCES.includes(sentence) && !(HELD.get(kind) ?? []).includes(shown),
+        )
+        .map(({ shown }) => ({ name, kind, why: 'layout' as const, shown })),
+    ),
+  ];
+};
+
+/** The characters a printed entry spells as they are: printable ASCII, and the typographic marks a reader sees (`SEEN_CHARACTERS` but the no-break space). */
+const SPELLED = /[\x20-\x7e“”‘’—–·•©]/;
+
+/**
+ * A string as this file writes it, as the repo's formatter writes it: in
+ * single quotes unless it holds more of them than double quotes, with a
+ * backslash, its quote and every character not `SPELLED` escaped.
+ */
+const literalOf = (text: string) => {
+  const quote = Match.value(text.split("'").length > text.split('"').length).pipe(
+    Match.when(true, () => '"'),
+    Match.orElse(() => "'"),
+  );
+  const body = [...text]
+    .map((char) =>
+      Match.value(char).pipe(
+        Match.when('\\', () => '\\\\'),
+        Match.when(quote, () => `\\${quote}`),
+        Match.when(
+          (other) => SPELLED.test(other),
+          (other) => other,
+        ),
+        Match.orElse((other) =>
+          Match.value((other.codePointAt(0) ?? 0).toString(16)).pipe(
+            Match.when(
+              (code) => code.length <= 4,
+              (code) => `\\u${code.padStart(4, '0')}`,
+            ),
+            Match.orElse((code) => `\\u{${code}}`),
+          ),
+        ),
+      ),
+    )
+    .join('');
+  return `${quote}${body}${quote}`;
+};
+
+/** This file, as a printed entry names it. */
+const SELF = 'apps/firsttheblade/scripts/promise.ts';
+/** The repo's formatter's line width, which a printed entry for a new kind keeps to. */
+const WIDTH = 100;
+
+/**
+ * For each kind with a refused sentence, the entry that holds them, ready to
+ * paste into `HELD` as printed: an instruction line (the kind's list, or
+ * `HELD` itself for a kind it does not name), then the lines to paste, with
+ * their indents. A review reads each pasted line as a change to what the site
+ * tells a reader about its email.
+ */
+const entriesOf = (refused: ReadonlyArray<Refused>): ReadonlyArray<string> =>
+  [...new Set(refused.map(({ kind }) => kind))].flatMap((kind) => {
+    const held = [
+      ...new Set(refused.filter((found) => found.kind === kind).map(({ shown }) => shown)),
+    ].map(literalOf);
+    const them = Match.value(held.length).pipe(
+      Match.when(1, () => 'it'),
+      Match.orElse(() => 'them'),
+    );
+    if (HELD.has(kind)) {
+      return [
+        `promise to hold ${them}, paste into HELD under ${literalOf(kind)} in ${SELF}:`,
+        ...held.map((line) => `      ${line},`),
+      ];
+    }
+    const inline = `    ${literalOf(kind)}: [${held.join(', ')}],`;
+    return [
+      `promise to hold ${them}, paste into HELD in ${SELF}:`,
+      ...Match.value(inline).pipe(
+        Match.when(
+          (line) => line.length <= WIDTH,
+          (line) => [line],
+        ),
+        Match.orElse(() => [
+          `    ${literalOf(kind)}: [`,
+          ...held.map((line) => `      ${line},`),
+          '    ],',
+        ]),
+      ),
+    ];
+  });
+
+/** What breaks the promise in what a reader gets. */
+const problemsOf = ({ artefacts, unread }: Read): ReadonlyArray<string> => {
+  const netted = nettedOf(artefacts);
   const saidOn = (kind: string) =>
     new Set(
       netted
@@ -1127,20 +1243,7 @@ const problemsOf = ({ artefacts, unread }: Read): ReadonlyArray<string> => {
       ...artefacts.flatMap(({ name, problems }) =>
         problems.map((problem) => `${name}: ${problem}`),
       ),
-      ...netted.flatMap(({ name, kind, netted: found }) => {
-        const held = HELD.get(kind) ?? [];
-        return found
-          .filter((sentence) => !PROMISE_SENTENCES.includes(sentence) && !held.includes(sentence))
-          .map((sentence) => `${name}: unheld: ${sentence}`);
-      }),
-      ...netted.flatMap(({ name, kind, joined }) => {
-        const held = HELD.get(kind) ?? [];
-        return joined
-          .filter(
-            ({ shown, sentence }) => !PROMISE_SENTENCES.includes(sentence) && !held.includes(shown),
-          )
-          .map(({ shown }) => `${name}: layout: ${shown}`);
-      }),
+      ...refusedOf(artefacts).map(({ name, why, shown }) => `${name}: ${why}: ${shown}`),
       ...netted.flatMap(({ name, kind, netted: found }) => {
         const stated = found.filter((sentence) => PROMISE_SENTENCES.includes(sentence)).length;
         const pinned = STATED.get(kind) ?? 0;
@@ -1211,6 +1314,7 @@ const check = Effect.gen(function* () {
   };
   const problems = [...(yield* staleProblems(app)), ...problemsOf(read)];
   yield* Effect.forEach(problems, (problem) => Console.log(`promise ${problem}`));
+  yield* Effect.forEach(entriesOf(refusedOf(read.artefacts)), (line) => Console.log(line));
   yield* Effect.logInfo('promise.checked').pipe(
     Effect.annotateLogs({ artefacts: read.artefacts.length, problems: problems.length }),
   );
