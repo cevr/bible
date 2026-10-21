@@ -658,6 +658,19 @@ export const fill = Effect.fn('Sim.fill')(function* (
   return outcome(session.platform, {}, { target: text, value });
 });
 
+/**
+ * Go back as a reader does: the header's back button on iOS (the app's own
+ * stack), the browser's Back on the web.
+ */
+export const back = Effect.fn('Sim.back')(function* (place: Place) {
+  const session = yield* readSession(place);
+  if (session.platform === 'ios') {
+    yield* booted(session);
+    yield* device(['back', '--in-app', '--settle']);
+  } else yield* browser(['back']);
+  return outcome(session.platform, {}, {});
+});
+
 export const DIRECTIONS = ['up', 'down', 'left', 'right'] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 

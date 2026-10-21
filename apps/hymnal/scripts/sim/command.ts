@@ -8,6 +8,7 @@ import { Clock, Console, Effect, Exit, Option, Schema } from 'effect';
 import { Argument, CliError, Command, Flag } from 'effect/cli';
 
 import {
+  back,
   boot,
   doctor,
   RECORD,
@@ -164,6 +165,12 @@ export const simCommand = (place: Place) => {
     report('tap', tap(at(flags.state), flags.target, flags.timeout)),
   ).pipe(Command.withDescription('Tap an element by accessibility id or label'));
 
+  const backCommand = Command.make('back', { state }, (flags) =>
+    report('back', back(at(flags.state))),
+  ).pipe(
+    Command.withDescription("Go back: the header's back button (iOS), the browser's Back (web)"),
+  );
+
   const fillCommand = Command.make(
     'fill',
     {
@@ -253,6 +260,7 @@ export const simCommand = (place: Place) => {
       installCommand,
       openCommand,
       tapCommand,
+      backCommand,
       fillCommand,
       scrollCommand,
       shotCommand,

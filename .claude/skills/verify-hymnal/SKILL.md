@@ -96,7 +96,8 @@ Each step is one `sim` command. The feature files write
   `sim open hymns/100`. iOS opens `hymnal://hymns/100`, the web
   `http://127.0.0.1:$PORT/hymns/100`. `--expect` waits for a target.
 - `sim tap <target>`, `sim fill <target> <text>`,
-  `sim scroll <target|screen> <up|down|left|right>`.
+  `sim scroll <target|screen> <up|down|left|right>`, and `sim back` (the
+  header's back button on iOS, the browser's Back on the web).
 - A target is `label=<accessible name>` (the `aria-label`, or the text of
   a control) or `id=<testID>`, matched whole on both platforms. When a name
   matches more than one element (on iOS a row's link and its group share
@@ -154,7 +155,7 @@ and exits 1. The tags: `NoSession`, `SimulatorDown`, `ReadinessTimedOut`,
 `TargetMissing` (with what the driver said), `ToolMissing`, `ToolFailed`,
 `NotOnPlatform`, `HostFailed`, `Unhealthy`, `BadArguments` (an unknown
 command or flag; the help goes to stderr). The commands: `boot`, `install`,
-`doctor`, `open`, `tap`, `scroll`, `shot`, `snapshot`, `record`, `log`,
+`doctor`, `open`, `tap`, `back`, `fill`, `scroll`, `shot`, `snapshot`, `record`, `log`,
 `down`, and `serve` (the dev server's own process, which `boot` starts).
 Its tests: `apps/hymnal/scripts/sim/sim.test.ts`, run by the hymnal's
 `test:infra`.

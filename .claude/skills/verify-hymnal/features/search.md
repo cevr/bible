@@ -33,6 +33,6 @@ the reader leaves and comes back.
 
 ## Gotchas
 
-- The Search tab keeps the hymn last opened from it: a tap on the tab can land on that hymn, not the field, and its back button is also named `Search`. Open `search` by link to reach the field.
+- The Search tab keeps the hymn last opened from it: a tap on the tab can land on that hymn, not the field, and its back button is also named `Search`. Go back with `sim back`, or open `search` by link to reach the field.
 - On iOS the field and the screen share the name; narrow it with `role=search`. On the web the field is a plain text input named by `aria-label`.
 - Results follow the typing after a deferral: wait for a result (`--expect`, or `sim tap` of the row with its timeout), never a fixed sleep.

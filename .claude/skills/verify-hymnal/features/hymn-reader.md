@@ -26,7 +26,7 @@ title and a back button to where the reader came from.
 1. **Open by deep link.** `sim open hymns/100 --expect "label=Stanza 1"`. → `ok`; on iOS `detail.prompts` is 0 or 1; the snapshot holds `100`, `Great Is Thy Faithfulness`, `Stanza 1`, `Refrain`.
 2. **Scroll to the end.** `sim scroll "label=Stanza 3" down`. → `ok`; `Stanza 3` is on screen (`sim shot`).
 3. **Scroll back.** `sim scroll screen up` twice. → `ok`; `Stanza 1` is on screen again.
-4. **Back.** `sim tap "role=button label=Hymns"`. → `ok`; the Hymns list.
+4. **Back.** `sim back`. → `ok`; the Hymns list.
 5. **Proof.** `sim snapshot` and `sim shot` after each step.
 
 ## Gotchas
