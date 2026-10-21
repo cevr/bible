@@ -15,6 +15,7 @@ import { TestClock } from 'effect/testing';
 
 import {
   allowance,
+  cadence,
   drawnKnobs,
   fixedKnobs,
   type Knobs,
@@ -85,10 +86,16 @@ describe('the player by the world: seeded', () => {
           yield* Console.log(
             `${platform} reached: ${reachable(platform)
               .map((item) => `${item}=${counts.get(item) ?? 0}`)
-              .join(', ')}; longest a Playing page's latest sound went unread: ${readGap} ms`,
+              .join(', ')}; largest read gap: ${readGap} ms (bound ${cadence})`,
           );
           if (broken.length > 0) yield* Console.log(broken.join('\n'));
-          expect({ unreached, broken }).toEqual({ unreached: [], broken: [] });
+          // The bounds B and P assume the page samples the device at least once a cadence
+          // (Decided 11): checked here, never assumed.
+          expect({ unreached, broken, readGap: readGap <= cadence }).toEqual({
+            unreached: [],
+            broken: [],
+            readGap: true,
+          });
         }),
     );
 });
@@ -315,7 +322,10 @@ describe('the player by the world: each earlier counterexample', () => {
       Effect.gen(function* () {
         w.send(Command.Start({ track: morning }));
         expect(yield* w.until(() => sound(w), 5000)).toBe(true);
-        expect(w.history.map((it) => it.tag)).not.toContain('Playing');
+        // The first sound's step: the read that shows it may answer in that step.
+        const firstSound = w.lastSound - step;
+        const early = w.history.filter((it) => it.tag === 'Playing' && it.t < firstSound);
+        expect(early).toEqual([]);
         expect(yield* w.until(() => tag(w) === 'Playing', 2 * span)).toBe(true);
       }),
   );
@@ -368,6 +378,36 @@ describe('the player by the world: each earlier counterexample', () => {
         w.send(Command.Resume());
         yield* w.run(500);
         expect(w.plays.at(-1)?.from).toBe(place);
+      }),
+  );
+
+  fixed('rw r1 M5: Retry, then a Seek: no Retry until the new wait runs out', 'ios', {}, (w) =>
+    Effect.gen(function* () {
+      yield* playingAt(w, 60);
+      w.stall(60_000);
+      yield* w.until(() => w.phase === 'dry', 5000);
+      expect(yield* w.until(() => retry(w), owed + 1000)).toBe(true);
+      w.send(Command.Seek({ seconds: 61 }));
+      const sought = w.t;
+      yield* w.until(() => retry(w), owed + 1000);
+      expect(w.t - sought).toBeGreaterThanOrEqual(15_000 - span);
+    }),
+  );
+
+  fixed(
+    'rw r1 M7: Android sounds, fails saying 0: Failed keeps the place, and Resume plays from it',
+    'android',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        w.fail();
+        expect(yield* w.until(() => tag(w) === 'Failed', 2000)).toBe(true);
+        const kept = Option.getOrThrow(atOf(w.state()));
+        expect(Math.abs(kept - 62)).toBeLessThan(2);
+        w.send(Command.Resume());
+        yield* w.run(500);
+        expect(Math.abs((w.plays.at(-1)?.from ?? 0) - kept * 1000)).toBeLessThan(2);
       }),
   );
 
