@@ -1097,4 +1097,57 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         expect(Math.abs((w.plays.at(-1)?.from ?? 0) - 200_000)).toBeLessThan(2);
       }),
   );
+  // A backward seek lands, sound carries the device back to where it stood, and it runs dry
+  // there: the seek landed at its answer (Decided 12), so the page proves sound after the stall.
+  for (const landAfter of [200, 300, 400])
+    fixed(
+      `rw r2 M3: a seek back 0.75 s lands after ${landAfter} ms, sound back to the place a read saw before it, dry there: Playing after`,
+      'ios',
+      { landAfter: () => landAfter },
+      (w) =>
+        Effect.gen(function* () {
+          yield* playing(w);
+          expect(yield* w.until(() => w.place >= 10_750, 15_000)).toBe(true);
+          const from = w.t;
+          const count = w.answered.length;
+          w.send(Command.Seek({ seconds: (w.place - 750) / 1000 }));
+          // The first read after the ask sees the device sounding on, outside the window.
+          expect(yield* w.until(() => w.answered.length > count, 1000)).toBe(true);
+          const seen = Option.getOrThrow(Option.fromNullishOr(w.answered.at(-1)));
+          expect(seen.sampleAt).toBeGreaterThanOrEqual(from);
+          const stood = w.place - (w.t - seen.sampleAt);
+          // No read sees the landing or the sound back: a host hold covers both.
+          w.hold(landAfter + 750 + 300);
+          expect(yield* w.until(() => w.place < stood, 2000)).toBe(true);
+          expect(yield* w.until(() => w.place >= stood, 2000)).toBe(true);
+          w.stall(3000);
+          yield* w.run(3000);
+          expect(yield* w.until(() => tag(w) === 'Playing', 8000)).toBe(true);
+        }),
+    );
+  // The ios 59 world with the late lock-screen seek landing as the load sounds: the read after
+  // it says a place past 218,900 by sound, not 218,900 itself (Decided 12: a read never lands
+  // an act, and the page's own seek lands at its answer).
+  for (const remoteLand of [2900, 3000, 3100, 3200])
+    fixed(
+      `rw r2 M4 (ios 59): a late lock-screen seek lands ${remoteLand} ms after its tell and sounds before the next read: the page's place`,
+      'ios',
+      { loadFor: () => 3000, remoteLand: () => remoteLand },
+      (w) =>
+        Effect.gen(function* () {
+          w.send(Command.Start({ track: morning }));
+          yield* w.run(500);
+          const pressedAt = w.t;
+          w.press('seek', 218_900);
+          expect(yield* w.until(() => w.toldAt > pressedAt, 2000)).toBe(true);
+          w.send(Command.Seek({ seconds: 0 }));
+          yield* w.run(8000);
+          expect(tag(w)).toBe('Playing');
+          w.fail();
+          yield* w.run(2000);
+          const at = Option.getOrThrow(atOf(w.state())) * 1000;
+          expect(at).toBeLessThan(20_000);
+          expect(Math.abs(at - w.place)).toBeLessThan(1000);
+        }),
+    );
 });
