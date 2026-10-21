@@ -47,6 +47,8 @@ interface Pending {
   readonly known: number;
   readonly after: Option.Option<Read>;
   readonly seen: Option.Option<Read>;
+  /** The latest read since it that showed the device outside the place's window: not landed when it was sampled. */
+  readonly outside: Option.Option<Read>;
   /** A load's place: its lead-in from 0:00 (Android) sounds short of it and proves nothing. */
   readonly load: boolean;
 }
@@ -105,6 +107,7 @@ export const acted = (proof: Proof, now: number, target: Option.Option<number>):
         known: now,
         after: Option.none<Read>(),
         seen: Option.none<Read>(),
+        outside: Option.none<Read>(),
         load: false,
       }),
   }),
@@ -119,6 +122,7 @@ export const loaded = (now: number, from: number): Proof => ({
     known: now,
     after: Option.none<Read>(),
     seen: Option.none<Read>(),
+    outside: Option.none<Read>(),
     load: true,
   }),
   place: Option.liftPredicate(from, (at) => at > 0),
@@ -174,22 +178,52 @@ const paired = (proof: Proof, read: Read): Proved =>
   });
 
 /** Whether `read` shows the device at `pending`'s target, or on from it by no more than time allows. */
-const landsAt = (pending: Pending, read: Read) =>
-  read.status.positionMs >= pending.target - slack &&
-  read.status.positionMs <= pending.target + (read.answered - pending.known);
+const landsAt = (pending: Pending, read: Read) => {
+  // A read since the act that showed the device outside the window was sampled before the
+  // landing, so the device has sounded on from the place no longer than since that read's ask.
+  // The slack holds on both sides: the device lands at the place rounded (1/600 s on iOS,
+  // whole ms on Android).
+  const from = Option.match(pending.outside, {
+    onNone: () => pending.known,
+    onSome: (before) => Math.max(pending.known, before.asked),
+  });
+  const at = read.status.positionMs;
+  return at >= pending.target - slack && at <= pending.target + slack + (read.answered - from);
+};
 
 /** A pending act's landing at `read`: landed, or still pending. */
 const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): Proved => {
   const landed = Option.none<Pending>();
-  if (read.asked >= takenAt && landsAt(pending, read))
-    return {
-      // The landing moved the device: no silence run spans it.
-      proof: { ...proof, pending: landed, last: Option.some(read), quietFrom: Option.none() },
-      seen: 'landed',
-    };
+  // The read before, if it showed the device outside the window, saw it not landed.
+  const outside = Option.filter(pending.seen, (before) =>
+    Option.exists(pending.outside, (it) => it === before),
+  );
+  // A device at that read's place stood still: no landing came between.
+  const stood = Option.exists(
+    outside,
+    (before) => Math.abs(read.status.positionMs - before.status.positionMs) <= slack,
+  );
+  // A refused device stands where it stood: it comes onto the place only by sound from short
+  // of it, or by a phone's press that moves it there itself.
+  const onto = Option.exists(
+    outside,
+    (before) =>
+      before.status.positionMs < pending.target - slack ||
+      Math.abs(read.status.positionMs - pending.target) <= slack,
+  );
   // Two reads after the act at one place prove silence while it is pending: a landing would
   // have moved the place. Sound is never proved across it: a forward landing looks like sound.
   const quiet = Option.filter(pending.after, (after) => pairOf(after, read) === 'silence');
+  const quietFrom = Option.flatMap(quiet, (after) =>
+    Option.orElse(proof.quietFrom, () => Option.some(after.answered)),
+  );
+  if (!stood && (read.asked >= takenAt || onto) && landsAt(pending, read))
+    return {
+      // A landing that moved the device breaks the silence run; one onto the place the device
+      // already stood at moved nothing, so the run goes on.
+      proof: { ...proof, pending: landed, last: Option.some(read), quietFrom },
+      seen: 'landed',
+    };
   // A landing never leaves the device short of its place, so a move on that stops short of
   // it is sound, though no pair proves the device plays now.
   const short = Option.exists(
@@ -203,7 +237,16 @@ const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): P
     Option.filter(pending.after, () => !pending.load),
     (after) => pairOf(after, read) === 'sound' && read.status.positionMs < pending.target - slack,
   );
-  const next = Option.some({ ...pending, after: Option.some(read), seen: Option.some(read) });
+  const next = Option.some({
+    ...pending,
+    after: Option.some(read),
+    seen: Option.some(read),
+    outside: Option.orElse(
+      // A device that stood where a read saw it not landed is not landed either.
+      Option.liftPredicate(read, (it) => stood || !landsAt(pending, it)),
+      () => pending.outside,
+    ),
+  });
   if (sound)
     return {
       proof: { ...proof, sounded: true, pending: next, quietFrom: Option.none() },
@@ -214,9 +257,7 @@ const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): P
       ...proof,
       sounded: proof.sounded || short,
       pending: next,
-      quietFrom: Option.flatMap(quiet, (after) =>
-        Option.orElse(proof.quietFrom, () => Option.some(after.answered)),
-      ),
+      quietFrom,
     },
     seen: 'pending',
   };

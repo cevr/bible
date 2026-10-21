@@ -256,7 +256,7 @@ interface Held {
   wants: Intent;
   proof: Proof.Proof;
   seeking: Option.Option<{ readonly to: number; asking: boolean }>;
-  /** From when a read may land the place asked: +Infinity once the device refused it, until it is asked again. */
+  /** From when a read may land the place asked: +Infinity once the device refused it, until it is asked again; a move onto the place lands it whatever this says. */
   takenAt: number;
   id: number;
   announced: number;
@@ -457,6 +457,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             }
             if (next.seen === 'stale') return true;
             yield* askAgain(status);
+            // A give-up lets the recording go: the reads end, whether the ask answered or not.
+            let gaveUp = false;
             const done = yield* Match.value(status.state).pipe(
               Match.when('failed', () => Effect.as(show(failed(track)), true)),
               // A seek from the end still pending keeps the reads on until it lands.
@@ -483,13 +485,16 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               ),
               Match.orElse(() =>
                 Effect.suspend(() => {
-                  if (givenUp(read)) return Effect.as(giveUp(track), true);
+                  if (givenUp(read)) {
+                    gaveUp = true;
+                    return Effect.as(giveUp(track), true);
+                  }
                   return Effect.as(show(seenAt(track, read, next.seen)), false);
                 }),
               ),
             );
             yield* announceOnce(track, answer);
-            return !done || Option.isNone(answer);
+            return !gaveUp && (!done || Option.isNone(answer));
           }).pipe(
             Effect.catchTag('PlaybackError', (error) =>
               Effect.logWarning('player.status.failed').pipe(
