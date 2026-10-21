@@ -6,13 +6,21 @@
  * of: the eight keys Chrome steps a range with (the arrows, PageUp,
  * PageDown, Home, End), tapped, or held down across other events so that
  * they repeat, their `keyup` coming later or never (the focus moved, and it
- * lands elsewhere); modifier keys (tapped, or held across moves); a second
- * pointer that goes down and up, cancels or loses its capture; another
- * mouse button pressed and let go; playback started and halted. Between
- * presses: the same keys, a press of another button with keys and a screen
- * reader's steps inside it, a screen reader's step, and playback's ticks
- * between any two events. A run starts anywhere, and often at either end of
- * the bar, where a key may move nothing.
+ * lands elsewhere); modifier keys tapped; a second pointer that goes down
+ * and up, cancels or loses its capture; another mouse button pressed and
+ * let go; playback started and halted. Between presses: the same keys, a
+ * press of another button with keys and a screen reader's steps inside it,
+ * a screen reader's step, and playback's ticks between any two events. A
+ * run starts anywhere, and often at either end of the bar, where a key may
+ * move nothing.
+ *
+ * The input state belongs to the run, not to a gesture: a modifier key goes
+ * down and comes up as a gesture of its own, between presses and inside
+ * them, so a press may open, a key step and a second pointer go down with
+ * any modifier held. Pointer ids are Chromium's (measured, playerfix r3
+ * review `touchid.log`: a mouse, a touch, a touch, a mouse went down as ids
+ * 1, 2, 3, 1): the mouse is 1, and each touch, the press's own or a second
+ * one, takes a new id from 2.
  *
  * A press belongs to the pointer that opened it with the main button: it
  * opens at that pointer's `pointerdown` and ends at the first of its
@@ -73,8 +81,8 @@ type Step =
   | { readonly _tag: 'Tick'; readonly seconds: number }
   | { readonly _tag: 'Play' }
   | { readonly _tag: 'Halt' }
-  /** The press's pointer goes down with the main button. */
-  | { readonly _tag: 'Down'; readonly pointer: Pointer }
+  /** The press's pointer goes down with the main button, by its id. */
+  | { readonly _tag: 'Down'; readonly pointer: Pointer; readonly id: number }
   /** The thumb to a second, or `back` to where the press's value was at its last `change`. */
   | { readonly _tag: 'Move'; readonly to: number | 'back' }
   | { readonly _tag: 'Up' }
@@ -93,8 +101,12 @@ type Step =
   | { readonly _tag: 'Hold'; readonly key: Modifier }
   /** A held modifier key comes up. */
   | { readonly _tag: 'Free'; readonly key: Modifier }
-  /** A second pointer, a touch: down, up, cancelled or its capture lost. */
-  | { readonly _tag: 'Second'; readonly phase: 'down' | 'up' | 'cancel' | 'lost' }
+  /** A second pointer, a touch of its own id: down, up, cancelled or its capture lost. */
+  | {
+      readonly _tag: 'Second';
+      readonly phase: 'down' | 'up' | 'cancel' | 'lost';
+      readonly id: number;
+    }
   /** Another mouse button inside a mouse press: a `pointermove` that says it. */
   | { readonly _tag: 'Chord'; readonly button: 1 | 2; readonly phase: 'down' | 'up' }
   /** Another mouse button's own press, with no press open. */
@@ -115,7 +127,7 @@ const said: (step: Step) => string = Match.type<Step>().pipe(
     Tick: ({ seconds }) => `tick ${seconds.toFixed(2)}`,
     Play: () => 'play',
     Halt: () => 'halt',
-    Down: ({ pointer }) => `down ${pointer}`,
+    Down: ({ pointer, id }) => `down ${pointer} ${id}`,
     Move: ({ to }) => `move ${to}`,
     Up: () => 'up',
     Cancel: () => 'cancel',
@@ -129,7 +141,7 @@ const said: (step: Step) => string = Match.type<Step>().pipe(
     Modifier: ({ key }) => key,
     Hold: ({ key }) => `${key} down`,
     Free: ({ key }) => `${key} up`,
-    Second: ({ phase }) => `second ${phase}`,
+    Second: ({ phase, id }) => `second ${id} ${phase}`,
     Chord: ({ button, phase }) => `button ${button} ${phase} in press`,
     Other: ({ button, phase }) => `button ${button} ${phase}`,
     Assist: () => 'screen reader step',
@@ -181,25 +193,33 @@ const chromeRanges = () => {
   };
 };
 
+/** A pointer of the run: its kind, and the id Chromium gave it. */
+interface Held {
+  readonly kind: Pointer;
+  readonly id: number;
+}
+
 /** Chrome and playback, modelled apart from the bar: the seeks owed, and where playback is. */
 interface Model {
   at: number;
   playing: boolean;
-  pressed: Option.Option<Pointer>;
+  pressed: Option.Option<Held>;
+  /** The press whose capture was lost: its pointer may still lift. */
+  lost: Option.Option<Held>;
   /** The value at the last `change` while a press moves it (its start, or a key's step), as Chrome keeps it. */
   before: Option.Option<number>;
   /** A `change` Chrome owes after the press ended. */
   owed: boolean;
   /** A mouse's capture, let go after the `change` its release owes. */
-  held: Option.Option<Pointer>;
+  held: Option.Option<Held>;
   /** A second pointer is down: Chrome moves no thumb. */
   second: boolean;
   readonly seeks: Array<number>;
 }
 
-/** The pointer that opens a press, and a second one. */
-const first = 1;
-const other = 2;
+/** Chromium's id for the mouse; each touch takes a new one from `firstTouch`. */
+const mouseId = 1;
+const firstTouch = 2;
 
 /** The web bar at `model`'s playback, in the document until the `using` ends; each seek it sends kept. */
 const mounted = (model: Model) => {
@@ -245,6 +265,7 @@ const play = (run: Run): Option.Option<string> => {
     at: run.at,
     playing: run.playing,
     pressed: Option.none(),
+    lost: Option.none(),
     before: Option.none(),
     owed: false,
     held: Option.none(),
@@ -270,14 +291,14 @@ const play = (run: Run): Option.Option<string> => {
     ctrlKey: down.has('Control'),
     metaKey: down.has('Meta'),
   });
+  /**
+   * A pointer event of `held`. Pointer Events make one pointer of each kind
+   * primary: the mouse, and the first touch down while no other touch is.
+   */
   const pointer = (
     type: string,
-    kind: Pointer,
-    {
-      id = first,
-      button = 0,
-      buttons = 0,
-    }: { id?: number; button?: number; buttons?: number } = {},
+    { kind, id }: Held,
+    { button = 0, buttons = 0 }: { button?: number; buttons?: number } = {},
   ) =>
     fire(
       new PointerEvent(type, {
@@ -287,10 +308,16 @@ const play = (run: Run): Option.Option<string> => {
         buttons,
         pointerId: id,
         pointerType: kind,
-        isPrimary: id === first,
+        isPrimary:
+          kind === 'mouse' ||
+          Option.match(model.pressed, {
+            onNone: () => true,
+            onSome: (press) => press.id === id || press.kind === 'mouse',
+          }),
         ...modified(),
       }),
     );
+  const mouse: Held = { kind: 'mouse', id: mouseId };
   const key = (type: 'keydown' | 'keyup', name: string, at: EventTarget = bar) => {
     const repeat = type === 'keydown' && down.has(name);
     if (type === 'keydown') down.add(name);
@@ -358,7 +385,8 @@ const play = (run: Run): Option.Option<string> => {
     model.pressed = Option.none();
     model.before = Option.none();
   };
-  const kindOf = () => Option.getOrElse(model.pressed, (): Pointer => 'mouse');
+  /** The pointer of the press open now; the mouse with none. */
+  const pressing = () => Option.getOrElse(model.pressed, () => mouse);
   const broke = (rule: string, index: number) =>
     Option.some(
       [
@@ -394,9 +422,10 @@ const play = (run: Run): Option.Option<string> => {
       },
       Play: () => void (model.playing = true),
       Halt: () => void (model.playing = false),
-      Down: ({ pointer: kind }) => {
-        model.pressed = Option.some(kind);
-        pointer('pointerdown', kind, { buttons: 1 });
+      Down: ({ pointer: kind, id }) => {
+        const press: Held = { kind, id };
+        model.pressed = Option.some(press);
+        pointer('pointerdown', press, { buttons: 1 });
       },
       Move: ({ to }) =>
         edit(
@@ -406,25 +435,29 @@ const play = (run: Run): Option.Option<string> => {
           ),
         ),
       Up: () => {
-        const kind = kindOf();
+        const press = pressing();
         if (Option.exists(model.before, (before) => before !== value())) model.seeks.push(value());
         end();
-        pointer('pointerup', kind);
-        if (kind === 'touch') pointer('lostpointercapture', kind);
-        else model.held = Option.some(kind);
+        pointer('pointerup', press);
+        if (press.kind === 'touch') pointer('lostpointercapture', press);
+        else model.held = Option.some(press);
       },
       Cancel: () => {
-        const kind = kindOf();
+        const press = pressing();
         end();
-        pointer('pointercancel', kind);
-        if (kind === 'touch') pointer('lostpointercapture', kind);
+        pointer('pointercancel', press);
+        if (press.kind === 'touch') pointer('lostpointercapture', press);
       },
       Lost: () => {
-        const kind = Option.getOrElse(model.pressed, (): Pointer => 'touch');
+        const press = pressing();
         end();
-        pointer('lostpointercapture', kind);
+        model.lost = Option.some(press);
+        pointer('lostpointercapture', press);
       },
-      Late: () => pointer('pointerup', 'touch'),
+      Late: () => {
+        for (const press of Option.toArray(model.lost)) pointer('pointerup', press);
+        model.lost = Option.none();
+      },
       Change: ({ dropped }) => {
         if (model.owed && !dropped) fire(new Event('change', { bubbles: true }));
         model.owed = false;
@@ -452,32 +485,34 @@ const play = (run: Run): Option.Option<string> => {
       },
       Hold: ({ key: name }) => key('keydown', name),
       Free: ({ key: name }) => key('keyup', name),
-      Second: ({ phase }) =>
+      Second: ({ phase, id }) => {
+        const touch: Held = { kind: 'touch', id };
         Match.value(phase).pipe(
           Match.when('down', () => {
             model.second = true;
-            pointer('pointerdown', 'touch', { id: other, buttons: 1 });
+            pointer('pointerdown', touch, { buttons: 1 });
           }),
           Match.when('up', () => {
             model.second = false;
-            pointer('pointerup', 'touch', { id: other });
-            pointer('lostpointercapture', 'touch', { id: other });
+            pointer('pointerup', touch);
+            pointer('lostpointercapture', touch);
           }),
           Match.when('cancel', () => {
             model.second = false;
-            pointer('pointercancel', 'touch', { id: other });
-            pointer('lostpointercapture', 'touch', { id: other });
+            pointer('pointercancel', touch);
+            pointer('lostpointercapture', touch);
           }),
           Match.when('lost', () => {
             model.second = false;
-            pointer('lostpointercapture', 'touch', { id: other });
+            pointer('lostpointercapture', touch);
           }),
           Match.exhaustive,
-        ),
+        );
+      },
       Chord: ({ button, phase }) =>
-        pointer('pointermove', 'mouse', { button, buttons: 1 | (held[phase] * masks[button]) }),
+        pointer('pointermove', mouse, { button, buttons: 1 | (held[phase] * masks[button]) }),
       Other: ({ button, phase }) =>
-        pointer(events[phase], 'mouse', { button, buttons: held[phase] * masks[button] }),
+        pointer(events[phase], mouse, { button, buttons: held[phase] * masks[button] }),
       Assist: () => step(value() + 1 - 2 * Number(value() >= top)),
     }),
   );
@@ -536,10 +571,22 @@ const ticks = Effect.gen(function* () {
   return yield* Effect.forEach(Array.from({ length: count }), () => tick);
 });
 
-/** The step key the run holds down, if any: its `keyup` has not come yet. */
+/**
+ * The run's input state, apart from its gestures: the step key held down,
+ * if any (its `keyup` has not come yet), the modifiers held down, and the
+ * last touch id Chromium gave.
+ */
 interface Keys {
   held: Option.Option<StepKey>;
+  readonly modifiers: Set<Modifier>;
+  touch: number;
 }
+
+/** A new touch's id: Chromium gives each touch the next one. */
+const touchId = (keys: Keys) => {
+  keys.touch += 1;
+  return keys.touch;
+};
 
 /** A step key's `keyup`, on the bar or, a time in four, elsewhere (the focus moved). */
 const keyUp = (key: StepKey) =>
@@ -571,21 +618,55 @@ const keyed = (keys: Keys) =>
       }),
   });
 
-const modifier = Effect.map(Random.choice(modifiers), (key): Step => ({ _tag: 'Modifier', key }));
+/** The modifiers not held down now. */
+const free = (keys: Keys) => modifiers.filter((key) => !keys.modifiers.has(key));
+
+/** A modifier not held, tapped; with all four held, nothing. */
+const modifier = (keys: Keys) =>
+  Option.match(
+    Option.liftPredicate(free(keys), (left) => left.length > 0),
+    {
+      onNone: () => Effect.succeed<Array<Step>>([]),
+      onSome: (left) =>
+        Effect.map(Random.choice(left), (key): Array<Step> => [{ _tag: 'Modifier', key }]),
+    },
+  );
 
 /**
- * A press of the main button: down, then any of moves, keys, a second
- * pointer, another button, playback started or halted; then its end and
- * its `change`.
+ * A modifier goes down and stays down, or one held comes up: the run's own
+ * gesture, between presses or inside one.
+ */
+const holding = (keys: Keys) =>
+  Effect.gen(function* () {
+    const down = [...keys.modifiers];
+    const lift = down.length > 0 && (down.length === modifiers.length || (yield* chance(0.5)));
+    if (lift) {
+      const key = yield* Random.choice(down);
+      keys.modifiers.delete(key);
+      return [{ _tag: 'Free', key }] satisfies Array<Step>;
+    }
+    const key = yield* Random.choice(free(keys));
+    keys.modifiers.add(key);
+    return [{ _tag: 'Hold', key }] satisfies Array<Step>;
+  });
+
+/**
+ * A press of the main button: down (with the run's modifiers held, by the
+ * mouse's id or a new touch's), then any of moves, keys, a second pointer,
+ * another button, a modifier down or up, playback started or halted; then
+ * its end and its `change`.
  */
 const press = (keys: Keys) =>
   Effect.gen(function* () {
     const pointer = yield* Random.choice(['mouse', 'touch'] as const);
+    const id = Match.value(pointer).pipe(
+      Match.when('mouse', () => mouseId),
+      Match.orElse(() => touchId(keys)),
+    );
     const count = yield* Random.nextIntBetween(0, 7);
-    const run: Array<Step> = [{ _tag: 'Down', pointer }, ...(yield* ticks)];
-    let second = false;
+    const run: Array<Step> = [{ _tag: 'Down', pointer, id }, ...(yield* ticks)];
+    let second = Option.none<number>();
     let chord = Option.none<1 | 2>();
-    let held = Option.none<Modifier>();
     let moved = false;
     for (const _ of Array.from({ length: count })) {
       const kind = yield* weighted([
@@ -606,36 +687,24 @@ const press = (keys: Keys) =>
           }),
         ),
         Match.when('key', () => Effect.map(keyed(keys), (steps) => void run.push(...steps))),
-        Match.when('modifier', () => Effect.map(modifier, (step) => void run.push(step))),
-        Match.when('hold', () =>
-          Option.match(held, {
-            onSome: (key) =>
-              Effect.sync(() => {
-                run.push({ _tag: 'Free', key });
-                held = Option.none();
-              }),
+        Match.when('modifier', () =>
+          Effect.map(modifier(keys), (steps) => void run.push(...steps)),
+        ),
+        Match.when('hold', () => Effect.map(holding(keys), (steps) => void run.push(...steps))),
+        Match.when('second', () =>
+          Option.match(second, {
             onNone: () =>
-              Effect.map(Random.choice(modifiers), (key) => {
-                run.push({ _tag: 'Hold', key });
-                held = Option.some(key);
+              Effect.sync(() => {
+                const touch = touchId(keys);
+                run.push({ _tag: 'Second', phase: 'down', id: touch });
+                second = Option.some(touch);
+              }),
+            onSome: (touch) =>
+              Effect.map(Random.choice(['up', 'cancel', 'lost'] as const), (phase) => {
+                run.push({ _tag: 'Second', phase, id: touch });
+                second = Option.none();
               }),
           }),
-        ),
-        Match.when('second', () =>
-          Match.value(second).pipe(
-            Match.when(false, () =>
-              Effect.sync(() => {
-                run.push({ _tag: 'Second', phase: 'down' });
-                second = true;
-              }),
-            ),
-            Match.orElse(() =>
-              Effect.map(Random.choice(['up', 'cancel', 'lost'] as const), (phase) => {
-                run.push({ _tag: 'Second', phase });
-                second = false;
-              }),
-            ),
-          ),
         ),
         Match.when('chord', () =>
           Match.value(pointer).pipe(
@@ -665,8 +734,9 @@ const press = (keys: Keys) =>
     if (Option.isSome(chord)) run.push({ _tag: 'Chord', button: chord.value, phase: 'up' });
     if (moved && (yield* chance(0.35))) run.push({ _tag: 'Move', to: 'back' }, ...(yield* ticks));
     // A second pointer still down lifts before the first one, or after it.
-    const lastLifts = second && (yield* chance(0.5));
-    if (second && !lastLifts) run.push({ _tag: 'Second', phase: 'up' });
+    const lastLifts = Option.isSome(second) && (yield* chance(0.5));
+    const lifts = Option.map(second, (id): Step => ({ _tag: 'Second', phase: 'up', id }));
+    if (!lastLifts) run.push(...Option.toArray(lifts));
     const ending = yield* weighted<Step>([
       [0.7, { _tag: 'Up' }],
       [0.15, { _tag: 'Cancel' }],
@@ -674,8 +744,8 @@ const press = (keys: Keys) =>
     ]);
     run.push(ending);
     if (ending._tag === 'Lost' && (yield* chance(0.5))) run.push({ _tag: 'Late' });
-    if (lastLifts) run.push({ _tag: 'Second', phase: 'up' });
-    if (Option.isSome(held)) run.push({ _tag: 'Free', key: held.value });
+    if (lastLifts) run.push(...Option.toArray(lifts));
+    // The modifiers held stay down past the press: the run lets them up when it will.
     run.push(...(yield* ticks));
     run.push({ _tag: 'Change', dropped: yield* chance(0.2) });
     return run;
@@ -691,13 +761,15 @@ const otherPress = (keys: Keys) =>
       const kind = yield* weighted([
         [0.4, 'key'],
         [0.3, 'assist'],
-        [0.3, 'modifier'],
+        [0.15, 'modifier'],
+        [0.15, 'hold'],
       ] as const);
       run.push(
         ...(yield* Match.value(kind).pipe(
           Match.when('key', () => keyed(keys)),
           Match.when('assist', () => Effect.succeed<Array<Step>>([{ _tag: 'Assist' }])),
-          Match.when('modifier', () => Effect.map(modifier, (step): Array<Step> => [step])),
+          Match.when('modifier', () => modifier(keys)),
+          Match.when('hold', () => holding(keys)),
           Match.exhaustive,
         )),
         ...(yield* ticks),
@@ -716,7 +788,8 @@ const gesture = (keys: Keys) =>
       [0.1, 'other'],
       [0.15, 'key'],
       [0.06, 'assist'],
-      [0.06, 'modifier'],
+      [0.04, 'modifier'],
+      [0.1, 'hold'],
       [0.08, 'play'],
       [0.05, 'halt'],
       [0.08, 'tick'],
@@ -726,7 +799,8 @@ const gesture = (keys: Keys) =>
       Match.when('other', () => otherPress(keys)),
       Match.when('key', () => keyed(keys)),
       Match.when('assist', () => Effect.succeed<Array<Step>>([{ _tag: 'Assist' }])),
-      Match.when('modifier', () => Effect.map(modifier, (step): Array<Step> => [step])),
+      Match.when('modifier', () => modifier(keys)),
+      Match.when('hold', () => holding(keys)),
       Match.when('play', () => Effect.succeed<Array<Step>>([{ _tag: 'Play' }])),
       Match.when('halt', () => Effect.succeed<Array<Step>>([{ _tag: 'Halt' }])),
       Match.when('tick', () => Effect.map(tick, (step) => [step])),
@@ -748,7 +822,7 @@ const runOf = (seed: number): Run =>
       );
       const playing = yield* Random.nextBoolean;
       const count = yield* Random.nextIntBetween(1, 8);
-      const keys: Keys = { held: Option.none() };
+      const keys: Keys = { held: Option.none(), modifiers: new Set(), touch: firstTouch - 1 };
       const run = new Array<Step>();
       for (const _ of Array.from({ length: count })) {
         run.push(...(yield* gesture(keys)), ...(yield* ticks));
@@ -795,7 +869,7 @@ describe('the web position bar under any run of input', () => {
         at: 151.3,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           ...drag([120, 60, 5]),
           { _tag: 'Up' },
           { _tag: 'Tick', seconds: 0.25 },
@@ -815,7 +889,7 @@ describe('the web position bar under any run of input', () => {
         at: 34.2,
         playing: false,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           ...drag([35, 50, 80, 50]),
           { _tag: 'Move', to: 'back' },
           { _tag: 'Up' },
@@ -835,7 +909,7 @@ describe('the web position bar under any run of input', () => {
         at: 53.4,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           ...drag([59]),
           { _tag: 'Move', to: 'back' },
           { _tag: 'Up' },
@@ -853,7 +927,7 @@ describe('the web position bar under any run of input', () => {
         at: 45,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Down', pointer: 'touch', id: 2 },
           ...drag([123, 210, 85]),
           { _tag: 'Lost' },
           { _tag: 'Change', dropped: false },
@@ -870,7 +944,7 @@ describe('the web position bar under any run of input', () => {
         at: 60,
         playing: false,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           ...tap('ArrowRight'),
           { _tag: 'Tick', seconds: 0.25 },
           { _tag: 'Up' },
@@ -887,7 +961,7 @@ describe('the web position bar under any run of input', () => {
         at: 100,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Down', pointer: 'touch', id: 2 },
           { _tag: 'Move', to: 24 },
           { _tag: 'Tick', seconds: 0.38 },
           ...tap('ArrowLeft'),
@@ -905,10 +979,10 @@ describe('the web position bar under any run of input', () => {
         at: 30,
         playing: false,
         steps: [
-          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Down', pointer: 'touch', id: 2 },
           { _tag: 'Move', to: 75 },
-          { _tag: 'Second', phase: 'down' },
-          { _tag: 'Second', phase: 'up' },
+          { _tag: 'Second', phase: 'down', id: 3 },
+          { _tag: 'Second', phase: 'up', id: 3 },
           { _tag: 'Move', to: 80 },
           { _tag: 'Tick', seconds: 0.25 },
           { _tag: 'Up' },
@@ -925,7 +999,7 @@ describe('the web position bar under any run of input', () => {
         at: 30,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           { _tag: 'Hold', key: 'Shift' },
           ...drag([90, 120]),
           { _tag: 'Tick', seconds: 0.25 },
@@ -944,7 +1018,7 @@ describe('the web position bar under any run of input', () => {
         at: 239.5,
         playing: false,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           { _tag: 'KeyDown', key: 'ArrowRight' },
           ...drag([100, 90]),
           { _tag: 'KeyUp', key: 'ArrowRight', lost: false },
@@ -965,7 +1039,7 @@ describe('the web position bar under any run of input', () => {
           { _tag: 'KeyDown', key: 'End' },
           { _tag: 'KeyUp', key: 'End', lost: true },
           { _tag: 'Tick', seconds: 0.25 },
-          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Down', pointer: 'touch', id: 2 },
           ...drag([50]),
           { _tag: 'Cancel' },
           { _tag: 'Change', dropped: false },
@@ -982,7 +1056,7 @@ describe('the web position bar under any run of input', () => {
         playing: false,
         steps: [
           { _tag: 'KeyDown', key: 'Home' },
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           ...drag([120, 0]),
           { _tag: 'Up' },
           { _tag: 'Change', dropped: false },
@@ -998,7 +1072,7 @@ describe('the web position bar under any run of input', () => {
         at: 239.5,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Down', pointer: 'touch', id: 2 },
           { _tag: 'KeyDown', key: 'End' },
           { _tag: 'Tick', seconds: 0.18 },
           { _tag: 'KeyDown', key: 'End' },
@@ -1017,7 +1091,7 @@ describe('the web position bar under any run of input', () => {
         at: 60,
         playing: false,
         steps: [
-          { _tag: 'Down', pointer: 'mouse' },
+          { _tag: 'Down', pointer: 'mouse', id: 1 },
           { _tag: 'KeyDown', key: 'ArrowRight' },
           { _tag: 'KeyDown', key: 'ArrowRight' },
           { _tag: 'KeyDown', key: 'ArrowRight' },
@@ -1037,7 +1111,7 @@ describe('the web position bar under any run of input', () => {
         at: 100,
         playing: true,
         steps: [
-          { _tag: 'Down', pointer: 'touch' },
+          { _tag: 'Down', pointer: 'touch', id: 2 },
           { _tag: 'Hold', key: 'Shift' },
           ...tap('ArrowLeft'),
           { _tag: 'Tick', seconds: 0.25 },
@@ -1050,6 +1124,30 @@ describe('the web position bar under any run of input', () => {
     ).toEqual(Option.none());
   });
 
+  test('playerfix r3 M3: Shift held from before the pointerdown, a mouse drag from 0:30 to 2:00: one seek, at the release', () => {
+    const steps: Array<Step> = [
+      { _tag: 'Hold', key: 'Shift' },
+      { _tag: 'Down', pointer: 'mouse', id: 1 },
+      ...drag([60, 90, 120]),
+      { _tag: 'Tick', seconds: 0.25 },
+      { _tag: 'Up' },
+      { _tag: 'Change', dropped: false },
+      { _tag: 'Free', key: 'Shift' },
+    ];
+    expect(play({ at: 30, playing: false, steps: [...steps, ...closing] })).toEqual(Option.none());
+  });
+
+  test('playerfix r3 M3: a touch press with Chromium’s id 2 drags from 0:30 to 2:00: one seek, at the release', () => {
+    const steps: Array<Step> = [
+      { _tag: 'Down', pointer: 'touch', id: 2 },
+      ...drag([60, 90, 120]),
+      { _tag: 'Tick', seconds: 0.25 },
+      { _tag: 'Up' },
+      { _tag: 'Change', dropped: false },
+    ];
+    expect(play({ at: 30, playing: false, steps: [...steps, ...closing] })).toEqual(Option.none());
+  });
+
   // Each step key inside a drag seeks at once, by its own step.
   for (const key of ['PageUp', 'PageDown', 'Home', 'End'] as const) {
     test(`playerfix r1 M3: ${key} inside a mouse drag at 1:40 seeks at once`, () => {
@@ -1058,7 +1156,7 @@ describe('the web position bar under any run of input', () => {
           at: 60,
           playing: false,
           steps: [
-            { _tag: 'Down', pointer: 'mouse' },
+            { _tag: 'Down', pointer: 'mouse', id: 1 },
             ...drag([100]),
             ...tap(key),
             { _tag: 'Tick', seconds: 0.25 },
