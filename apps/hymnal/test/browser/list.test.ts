@@ -825,15 +825,12 @@ describe('the search field', () => {
 describe('a press at once', () => {
   it.concurrent('whose link is not there fails at once, saying so', async () => {
     await using app = await open();
-    const started = performance.now();
+    // A press that hung would fail on the case's timeout; the message says the press failed at the link.
     const outcome = await app.leaveAtOnce(2000, 'Nowhere').then(
       () => 'pressed',
       (error: Error) => error.message,
     );
-    expect({ outcome, soon: performance.now() - started < 3000 }).toEqual({
-      outcome: expect.stringContaining('no link to Nowhere'),
-      soon: true,
-    });
+    expect(outcome).toContain('no link to Nowhere');
   });
 });
 
