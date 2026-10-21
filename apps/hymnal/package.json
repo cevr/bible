@@ -14,7 +14,8 @@
     "test": "bun run test:browser & browser=$!; bun run test:app && bun run test:infra; rest=$?; wait $browser && exit $rest",
     "test:app": "bun test --preload ./src/test/setup.ts src",
     "test:browser": "bun test ./test/browser --timeout 30000",
-    "test:infra": "bun test infra",
+    "test:infra": "bun test infra scripts",
+    "sim": "bun scripts/sim.ts",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "audio:copy": "bun infra/audio/copy.ts"

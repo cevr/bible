@@ -4,6 +4,12 @@
     "types": ["bun"],
     "allowImportingTsExtensions": true
   },
-  "include": ["alchemy.run.ts", "infra/**/*.ts", "src/remote.ts", "vite/words.ts"],
+  "include": [
+    "alchemy.run.ts",
+    "infra/**/*.ts",
+    "scripts/**/*.ts",
+    "src/remote.ts",
+    "vite/words.ts"
+  ],
   "exclude": ["node_modules", "dist", "ios", "android"]
 }
