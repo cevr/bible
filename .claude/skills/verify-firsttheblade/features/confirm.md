@@ -57,8 +57,9 @@ seven days, replaced, or cut short leads to "This link has run out".
 
 2. **Read the proof.** `$EVIDENCE/confirm/03-skeleton.png` shows the grey
    skeleton under the mark; `04-confirmed.png` the notice mid-entrance;
-   `confirm.webm` the whole journey. Check that the `confirmed` step's time
-   is at least the 600 ms hold.
+   `confirm.webm` the whole journey. Check that the `confirmed` step's hold,
+   read on the page's own clock from the skeleton's first busy frame to the
+   answer, is at least the 600 ms hold (the drive fails it under 550 ms).
 3. **Expired, by agent-browser.** On a `verify:launch` preview:
    `ab open "$O/subscribe/confirm?token=cut-short"`. `ab get url` ends
    `/subscribe/expired`; the h1 is "This link has run out", and

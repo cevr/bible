@@ -46,6 +46,47 @@ const LEAST_HOLD_MS = 550;
 
 const SIGNUP_LABEL = 'Or have each one sent to you by email';
 
+/** Where `markHold` keeps its marks on the page's window. */
+const HOLD_MARKS = '__verifyHold';
+
+/**
+ * Run in the page before its own script: marks, on the page's clock, when
+ * the skeleton (a busy status) first shows and when it stops being busy, so
+ * the hold is read apart from the drive's own screenshots and waits.
+ */
+const markHold = (key: string) => {
+  const marks = { shown: -1, answered: -1 };
+  Reflect.set(window, key, marks);
+  new MutationObserver(() => {
+    const status = document.querySelector('[role="status"]');
+    if (!(status instanceof Element)) return;
+    const busy = status.getAttribute('aria-busy') === 'true';
+    // oxlint-disable-next-line effect/noGlobals -- run in the page, on the page's own clock.
+    if (busy && marks.shown < 0) marks.shown = performance.now();
+    // oxlint-disable-next-line effect/noGlobals -- run in the page, on the page's own clock.
+    if (!busy && marks.shown >= 0 && marks.answered < 0) marks.answered = performance.now();
+  }).observe(document, { subtree: true, childList: true, attributes: true });
+};
+
+const HoldMarks = Schema.Struct({ shown: Schema.Finite, answered: Schema.Finite });
+
+/** The skeleton's hold as the page saw it: from its first busy frame to its answer, in ms. */
+const heldOn = Effect.fn('Verify.heldOn')(function* (drive: Drive) {
+  const kept = yield* browser(drive, 'confirmed', () =>
+    drive.page.evaluate((key): unknown => Reflect.get(window, key), HOLD_MARKS),
+  );
+  const marks = yield* Schema.decodeUnknownEffect(HoldMarks)(kept).pipe(
+    Effect.mapError(() => failed(drive, 'confirmed', 'the page kept no hold marks')),
+  );
+  yield* expectThat(
+    drive,
+    'confirmed',
+    marks.shown >= 0 && marks.answered >= marks.shown,
+    `the page saw the skeleton at ${marks.shown} ms and its answer at ${marks.answered} ms`,
+  );
+  return Math.round(marks.answered - marks.shown);
+});
+
 interface Drive {
   readonly journey: JourneyName;
   readonly page: Page;
@@ -267,8 +308,8 @@ const confirmInPlace = Effect.fn('Verify.confirmInPlace')(function* (drive: Driv
   yield* signUp(drive, 'sign-up');
   const link = yield* confirmLink(drive);
   const loadsBefore = drive.loads.length;
+  yield* browser(drive, 'skeleton', () => page.addInitScript(markHold, HOLD_MARKS));
   yield* browser(drive, 'skeleton', () => page.goto(link, { waitUntil: 'domcontentloaded' }));
-  const opened = yield* Clock.currentTimeMillis;
   const status = page.getByRole('status');
   yield* shows(drive, 'skeleton', status, 'the skeleton (role status)');
   const busy = yield* browser(drive, 'skeleton', () => status.getAttribute('aria-busy'));
@@ -292,7 +333,7 @@ const confirmInPlace = Effect.fn('Verify.confirmInPlace')(function* (drive: Driv
     'the skeleton: status aria-busy=true, "Confirming your email"',
   );
   yield* confirmedShows(drive, 'confirmed');
-  const answeredMs = (yield* Clock.currentTimeMillis) - opened;
+  const heldMs = yield* heldOn(drive);
   const after = yield* browser(drive, 'confirmed', () => status.getAttribute('aria-busy'));
   yield* expectThat(
     drive,
@@ -315,14 +356,14 @@ const confirmInPlace = Effect.fn('Verify.confirmInPlace')(function* (drive: Driv
   yield* expectThat(
     drive,
     'confirmed',
-    answeredMs >= LEAST_HOLD_MS,
-    `the answer came ${answeredMs} ms after the page opened, under the ${LEAST_HOLD_MS} ms hold`,
+    heldMs >= LEAST_HOLD_MS,
+    `the skeleton held ${heldMs} ms by the page's clock, under the ${LEAST_HOLD_MS} ms hold`,
   );
   yield* record(
     drive,
     'confirmed',
     'wait for the answer',
-    `"${NOTICE_TITLES.confirmed}" drawn in place after ${answeredMs} ms, one load, one POST, address bar ${MAIL_PAGES.confirmed}`,
+    `"${NOTICE_TITLES.confirmed}" drawn in place after the skeleton held ${heldMs} ms, one load, one POST, address bar ${MAIL_PAGES.confirmed}`,
   );
   yield* reloads(drive);
   yield* signsUpAgain(drive);
