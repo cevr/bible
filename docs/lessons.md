@@ -2300,9 +2300,9 @@ The form of an entry, each field on its own line:
 - **Kind:** review
 - **Said:** "What is left is a sentence with no mail word and no frequency word"
 - **Source:** ftb-copy/round-4-findings.md F1
-- **Wrong:** A sentence that says how often we write with no word the net holds (`apps/firsttheblade/scripts/promise.ts` `NET`: no word of mail or of the list, no word of how often, and no word of time inside any word), such as "Expect news from us when there is some.", passes the promise check.
+- **Wrong:** A sentence that says how often we write with no word the net holds (`apps/firsttheblade/scripts/promise.ts` `NET`: no word of mail or of the list, no word of how often, and no word of time inside any word), such as "Expect a word from us when there is one.", passes the promise check.
 - **Cause:** The check finds a sentence about how often we email by its words, and no list of words reaches every way to say it.
-- **Guard:** skill: which sentences speak of how often is a reading of their sense, and no word list holds every way to say it. Carried by `apps/firsttheblade/README.md`: "Say how often we email only in the promise's words."
+- **Guard:** skill: which sentences speak of how often is a reading of their sense, and no word list holds every way to say it. Carried by `apps/firsttheblade/README.md`: "Say how often and what we email only in the promise's words."
 
 ### email-promise-worker-answers
 
@@ -2393,3 +2393,93 @@ The form of an entry, each field on its own line:
 - **Wrong:** Round 1 of the rewrite ran merge-audit's each-commit check and redfirst by hand, since the disk was full and the tools could not make their scratch worktree.
 - **Cause:** Other work had filled the disk.
 - **Guard:** none: the tools exist and refuse loudly on a full disk; round 2 ran them (`tmp/orchestrate/p5/ftb-copy/rw-merge-each-2.log`, `rw-redfirst-2.log`).
+
+### email-promise-invisible-characters
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "an invisible character inside a word hides it from the net"
+- **Source:** ftb-copy/rw-round-2-findings.md F1 (repeat of rw-round-1 F2)
+- **Wrong:** `<p>Expect us wee&shy;kly.</p>`, the same with a zero-width space or a zero-width joiner, and a full-width "ｗｅｅｋｌｙ" each passed the promise check, though a reader sees "weekly".
+- **Cause:** The check matched the net against the characters as decoded, and a format character or a full-width letter is a different character from the one the reader takes it for.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `fold`, `SEEN_CHARACTERS`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F1 a soft hyphen inside "weekly"`
+
+### email-promise-generated-content
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "CSS generated content is read apart from the element text it draws beside"
+- **Source:** ftb-copy/rw-round-2-findings.md F2 (repeat of rw-round-1 F3)
+- **Wrong:** `.button-label::after{content:" and our news"}` made the sign-up button read "Email me new films and our news", and the check passed it as the held "Email me new films"; `content:"kly"` after "wee" drew "weekly".
+- **Cause:** The check read each stylesheet string as its own run of words, and does not resolve which element a selector draws it beside.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `GENERATED`, `CSS_STRINGS`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F2 generated content after the sign-up button`
+
+### email-promise-join-checked-by-net
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the both-layouts check tests whether the net matches, not whether the other layout's sentence is held"
+- **Source:** ftb-copy/rw-round-2-findings.md F3
+- **Wrong:** `<label>Or get them by email</label><div style="display:inline"> and our news too</div>` passed: a reader sees "Or get them by email and our news too", which breaks "and nothing else".
+- **Cause:** At a break, the check asked only whether the joined words held a net word that neither side held, so a join beside a held sentence that already held one was never read as a sentence.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `joinsOf`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F3 an inline <div> after the sign-up label`
+
+### email-promise-letter-sender
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the letters' sender name and address are not read"
+- **Source:** ftb-copy/rw-round-2-findings.md F4
+- **Wrong:** `FROM` (`apps/firsttheblade/src/mail/mailer.ts`), which every inbox shows beside each letter, was not read, so "First the Blade Weekly" or `weekly@firsttheblade.com` would have passed.
+- **Cause:** The check read the letters as their builders return them, and the sender is set where the Worker sends them.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `blocks: [FROM.name, FROM.email]`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F4 the letters are from "First the Blade Weekly"`
+
+### email-promise-unknown-meta
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "meta tags outside SEEN_META are dropped, not failed"
+- **Source:** ftb-copy/rw-round-2-findings.md F5
+- **Wrong:** `<meta name="application-name" content="First the Blade Weekly">`, a name some systems show for a pinned site, passed unread.
+- **Cause:** The check read the meta tags a pattern named and dropped every other one.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `UNSEEN_META`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F5 <meta name="application-name">`
+
+### email-promise-what-we-send
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the skill line covers how often we email, not what we email"
+- **Source:** ftb-copy/rw-round-2-findings.md F6
+- **Wrong:** "Plus our news and offers." and "Plus recipes and promotions." break the promise's "and nothing else", held no net word, and the README's line spoke only of how often we email.
+- **Cause:** The net and the skill line were written for the promise's first limit (how often), not its second (what we send).
+- **Guard:** skill: what we send beside the films is a reading of a sentence's sense past the words the net holds (`apps/firsttheblade/scripts/promise.ts` `NET`, "what we send"). Carried by `apps/firsttheblade/README.md`: "Say how often and what we email only in the promise's words."
+
+### email-promise-built-twice
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the gate builds dist/ twice on a miss"
+- **Source:** ftb-copy/rw-round-2-findings.md F7
+- **Wrong:** On a cache miss, the gate's `promise` step built the app again after turbo's `build`, about 2 s of work done twice.
+- **Cause:** The step built fresh so it never read a stale `dist/`, rather than checking the one turbo built; a check by file times would refuse a cached build after a source is saved unchanged, so the build stamps the hash of its sources and of each file it wrote.
+- **Guard:** code: `apps/firsttheblade/package.json` `"gate": "bun scripts/promise.ts && bun run promise:census"`; `apps/firsttheblade/scripts/built.ts` `sourcesHash`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F7 a source changed after the build`
+
+### email-promise-download-name
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "a download file name is not read"
+- **Source:** ftb-copy/rw-round-2-findings.md F8
+- **Wrong:** `<a download="weekly-digest.pdf">` passed, and the browser shows the name in its save dialog.
+- **Cause:** The check's list of attributes a reader sees left `download` out, and an attribute in no list was dropped.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `SEEN_ATTRIBUTES`, `UNSEEN_ATTRIBUTES`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F8 a download file name`
+
+### email-promise-fails-closed
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "repeat of rw-r1 F2 (a word the reader sees, which the check reads in fragments)"
+- **Source:** ftb-copy/rw-round-2-findings.md F1; ftb-copy/rw-round-2-findings.md F2; ftb-copy/rw-round-2-findings.md F5
+- **Wrong:** Rounds 1 and 2 of the rewrite each closed the ways the review found text to reach a reader (words split by tags, attributes, stylesheets, then invisible characters, generated content, joins, the sender, meta tags), and each review found one more.
+- **Cause:** The check rested on "it can rebuild what a reader sees by understanding every way text reaches the page", and a source it did not understand was dropped, not failed.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `HTML_ELEMENTS`, `UNSEEN_ATTRIBUTES`, `UNSEEN_META`, `LETTER_HEADERS`; `apps/firsttheblade/scripts/promise-census.ts` `fail-closed an element the check does not read`

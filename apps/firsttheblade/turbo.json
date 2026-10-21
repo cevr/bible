@@ -3,7 +3,14 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "inputs": ["src/**", "public/**", "vite.config.ts", "tsconfig.json", "package.json"],
+      "inputs": [
+        "src/**",
+        "public/**",
+        "vite.config.ts",
+        "tsconfig.json",
+        "package.json",
+        "scripts/built.ts"
+      ],
       "outputs": ["dist/**", ".prerender/**"]
     }
   }

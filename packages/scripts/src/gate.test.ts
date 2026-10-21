@@ -111,7 +111,7 @@ describe("the gate's phases", () => {
           .filter(({ dir }) => dir === 'apps/firsttheblade')
           .flatMap(({ manifest }) => Option.toArray(manifest))
           .map(({ scripts }) => scripts['gate']);
-        expect(promise).toEqual(['bun run promise && bun run promise:census']);
+        expect(promise).toEqual(['bun scripts/promise.ts && bun run promise:census']);
         expect(turbo.tasks['gate:timed']).toBeDefined();
         const timed = commandsIn(scripts['gate:tests'] ?? '').filter((command) =>
           runsTask(command, 'gate:timed'),

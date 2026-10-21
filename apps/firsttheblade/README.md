@@ -188,25 +188,37 @@ of the field at 3072 px, and the dusk band blends in oklab.
 ```bash
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
-bun run promise    # builds, then: every sentence a reader gets that speaks of email or how often is the list's promise, or held
-bun run promise:census  # the promise check, red on each way the promise was lost before, each injected and built
+bun run promise    # builds, then: every sentence a reader gets that speaks of email, of what we send or of how often is the list's promise, or held
+bun run promise:census  # the promise check, red on each way the promise was lost before and on each source it refuses, each injected and built
 ```
 
-The app's `gate` is `bun run promise && bun run promise:census`: `bun run
-gate` runs it with the checks. The promise check reads what a reader gets,
-the built pages (parsed as a browser parses them, with every attribute a
-reader sees or hears and the stylesheets' strings), every letter the list
-sends and the channel kit, so a sentence about how often we email is checked
+The app's `gate` is `bun scripts/promise.ts && bun run promise:census`:
+`bun run gate` runs it with the checks, after turbo's build, so the check
+reads that build, cached or not. The build stamps `dist/` last
+(`scripts/built.ts`: the hash of its sources and of each file it wrote),
+and the check refuses a `dist/` that is not the build of the sources as they
+stand (`email-promise-built-twice`); `bun run promise` builds first. The promise
+check reads what a reader gets, the built pages (parsed as a browser parses
+them), every letter the list sends (its sender, subject, text and HTML) and
+the channel kit, so a sentence about how often or what we email is checked
 as the reader reads it, whatever source wrote it (`docs/lessons.md`
-`email-cadence-limits`). `bun run promise` builds the app first, so it never
-reads a page another build left in `dist/` (`email-promise-stale-dist`).
+`email-cadence-limits`).
 
-The check finds a sentence about how often we email by its words (`NET`: of
-mail, of the list, and of time, inside longer words too), and no list of
-words holds every way to say it: "Expect news from us when there is some."
-holds none of them and passes (`email-promise-no-net-word`). So, in anything
-a reader gets:
-**Say how often we email only in the promise's words.**
+It fails closed: an element, an attribute, a meta tag or a letter header it
+does not know, a stylesheet string with a letter in it, generated content
+(`content:`), an inline script and a character outside plain text each fail
+the run until the check reads them or holds them word for word
+(`email-promise-fails-closed`). Where a stylesheet could lay two boxes side
+by side, the sentence they make joined is held too, named with a `|` at each
+break.
+
+The check finds a sentence about how often or what we email by its words
+(`NET`: of mail, of the list, of what we send, and of time, inside longer
+words too), and no list of words holds every way to say it: "Expect a word
+from us when there is one." and "Plus a few things we think you will like."
+hold none of them and pass (`email-promise-no-net-word`,
+`email-promise-what-we-send`). So, in anything a reader gets:
+**Say how often and what we email only in the promise's words.**
 
 The app's `gate:timed` is `bun run contrast`: `bun run gate` runs it after
 the build, with the tests, alone under the host's test lock, since its

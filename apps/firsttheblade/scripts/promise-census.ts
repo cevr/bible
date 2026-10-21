@@ -4,10 +4,12 @@
  * `email-cadence-limits`, `email-promise-found-by-phrase`,
  * `email-promise-read-in-sources`, `email-promise-net-whole-words`,
  * `email-promise-tags-split-words`, `email-promise-unread-attributes`,
- * `email-promise-held-anywhere`). Each case injects one into a copy of the
+ * `email-promise-held-anywhere`, and the rewrite's round 2 findings, from
+ * `email-promise-invisible-characters` on), and to every source of words it
+ * refuses (`email-promise-fails-closed`). Each case injects one into a copy of the
  * app's sources, builds the copy as the gate builds the app, runs the check
  * there, and passes only when the check fails and says each line of the case
- * (a `*` in a line stands for a build's content hash).
+ * (a `*` in a line stands for a build's content hash, a `…` for any words).
  * A case whose words the sources no longer hold fails too, so no case goes
  * stale unseen. The gate runs it after the check.
  *
@@ -18,13 +20,19 @@ import { Console, Data, Effect, FileSystem, Path, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
-/** One way the promise was lost: the words put in a source file, and what the check must say of it. */
+/**
+ * One way the promise was lost, or one source of words the check refuses:
+ * the words put in a file of the app (after the build when `after`, so
+ * `dist/` is no longer the build of what the app holds), and what the check
+ * must say of it.
+ */
 interface Case {
   readonly name: string;
   readonly file: string;
   readonly find: string;
   readonly put: string;
   readonly said: ReadonlyArray<string>;
+  readonly after?: boolean;
 }
 
 const CONFIRMED = 'Thank you. We will send you ${PROMISE}.';
@@ -34,6 +42,10 @@ const NOTICE_WORDS = '<For each={notice.words}>{(words) => <p>{words}</p>}</For>
 const BUTTON =
   '<button class="button button-night" type="submit">\n        <span class="button-label">Email me new films</span>\n      </button>';
 const LABEL_CSS = '.signup-label {\n  display: block;';
+const LABEL_END = '    </label>\n    <div class="signup-row">';
+const THEME_META = '<meta name="theme-color" content={THEME_COLOR} />';
+const PAGE_BODY = '`<body style="margin:0;padding:0;background:${PALETTE.paper};">`,';
+const ONE_CLICK = "'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',";
 
 /** A case that says one more sentence after the promise, on the confirmed page. */
 const confirmedSays = (name: string, sentence: string): Case => ({
@@ -53,7 +65,7 @@ const noticePrints = (name: string, html: string, said: ReadonlyArray<string>): 
   said: said.map((line) => `dist/subscribe/confirmed.html: ${line}`),
 });
 
-/** The census: every trigger of the promise's findings, rounds 2 to 4 of `ftb-copy` and round 1 of its rewrite. */
+/** The census: every trigger of the promise's findings (rounds 2 to 4 of `ftb-copy`, rounds 1 and 2 of its rewrite), and every source the check refuses. */
 const CASES: ReadonlyArray<Case> = [
   {
     name: 'r2-M1 the confirmed page drops "and nothing else"',
@@ -229,6 +241,171 @@ const CASES: ReadonlyArray<Case> = [
     put: `.signup-label::after {\n  content: 'Weekly emails';\n}\n${LABEL_CSS}`,
     said: ['dist/assets/client-*.css: unheld: Weekly emails'],
   },
+  // rw-r2 F1: a character a reader does not see, or sees as a plain letter, inside a word.
+  noticePrints('rw-r2-F1 a soft hyphen inside "weekly"', '<p>Expect us wee&shy;kly.</p>', [
+    'unheld: Expect us weekly.',
+  ]),
+  noticePrints('rw-r2-F1 a zero-width space inside "weekly"', '<p>Expect us wee&#8203;kly.</p>', [
+    'unheld: Expect us weekly.',
+  ]),
+  noticePrints('rw-r2-F1 a zero-width joiner inside "weekly"', '<p>Expect us wee&zwj;kly.</p>', [
+    'unheld: Expect us weekly.',
+  ]),
+  noticePrints(
+    'rw-r2-F1 a full-width "weekly"',
+    '<p>Expect us &#xff57;&#xff45;&#xff45;&#xff4b;&#xff4c;&#xff59;.</p>',
+    ['unheld: Expect us weekly.'],
+  ),
+  noticePrints('rw-r2-F1 a Cyrillic letter in "weekly"', '<p>Expect us w&#x435;&#x435;kly.</p>', [
+    'unread: character U+0435 in "Expect us w\u0435\u0435kly."',
+  ]),
+  // rw-r2 F2: generated content drawn beside an element's words.
+  {
+    name: 'rw-r2-F2 generated content after the sign-up button',
+    file: 'src/styles.css',
+    find: LABEL_CSS,
+    put: `.button-label::after {\n  content: ' and our news';\n}\n${LABEL_CSS}`,
+    said: ['dist/assets/client-*.css: unread: content: … and our news…'],
+  },
+  noticePrints(
+    'rw-r2-F2 generated content that ends a word',
+    '<style>.w::after{content:"kly"}</style><p>Expect us <span class="w">wee</span>.</p>',
+    ['unread: content: "kly"'],
+  ),
+  noticePrints(
+    'rw-r2-F2 generated content in two strings',
+    "<style>.w::after{content:'wee' 'kly.'}</style>",
+    ["unread: content: 'wee' 'kly.'"],
+  ),
+  // rw-r2 F3: a box shown inline beside a held sentence.
+  {
+    name: 'rw-r2-F3 an inline <div> after the sign-up label',
+    file: 'src/ui/mail.tsx',
+    find: LABEL_END,
+    put: '    </label>\n    <div style={{ display: \'inline\' }}> and our news too</div>\n    <div class="signup-row">',
+    said: ['dist/index.html: layout: …|Or get them by email | and our news too|…'],
+  },
+  noticePrints(
+    'rw-r2-F3 two boxes shown inline',
+    '<p>Get them by email</p><p> and our garden too.</p>',
+    ['layout: Get them by email | and our garden too.'],
+  ),
+  // rw-r2 F4: the letters' sender, which every inbox shows.
+  {
+    name: 'rw-r2-F4 the letters are from "First the Blade Weekly"',
+    file: 'src/mail/mailer.ts',
+    find: "name: 'First the Blade', email",
+    put: "name: 'First the Blade Weekly', email",
+    said: ['letter sender: unheld: First the Blade Weekly'],
+  },
+  {
+    name: 'rw-r2-F4 the letters are from weekly@',
+    file: 'src/mail/mailer.ts',
+    find: "email: 'films@firsttheblade.com'",
+    put: "email: 'weekly@firsttheblade.com'",
+    said: ['letter sender: unheld: weekly@firsttheblade.com'],
+  },
+  // rw-r2 F5: a meta tag the check does not know.
+  {
+    name: 'rw-r2-F5 <meta name="application-name">',
+    file: 'src/document.tsx',
+    find: THEME_META,
+    put: `${THEME_META}\n        <meta name="application-name" content="First the Blade Weekly" />`,
+    said: ['dist/index.html: unread: meta application-name'],
+  },
+  // rw-r2 F6: what we send beside the films.
+  confirmedSays('rw-r2-F6 "our news and offers"', 'Plus our news and offers.'),
+  // rw-r2 F7: the gate reads turbo's build, so a build older than its sources fails.
+  {
+    name: 'rw-r2-F7 a source changed after the build',
+    file: 'src/ui/mail.tsx',
+    find: LEAVE_ANY_TIME,
+    put: "'We email you weekly.'",
+    after: true,
+    said: ['stale: dist/ was built from other sources; run bun run build'],
+  },
+  {
+    name: 'rw-r2-F7 a built file changed after the build',
+    file: 'dist/llms.txt',
+    find: '# First the Blade\n',
+    put: '# First the Blade\n\nWe email you weekly.\n',
+    after: true,
+    said: ['stale: dist/llms.txt changed after its build'],
+  },
+  // rw-r2 F8: a file name the browser shows.
+  noticePrints(
+    'rw-r2-F8 a download file name',
+    '<a href="/x.pdf" download="weekly-digest.pdf">Get it</a>',
+    ['unheld: weekly-digest.pdf'],
+  ),
+  // The letters: their subjects, a hidden preheader and their headers.
+  {
+    name: 'letters a cadence in a subject',
+    file: 'src/mail/letters.ts',
+    find: 'const subject = `Confirm your email for ${CHANNEL.name}`;',
+    put: 'const subject = `Your weekly films from ${CHANNEL.name}`;',
+    said: ['letter confirm text: unheld: Your weekly films from First the Blade'],
+  },
+  {
+    name: 'letters a hidden preheader',
+    file: 'src/mail/letters.ts',
+    find: PAGE_BODY,
+    put: `${PAGE_BODY}\n    '<div style="display:none">Your weekly digest</div>',`,
+    said: [
+      'letter confirm html: unheld: Your weekly digest',
+      'letter film path/00 html: unheld: Your weekly digest',
+    ],
+  },
+  {
+    name: 'fail-closed a letter header the check does not know',
+    file: 'src/mail/letters.ts',
+    find: ONE_CLICK,
+    put: `${ONE_CLICK}\n      'X-Note': 'One film a week',`,
+    said: ['letter film path/00 text: unread: letter header X-Note'],
+  },
+  // Each source of words the check does not read fails the run.
+  noticePrints(
+    'fail-closed an element the check does not read',
+    '<iframe src="/x.html"></iframe>',
+    ['unread: element iframe'],
+  ),
+  noticePrints('fail-closed a custom element', '<film-note>x</film-note>', [
+    'unread: element film-note',
+  ]),
+  noticePrints(
+    'fail-closed an attribute the check does not read',
+    '<span data-note="We email you weekly">x</span>',
+    ['unread: attribute data-note on span'],
+  ),
+  noticePrints('fail-closed an inline script', "<script>document.write('Weekly')</script>", [
+    'unread: inline script',
+  ]),
+  noticePrints(
+    'fail-closed a stylesheet from elsewhere',
+    '<link rel="stylesheet" href="https://example.com/x.css">',
+    ['unread: stylesheet https://example.com/x.css'],
+  ),
+  noticePrints(
+    'fail-closed generated content from a counter',
+    '<style>.w::before{content:counter(n, lower-alpha)}</style>',
+    ['unread: content: counter(n, lower-alpha)'],
+  ),
+  noticePrints(
+    'fail-closed a stylesheet string with a letter',
+    '<style>.w{--note:"Expect us"}</style>',
+    ['unread: CSS string "Expect us"'],
+  ),
+  noticePrints('fail-closed an @import', '<style>@import url(https://example.com/x.css);</style>', [
+    'unread: @import',
+  ]),
+  noticePrints(
+    'fail-closed a mail link that fills in a subject',
+    '<a href="mailto:hello@firsttheblade.com?subject=Weekly">Write</a>',
+    ['unread: link words mailto:hello@firsttheblade.com?subject=Weekly'],
+  ),
+  noticePrints('fail-closed a meta tag with no name', '<meta http-equiv="refresh" content="0">', [
+    'unread: meta',
+  ]),
 ];
 
 /** What a copy of the app needs to build and to run the check. */
@@ -239,6 +416,7 @@ const COPIED = [
   'scripts',
   'package.json',
   'tsconfig.json',
+  'turbo.json',
   'vite.config.ts',
 ];
 
@@ -248,7 +426,10 @@ const CONCURRENCY = 6;
 /** A case's line as the check prints it, a `*` standing for a build's content hash. */
 const saying = (line: string) =>
   new RegExp(
-    `^promise ${line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '[\\w-]+')}$`,
+    `^promise ${line
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\\\*/g, '[\\w-]+')
+      .replaceAll('…', '.*')}$`,
   );
 
 class CaseFailed extends Data.TaggedError('CaseFailed')<{ readonly reason: string }> {}
@@ -288,22 +469,26 @@ const runCase = (app: string, scratch: string, found: Case) =>
     yield* Effect.forEach(COPIED, (entry) =>
       fs.copy(path.join(app, entry), path.join(copy, entry)),
     );
-    const file = path.join(copy, found.file);
-    const source = yield* fs.readFileString(file);
-    const times = source.split(found.find).length - 1;
-    if (times !== 1) {
-      return yield* new CaseFailed({
-        reason: `stale: ${found.file} holds its words ${times} times, not once`,
-      });
-    }
-    yield* fs.writeFileString(
-      file,
-      source.replace(found.find, () => found.put),
-    );
+    const inject = Effect.gen(function* () {
+      const file = path.join(copy, found.file);
+      const source = yield* fs.readFileString(file);
+      const times = source.split(found.find).length - 1;
+      if (times !== 1) {
+        return yield* new CaseFailed({
+          reason: `stale: ${found.file} holds its words ${times} times, not once`,
+        });
+      }
+      yield* fs.writeFileString(
+        file,
+        source.replace(found.find, () => found.put),
+      );
+    });
+    if (found.after !== true) yield* inject;
     const build = yield* exec('bun', ['run', 'build'], copy);
     if (build.code !== 0) {
       return yield* new CaseFailed({ reason: `the build failed:\n${build.output}` });
     }
+    if (found.after === true) yield* inject;
     const check = yield* exec('bun', ['scripts/promise.ts'], copy);
     const lines = check.output.split('\n');
     const unsaid = found.said.filter((line) => !lines.some((said) => saying(line).test(said)));

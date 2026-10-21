@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build && vite build --ssr src/prerender.tsx --outDir .prerender && bun .prerender/prerender.js",
+    "build": "vite build && vite build --ssr src/prerender.tsx --outDir .prerender && bun .prerender/prerender.js && bun scripts/built.ts",
     "preview": "bun src/worker/preview.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src scripts",
-    "gate": "bun run promise && bun run promise:census",
+    "gate": "bun scripts/promise.ts && bun run promise:census",
     "gate:timed": "bun run contrast",
     "contrast": "bun scripts/contrast.ts",
     "promise": "bun run build && bun scripts/promise.ts",
