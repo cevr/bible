@@ -394,6 +394,29 @@ describe('the player by the world: each earlier counterexample', () => {
     }),
   );
 
+  // P8 and P7: a Resume from Ended plays from 0:00, unless a seek came after the end; then
+  // from that seek's place, even when no read came between.
+  for (const platform of ['ios', 'android', 'web'] as const)
+    for (const seekTo of [Option.none<number>(), Option.some(30)])
+      fixed(
+        `rw r1 m5: Ended, then ${Option.match(seekTo, { onNone: () => 'no seek', onSome: (to) => `a seek to ${to} s` })}, then Resume before a read on ${platform}: plays from ${Option.getOrElse(seekTo, () => 0)} s`,
+        platform,
+        {},
+        (w) =>
+          Effect.gen(function* () {
+            yield* playingAt(w, 236);
+            expect(yield* w.until(() => tag(w) === 'Ended', 10_000)).toBe(true);
+            yield* w.run(1000);
+            Option.map(seekTo, (to) => w.send(Command.Seek({ seconds: to })));
+            w.send(Command.Resume());
+            expect(yield* w.until(() => tag(w) === 'Playing', 10_000)).toBe(true);
+            const from = Option.getOrElse(seekTo, () => 0) * 1000;
+            const at = Option.getOrThrow(atOf(w.state())) * 1000;
+            expect(Math.abs(at - from)).toBeLessThan(3000);
+            expect(Math.abs(w.place - from)).toBeLessThan(3000);
+          }),
+      );
+
   // One's seek is refused before the item is ready (HybridOneAudio.swift:194-196), but the lock
   // screen's runs `player.seek` with no such guard (:713-719), so AVPlayer lands it after the
   // page's later, refused one.
