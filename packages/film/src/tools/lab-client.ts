@@ -231,7 +231,10 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
    * closes. Its end is kept the moment the lab names it, so a handshake
    * that fails after that (`notifications/initialized` lost) ends it too.
    * The handshake can be interrupted (a caller's time limit on a lab that
-   * holds the call): until the lab names the session there is none to end.
+   * holds the call). The lab names the session only in its answer, so a
+   * session it opened whose answer the interrupt drops is never ended: it
+   * stays in the lab, idle, until the lab restarts (its transport keeps no
+   * expiry), as one a killed client leaves does.
    */
   const session = Effect.gen(function* () {
     const id = yield* Effect.acquireRelease(Effect.interruptible(initialize), end);
