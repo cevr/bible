@@ -1294,9 +1294,9 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         const quietFrom = w.t;
         // No read sampled the sound: the page is told of it by the first read after.
         expect(
-          w.answered
-            .concat(w.reads)
-            .every((read) => read.sampleAt <= sampled || read.sampleAt >= quietFrom),
+          [...w.answered, ...w.reads].every(
+            (read) => read.sampleAt <= sampled || read.sampleAt >= quietFrom,
+          ),
         ).toBe(true);
         expect(retry(w)).toBe(true);
         yield* w.run(3000);
