@@ -11,8 +11,9 @@ red on the commit before them.
 Run from the repo root as the skill writes it, on port 8590, with the
 checkout's own build (no file under the app's `src/` or `public/` changed
 after it; the doctor's `head` check held each time). Steps 1 to 4 ran at
-8a5b9e159 in `tmp/verify/ftb-proof`; step 5 ran at 4b1df29a1, the commit
-that keeps tokens out of a step's URL, in `tmp/verify/ftb-proof2`. The
+8a5b9e159 in `tmp/verify/ftb-proof`; step 5 ran at b336b497d, where the
+drive reads the skeleton's hold on the page's own clock, in
+`tmp/verify/ftb-proof4`. The
 `files` in each `steps.json` name the scratch root the run wrote to; the
 copies kept here sit beside it.
 
@@ -28,21 +29,21 @@ copies kept here sit beside it.
 4. `verify:stop`: stopped by its recorded PID; the port was free after
    ([run/launch/stop.json](run/launch/stop.json)).
 5. `verify:drive confirm confirm-noscript`: passed, exit 0; its own doctor
-   read load 2.56 on 12 cores ([run/drive.json](run/drive.json); the
+   read load 5.48 on 12 cores ([run/drive.json](run/drive.json); the
    preview's log is [run/preview.txt](run/preview.txt), kept as `.txt`
    since the repo ignores `*.log`). After it, port
    8590 was free and no preview it launched was left.
 
 ### confirm (script on)
 
-| Step      | Seen                                                                                                                                               | Proof                                                                                       |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| sign-up   | `/subscribe/check`, "Check your inbox"                                                                                                             | [01-sign-up.png](run/confirm/01-sign-up.png)                                                |
-| letter    | the confirm letter, its link `/subscribe/confirm`                                                                                                  | [02-letter.txt](run/confirm/02-letter.txt) (token kept as `<token>`)                        |
-| skeleton  | status `aria-busy=true`, "Confirming your email", grey lines under the mark                                                                        | [03-skeleton.png](run/confirm/03-skeleton.png), [aria](run/confirm/03-skeleton.aria.txt)    |
-| confirmed | "You are on the list" drawn in place 831 ms after the page opened (the hold is 600 ms), one load, one POST, the address bar `/subscribe/confirmed` | [04-confirmed.png](run/confirm/04-confirmed.png), [aria](run/confirm/04-confirmed.aria.txt) |
-| reload    | the confirmed page as served, no POST                                                                                                              | [05-reload.png](run/confirm/05-reload.png)                                                  |
-| again     | a second sign-up of the confirmed address: the log says `subscribe.quiet`, the outbox still holds one letter to it                                 | [06-again.png](run/confirm/06-again.png)                                                    |
+| Step      | Seen                                                                                                                                                                    | Proof                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| sign-up   | `/subscribe/check`, "Check your inbox"                                                                                                                                  | [01-sign-up.png](run/confirm/01-sign-up.png)                                                |
+| letter    | the confirm letter, its link `/subscribe/confirm`                                                                                                                       | [02-letter.txt](run/confirm/02-letter.txt) (token kept as `<token>`)                        |
+| skeleton  | status `aria-busy=true`, "Confirming your email", grey lines under the mark                                                                                             | [03-skeleton.png](run/confirm/03-skeleton.png), [aria](run/confirm/03-skeleton.aria.txt)    |
+| confirmed | "You are on the list" drawn in place once the skeleton held 612 ms by the page's clock (the hold is 600 ms), one load, one POST, the address bar `/subscribe/confirmed` | [04-confirmed.png](run/confirm/04-confirmed.png), [aria](run/confirm/04-confirmed.aria.txt) |
+| reload    | the confirmed page as served, no POST                                                                                                                                   | [05-reload.png](run/confirm/05-reload.png)                                                  |
+| again     | a second sign-up of the confirmed address: the log says `subscribe.quiet`, the outbox still holds one letter to it                                                      | [06-again.png](run/confirm/06-again.png)                                                    |
 
 Video: [confirm.webm](run/confirm/confirm.webm), 2.12 s, 53 frames. Steps:
 [steps.json](run/confirm/steps.json).

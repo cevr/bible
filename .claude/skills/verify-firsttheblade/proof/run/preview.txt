@@ -1,7 +1,7 @@
-[03:06:11.254] INFO (#2): Listening on http://[::]:8590
-[03:06:11.863] INFO (#36): [mail] subscribe.mailed subscriber=1
-[03:06:11.950] INFO (#42): [mail] confirm.confirmed subscriber=1
-[03:06:12.932] INFO (#46): [mail] subscribe.quiet
-[03:06:13.309] INFO (#63): [mail] subscribe.mailed subscriber=2
-[03:06:13.461] INFO (#68): [mail] confirm.confirmed subscriber=2
-[03:06:13.629] INFO (#72): [mail] subscribe.quiet
+[03:36:28.742] INFO (#2): Listening on http://[::]:8590
+[03:36:29.329] INFO (#36): [mail] subscribe.mailed subscriber=1
+[03:36:29.413] INFO (#42): [mail] confirm.confirmed subscriber=1
+[03:36:30.395] INFO (#46): [mail] subscribe.quiet
+[03:36:30.767] INFO (#63): [mail] subscribe.mailed subscriber=2
+[03:36:30.921] INFO (#68): [mail] confirm.confirmed subscriber=2
+[03:36:31.086] INFO (#72): [mail] subscribe.quiet

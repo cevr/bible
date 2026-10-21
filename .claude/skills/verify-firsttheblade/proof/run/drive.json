@@ -1,58 +1,58 @@
 {
   "passed": true,
   "origin": "http://127.0.0.1:8590",
-  "root": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2",
+  "root": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4",
   "doctor": {
     "ok": true,
     "target": "http://127.0.0.1:8590",
     "checks": [
       {
         "check": "record",
-        "detail": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/launch.json reads"
+        "detail": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/launch.json reads"
       },
-      { "check": "port", "detail": "port 8590 held by pid 76229" },
-      { "check": "head", "detail": "at 4b1df29a1, build newer than its sources" },
+      { "check": "port", "detail": "port 8590 held by pid 9975" },
+      { "check": "head", "detail": "at b336b497d, build newer than its sources" },
       {
         "check": "answers",
         "detail": "http://127.0.0.1:8590: / 200 with its content policy, /privacy 200, a missing page 404"
       },
       {
         "check": "log",
-        "detail": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/preview.log: no failure lines"
+        "detail": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/preview.log: no failure lines"
       },
       { "check": "outbox", "detail": "0 letters, each with To: and Subject:" },
       { "check": "audio", "detail": "no browser holds the audio output" },
-      { "check": "load", "detail": "load 2.56 on 12 cores" }
+      { "check": "load", "detail": "load 5.48 on 12 cores" }
     ],
     "timingsValid": true
   },
   "journeys": [
     {
       "journey": "confirm",
-      "evidence": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm",
+      "evidence": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm",
       "steps": [
         {
           "n": 1,
           "step": "sign-up",
-          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-1792566371637@example.com, press \"Email me new films\"",
+          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-1792568189099@example.com, press \"Email me new films\"",
           "url": "http://127.0.0.1:8590/subscribe/check",
           "observed": "/subscribe/check, heading \"Check your inbox\"",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/01-sign-up.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/01-sign-up.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/01-sign-up.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/01-sign-up.aria.txt"
           ],
           "atMs": 293
         },
         {
           "n": 2,
           "step": "letter",
-          "action": "read the newest letter to verify-confirm-1792566371637@example.com from the outbox",
+          "action": "read the newest letter to verify-confirm-1792568189099@example.com from the outbox",
           "url": "http://127.0.0.1:8590/subscribe/check",
           "observed": "confirm letter \"Confirm your email for First the Blade\", link /subscribe/confirm",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/02-letter.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/02-letter.txt"
           ],
-          "atMs": 294
+          "atMs": 295
         },
         {
           "n": 3,
@@ -61,22 +61,22 @@
           "url": "http://127.0.0.1:8590/subscribe/confirm?token=<token>",
           "observed": "the skeleton: status aria-busy=true, \"Confirming your email\"",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/03-skeleton.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/03-skeleton.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/03-skeleton.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/03-skeleton.aria.txt"
           ],
-          "atMs": 356
+          "atMs": 357
         },
         {
           "n": 4,
           "step": "confirmed",
           "action": "wait for the answer",
           "url": "http://127.0.0.1:8590/subscribe/confirmed",
-          "observed": "\"You are on the list\" drawn in place after 831 ms, one load, one POST, address bar /subscribe/confirmed",
+          "observed": "\"You are on the list\" drawn in place after the skeleton held 612 ms, one load, one POST, address bar /subscribe/confirmed",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/04-confirmed.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/04-confirmed.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/04-confirmed.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/04-confirmed.aria.txt"
           ],
-          "atMs": 1174
+          "atMs": 1178
         },
         {
           "n": 5,
@@ -85,55 +85,55 @@
           "url": "http://127.0.0.1:8590/subscribe/confirmed",
           "observed": "/subscribe/confirmed served as it stands, no POST",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/05-reload.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/05-reload.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/05-reload.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/05-reload.aria.txt"
           ],
-          "atMs": 1224
+          "atMs": 1225
         },
         {
           "n": 6,
           "step": "again",
-          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-1792566371637@example.com, press \"Email me new films\"",
+          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-1792568189099@example.com, press \"Email me new films\"",
           "url": "http://127.0.0.1:8590/subscribe/check",
-          "observed": "/subscribe/check, heading \"Check your inbox\"; the log says subscribe.quiet and the outbox still holds one letter to verify-confirm-1792566371637@example.com",
+          "observed": "/subscribe/check, heading \"Check your inbox\"; the log says subscribe.quiet and the outbox still holds one letter to verify-confirm-1792568189099@example.com",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/06-again.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/06-again.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/06-again.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/06-again.aria.txt"
           ],
-          "atMs": 1341
+          "atMs": 1342
         }
       ],
       "video": {
-        "path": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm/confirm.webm",
+        "path": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm/confirm.webm",
         "seconds": 2.12
       }
     },
     {
       "journey": "confirm-noscript",
-      "evidence": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript",
+      "evidence": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript",
       "steps": [
         {
           "n": 1,
           "step": "sign-up",
-          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-noscript-1792566373130@example.com, press \"Email me new films\"",
+          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-noscript-1792568190587@example.com, press \"Email me new films\"",
           "url": "http://127.0.0.1:8590/subscribe/check",
           "observed": "/subscribe/check, heading \"Check your inbox\"",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/01-sign-up.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/01-sign-up.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/01-sign-up.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/01-sign-up.aria.txt"
           ],
-          "atMs": 228
+          "atMs": 231
         },
         {
           "n": 2,
           "step": "letter",
-          "action": "read the newest letter to verify-confirm-noscript-1792566373130@example.com from the outbox",
+          "action": "read the newest letter to verify-confirm-noscript-1792568190587@example.com from the outbox",
           "url": "http://127.0.0.1:8590/subscribe/check",
           "observed": "confirm letter \"Confirm your email for First the Blade\", link /subscribe/confirm",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/02-letter.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/02-letter.txt"
           ],
-          "atMs": 229
+          "atMs": 231
         },
         {
           "n": 3,
@@ -142,10 +142,10 @@
           "url": "http://127.0.0.1:8590/subscribe/confirm?token=<token>",
           "observed": "heading \"Confirm your email\" and the button \"Confirm my email\"; no skeleton",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/03-button.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/03-button.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/03-button.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/03-button.aria.txt"
           ],
-          "atMs": 279
+          "atMs": 280
         },
         {
           "n": 4,
@@ -154,10 +154,10 @@
           "url": "http://127.0.0.1:8590/subscribe/confirmed",
           "observed": "the form posts, 303 to /subscribe/confirmed, heading \"You are on the list\"",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/04-confirmed.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/04-confirmed.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/04-confirmed.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/04-confirmed.aria.txt"
           ],
-          "atMs": 379
+          "atMs": 381
         },
         {
           "n": 5,
@@ -166,26 +166,26 @@
           "url": "http://127.0.0.1:8590/subscribe/confirmed",
           "observed": "/subscribe/confirmed served as it stands, no POST",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/05-reload.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/05-reload.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/05-reload.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/05-reload.aria.txt"
           ],
-          "atMs": 429
+          "atMs": 430
         },
         {
           "n": 6,
           "step": "again",
-          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-noscript-1792566373130@example.com, press \"Email me new films\"",
+          "action": "fill \"Or have each one sent to you by email\" with verify-confirm-noscript-1792568190587@example.com, press \"Email me new films\"",
           "url": "http://127.0.0.1:8590/subscribe/check",
-          "observed": "/subscribe/check, heading \"Check your inbox\"; the log says subscribe.quiet and the outbox still holds one letter to verify-confirm-noscript-1792566373130@example.com",
+          "observed": "/subscribe/check, heading \"Check your inbox\"; the log says subscribe.quiet and the outbox still holds one letter to verify-confirm-noscript-1792568190587@example.com",
           "files": [
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/06-again.png",
-            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/06-again.aria.txt"
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/06-again.png",
+            "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/06-again.aria.txt"
           ],
-          "atMs": 545
+          "atMs": 548
         }
       ],
       "video": {
-        "path": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof2/evidence/confirm-noscript/confirm-noscript.webm",
+        "path": "/Users/cvr/Developer/personal/.rifts/manna/verify-ftb/tmp/verify/ftb-proof4/evidence/confirm-noscript/confirm-noscript.webm",
         "seconds": 1.4
       }
     }
