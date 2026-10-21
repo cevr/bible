@@ -119,7 +119,12 @@ describe("a pose sheet's underlay", () => {
 
 describe('an underlay of figures of their own sizes', () => {
   const [w, h] = [512, 512];
-  /** Each column's mannequin: its height in pixels and its head's, read from the top of the head to the neck, its narrowest row above the body. */
+  /**
+   * Each column's mannequin: its height in pixels, and its head read two
+   * ways that bracket it: from the top of the head to the neck (its
+   * narrowest row above the body, a little under the chin) and twice the
+   * top to the head's widest row (a little short of the chin).
+   */
   const sized = (statures: ReadonlyArray<{ height: number; heads: number }>) => {
     const picture = mannequinUnderlay(
       { slots: ['front', 'front'], profiles: [], shown: [1, 2], statures },
@@ -135,22 +140,52 @@ describe('an underlay of figures of their own sizes', () => {
             .length,
       );
       const [top, soles] = [rows[0]!, rows.at(-1)!];
-      // The neck: the narrowest row from a tenth of the figure down to its half, the head's foot.
       const from = Math.round(rows.length / 10);
       const upper = widths.slice(from, Math.round(rows.length / 2));
-      const neck = rows[from + upper.indexOf(Math.min(...upper))]!;
-      return { tall: soles - top, head: neck - top };
+      const neck = from + upper.indexOf(Math.min(...upper));
+      const crown = widths.slice(0, neck);
+      const widest = Math.max(...crown);
+      const middle = (crown.indexOf(widest) + crown.lastIndexOf(widest)) / 2;
+      const tall = soles - top;
+      return { tall, heads: { over: tall / (rows[neck]! - top), under: tall / (2 * middle) } };
     });
   };
+  type Sized = ReturnType<typeof sized>[number];
+  /** Whether a mannequin stands `heads` of its own heads: between its two reads. */
+  const stands = (m: Sized, heads: number) => m.heads.under <= heads && heads <= m.heads.over;
+  /** Whether the second stands `share` of the first's height, to 2 %. */
+  const shareOf = (grown: Sized, child: Sized, share: number) =>
+    Math.abs(child.tall / grown.tall - share) < 0.02;
 
   test("stands a smaller figure its share of the grown one's height, its head a larger share of it", () => {
     const [grown, child] = sized([
       { height: 1, heads: CANON_HEADS },
       { height: 0.7, heads: 2.2 },
     ]);
-    expect(child!.tall / grown!.tall).toBeCloseTo(0.7, 1);
-    expect(grown!.tall / grown!.head).toBeCloseTo(CANON_HEADS, 0);
-    expect(child!.tall / child!.head).toBeCloseTo(2.2, 0);
+    expect([
+      shareOf(grown!, child!, 0.7),
+      stands(grown!, CANON_HEADS),
+      stands(child!, 2.2),
+    ]).toEqual([true, true, true]);
+  });
+
+  // Drawn wrong once each: a child of 2.5 heads, or of 2, in place of 2.2, and one at 0.75 of the height.
+  test('tells a child drawn at the wrong heads or the wrong share from the one asked', () => {
+    const at = (child: { height: number; heads: number }) =>
+      sized([{ height: 1, heads: CANON_HEADS }, child]);
+    const [g25, c25] = at({ height: 0.7, heads: 2.5 });
+    const [g20, c20] = at({ height: 0.7, heads: 2 });
+    const [g75, c75] = at({ height: 0.75, heads: 2.2 });
+    expect([stands(c25!, 2.2), stands(c20!, 2.2), shareOf(g75!, c75!, 0.7)]).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect([shareOf(g25!, c25!, 0.7), shareOf(g20!, c20!, 0.7), stands(c75!, 2.2)]).toEqual([
+      true,
+      true,
+      true,
+    ]);
   });
 
   test('stands a member of its own design its own heads tall', () => {
@@ -159,6 +194,6 @@ describe('an underlay of figures of their own sizes', () => {
       { height: 1, heads: 2.6 },
     ]);
     expect(one!.tall).toBe(two!.tall);
-    expect(one!.tall / one!.head).toBeCloseTo(2.6, 0);
+    expect([stands(one!, 2.6), stands(one!, 2.4), stands(one!, 2.8)]).toEqual([true, false, false]);
   });
 });
