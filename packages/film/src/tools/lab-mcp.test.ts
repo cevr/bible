@@ -1975,6 +1975,38 @@ describe('film publish', () => {
       }),
     ),
   );
+
+  it.effect(
+    "prints the listing the lab gave once its session end is held, within the end's own limit",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const path = yield* Path.Path;
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          yield* productionWithSet(tool);
+          const ending = yield* Latch.make(false);
+          const held = yield* Effect.forkChild(
+            filmCli(
+              (request) => {
+                if (request.method !== 'DELETE') return lab(request, mcpBound);
+                Latch.openUnsafe(ending);
+                // oxlint-disable-next-line effect/noNewPromise -- fetch's own contract: a lab that holds the session's end is a promise that never settles
+                return new Promise<Response>(() => {});
+              },
+              ['publish', path.join(path.resolve('out'), 'judge-faces'), '--production', 'f'],
+            ),
+          );
+          yield* ending.await;
+          yield* TestClock.adjust('5 seconds');
+          const { failed, lines } = yield* Fiber.join(held);
+          expect(failed).toBe('');
+          expect(lines).toEqual([
+            expect.stringMatching(/ {2}http:\/\/localhost:4401\/sets\/spare%2Fjudge-faces$/),
+          ]);
+        }),
+      ),
+  );
 });
 
 /** The questions waiting on production `f`'s current version, by their words. */

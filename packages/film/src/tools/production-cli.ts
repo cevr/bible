@@ -238,7 +238,8 @@ const LAB_ANSWER_SECONDS = 5;
  * roots, which a command run from another checkout (a worktree) does not
  * share. A lab that does not answer within `LAB_ANSWER_SECONDS`, or answers
  * in a shape this checkout does not read, leaves it unknown: the publish has
- * landed either way.
+ * landed either way. The session's end waits at most the lab client's own
+ * limit more, and a listing already received stands through it.
  */
 const listedByLab = (url: string, folder: string) =>
   Effect.gen(function* () {
@@ -246,9 +247,21 @@ const listedByLab = (url: string, folder: string) =>
     const real = (at: string) => fs.realPath(at).pipe(Effect.orElseSucceed(() => at));
     const at = yield* real(folder);
     const client = yield* labClient(url);
-    const { sets } = yield* Effect.scoped(
-      Effect.flatMap(client.session, (session) => client.call(session, SetsTool, {})),
+    // The limit holds the handshake and the call, inside the scope: a listing
+    // the lab gave survives a session end that stalls (the end keeps its own
+    // limit, the lab client's).
+    const answered = yield* Effect.scoped(
+      Effect.flatMap(client.session, (session) => client.call(session, SetsTool, {})).pipe(
+        Effect.map(({ sets }) => Option.some(sets)),
+        Effect.timeoutOrElse({
+          duration: Duration.seconds(LAB_ANSWER_SECONDS),
+          orElse: () => Effect.succeedNone,
+        }),
+      ),
     );
+    if (Option.isNone(answered))
+      return Listing.Unknown({ reason: `no answer in ${LAB_ANSWER_SECONDS} s` });
+    const sets = answered.value;
     const dirs = yield* Effect.forEach(sets, (set) => real(set.dir));
     return Option.match(
       Option.flatMap(
@@ -260,14 +273,7 @@ const listedByLab = (url: string, folder: string) =>
         onSome: (set) => Listing.Listed({ ref: set.set, link: set.links.local }),
       },
     );
-  }).pipe(
-    Effect.timeoutOrElse({
-      duration: Duration.seconds(LAB_ANSWER_SECONDS),
-      orElse: () =>
-        Effect.succeed(Listing.Unknown({ reason: `no answer in ${LAB_ANSWER_SECONDS} s` })),
-    }),
-    Effect.catch((error) => Effect.succeed(Listing.Unknown({ reason: error.message }))),
-  );
+  }).pipe(Effect.catch((error) => Effect.succeed(Listing.Unknown({ reason: error.message }))));
 
 export const publish = Command.make(
   'publish',
