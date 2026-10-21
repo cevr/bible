@@ -27,7 +27,7 @@
  * anything.
  */
 
-import { Option } from 'effect';
+import { Array as Arr, Option } from 'effect';
 
 import type { Status } from './player';
 
@@ -67,10 +67,24 @@ export interface Proof {
   readonly sounded: boolean;
   /** The reader's place, in ms: where a read with no act pending last saw the device once this load sounded, or the latest seek since. */
   readonly place: Option.Option<number>;
+  /**
+   * The places of seeks a later act replaced before a read proved them: a device may still
+   * land one (an iOS lock-screen seek runs on AVPlayer with no readiness guard, after the
+   * page's own seek was refused), and a read there is no place the reader asked.
+   */
+  readonly superseded: ReadonlyArray<number>;
 }
 
 /** What a read proved: stale, its act still pending or landed, or the pair it closed. */
-export type Seen = 'stale' | 'pending' | 'landed' | 'opened' | 'silence' | 'sound' | 'nothing';
+export type Seen =
+  | 'stale'
+  | 'pending'
+  | 'landed'
+  | 'superseded'
+  | 'opened'
+  | 'silence'
+  | 'sound'
+  | 'nothing';
 
 /** The proof after a read, and what the read proved. */
 export interface Proved {
@@ -86,6 +100,7 @@ export const none: Proof = {
   quietFrom: Option.none(),
   sounded: false,
   place: Option.none(),
+  superseded: [],
 };
 
 /** The slack a place keeps: One rounds a seek to 1/600 s, and Android's to whole ms. */
@@ -117,6 +132,13 @@ export const acted = (proof: Proof, now: number, target: Option.Option<number>):
       }),
   }),
   place: Option.orElse(target, () => proof.place),
+  superseded: Option.match(target, {
+    onNone: () => proof.superseded,
+    onSome: () => [
+      ...proof.superseded,
+      ...Option.toArray(Option.map(proof.pending, (it) => it.target)),
+    ],
+  }),
 });
 
 /** A load (a `play`) from `from` ms, known at `now`: nothing has sounded; the reader's place is `from` past 0. */
@@ -131,6 +153,8 @@ export const loaded = (now: number, from: number): Proof => ({
     before: Option.none<Read>(),
     load: true,
   }),
+  // A new play replaces the item, and its seeks with it.
+  superseded: [],
   place: Option.liftPredicate(from, (at) => at > 0),
 });
 
@@ -317,6 +341,37 @@ export const readOf = (proof: Proof, read: Read, takenAt = Number.NEGATIVE_INFIN
         place: Option.none(),
       },
       seen: 'nothing',
+    };
+  // A superseded seek landed: the device stands at a place no later act asked. The reader's
+  // place is pending again, to be asked of the device once more.
+  const reader = Option.orElse(
+    Option.map(proof.pending, (it) => it.target),
+    () => proof.place,
+  );
+  const stray = Option.flatMap(reader, (at) =>
+    Arr.findFirst(
+      proof.superseded,
+      (it) => Math.abs(read.status.positionMs - it) <= slack && Math.abs(at - it) > slack,
+    ).pipe(Option.map((it) => ({ it, at }))),
+  );
+  if (Option.isSome(stray))
+    return {
+      proof: {
+        ...proof,
+        last: Option.none(),
+        quietFrom: Option.none(),
+        superseded: proof.superseded.filter((it) => it !== stray.value.it),
+        pending: Option.some({
+          target: stray.value.at,
+          known: read.asked,
+          after: Option.none<Read>(),
+          seen: Option.some(read),
+          outside: Option.some(read),
+          before: Option.some(read),
+          load: false,
+        }),
+      },
+      seen: 'superseded',
     };
   return Option.match(proof.pending, {
     onNone: () => placed(paired(proof, read), read),

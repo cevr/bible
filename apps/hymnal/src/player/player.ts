@@ -415,6 +415,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             Playing: () =>
               Match.value(seen).pipe(
                 Match.when('landed', () => buffering(false)),
+                Match.when('superseded', () => buffering(false)),
                 Match.orElse(() => Player.Playing({ track, at, length })),
               ),
             // Under the stand the wait is under 15 s: no Retry.
@@ -459,6 +460,12 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               return false;
             }
             if (next.seen === 'stale') return true;
+            // The device landed a seek a later act replaced: the reader's place is asked again.
+            if (next.seen === 'superseded')
+              held.seeking = Option.map(next.proof.pending, ({ target }) => ({
+                to: target,
+                asking: false,
+              }));
             yield* askAgain(status);
             // A give-up lets the recording go: the reads end, whether the ask answered or not.
             let gaveUp = false;
