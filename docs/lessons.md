@@ -2503,3 +2503,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** A refused sentence printed only its words, so each ordinary edit of the site's copy (a page's first words, a new page, the first talk of a series) left the owner or an agent to work out which list of `HELD` holds it and how to write it there.
 - **Cause:** The check was written to refuse, not to say how to hold what it refuses; the owner kept it and asked for its errors to print a ready-to-paste exception (ask a3e589137f5, ship-keep).
 - **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `entriesOf`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r3-F6 a refused sentence, held by the entry it prints`
+
+### email-promise-css-escape
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "escaped CSS identifiers pass the content and attr() rules where no minifier runs"
+- **Source:** ftb-copy/rw-round-3-findings.md F4
+- **Wrong:** `c\6f ntent:\61ttr(data-count)` in a stylesheet the build does not minify (one copied from `public/`, or a letter's `<style>`) passed the promise check, and a browser reads it as `content:attr(data-count)`.
+- **Cause:** The check matches `content:` and `attr()` by name, and an escape spells the name with other characters.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `unread: CSS escape`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r3-F4 an escaped content: and attr() in a stylesheet no minifier reads`
+
+### email-promise-link-card-picture
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "an og or twitter image from another origin is not failed"
+- **Source:** ftb-copy/rw-round-3-findings.md F5
+- **Wrong:** `<meta property="og:image" content="https://example.com/weekly-news.jpg">` passed the promise check, and a link card draws that picture, with any words in it, where no policy of the site's applies.
+- **Cause:** `og:image` and `twitter:image` were in the list of meta tags whose content no reader sees as words, and the picture they name is read by none of the check's readers.
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `LINK_CARD_PICTURES`, `isDrawnLinkCard`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r3-F5 a link card picture from elsewhere`

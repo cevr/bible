@@ -430,6 +430,18 @@ const CASES: ReadonlyArray<Case> = [
   noticePrints('fail-closed a meta tag with no name', '<meta http-equiv="refresh" content="0">', [
     'unread: meta',
   ]),
+  {
+    name: 'rw-r3-F4 an escaped content: and attr() in a stylesheet no minifier reads',
+    file: 'public/escape.css',
+    find: '',
+    put: String.raw`.x::after{c\6f ntent:\61ttr(data-count)}`,
+    said: ['dist/escape.css: unread: CSS escape'],
+  },
+  noticePrints(
+    'rw-r3-F5 a link card picture from elsewhere',
+    '<meta property="og:image" content="https://example.com/weekly-news.jpg">',
+    ['unread: link card picture https://example.com/weekly-news.jpg'],
+  ),
 ];
 
 /** What a copy of the app needs to build and to run the check. */

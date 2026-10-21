@@ -556,6 +556,8 @@ const cssWords = (css: string): Words => {
   const strings = tokens.flatMap((m) =>
     Option.toArray(Option.map(Option.fromNullishOr(m[1] ?? m[2]), (s) => fold(cssUnescape(s)))),
   );
+  // Outside a comment, a `url()` and a string, an escape can spell a property or a function the rules here match by name.
+  const escaped = /\\/.test(css.replace(CSS_TOKENS, ''));
   const content = [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(CSS_CONTENT)].map((m) =>
     (m[1] ?? '').trim(),
   );
@@ -577,6 +579,7 @@ const cssWords = (css: string): Words => {
       ...content
         .filter((value) => !drawsNoLetter(value) && !GENERATED.has(value))
         .map((value) => `unread: content: ${value}`),
+      ...['unread: CSS escape'].filter(() => escaped),
     ],
   };
 };
@@ -697,6 +700,16 @@ const UNSEEN_META = new Set([
   ...['viewport', 'robots', 'theme-color', 'og:type', 'og:url', 'og:image', 'og:image:width'],
   ...['og:image:height', 'og:locale', 'twitter:card', 'twitter:image'],
 ]);
+
+/** The meta tags that name the picture a link card draws, with no policy of the site's in the way. */
+const LINK_CARD_PICTURES = new Set(['og:image', 'twitter:image']);
+/** Where the site serves its link cards: each one the kit draws from words it reads (`WORDLESS`). */
+const LINK_CARD = /^https:\/\/firsttheblade\.com\/(og\/[\w-]+\.jpg)$/;
+/** Whether a link card's picture is one the kit drew: a picture from elsewhere can hold any words. */
+const isDrawnLinkCard = (url: string) =>
+  Option.exists(Option.fromNullishOr(LINK_CARD.exec(url)?.[1]), (file) =>
+    WORDLESS.has(`dist/${file}`),
+  );
 
 /** A text node, or an element's edge: whether it ends a run of words, and whether it opens or closes. */
 type Piece = { readonly text: string } | { readonly breaks: boolean; readonly opens: boolean };
@@ -851,6 +864,10 @@ const markupWords =
           onSome: (name) => {
             if (SEEN_META.has(name)) blocks.push(...Option.toArray(attribute('content')));
             else if (!UNSEEN_META.has(name)) problems.push(`unread: meta ${name}`);
+            if (LINK_CARD_PICTURES.has(name)) {
+              const picture = Option.getOrElse(attribute('content'), () => '');
+              if (!isDrawnLinkCard(picture)) problems.push(`unread: link card picture ${picture}`);
+            }
           },
         });
         return;

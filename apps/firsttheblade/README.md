@@ -208,7 +208,8 @@ as the reader reads it, whatever source wrote it (`docs/lessons.md`
 It fails closed: an element, an attribute, a meta tag or a letter header it
 does not know, a built picture, font or script it does not list, a
 stylesheet string with a letter in it, generated content (`content:`), an
-inline script and a character outside plain text each fail
+escape in a stylesheet outside its strings, a link card picture the kit did
+not draw, an inline script and a character outside plain text each fail
 the run until the check reads them or holds them word for word
 (`email-promise-fails-closed`). Where a stylesheet could lay two boxes side
 by side, the sentence they make joined is held too, named with a `|` at each
