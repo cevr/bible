@@ -87,7 +87,12 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   of it, or since the ask of the latest read that saw the device elsewhere,
   each within 2 ms (One rounds a place). A device that stands where such a
   read saw it has not landed, and one that refused the place lands only by
-  coming onto it. No pair is taken across an act, no length of a gap and no count of
+  coming onto it. A device that is not playing at the place it stood at
+  before the act has not landed either. A seek a later act replaced may
+  still land (an iOS lock-screen seek runs on AVPlayer before the item is
+  ready, while One refuses the page's own): a read there that sound since
+  the read before cannot explain puts the reader's place pending again,
+  and the player asks it once more. No pair is taken across an act, no length of a gap and no count of
   reads proves anything, and the player alone owns the waits; the adapter
   asks a play's place again while the device holds the recording, and never
   gives up by its own clock.
@@ -109,14 +114,16 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   seek since; Failed and Stopped carry it, and a Resume from them, from
   Buffering with Retry, or from the lock screen on any of them, plays from
   it. A Start plays from 0:00. **P8:** Ended once a read says `ended`, and
-  only then; a Resume from Ended plays from 0:00, or follows a phone that
+  only then; an end leaves no place, so a Resume from Ended plays from 0:00, or follows a phone that
   already plays the recording again (the lock screen's play acts before
   the page hears of it).
 - The page says each state in a line beside its button (`src/player/PlayerControl.tsx`):
   Loading and Buffering read "Loading the recording…" with Pause; Failed
   reads "The recording needs a connection." offline, else "The recording
   could not be played."; Stopped reads Paused. Retry (Resume) shows beside
-  a Failed page, and beside Buffering once it offers Retry.
+  a Failed page, and beside Buffering once it offers Retry. An act clears
+  Retry, as it starts the wait again. The lock screen's announce runs beside
+  the reads, never ahead of them.
 - A Pause before the first sound stops the recording: the page shows
   Stopped with the reader's place, and the device lets it go. iOS keeps
   such a pause, but Android's MediaPlayer starts once prepared and the web
@@ -185,7 +192,9 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   pauses with presses and connection changes inside them, lock-screen and
   page acts at any phase, landings that lag, and the end. The world judges
   the page at each step by what the device did, never by what the page
-  proved; each earlier counterexample is a fixed case. A deep sweep runs by
+  proved, by the rules O1 to O10 (O10: a page turns from Playing to
+  waiting only after the stand of silence); each earlier counterexample is
+  a fixed case. A deep sweep runs by
   hand: `WORLD_SEEDS=8000 bun test --preload ./src/test/setup.ts
   src/player/world.property.test.ts -t seeded`.
 - The tests run the player over a device the test holds
