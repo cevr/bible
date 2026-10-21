@@ -13,6 +13,9 @@ import { type Letter, NotReady } from './model.ts';
 const CONFIRM_LINK = new RegExp(`https?://\\S+${MAIL_ROUTES.confirm}\\?token=\\S+`);
 const LEAVE_LINK = new RegExp(`https?://\\S+${MAIL_ROUTES.unsubscribe}\\?token=\\S+`);
 
+/** Text kept as proof, each link's token shown as `<token>`: a live link stays out of the record. */
+export const redactTokens = (text: string) => text.replace(/([?&]token=)[^\s"'<>&]+/g, '$1<token>');
+
 const header = (lines: ReadonlyArray<string>, name: string) =>
   Option.getOrElse(
     Option.map(Option.fromUndefinedOr(lines.find((line) => line.startsWith(`${name}: `))), (line) =>

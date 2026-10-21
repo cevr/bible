@@ -28,7 +28,7 @@ import { CHANNEL } from '../../src/site.ts';
 import { doctorRoot } from './doctor.ts';
 import { launch, run } from './instance.ts';
 import { JourneyFailed, type JourneyReport, type Letter, type Step, Steps } from './model.ts';
-import { awaitLetter, readOutbox } from './outbox.ts';
+import { awaitLetter, readOutbox, redactTokens } from './outbox.ts';
 
 export const JOURNEYS = ['confirm', 'confirm-noscript'] as const;
 export type JourneyName = (typeof JOURNEYS)[number];
@@ -107,7 +107,7 @@ const record = Effect.fn('Verify.record')(function* (
     n,
     step,
     action,
-    url: drive.page.url(),
+    url: redactTokens(drive.page.url()),
     observed,
     files: [`${stem}.png`, `${stem}.aria.txt`],
     atMs: (yield* Clock.currentTimeMillis) - drive.startedAt,
@@ -129,12 +129,12 @@ const keepLetter = Effect.fn('Verify.keepLetter')(function* (
   const n = (yield* Ref.get(drive.steps)).length + 1;
   const kept = `${drive.dir}/${String(n).padStart(2, '0')}-letter.txt`;
   const text = yield* fs.readFileString(letter.file);
-  yield* fs.writeFileString(kept, text.replace(/token=[^\s>]+/g, 'token=<token>'));
+  yield* fs.writeFileString(kept, redactTokens(text));
   const entry: Step = {
     n,
     step: 'letter',
     action: `read the newest letter to ${drive.email} from the outbox`,
-    url: drive.page.url(),
+    url: redactTokens(drive.page.url()),
     observed: `${letter.kind} letter "${letter.subject}", link ${new URL(link).pathname}`,
     files: [kept],
     atMs: (yield* Clock.currentTimeMillis) - drive.startedAt,

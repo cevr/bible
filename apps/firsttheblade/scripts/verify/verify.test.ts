@@ -9,7 +9,7 @@ import { layerOutbox, Mailer } from '../../src/mail/mailer.ts';
 import { MAIL_PAGES, MAIL_ROUTES } from '../../src/mail/paths.ts';
 import { PAGES } from '../../src/pages.ts';
 import { FAILURE_LINE } from './doctor.ts';
-import { readOutbox } from './outbox.ts';
+import { readOutbox, redactTokens } from './outbox.ts';
 import { agentStage, workersDevUrl } from './stage.ts';
 
 const ORIGIN = 'http://127.0.0.1:8599';
@@ -96,6 +96,20 @@ describe('the verify helpers', () => {
     Effect.map(readOutbox('/nonexistent/verify-probe-outbox'), (letters) =>
       expect(letters).toEqual([]),
     ),
+  );
+
+  it.effect('keep no token in the proof', () =>
+    Effect.sync(() => {
+      expect(redactTokens(`${ORIGIN}/subscribe/confirm?token=c.1.17.t5Y_j-Q`)).toBe(
+        `${ORIGIN}/subscribe/confirm?token=<token>`,
+      );
+      expect(redactTokens(`<${ORIGIN}/unsubscribe?a=1&token=x.y>, next`)).toBe(
+        `<${ORIGIN}/unsubscribe?a=1&token=<token>>, next`,
+      );
+      expect(redactTokens(`"url":"${ORIGIN}/subscribe/confirmed"`)).toBe(
+        `"url":"${ORIGIN}/subscribe/confirmed"`,
+      );
+    }),
   );
 
   it.effect('take only a throwaway agent-<name> stage', () =>
