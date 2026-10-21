@@ -2321,7 +2321,7 @@ The form of an entry, each field on its own line:
 - **Said:** "Domain: every page, letter and kit string a reader sees that speaks of how often we email."
 - **Source:** ftb-copy/round-4-findings.md F1
 - **Wrong:** Words the browser script draws (the phone menu's) are in `dist/assets/*.js`, which the promise check skips.
-- **Cause:** The bundle holds the library's own words beside the site's, and the check cannot tell them apart.
+- **Cause:** The check reads no built script (`WORDLESS`); the phone menu's own words are the residual `email-promise-browser-script-prose`.
 - **Guard:** none: a residual; the menu's links are the served pages' own (`src/ui/nav.ts`), which the check reads there.
 
 ### email-promise-painted-words
@@ -2489,10 +2489,10 @@ The form of an entry, each field on its own line:
 - **Date:** 2026-10-21
 - **Kind:** review
 - **Said:** "At each gap, build the other layout's sentence."
-- **Source:** ftb-copy/rw-round-2-findings.md F3
+- **Source:** ftb-copy/rw-round-2-findings.md F3; ftb-copy/rw-round-3-findings.md F7
 - **Wrong:** The promise check joins runs of words in the order the page holds them, so a stylesheet that moves a box out of that order (`order`, a reversed flex row, an absolute position) can set side by side two runs the check never reads joined.
 - **Cause:** Where a box is drawn is the browser's layout, and the check reads the page, not its layout.
-- **Guard:** none: a residual; the built stylesheet sets `order: 0` only and reverses no row, and a review reads a stylesheet that moves a box with words.
+- **Guard:** none: a residual; the built stylesheet sets `order: 0` only and reverses no row. Of its 14 positioned rules (12 `position:absolute`, 2 `position:fixed`), the five that hold words (`.skip`, `.site-header`, `.strip`, `.field-words`, `.menu-popup`) draw their boxes in the order the page holds them, top to bottom; the other nine draw a picture, a veil, an empty generated box, a `.visually-hidden` run (heard in its place) or the off-screen `.signup-trap`. A review reads a stylesheet that moves a box with words.
 
 ### email-promise-paste-ready-entry
 
@@ -2523,3 +2523,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** `<meta property="og:image" content="https://example.com/weekly-news.jpg">` passed the promise check, and a link card draws that picture, with any words in it, where no policy of the site's applies.
 - **Cause:** `og:image` and `twitter:image` were in the list of meta tags whose content no reader sees as words, and the picture they name is read by none of the check's readers.
 - **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `LINK_CARD_PICTURES`, `isDrawnLinkCard`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r3-F5 a link card picture from elsewhere`
+
+### email-promise-hidden-text
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "hidden text satisfies the promise"
+- **Source:** ftb-copy/rw-round-3-findings.md F1
+- **Wrong:** In a built page, `and nothing else.` changed to `<span class="visually-hidden">and nothing else</span>.`, or the same with `aria-hidden="true"`, passed the promise check, and a sighted reader sees "We send you one email when each new film is out, ."
+- **Cause:** The check reads every text node as seen; it does not resolve what a class, `aria-hidden` or a style hides.
+- **Guard:** none: the owner chose to ship and keep the round-3 check and log this path as a known limit (ask a3e589137f5, ship-keep, 2026-10-21); `apps/firsttheblade/README.md` "Known limits of `bun run promise`" names it, and a review reads markup that hides part of a promise sentence.
+
+### email-promise-bidi-controls
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "fold deletes bidi controls, so a reversed word is read as no word"
+- **Source:** ftb-copy/rw-round-3-findings.md F2
+- **Wrong:** `<p>Expect us &#x202e;.ylkeew&#x202c;</p>` passed the promise check, and a reader sees "Expect us weekly."; `unicode-bidi:bidi-override;direction:rtl` passed too.
+- **Cause:** `fold` drops every format character before the net reads a string, the bidi controls with them, and no rule reads `unicode-bidi`.
+- **Guard:** none: the owner chose to ship and keep the round-3 check and log this path as a known limit (ask a3e589137f5, ship-keep, 2026-10-21); `apps/firsttheblade/README.md` "Known limits of `bun run promise`" names it, and a review reads a bidi control or `unicode-bidi` in a page or a stylesheet.
+
+### email-promise-browser-script-prose
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the site's browser scripts are a reader source that is neither read nor failed"
+- **Source:** ftb-copy/rw-round-3-findings.md F3
+- **Wrong:** The phone menu is drawn only in the browser (`apps/firsttheblade/src/client.tsx` replaces its slot), so a literal in `src/ui/phone-menu.tsx` or `src/confirm.ts` reaches a reader through `dist/assets/client.js` or `confirm.js` alone; "Close menu. New films every week, plus our news and offers." in `client.js` passed the promise check.
+- **Cause:** The check lists the built scripts as wordless (`WORDLESS`); it could read their string literals (17 prose literals in `client.js`, one netted and already held), and that reader was not built.
+- **Guard:** none: the owner chose to ship and keep the round-3 check and log this path as a known limit (ask a3e589137f5, ship-keep, 2026-10-21); `apps/firsttheblade/README.md` "Known limits of `bun run promise`" names it, and a review reads a word added to `src/ui/phone-menu.tsx` or `src/confirm.ts`.
+
+### email-promise-stamp-inputs
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the stamp's sources omit the root tsconfig, the lock and @bible/ui"
+- **Source:** ftb-copy/rw-round-3-findings.md F8
+- **Wrong:** The build's stamp hashes turbo's `build` inputs for the app only (`apps/firsttheblade/scripts/built.ts` `buildInputs`), so `bun scripts/promise.ts` run by hand after an edit of the root tsconfig, the lock or `@bible/ui` reads the old `dist/` as current.
+- **Cause:** The stamp reads the app's own inputs from `apps/firsttheblade/turbo.json`; the rest of what a build reads, turbo hashes for itself.
+- **Guard:** none: the gate builds through turbo, whose hash covers them, and `bun run promise` builds first; `apps/firsttheblade/README.md` "Known limits of `bun run promise`" names the inputs the stamp reads.

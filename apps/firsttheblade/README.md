@@ -196,7 +196,8 @@ The app's `gate` is `bun scripts/promise.ts && bun run promise:census`:
 `bun run gate` runs it with the checks, after turbo's build, so the check
 reads that build, cached or not. The build writes a stamp last
 (`scripts/built.ts`, into `.prerender/`, so it is not served: the hash of
-its sources and of each file it wrote), and the check refuses a `dist/` that
+its sources, turbo's `build` inputs in `turbo.json`, and of each file it
+wrote), and the check refuses a `dist/` that
 is not the build of the sources as they stand (`email-promise-built-twice`);
 `bun run promise` builds first. The promise
 check reads what a reader gets, the built pages (parsed as a browser parses
@@ -234,6 +235,17 @@ The app's `gate:timed` is `bun run contrast`: `bun run gate` runs it after
 the build, with the tests, alone under the host's test lock, since its
 browser holds a 30 s limit on each shot; so does CI's gate job, in the
 runner's Google Chrome.
+
+### Known limits of `bun run promise`
+
+The owner chose to ship the check as it stands and log these (ask
+a3e589137f5, 2026-10-21), so a review reads for each:
+
+- Hidden text reads as seen: a part of a promise sentence wrapped in `.visually-hidden`, `aria-hidden` or a hiding style passes, though a sighted reader does not see it (`email-promise-hidden-text`).
+- Bidi controls are folded away: a word written backwards between U+202E and U+202C, or under `unicode-bidi: bidi-override`, reads as no word, though a reader sees it (`email-promise-bidi-controls`).
+- The browser's scripts are not read: words only `src/ui/phone-menu.tsx` or `src/confirm.ts` draw reach a reader through `dist/assets/client.js` or `confirm.js` alone, which the check skips (`email-promise-browser-script-prose`).
+- Runs are joined in the page's order: a positioned box or a reordered flex item that a stylesheet lays beside other words is not read joined with them (`email-promise-joins-in-document-order`).
+- The stamp hashes turbo's `build` inputs only: a run of `bun scripts/promise.ts` after an edit of the root tsconfig, the lock or `@bible/ui` reads the old `dist/`; the gate builds through turbo, whose hash holds them (`email-promise-stamp-inputs`).
 
 ## The art and the fonts
 
