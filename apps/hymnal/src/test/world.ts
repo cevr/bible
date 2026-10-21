@@ -302,6 +302,11 @@ const initial = (platform: Platform, start: number) => ({
   pressing: false,
   /** When the page last sent a command. */
   sentAt: Number.NEGATIVE_INFINITY,
+  /** When the reader last pressed the lock screen (a phone's act). */
+  pressedAt: Number.NEGATIVE_INFINITY,
+  /** When the reader last sought, and when the Resume the next play answers was pressed or sent. */
+  seekAt: Number.NEGATIVE_INFINITY,
+  resumeAt: Number.NEGATIVE_INFINITY,
   landedAt: Number.NEGATIVE_INFINITY,
   failedAt: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
@@ -569,8 +574,6 @@ export const makeWorld = (
         w.fromPending = Option.liftPredicate(fromMs, (from) => from > 0);
         w.playAsk = w.fromPending;
         w.fromSince = w.t;
-        // The page acts on the Resumes it was told in order: its play is from the reader's
-        // place at one of them.
         // The play answers the latest Resume told before it (the page acts on each at its tell,
         // and a Resume that asks no play leaves nothing behind): its places alone.
         const places = w.resumePlaces.splice(0).at(-1) ?? [];
@@ -582,8 +585,10 @@ export const makeWorld = (
             'O6 a Resume played from another place',
             `from=${fromMs} reader=${places.join('/')}`,
           );
-        // The place a play goes to is the reader's from then on.
-        if (resumed) w.readerPlace = Option.some(Math.min(fromMs, w.length));
+        // The place a play goes to is the reader's from then on, unless the reader sought
+        // after the press it answers (a phone's seek pressed later, told later).
+        if (resumed && w.seekAt <= w.resumeAt)
+          w.readerPlace = Option.some(Math.min(fromMs, w.length));
         w.unseenFrom = Option.none();
         return api.play(uri, fromMs);
       }),
@@ -645,6 +650,7 @@ export const makeWorld = (
     w.endedSaid = false;
   };
   const askSeek = (asked: number) => {
+    w.seekAt = w.t;
     const to = Math.min(w.length, Math.max(0, asked));
     w.target = Option.some({
       to,
@@ -692,6 +698,7 @@ export const makeWorld = (
       Resume: () => {
         countResume();
         wantSound();
+        w.resumeAt = w.t;
         // A phone press not told yet is unknown to the page: its Resume may play from the
         // place before the first such press.
         w.resumePlaces.push([
@@ -819,10 +826,14 @@ export const makeWorld = (
       before,
       at: w.t + knobs.tellAfter(),
       run: () => {
-        if (kind === 'play') w.resumePlaces.push([placeThen]);
+        if (kind === 'play') {
+          w.resumePlaces.push([placeThen]);
+          w.resumeAt = pressedAt;
+        }
         // The page acts on tells in order: a seek told after a page command it could not
         // know of is the page's latest seek, so its place is the reader's from here.
-        if (kind === 'seek' && w.sentAt > pressedAt) askSeek(to);
+        // A later press is told later still, and is the latest then.
+        if (kind === 'seek' && w.sentAt > pressedAt && w.pressedAt <= pressedAt) askSeek(to);
         else if (kind === 'seek') w.seeks.push(Math.max(0, to));
         // The page plays at this tell (Resume), so a device that paused itself since the press
         // (D12) sounds again: the reader's latest word is still the play.
@@ -841,10 +852,14 @@ export const makeWorld = (
   /** What the reader's press is to the world: an act, and what the reader wants. */
   const pressed = (kind: Press, to: number) => {
     noteAct();
+    w.pressedAt = w.t;
     w.lastCommand = pressCommand(kind);
     if (kind === 'play') wantSound();
     // The web's and an iOS seek's press acts at the tell, so it is known in order there.
-    if (kind === 'play' && !phone) w.resumePlaces.push([Option.getOrElse(w.readerPlace, () => 0)]);
+    if (kind === 'play' && !phone) {
+      w.resumePlaces.push([Option.getOrElse(w.readerPlace, () => 0)]);
+      w.resumeAt = w.t;
+    }
     if (kind === 'pause') {
       w.wants = false;
       w.pauseAt = w.t;
