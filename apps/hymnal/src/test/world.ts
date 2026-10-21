@@ -444,6 +444,11 @@ export const makeWorld = (
     // still on its way is superseded, as a later seekTo supersedes it.
     w.landedAt = w.t;
     w.place = at;
+    // One says ended only once the device played to the end (didPlayToEndTime, iOS
+    // HybridOneAudio.swift:148-152; OnCompletion, Android HybridOneAudio.kt:208-209), and a
+    // seek's completion clears it (:204, :302): a paused device stays paused at the end, and
+    // plays to it, so ends, when resumed.
+    if (w.place >= w.length && w.phase === 'paused') return;
     if (w.place >= w.length) {
       w.phase = 'ended';
       w.endedAt = w.t;
