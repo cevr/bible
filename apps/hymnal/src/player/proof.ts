@@ -288,9 +288,16 @@ export const readOf = (proof: Proof, read: Read, takenAt = Number.NEGATIVE_INFIN
       proof: { ...proof, pending: Option.some({ ...before.value, after: Option.none<Read>() }) },
       seen: 'pending',
     };
+  // An end lands every act, and leaves no place to go back to: a play after it is from 0:00 (P8).
   if (read.status.state === 'ended')
     return {
-      proof: { ...proof, pending: Option.none(), last: Option.none(), quietFrom: Option.none() },
+      proof: {
+        ...proof,
+        pending: Option.none(),
+        last: Option.none(),
+        quietFrom: Option.none(),
+        place: Option.none(),
+      },
       seen: 'nothing',
     };
   return Option.match(proof.pending, {
