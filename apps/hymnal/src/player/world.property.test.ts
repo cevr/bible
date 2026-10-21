@@ -394,6 +394,24 @@ describe('the player by the world: each earlier counterexample', () => {
     }),
   );
 
+  for (const holdFor of [600, 650, 700])
+    fixed(
+      `rw r1 M3: a seek back 750 ms, read before it lands, then at the old place after a ${holdFor} ms hold: Playing, the place recovered`,
+      'ios',
+      { landAfter: () => 100 },
+      (w) =>
+        Effect.gen(function* () {
+          yield* playingAt(w, 10);
+          w.send(Command.Seek({ seconds: (w.place - 750) / 1000 }));
+          yield* w.run(50);
+          w.hold(holdFor);
+          yield* w.run(6000);
+          expect(tag(w)).toBe('Playing');
+          const at = Option.getOrThrow(atOf(w.state())) * 1000;
+          expect(Math.abs(at - w.place)).toBeLessThan(1000);
+        }),
+    );
+
   fixed(
     'rw r1 M7: Android sounds, fails saying 0: Failed keeps the place, and Resume plays from it',
     'android',

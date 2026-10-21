@@ -298,6 +298,8 @@ const initial = (platform: Platform, start: number) => ({
   playAsk: Option.none<number>(),
   /** The places of the seeks the reader asked, in order, from the one the device was last asked for. */
   seeks: new Array<number>(),
+  /** Whether a phone's press is acting now, before its tell. */
+  pressing: false,
   landedAt: Number.NEGATIVE_INFINITY,
   failedAt: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
@@ -642,7 +644,8 @@ export const makeWorld = (
       landed: false,
       reported: false,
     });
-    w.seeks.push(Math.max(0, asked));
+    // The page learns a phone's press at its tell: its place joins the legal ones there.
+    if (!w.pressing) w.seeks.push(Math.max(0, asked));
     w.readerPlace = Option.some(to);
     w.unseenFrom = Option.none();
     // A later seek is the place the device goes to, not a play's from before it. The play's
@@ -788,7 +791,9 @@ export const makeWorld = (
     }
     const before = w.readerPlace;
     const pressedAt = w.t;
+    w.pressing = true;
     pressed(kind, to);
+    w.pressing = false;
     pressPhone(kind, to);
     // An iOS seek pressed before acts at its tell, which the page gets first: its place is
     // the reader's at this press.
@@ -805,6 +810,7 @@ export const makeWorld = (
       at: w.t + knobs.tellAfter(),
       run: () => {
         if (kind === 'play') w.resumePlaces.push([placeThen]);
+        if (kind === 'seek') w.seeks.push(Math.max(0, to));
         // The page plays at this tell (Resume), so a device that paused itself since the press
         // (D12) sounds again: the reader's latest word is still the play.
         if (kind === 'play' && w.readerPausedAt < pressedAt) w.wants = true;
@@ -1361,12 +1367,13 @@ const commandDrawn = (w: World, r: () => number) => {
 };
 
 /**
- * A reader on a waiting page: one offered Retry takes it now and then, and one waiting offline
+ * A reader on a waiting page: one offered Retry or shown Ended plays now and then, one waiting offline
  * nudges the lock screen's scrubber with no place (the generator may read the page; the oracle
  * never does).
  */
 const readerDrawn = (w: World, r: () => number, waiting: boolean) => {
   if (isRetry(w.state()) && w.running() && r() < 0.05) w.send(Command.Resume());
+  if (w.page() === 'Ended' && w.running() && r() < 0.01) w.send(Command.Resume());
   if (waiting && !w.online && r() < 0.002) w.press('follow');
 };
 
