@@ -1302,6 +1302,42 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         yield* w.run(3000);
       }),
   );
+  // A read of `ended` lands every act (Terms; ios 3143): a lock-screen seek takes the paused,
+  // loading device to its end, the page's later seek is refused until the item is ready, and
+  // the device, resumed, ends there before any ask of it lands. O7's duty ends at that read.
+  fixed(
+    'rw O7 (ios 3143): a seek refused while loading, then an end a read sampled: no O7',
+    'ios',
+    { loadFor: () => 8000 },
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(1000);
+        w.interrupt();
+        expect(yield* w.until(() => tag(w) === 'Paused', 2000)).toBe(true);
+        w.press('seek', 240_000);
+        yield* w.run(1000);
+        expect(w.place).toBe(240_000);
+        w.send(Command.Resume());
+        yield* w.run(500);
+        w.send(Command.Seek({ seconds: 89.283 }));
+        const seekAt = w.t;
+        expect(yield* w.until(() => tag(w) === 'Ended', 20_000)).toBe(true);
+        expect(w.endedSampled).toBeGreaterThan(seekAt);
+        expect(w.place).toBe(240_000);
+        yield* w.run(5000);
+      }),
+  );
+  // Only an end after the seek ends O7's duty: reads of a device that ended before it say
+  // `ended` until the seek lands, and a page that drops the seek leaves them saying so.
+  fixed('rw O7: Ended, then a seek to 30 s and no Resume: the seek lands', 'ios', {}, (w) =>
+    Effect.gen(function* () {
+      yield* playingAt(w, 238);
+      expect(yield* w.until(() => tag(w) === 'Ended', 5000)).toBe(true);
+      w.send(Command.Seek({ seconds: 30 }));
+      yield* w.run(5000);
+    }),
+  );
   // A read asked before an act cannot start P4's wait, even when it samples after the act
   // (android 351: press 15,550, read asked 15,300, sampled 15,700): the wait starts at the
   // first read asked after it. The press is told at that read's answer (D8), and one read's

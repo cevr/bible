@@ -1442,7 +1442,13 @@ export const makeWorld = (
       if (Option.isNone(read.seen) && w.t >= read.sampleAt) {
         read.seen = Option.some(said());
         w.lastSampleAt = w.t;
-        if (said().state === 'ended') w.endedSampled = w.t;
+        if (said().state !== 'ended') continue;
+        w.endedSampled = w.t;
+        // A read of `ended` lands every act (Terms): a seek asked before this sample is done,
+        // when the device ended after it. O7 still owes a seek asked of a device already ended.
+        Option.map(w.target, (it) => {
+          if (it.at < w.t && w.endedAt >= it.at) it.landed = true;
+        });
       }
     runs();
     if (running()) yield* js;
