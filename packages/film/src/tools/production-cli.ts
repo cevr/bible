@@ -16,7 +16,9 @@
 //       file a set published before sets named their production
 //   film publish <folder> --production <production> [--version <n>]
 //       stamp a set's review.json with its production, version and the time
-//       now, so it lands on that production's timeline; then say whether the
+//       now (`ProductionStore.stamp`: refused for a production that keeps no
+//       ledger, or a version it has not opened, as the lab's `publish_set`
+//       refuses them), so it lands on that production's timeline; then say whether the
 //       running lab (FILM_LAB_URL) lists the set, as that lab answers it: the
 //       lab's own review roots decide, never this checkout's
 

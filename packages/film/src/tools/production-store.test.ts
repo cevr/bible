@@ -233,14 +233,23 @@ describe('film publish: the stamp', () => {
     version: 2,
   });
 
-  /** Publish `/out/styles` holding `text` as its review.json; the review.json after, decoded. */
+  const opened = (n: number) => ({ at: n * HOUR, title: `v${n}`, because: Option.none() });
+
+  /** Publish `/out/styles` holding `text` as its review.json onto `look`, which has opened three versions; the review.json after. */
   const published = (text: string, version: Option.Option<number>) => {
     const files = new Map<string, Uint8Array>();
     return Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+      const productions = yield* ProductionStore;
+      yield* productions.modify('look', (current) =>
+        Result.succeed({
+          ...current,
+          versions: [opened(1), opened(2), opened(3)],
+        }),
+      );
       yield* fs.makeDirectory('/out/styles', { recursive: true });
       yield* fs.writeFileString('/out/styles/review.json', text);
-      yield* (yield* ProductionStore).publish('/out/styles', 'look', version, 5 * HOUR);
+      yield* productions.publish('/out/styles', 'look', version, 5 * HOUR);
       return yield* fs.readFileString('/out/styles/review.json');
     }).pipe(Effect.provide(Layer.merge(storeOver(files), memoryFileSystem(files))));
   };

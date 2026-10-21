@@ -93,8 +93,10 @@ Resources: `lab://overview`, `lab://changes` (the last 50), `lab://films/{film}/
 Prompt: `inbox` (every waiting note across the films, and how to work them).
 
 `publish_set` merges at the JSON level, so keys it does not know stay as they were. Given `production` (and
-`version`), it stamps the set onto that production's timeline as `film publish` does (`stampedManifest`): the
-production must keep a ledger, the version must be one it opened, and `published` is the time now.
+`version`), it stamps the set onto that production's timeline by the store's stamp, as `film publish` does
+(`ProductionStore.stamp`, then `stampedManifest`): both refuse a production that keeps no ledger
+(`ProductionUnkept`) and a version it has not opened (`VersionUnknown`), and `published` is the time now. A
+`version` with no `production` is refused by the tool's patch.
 
 ## The easel's tools
 

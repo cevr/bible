@@ -288,7 +288,7 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* () {
     };
   });
 
-  /** The stamp a publish naming a production puts on its set: the production's ledger kept, the version one it opened. */
+  /** The stamp a publish naming a production puts on its set, as the store stamps one (`ProductionStore.stamp`, which `film publish` stamps by too). */
   const stampOf = (patch: typeof ManifestPatch.Type) =>
     Effect.gen(function* () {
       const version = Option.fromUndefinedOr(patch.version);
@@ -299,23 +299,8 @@ export const setsReads = Effect.fn('LabMcp.setsReads')(function* () {
           reason: 'a version names one of the production given with it: give `production` too',
         });
       }
-      const production = named.value;
-      const ledger = yield* refused(productions.read(production));
-      if (Option.isNone(ledger))
-        return yield* LabRefused.make({
-          reason: `production ${production} keeps no ledger: start it (\`film production new ${production}\`), or name one \`film production list\` lists`,
-        });
-      const opened = ledger.value.versions.length;
-      const unopened = Option.filter(version, (n) => n > opened);
-      if (Option.isSome(unopened))
-        return yield* LabRefused.make({
-          reason: `production ${production} has no version ${unopened.value}; it has opened 1 to ${opened}`,
-        });
-      return Option.some<Stamp>({
-        production,
-        version,
-        published: yield* Clock.currentTimeMillis,
-      });
+      const at = yield* Clock.currentTimeMillis;
+      return Option.some(yield* refused(productions.stamp(named.value, version, at)));
     });
 
   // A write drops the review's index (`written`), refused or not, so its next read sees the folder as it is.

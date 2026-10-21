@@ -81,8 +81,9 @@ epoch). An old `review.json` reads as before; a new one reads on an older lab as
 **Derived, never stored** (`packages/film/src/core/production.ts`, pure, tested): which version a set is in
 (the one it names, else the one open when it was published, else its newest file's time; a filed set where
 the ledger files it); the version spans; what waits (`waitingIn`); the timeline (`historyOf`); the front
-door's productions (`productionsOf`: every ledger, and every name a set gives that has none yet, so a unit can
-publish into a production before anyone opens it); and the sets no production holds (`unfiledOf`).
+door's productions (`productionsOf`: every ledger, and every name a set gives that has none, so a set whose
+`review.json` names a production with no ledger still shows, though `film publish` and `publish_set` refuse
+to stamp one); and the sets no production holds (`unfiledOf`).
 
 The choices' state (picked, approved) stays the catalogue's and the set's, read through the index as today.
 Nothing is copied into the ledger.
@@ -107,8 +108,10 @@ bun run lab ask --production righteousness-by-faith --title "Punchy subtitles or
 bun run lab forward --production look --after 5 --title "One Line" --decision <the decision's at>
 ```
 
-`film publish` stamps the set's `review.json` (every other field kept), then asks the running lab (`FILM_LAB_URL`) whether it lists the set and prints the lab's link when it does; the lab's own review roots decide, so a worktree's command never guesses from its own. A unit
-working in its own worktree needs no ledger to publish: the set names its production and lands by time. An
+`film publish` stamps the set's `review.json` (every other field kept), then asks the running lab (`FILM_LAB_URL`) whether it lists the set and prints the lab's link when it does; the lab's own review roots decide, so a worktree's command never guesses from its own. The
+stamp is the store's (`ProductionStore.stamp`), and the lab's `publish_set` stamps by it too: both refuse a
+production that keeps no ledger (`ProductionUnkept`) and a version it has not opened (`VersionUnknown`), so a
+unit in its own worktree starts the production's ledger (`film production new`) before it publishes. An
 agent that records the owner's word from chat uses `decide` or `note`, with the owner's verbatim words in
 `--quote` and its own name in `--by`; `--at` back-dates a word recorded late. Over the lab's MCP the same is
 the `decide` and `note` tools, which require the quote ([lab-mcp.md](lab-mcp.md), "Seams with the timeline"). An agent that hands over a set needing a pick asks on it
@@ -131,8 +134,9 @@ seams the lab and the CLI do.
   `start` (refused `ProductionKept`), `forward` (refused `VersionMoved` when the caller saw an older
   version), `say` (`Decided` or `Noted`, the owner's words, with who filed them; an `Asked` is filed only by a
   lab ask; the lab MCP's `decide` and `note` call it too), `file` (refused
-  `VersionUnknown`), and `publish` (stamps a set's `review.json`; `FileInvalid` when it would be no
-  manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
+  `VersionUnknown`), `stamp` (refused `ProductionUnkept` when the production keeps no ledger, and
+  `VersionUnknown` for a version it has not opened), and `publish` (stamps a set's `review.json` by `stamp`;
+  `FileInvalid` when it would be no manifest). Over HTTP only `forward` is exposed (`POST /api/productions/<production>/versions`); the CLI
   (`film production …`, `film lab decide|note|forward`, `film publish`) is a thin shell over the same verbs.
 - **Events** — none pushed yet: a ledger is a file (`FILMS_PRODUCTIONS/<production>.json`), so a watcher
   on that folder sees every move, word and ask, whoever wrote it; the owner's picks and approvals that answer

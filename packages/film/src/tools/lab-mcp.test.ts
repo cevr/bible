@@ -1809,8 +1809,46 @@ const Stamped = Schema.Struct({
 const StampedJson = Schema.fromJsonString(Stamped);
 
 describe('a set published onto a production through the MCP', () => {
+  it.effect("lands on the production's timeline, stamped as film publish stamps it", () =>
+    provided(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        yield* (yield* ProductionStore).start('f', {
+          title: 'F',
+          film: Option.some('f'),
+          blurb: Option.none(),
+          first: 'the board',
+          at: 1,
+        });
+        yield* TestClock.adjust('5 seconds');
+        const files = [{ from: '/work/judge-calmer.png', to: 'calmer.png' }];
+        const manifest = { title: 'Judge faces', images: ['calmer.png'] };
+        const publish = (patch: Schema.Json) =>
+          tool('publish_set', { name: 'judge-faces', files, manifest: patch });
+        const review = path.join(path.resolve('out'), 'judge-faces', 'review.json');
+        const stamped = Effect.flatMap(fs.readFileString(review), Schema.decodeEffect(StampedJson));
+        yield* publish({ ...manifest, production: 'f', version: 1 });
+        expect(yield* stamped).toStrictEqual({ production: 'f', version: 1, published: 5000 });
+        // A publish naming no version drops the one before: the set falls in the version open now.
+        yield* publish({ production: 'f' });
+        expect(yield* stamped).toStrictEqual({ production: 'f', published: 5000 });
+        const folders = (yield* (yield* Review).index(true)).folders;
+        const ledger = Option.getOrThrow(yield* (yield* ProductionStore).read('f'));
+        const entries = productionsOf([ledger], folders).flatMap((h) => currentOf(h).entries);
+        expect(entries.flatMap((e) => (e._tag === 'Published' && [e.folder.ref]) || [])).toEqual([
+          'spare/judge-faces',
+        ]);
+      }),
+    ),
+  );
+});
+
+describe('a stamp the store refuses', () => {
   it.effect(
-    "lands on the production's timeline, stamped as film publish stamps it; an unknown production or version is refused",
+    'refuses a production with no ledger, a version never opened and a version with no production alike through publish_set and film publish, and stamps nothing',
     () =>
       provided(
         Effect.gen(function* () {
@@ -1818,42 +1856,44 @@ describe('a set published onto a production through the MCP', () => {
           const path = yield* Path.Path;
           const { lab } = yield* labWithMcp;
           const { tool } = yield* mcpSession(lab);
-          yield* (yield* ProductionStore).start('f', {
-            title: 'F',
-            film: Option.some('f'),
-            blurb: Option.none(),
-            first: 'the board',
-            at: 1,
-          });
-          yield* TestClock.adjust('5 seconds');
-          const files = [{ from: '/work/judge-calmer.png', to: 'calmer.png' }];
-          const manifest = { title: 'Judge faces', images: ['calmer.png'] };
-          const publish = (patch: Schema.Json) =>
-            tool('publish_set', { name: 'judge-faces', files, manifest: patch });
-          const review = path.join(path.resolve('out'), 'judge-faces', 'review.json');
-          const stamped = Effect.flatMap(
-            fs.readFileString(review),
-            Schema.decodeEffect(StampedJson),
-          );
-          yield* publish({ ...manifest, production: 'f', version: 1 });
-          expect(yield* stamped).toStrictEqual({ production: 'f', version: 1, published: 5000 });
-          // A publish naming no version drops the one before: the set falls in the version open now.
-          yield* publish({ production: 'f' });
-          expect(yield* stamped).toStrictEqual({ production: 'f', published: 5000 });
-          const folders = (yield* (yield* Review).index(true)).folders;
-          const ledger = Option.getOrThrow(yield* (yield* ProductionStore).read('f'));
-          const entries = productionsOf([ledger], folders).flatMap((h) => currentOf(h).entries);
-          expect(entries.flatMap((e) => (e._tag === 'Published' && [e.folder.ref]) || [])).toEqual([
-            'spare/judge-faces',
-          ]);
-          for (const [patch, reason] of [
-            [{ production: 'nope' }, 'production nope keeps no ledger'],
-            [{ production: 'f', version: 3 }, 'production f has no version 3'],
-            [{ version: 1 }, 'give `production` too'],
-          ] as const) {
-            expect((yield* publish(patch)).refused).toContain(reason);
+          yield* productionWithSet(tool);
+          const folder = path.join(path.resolve('out'), 'judge-faces');
+          const before = yield* fs.readFileString(path.join(folder, 'review.json'));
+          const fetch = (request: Request) => lab(request, mcpBound);
+          const rows = [
+            [{ production: 'nope' }, ['--production', 'nope'], 'nope keeps no ledger'],
+            [
+              { production: 'f', version: 3 },
+              ['--production', 'f', '--version', '3'],
+              'f has no v3 (v1 to v1)',
+            ],
+          ] as const;
+          for (const [patch, flags, reason] of rows) {
+            const mcp = yield* tool('publish_set', { name: 'judge-faces', manifest: patch });
+            const cli = yield* filmCli(fetch, ['publish', folder, ...flags]);
+            expect([mcp.refused, cli.failed]).toEqual([
+              expect.stringContaining(reason),
+              expect.stringContaining(reason),
+            ]);
           }
-          expect(yield* stamped).toStrictEqual({ production: 'f', published: 5000 });
+          // A version under 1: the MCP's schema refuses it, and the store refuses the CLI's.
+          const zero = yield* filmCli(fetch, [
+            'publish',
+            folder,
+            '--production',
+            'f',
+            '--version',
+            '0',
+          ]);
+          expect(zero.failed).toContain('f has no v0 (v1 to v1)');
+          // A version with no production: the MCP's patch says so, and the CLI's flag is required.
+          const versionOnly = yield* tool('publish_set', {
+            name: 'judge-faces',
+            manifest: { version: 1 },
+          });
+          expect(versionOnly.refused).toContain('give `production` too');
+          expect((yield* filmCli(fetch, ['publish', folder, '--version', '1'])).ok).toBe(false);
+          expect(yield* fs.readFileString(path.join(folder, 'review.json'))).toBe(before);
         }),
       ),
   );

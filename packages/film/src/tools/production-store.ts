@@ -83,6 +83,15 @@ class VersionUnknown extends Schema.TaggedError<VersionUnknown>()('VersionUnknow
   }
 }
 
+/** A set stamped onto a production that keeps no ledger: no timeline would ever list it. */
+class ProductionUnkept extends Schema.TaggedError<ProductionUnkept>()('ProductionUnkept', {
+  production: Schema.String,
+}) {
+  override get message() {
+    return `${this.production} keeps no ledger: start it (\`film production new ${this.production}\`), or name one \`film production list\` lists`;
+  }
+}
+
 /** A production's first ledger as `start` takes it. */
 interface Start {
   readonly title: string;
@@ -144,16 +153,26 @@ interface ProductionStoreService {
     version: number,
   ) => Effect.Effect<ProductionFile, VersionUnknown | StoreError>;
   /**
+   * The stamp a set published onto `production` at `at` carries: refused
+   * when the production keeps no ledger, or names a version it has not
+   * opened. `publish` and the lab's `publish_set` stamp a set by it alike.
+   */
+  readonly stamp: (
+    production: ProductionId,
+    version: Option.Option<number>,
+    at: number,
+  ) => Effect.Effect<Stamp, ProductionUnkept | VersionUnknown | StoreError>;
+  /**
    * Publish the set in `folder` (absolute) onto `production`'s timeline:
-   * its `review.json` stamped with the production, the version it was made
-   * for (the one open at `at` without) and `at`, written whole.
+   * its `review.json` stamped (`stamp`) with the production, the version it
+   * was made for (the one open at `at` without) and `at`, written whole.
    */
   readonly publish: (
     folder: string,
     production: ProductionId,
     version: Option.Option<number>,
     at: number,
-  ) => Effect.Effect<void, FileInvalid | StoreError>;
+  ) => Effect.Effect<void, ProductionUnkept | VersionUnknown | FileInvalid | StoreError>;
 }
 
 export class ProductionStore extends Context.Service<ProductionStore, ProductionStoreService>()(
@@ -201,6 +220,21 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
         return Arr.getSomes(files);
       });
 
+      const stamp = (production: ProductionId, version: Option.Option<number>, at: number) =>
+        Effect.gen(function* () {
+          const ledger = yield* read(production);
+          if (Option.isNone(ledger)) return yield* ProductionUnkept.make({ production });
+          const opened = currentVersion(ledger.value);
+          const unopened = Option.filter(version, (n) => n < 1 || n > opened);
+          if (Option.isSome(unopened))
+            return yield* VersionUnknown.make({
+              production,
+              version: unopened.value,
+              current: opened,
+            });
+          return { production, version, published: at } satisfies Stamp;
+        });
+
       const modify = <E>(
         production: ProductionId,
         change: (current: ProductionFile) => Result.Result<ProductionFile, E>,
@@ -237,14 +271,12 @@ export class ProductionStore extends Context.Service<ProductionStore, Production
               return Result.fail(VersionUnknown.make({ production, version, current: n }));
             return Result.succeed(withFiled(current, { set, version }));
           }),
+        stamp,
         publish: (folder, production, version, at) =>
           Effect.gen(function* () {
             const file = path.join(folder, 'review.json');
-            const text = yield* stampManifest(file, yield* fs.readFileString(file), {
-              production,
-              version,
-              published: at,
-            });
+            const given = yield* stamp(production, version, at);
+            const text = yield* stampManifest(file, yield* fs.readFileString(file), given);
             yield* writeWhole(fs, file, (partial) => fs.writeFileString(partial, text));
           }),
       });
