@@ -381,6 +381,24 @@ describe('the player by the world: each earlier counterexample', () => {
       }),
   );
 
+  for (const platform of ['ios', 'android', 'web'] as const)
+    fixed(
+      `rw r2 A3: silent past the wait online, then offline on ${platform}: Failed no sooner than 15 s after the change`,
+      platform,
+      {},
+      (w) =>
+        Effect.gen(function* () {
+          yield* playingAt(w, 60);
+          w.stall(60_000);
+          yield* w.until(() => w.phase === 'dry', 5000);
+          yield* w.run(16_000);
+          w.connect(false);
+          const offline = w.t;
+          expect(yield* w.until(() => tag(w) === 'Failed', owed + 2000)).toBe(true);
+          expect(w.t - offline).toBeGreaterThanOrEqual(15_000);
+        }),
+    );
+
   fixed('rw r1 M5: Retry, then a Seek: no Retry until the new wait runs out', 'ios', {}, (w) =>
     Effect.gen(function* () {
       yield* playingAt(w, 60);
