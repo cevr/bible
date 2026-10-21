@@ -65,8 +65,8 @@ export interface Proof {
   readonly place: Option.Option<number>;
 }
 
-/** What a read proved: stale, its act still pending, or the pair it closed. */
-export type Seen = 'stale' | 'pending' | 'opened' | 'silence' | 'sound' | 'nothing';
+/** What a read proved: stale, its act still pending or landed, or the pair it closed. */
+export type Seen = 'stale' | 'pending' | 'landed' | 'opened' | 'silence' | 'sound' | 'nothing';
 
 /** The proof after a read, and what the read proved. */
 export interface Proved {
@@ -185,7 +185,7 @@ const landing = (proof: Proof, pending: Pending, read: Read, takenAt: number): P
     return {
       // The landing moved the device: no silence run spans it.
       proof: { ...proof, pending: landed, last: Option.some(read), quietFrom: Option.none() },
-      seen: 'opened',
+      seen: 'landed',
     };
   // Two reads after the act at one place prove silence while it is pending: a landing would
   // have moved the place. Sound is never proved across it: a forward landing looks like sound.

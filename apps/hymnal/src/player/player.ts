@@ -408,7 +408,13 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           if (quiet >= Duration.toMillis(stand))
             return buffering(quiet >= Duration.toMillis(giveUpAfter) && !offline());
           return Player.$match(was, {
-            Playing: () => Player.Playing({ track, at, length }),
+            // A landing moved the device: sound before it was at the old place, so Playing
+            // waits for a pair after it.
+            Playing: () =>
+              Match.value(seen).pipe(
+                Match.when('landed', () => buffering(false)),
+                Match.orElse(() => Player.Playing({ track, at, length })),
+              ),
             Buffering: ({ retry }) => buffering(retry),
             Loading: () => Player.Loading({ track }),
             Idle: () => buffering(false),
@@ -418,7 +424,10 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             Failed: () => buffering(false),
           });
         };
-        /** Whether the wait has run out offline: silence and the connection's loss each 15 s old. */
+        /**
+         * Whether the wait has run out offline: silence and the connection's loss each 15 s old
+         * at once, at the read's ask, the last instant its silence is proved.
+         */
         const givenUp = (read: Proof.Read) => {
           const wait = Duration.toMillis(giveUpAfter);
           const told = link.told();
@@ -426,7 +435,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             held.wants === 'play' &&
             Proof.silentFor(held.proof, read) >= wait &&
             !told.online &&
-            read.answered - told.since >= wait
+            read.asked - told.since >= wait
           );
         };
         /**
