@@ -33,7 +33,7 @@ export interface Device {
     | 'setNowPlayingInfo'
     | 'watchRemoteCommands'
   >;
-  readonly network: Pick<typeof One.Network, 'getState'>;
+  readonly network: Pick<typeof One.Network, 'getState' | 'addStateListener'>;
 }
 
 /** The Media Session's handlers as the page sets them. */
@@ -85,14 +85,42 @@ export const playbackOn = (device: () => Device, session: Option.Option<Session>
       (stop) => Effect.sync(stop),
     ),
   );
+  /**
+   * One's connection: the state now, then each change One tells, in order.
+   * A change told while the state now is read waits behind it. A device
+   * whose connection cannot be read is taken as online, so a failure says
+   * the recording could not play, never that it needs a connection the
+   * device may have.
+   */
+  const connection = Stream.callback<boolean>((queue) =>
+    Effect.gen(function* () {
+      const early = new Array<boolean>();
+      let tell = (online: boolean) => void early.push(online);
+      yield* Effect.acquireRelease(
+        Effect.sync(() => device().network.addStateListener((state) => tell(state.isConnected))),
+        (subscription) => Effect.sync(() => subscription.remove()),
+      );
+      const now = yield* call('connection', () => device().network.getState()).pipe(
+        Effect.map((state) => state.isConnected),
+        Effect.orElseSucceed(() => true),
+      );
+      for (const online of [now, ...early]) Queue.offerUnsafe(queue, online);
+      tell = (online) => void Queue.offerUnsafe(queue, online);
+    }),
+  );
   return Playback.of({
-    play: (uri) =>
+    play: (uri, fromMs) =>
       call('play', () => {
         // One drops the Media Session's handlers before this returns.
         const playing = audio().play(uri);
         own();
         return playing;
-      }),
+      }).pipe(
+        Effect.filterOrElse(
+          () => fromMs <= 0,
+          () => call('seek', () => audio().seek(fromMs)),
+        ),
+      ),
     pause: call('pause', () => audio().pause()),
     resume: call('resume', () => audio().resume()),
     seek: (positionMs) => call('seek', () => audio().seek(positionMs)),
@@ -100,13 +128,7 @@ export const playbackOn = (device: () => Device, session: Option.Option<Session>
     // One drops the Media Session's handlers with the recording; the page's
     // Play starts it again, so its handlers stay.
     stop: call('stop', () => audio().stop()).pipe(Effect.tap(() => Effect.sync(own))),
-    // A device whose connection cannot be read is taken as online, so a
-    // failure says the recording could not play, never that it needs a
-    // connection the device may have.
-    online: call('online', () => device().network.getState()).pipe(
-      Effect.map((state) => state.isConnected),
-      Effect.orElseSucceed(() => true),
-    ),
+    connection,
     announce: (announcement) =>
       call('announce', () => audio().setNowPlayingInfo(announcement)).pipe(
         Effect.tap(() => Effect.sync(own)),

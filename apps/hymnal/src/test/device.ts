@@ -8,16 +8,23 @@
  * asked is kept: each URL played, each place sought and each announcement.
  */
 
-import { Effect, Layer, Match, Option, Queue, Stream } from 'effect';
+import { Effect, Layer, Match, Option, Queue, Stream, SubscriptionRef } from 'effect';
 
 import { type Announcement, Playback, PlaybackError, Remote, type Status } from '../player/player';
 
 export const fakeDevice = () => {
   const remote = Effect.runSync(Queue.unbounded<Remote>());
+  const connection = Effect.runSync(SubscriptionRef.make(true));
   const device = {
     /** The playback now. */
     now: { state: 'idle', positionMs: 0 } satisfies Status as Status,
-    online: true,
+    /** The connection: setting it tells the player the change. */
+    get online() {
+      return Effect.runSync(SubscriptionRef.get(connection));
+    },
+    set online(online: boolean) {
+      Effect.runSync(SubscriptionRef.set(connection, online));
+    },
     played: new Array<string>(),
     /** Each place sought, in milliseconds. */
     sought: new Array<number>(),
@@ -59,7 +66,7 @@ export const fakeDevice = () => {
   const layer = Layer.succeed(
     Playback,
     Playback.of({
-      play: (uri) =>
+      play: (uri, fromMs) =>
         Effect.suspend(() => {
           device.played.push(uri);
           if (!device.online) {
@@ -70,7 +77,7 @@ export const fakeDevice = () => {
               }),
             );
           }
-          return at({ state: 'loading', positionMs: 0 });
+          return at({ state: 'loading', positionMs: fromMs });
         }),
       pause: Effect.suspend(() => at({ ...device.now, state: 'paused' })),
       // A recording played to its end plays again from its start.
@@ -101,7 +108,7 @@ export const fakeDevice = () => {
         device.stopped += 1;
         device.now = { state: 'idle', positionMs: 0 };
       }),
-      online: Effect.sync(() => device.online),
+      connection: SubscriptionRef.changes(connection),
       announce: (announcement) => Effect.sync(() => void device.announced.push(announcement)),
       remote: Stream.fromQueue(remote),
     }),

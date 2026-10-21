@@ -32,7 +32,7 @@ import {
   Duration,
   Effect,
   Match,
-  type Layer,
+  Layer,
   Option,
   Schema,
   Stream,
@@ -55,18 +55,33 @@ export type Player = Data.TaggedEnum<{
   Idle: {};
   Loading: { readonly track: Track };
   Playing: { readonly track: Track; readonly at: number; readonly length: Option.Option<number> };
-  /** Playing, but the device waits on the network mid-recording (a stall, or a seek past what it holds). */
+  /**
+   * Playing, but the device waits on the network mid-recording (a stall, or
+   * a seek past what it holds); `retry` once it has waited long enough that
+   * the page offers Retry beside Pause.
+   */
   Buffering: {
     readonly track: Track;
     readonly at: number;
     readonly length: Option.Option<number>;
+    readonly retry: boolean;
   };
   Paused: { readonly track: Track; readonly at: number; readonly length: Option.Option<number> };
   Ended: { readonly track: Track; readonly length: Option.Option<number> };
-  /** The reader paused before the first sound: the device holds nothing, and Play starts it again. */
-  Stopped: { readonly track: Track };
-  /** The recording could not play; `offline` when the device has no connection. */
-  Failed: { readonly track: Track; readonly offline: boolean };
+  /**
+   * The reader paused before the first sound: the device holds nothing, and
+   * Play starts it again from the reader's place `at`, if it has one.
+   */
+  Stopped: { readonly track: Track; readonly at: Option.Option<number> };
+  /**
+   * The recording could not play; `offline` when the device has no
+   * connection. Retry plays it again from the reader's place `at`, if any.
+   */
+  Failed: {
+    readonly track: Track;
+    readonly offline: boolean;
+    readonly at: Option.Option<number>;
+  };
 }>;
 export const Player = Data.taggedEnum<Player>();
 
@@ -133,8 +148,11 @@ export interface Announcement {
 
 /** The device's one playback session. */
 export interface PlaybackApi {
-  /** Play `uri` in place of whatever plays now. */
-  readonly play: (uri: string) => Effect.Effect<Status, PlaybackError>;
+  /**
+   * Play `uri` from `fromMs` in place of whatever plays now; past 0, it asks
+   * the seek again while the device holds the recording, until it lands.
+   */
+  readonly play: (uri: string, fromMs: number) => Effect.Effect<Status, PlaybackError>;
   readonly pause: Effect.Effect<Status, PlaybackError>;
   /** Play on; from the start once the recording has ended. */
   readonly resume: Effect.Effect<Status, PlaybackError>;
@@ -142,8 +160,8 @@ export interface PlaybackApi {
   readonly status: Effect.Effect<Status, PlaybackError>;
   /** Let the recording go: nothing loads or plays, the lock screen shows nothing, and the status says `idle`. */
   readonly stop: Effect.Effect<void, PlaybackError>;
-  /** Whether the device has a connection now. */
-  readonly online: Effect.Effect<boolean>;
+  /** Whether the device has a connection: now, then at each change, in order. */
+  readonly connection: Stream.Stream<boolean>;
   /** Show the recording on the lock screen and in Control Center. */
   readonly announce: (announcement: Announcement) => Effect.Effect<void, PlaybackError>;
   /**
@@ -155,6 +173,29 @@ export interface PlaybackApi {
 }
 
 export class Playback extends Context.Service<Playback, PlaybackApi>()('hymnal/Playback') {}
+
+/** The connection as the device last told it, and when it told it. */
+interface Told {
+  readonly online: boolean;
+  readonly since: number;
+}
+
+/** The connection the player follows, from the device's `connection`. */
+class Link extends Context.Service<Link, { readonly told: () => Told }>()('hymnal/Link') {}
+
+/** Follows the device's connection for as long as the player's runtime lives. */
+const linkLayer = Layer.effect(Link)(
+  Effect.gen(function* () {
+    const device = yield* Playback;
+    let told: Told = { online: true, since: yield* Clock.currentTimeMillis };
+    yield* Stream.runForEach(device.connection, (online) =>
+      Effect.map(Clock.currentTimeMillis, (now) => {
+        if (online !== told.online) told = { online, since: now };
+      }),
+    ).pipe(Effect.forkScoped({ startImmediately: true }));
+    return Link.of({ told: () => told });
+  }),
+);
 
 /** The hymn the player holds, if any. */
 export const trackOf: (player: Player) => Option.Option<Track> = Player.$match({
@@ -237,7 +278,7 @@ export const fromStatus = (
   const length = Option.orElse(lengthOf(status), () => Option.flatMap(held, () => lengthIn(was)));
   const placed = () =>
     Match.value(wants).pipe(
-      Match.when('play', () => Player.Buffering({ track, at, length })),
+      Match.when('play', () => Player.Buffering({ track, at, length, retry: false })),
       Match.when('pause', () => Player.Paused({ track, at, length })),
       Match.exhaustive,
     );
@@ -266,7 +307,7 @@ export const fromStatus = (
     case 'ended':
       return Player.Ended({ track, length });
     case 'failed':
-      return Player.Failed({ track, offline });
+      return Player.Failed({ track, offline, at: Option.none() });
   }
 };
 
@@ -279,8 +320,8 @@ export const asked = (player: Player, intent: Intent): Player =>
   Match.value(intent).pipe(
     Match.when('play', () =>
       Player.$match(player, {
-        Paused: ({ track, at, length }) => Player.Buffering({ track, at, length }),
-        Ended: ({ track, length }) => Player.Buffering({ track, at: 0, length }),
+        Paused: ({ track, at, length }) => Player.Buffering({ track, at, length, retry: false }),
+        Ended: ({ track, length }) => Player.Buffering({ track, at: 0, length, retry: false }),
         Idle: () => player,
         Loading: () => player,
         Playing: () => player,
@@ -306,7 +347,7 @@ export const asked = (player: Player, intent: Intent): Player =>
 
 /** The player's atoms over the device's `playback`, reading its status every `every` while it moves. */
 export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input) => {
-  const runtime = Atom.runtime(playback);
+  const runtime = Atom.runtime(Layer.provideMerge(linkLayer, playback));
   const state = Atom.make<Player>(Player.Idle()).pipe(Atom.keepAlive);
   const wants = Atom.make<Intent>('play').pipe(Atom.keepAlive);
   /**
@@ -320,12 +361,14 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
     .fn(
       Effect.fn('Player.send')(function* (command: Command, get: Atom.FnContext) {
         const device = yield* Playback;
+        const link = yield* Link;
+        const online = Effect.sync(() => link.told().online);
         const show = (player: Player) => Effect.sync(() => get.set(state, player));
         const failed = (track: Track) =>
-          Effect.map(device.online, (online) => Player.Failed({ track, offline: !online }));
+          Effect.map(online, (on) => Player.Failed({ track, offline: !on, at: Option.none() }));
         const settle = (track: Track, status: Status) =>
-          Effect.map(device.online, (online) =>
-            fromStatus(track, status, !online, get.registry.get(state), get.registry.get(wants)),
+          Effect.map(online, (on) =>
+            fromStatus(track, status, !on, get.registry.get(state), get.registry.get(wants)),
           );
         /**
          * The device's status, shown, what it says of the playback, and its
@@ -505,7 +548,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           }).pipe(
             Effect.andThen(show(Player.Loading({ track }))),
             Effect.andThen(
-              ask(track, device.play(audioUrl(track.number)), (error) =>
+              ask(track, device.play(audioUrl(track.number), 0), (error) =>
                 Effect.logWarning('player.play.failed').pipe(
                   Effect.annotateLogs({ track: track.number, message: error.message }),
                   Effect.as(false),
@@ -516,7 +559,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         /** A Pause before the first sound: Stopped at once, and the device lets the recording go. */
         const halt = (track: Track) =>
           Effect.sync(() => get.set(wants, 'pause')).pipe(
-            Effect.andThen(show(Player.Stopped({ track }))),
+            Effect.andThen(show(Player.Stopped({ track, at: Option.none() }))),
             Effect.andThen(device.stop),
             Effect.catchTag('PlaybackError', logged),
             Effect.asVoid,
@@ -558,7 +601,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               Effect.andThen(
                 Option.match(subject, {
                   onNone: () => Effect.void,
-                  onSome: (track) => show(Player.Failed({ track, offline: false })),
+                  onSome: (track) =>
+                    show(Player.Failed({ track, offline: false, at: Option.none() })),
                 }),
               ),
             ),

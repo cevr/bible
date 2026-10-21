@@ -114,7 +114,7 @@ describe('the player', () => {
       // A stall, or a seek past what the device holds: One says `loading`, its length unread.
       app.device.now = { state: 'loading', positionMs: 61_000 };
       expect(yield* app.until(Player.$is('Buffering'))).toEqual(
-        Player.Buffering({ track: morning, at: 61, length: Option.some(151) }),
+        Player.Buffering({ track: morning, at: 61, length: Option.some(151), retry: false }),
       );
 
       app.send(Command.Pause());
@@ -158,7 +158,7 @@ describe('the player', () => {
       app.device.online = false;
       app.send(Command.Start({ track: morning }));
       expect(yield* app.until(Player.$is('Failed'))).toEqual(
-        Player.Failed({ track: morning, offline: true }),
+        Player.Failed({ track: morning, offline: true, at: Option.none() }),
       );
 
       app.device.online = true;
@@ -179,7 +179,7 @@ describe('the player', () => {
 
       app.device.now = { state: 'failed', positionMs: 30_000 };
       expect(yield* app.until(Player.$is('Failed'))).toEqual(
-        Player.Failed({ track: morning, offline: false }),
+        Player.Failed({ track: morning, offline: false, at: Option.none() }),
       );
     }),
   );
@@ -267,7 +267,9 @@ describe('the player', () => {
 
         // The lock screen's pause while the recording loads: nothing has sounded yet.
         app.device.press('pause', { state: 'loading', positionMs: 0 });
-        expect(yield* app.until(Player.$is('Stopped'))).toEqual(Player.Stopped({ track: morning }));
+        expect(yield* app.until(Player.$is('Stopped'))).toEqual(
+          Player.Stopped({ track: morning, at: Option.none() }),
+        );
         expect(app.device.stopped).toBe(1);
 
         // The lock screen's play, or the page's: the recording from its start.

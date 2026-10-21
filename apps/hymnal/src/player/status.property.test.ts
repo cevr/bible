@@ -74,6 +74,7 @@ import {
   Random,
   References,
   Stream,
+  SubscriptionRef,
 } from 'effect';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { TestClock } from 'effect/testing';
@@ -162,6 +163,7 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
   const now = () => clock.currentTimeMillisUnsafe();
   const rate = rateOf(network);
   const remote = Effect.runSync(Queue.unbounded<Remote>());
+  const link = Effect.runSync(SubscriptionRef.make(true));
   const media = {
     /** One holds a player (an element, an AVPlayer, a MediaPlayer). */
     loaded: false,
@@ -485,7 +487,7 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
       }),
     ),
     stop: Effect.andThen(Effect.sync(drop), answer(Effect.void)),
-    online: Effect.sync(() => media.online),
+    connection: SubscriptionRef.changes(link),
     announce: () =>
       notLoaded('announce').pipe(
         Effect.andThen(Effect.sync(() => void (media.session = true))),
@@ -522,6 +524,7 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     const t = now();
     advance();
     media.online = false;
+    Effect.runSync(SubscriptionRef.set(link, false));
     if (media.loaded) media.trouble = true;
     for (const range of media.ranges) {
       if (Option.isNone(range.frozen)) {
@@ -535,6 +538,7 @@ const element = (platform: Platform, network: Network, clock: TestClock.TestCloc
     const t = now();
     advance();
     media.online = true;
+    Effect.runSync(SubscriptionRef.set(link, true));
     for (const range of media.ranges) {
       if (range.dropped) {
         const got = Option.getOrElse(range.frozen, () => range.start);

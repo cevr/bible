@@ -77,6 +77,7 @@ const fake = () => {
     },
     network: {
       getState: () => Effect.runPromise(Effect.succeed({ isConnected: true } as never)),
+      addStateListener: () => ({ remove: () => {} }),
     },
   };
   /** The Media Session's `action` pressed, as the browser calls its handler. */
@@ -107,7 +108,7 @@ describe('the live playback’s remote presses', () => {
         playback,
         4,
         Effect.gen(function* () {
-          yield* Effect.forkChild(playback.play('https://hymns.cvr.im/audio/sdah/100.mp3'), {
+          yield* Effect.forkChild(playback.play('https://hymns.cvr.im/audio/sdah/100.mp3', 0), {
             startImmediately: true,
           });
           // While the recording loads, before any announcement.
@@ -136,7 +137,7 @@ describe('the live playback’s remote presses', () => {
         playback,
         1,
         Effect.gen(function* () {
-          yield* Effect.forkChild(playback.play('https://hymns.cvr.im/audio/sdah/100.mp3'), {
+          yield* Effect.forkChild(playback.play('https://hymns.cvr.im/audio/sdah/100.mp3', 0), {
             startImmediately: true,
           });
           yield* playback.stop;
