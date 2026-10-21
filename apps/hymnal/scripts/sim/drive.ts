@@ -614,6 +614,13 @@ export const open = Effect.fn('Sim.open')(function* (
   let prompts = 0;
   if (session.platform === 'ios') {
     const udid = yield* booted(session);
+    // The driver's app session: `install` opens it, and a drive of an app
+    // installed before this boot opens it here (the app comes forward, or
+    // launches).
+    yield* device(
+      ['open', BUNDLE_ID, '--platform', 'ios', '--udid', udid],
+      Duration.seconds(seconds),
+    );
     yield* succeed('xcrun', ['simctl', 'openurl', udid, url], short);
     prompts = yield* confirmOpen(session);
   } else yield* browser(['open', url], Duration.seconds(seconds));

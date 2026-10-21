@@ -125,6 +125,7 @@ export const simCommand = (place: Place) => {
         Flag.withDescription('a built Hymnal.app to install instead of building this checkout'),
       ),
       prebuild: Flag.Boolean('prebuild').pipe(
+        Flag.withDefault(false),
         Flag.withDescription('run one prebuild first (ios/ is stale, or its build/ was removed)'),
       ),
       expect: Flag.String('expect').pipe(

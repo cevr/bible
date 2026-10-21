@@ -317,6 +317,18 @@ describe('sim commands', () => {
     }).pipe(Effect.provide(Host)),
   );
 
+  it.scoped('install parses without --prebuild, and refuses the web', () =>
+    Effect.gen(function* () {
+      const answers = standIn(() => ok());
+      const { printed } = yield* sim(['install'], answers, Option.some('web'));
+      expect(printed[0]).toMatchObject({
+        ok: false,
+        command: 'install',
+        error: { _tag: 'NotOnPlatform', platform: 'web' },
+      });
+    }).pipe(Effect.provide(Host)),
+  );
+
   it.scoped('a command with no booted drive fails as NoSession', () =>
     Effect.gen(function* () {
       const answers = standIn(() => ok());
