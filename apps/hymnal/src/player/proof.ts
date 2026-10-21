@@ -134,9 +134,15 @@ export const acted = (proof: Proof, now: number, target: Option.Option<number>):
   place: Option.orElse(target, () => proof.place),
   superseded: Option.match(target, {
     onNone: () => proof.superseded,
-    onSome: () => [
+    // A seek's place, not a play's, and not the place this act asks again.
+    onSome: (at) => [
       ...proof.superseded,
-      ...Option.toArray(Option.map(proof.pending, (it) => it.target)),
+      ...Option.toArray(
+        Option.map(
+          Option.filter(proof.pending, (it) => !it.load && Math.abs(it.target - at) > slack),
+          (it) => it.target,
+        ),
+      ),
     ],
   }),
 });
