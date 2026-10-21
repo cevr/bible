@@ -300,7 +300,23 @@ describe('repoJson', () => {
     );
   });
 
-  it.effect('writes back every committed cast record and production byte for byte', () =>
+  test("breaks a filled line before a number its comma would carry past the line, and drops an exponent's plus", () => {
+    // oxfmt's own print of this value: the line of thirteen ends at 93, the fourteenth's comma at 101.
+    expect(printed({ box: Arr.makeBy(20, (i) => 10000 + i), big: [1e30, 1.5e21] })).toBe(
+      [
+        '{',
+        '  "box": [',
+        '    10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012,',
+        '    10013, 10014, 10015, 10016, 10017, 10018, 10019',
+        '  ],',
+        '  "big": [1e30, 1.5e21]',
+        '}',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it.effect('writes back every committed record a tool writes through it byte for byte', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const under = (dir: string, keep: (name: string) => boolean) =>
@@ -312,6 +328,8 @@ describe('repoJson', () => {
           name.endsWith('/cast-sheet/cast-sheet.json'),
         )),
         ...(yield* under('productions', (name) => !name.includes('/') && name.endsWith('.json'))),
+        // The figure goldens: thousands of filled number lines, written by `figure-golden-fixture.ts`.
+        new URL('./fixtures/figure/golden.json', import.meta.url).pathname,
       ];
       expect(files.length).toBeGreaterThan(3);
       const changed = yield* Effect.filter(files, (file) =>

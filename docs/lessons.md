@@ -226,7 +226,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/findings.md F4
 - **Wrong:** `repoJson` wrote two-space JSON with one array item a line, so each write of a `cast-sheet.json` left a diff for `bun run fmt`.
 - **Cause:** It wrote `JSON.stringify` with two spaces, and the formatter sets a short array on one line.
-- **Guard:** code: `packages/film/src/core/schema.test.ts` `writes back every committed cast record and production byte for byte`
+- **Guard:** code: `packages/film/src/core/schema.test.ts` `writes back every committed record a tool writes through it byte for byte`
 
 ### publish-set-keeps-production
 

@@ -15,6 +15,13 @@ const PRINT_WIDTH = 100;
 /** A JSON value's text as JSON writes it alone: a scalar, a key. */
 const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.Json));
 
+/**
+ * A scalar's text as the formatter prints it: JSON's own, but a number's
+ * exponent without its `+` (`1e30`, where JSON writes `1e+30`).
+ */
+const scalarText = (value: Json): string =>
+  (Predicate.isNumber(value) && jsonText(value).replace('e+', 'e')) || jsonText(value);
+
 /** JSON text read back as its value. */
 const jsonValue = Schema.decodeSync(Schema.fromJsonString(Schema.Json));
 
@@ -34,7 +41,7 @@ const entriesOf = (value: Json): ReadonlyArray<readonly [string, Json]> =>
 /** A JSON value's own text on one line, as the formatter prints it flat: `[1, 2]`, `{ "a": 1 }`. */
 const flatJson = (value: Json): string => {
   if (isArray(value)) return `[${value.map(flatJson).join(', ')}]`;
-  if (!isObject(value)) return jsonText(value);
+  if (!isObject(value)) return scalarText(value);
   const entries = entriesOf(value);
   if (entries.length === 0) return '{}';
   return `{ ${entries.map(([k, v]) => `${jsonText(k)}: ${flatJson(v)}`).join(', ')} }`;
@@ -48,15 +55,22 @@ const breaksAlways = (value: Json): boolean =>
 const isMatrix = (items: ReadonlyArray<Json>): boolean =>
   items.length > 1 && items.every((v) => (isArray(v) && v.length > 1) || entriesOf(v).length > 1);
 
-/** Numbers as the formatter fills them: as many to a line, after `indent`, as fit. */
+/**
+ * Numbers as the formatter fills them: as many to a line, after `indent`, as
+ * fit with the comma that follows each but the last.
+ */
 const filled = (numbers: ReadonlyArray<string>, indent: string): ReadonlyArray<string> => {
   const lines: Array<string> = [];
-  for (const n of numbers) {
+  numbers.forEach((n, k) => {
     const last = lines.at(-1);
-    if (Predicate.isNotUndefined(last) && indent.length + last.length + 2 + n.length <= PRINT_WIDTH)
+    const comma = Number(k < numbers.length - 1);
+    if (
+      Predicate.isNotUndefined(last) &&
+      indent.length + last.length + 2 + n.length + comma <= PRINT_WIDTH
+    )
       lines[lines.length - 1] = `${last}, ${n}`;
     else lines.push(n);
-  }
+  });
   return lines;
 };
 
@@ -77,13 +91,13 @@ const printJson = (value: Json, indent: string, column: number, tail: number): s
     const lines =
       (value.every(Predicate.isNumber) &&
         filled(
-          value.map((n) => jsonText(n)),
+          value.map((n) => scalarText(n)),
           inner,
         )) ||
       value.map((v, k) => printJson(v, inner, inner.length, (k < value.length - 1 && 1) || 0));
     return `[\n${lines.map((line) => `${inner}${line}`).join(',\n')}\n${indent}]`;
   }
-  if (!isObject(value)) return jsonText(value);
+  if (!isObject(value)) return scalarText(value);
   const entries = entriesOf(value);
   if (entries.length === 0) return '{}';
   const lines = entries.map(([k, v], i) => {
