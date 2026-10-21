@@ -126,8 +126,6 @@ interface Read {
   readonly sampleAt: number;
   readonly dueAt: number;
   seen: Option.Option<Status>;
-  /** Whether the device sounded since the read before was sampled, with no act since it was asked, and said `playing` at this sample. */
-  closes: boolean;
   readonly answer: (status: Status) => void;
 }
 
@@ -266,10 +264,8 @@ const initial = (platform: Platform, start: number) => ({
   networkListeners: new Array<NetworkListener>(),
   handlers: new Map<string, (details: { readonly seekTime?: number }) => void>(),
   loadAt: Number.NEGATIVE_INFINITY,
-  /** The latest step of sound at the reader's place: no seek or play from a place on its way. */
-  lastHeard: Number.NEGATIVE_INFINITY,
-  /** The latest read that closed a sound pair by the world (`Read.closes`): the load has sounded as a read can show it. */
-  soundSampled: Number.NEGATIVE_INFINITY,
+  /** The latest step O3 owed Playing: the load has sounded for the proof with no act, landing or hold, by world time. */
+  soundProved: Number.NEGATIVE_INFINITY,
   lastSound: Number.NEGATIVE_INFINITY,
   /** The latest silence that sound ended, from the last sound before it to the sound after (O10). */
   quietRun: { from: Number.NEGATIVE_INFINITY, to: Number.NEGATIVE_INFINITY },
@@ -309,8 +305,6 @@ const initial = (platform: Platform, start: number) => ({
   /** The reader's place before sound a host hold kept unseen. */
   unseenFrom: Option.none<number>(),
   unseenSince: Number.POSITIVE_INFINITY,
-  /** The latest read's sample time, and the act count at its ask. */
-  lastRead: { at: start, acts: 0 },
   /** The latest step the device was ended. */
   endedLast: Number.NEGATIVE_INFINITY,
   wants: false,
@@ -651,7 +645,6 @@ export const makeWorld = (
           sampleAt: w.t + Math.floor((lag * knobs.sample()) / step) * step,
           dueAt: w.t + lag,
           seen: Option.none(),
-          closes: false,
           answer: resolve,
         });
         count('D7 read');
@@ -1134,7 +1127,6 @@ export const makeWorld = (
     const seeking = Option.exists(w.target, (it) => !it.landed);
     if (Option.isSome(w.fromPending)) count('D4 lead-in');
     else if (!seeking) {
-      w.lastHeard = w.t + step;
       firstSound();
       // Sound in a host hold no read has sampled since is unseen (gap 3): the page may keep the place before it.
       if (!running() && Option.isNone(w.unseenFrom)) {
@@ -1199,10 +1191,6 @@ export const makeWorld = (
       w.answered.push({ asked: read.asked, sampleAt: read.sampleAt, answered: w.t });
       if (w.answered.length > 1000) w.answered.splice(0, 500);
       const seen = Option.getOrThrow(read.seen);
-      // The unseen sound is seen once a read sampled after the hold that kept it closes on
-      // sound, by the world.
-      if (read.sampleAt >= Math.max(w.unseenSince, w.holdEnd) && read.closes)
-        w.unseenFrom = Option.none();
       note(`read asked=${read.asked} sample=${read.sampleAt} ${seen.state} ${seen.positionMs}`);
       const current = read.acts === w.acts;
       if (seen.state === 'ended' && current) w.endedSaid = true;
@@ -1294,6 +1282,7 @@ export const makeWorld = (
     judgeFailed(now);
     const unacted = w.t - Math.max(w.lastAct, w.landedAt, w.holdEnd) >= proving + span;
     const sounding = w.t - w.soundSince >= proving && Option.isNone(w.fromPending);
+    if (sounding && unacted) w.soundProved = w.t;
     if (settled() && w.wants && sounding && unacted && now._tag !== 'Playing')
       breach('O3 sounding, not Playing', `page=${now._tag}`);
   };
@@ -1304,9 +1293,9 @@ export const makeWorld = (
       if (!(Player.$is('Failed')(now) && now.offline)) breach('O4 Failed owed', `page=${now._tag}`);
       else if (w.stops !== 1) breach('O4 stop called once', `stops=${w.stops}`);
     }
-    // The load's first sound, as a read could show it (P1): a sound no read sampled saying
-    // `playing` is one no pair proves, so the page waits as before a first sound.
-    const sounded = w.soundSampled >= w.loadAt;
+    // The load's first sound (P1), by O3's bound: once Playing was owed since the load, the
+    // page has proved sound, whatever its reads saw.
+    const sounded = w.soundProved >= w.loadAt;
     if (unheld && sounded && seenFor(w.onQuiet) >= owed && !isRetry(now))
       breach('O5 Retry owed', `page=${now._tag}`);
     // Judged at every step the page could have acted on: settled, with every press told.
@@ -1435,16 +1424,6 @@ export const makeWorld = (
         read.seen = Option.some(said());
         w.lastSampleAt = w.t;
         if (said().state === 'ended') w.endedSampled = w.t;
-        // The world's sound pair: the device sounded at the reader's place after the read
-        // before was sampled, with no act since that read was asked and no landing since its
-        // sample, and it says `playing` now.
-        read.closes =
-          said().state === 'playing' &&
-          w.lastHeard > w.lastRead.at &&
-          w.lastRead.acts === w.acts &&
-          w.landedAt <= w.lastRead.at;
-        w.lastRead = { at: w.t, acts: read.acts };
-        if (read.closes) w.soundSampled = w.t;
       }
     runs();
     if (running()) yield* js;

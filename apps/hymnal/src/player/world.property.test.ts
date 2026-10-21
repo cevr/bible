@@ -10,7 +10,8 @@
  */
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Clock, Console, Effect, Option } from 'effect';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Clock, Console, Effect, FileSystem, Option } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import {
@@ -1125,6 +1126,18 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
           expect(yield* w.until(() => tag(w) === 'Playing', 8000)).toBe(true);
         }),
     );
+  // The oracle builds no sound pair (r1 M1, r2 M1): O5's first sound is O3's world bound, and
+  // the unseen-sound excuse ends by its time bound alone. A pair in the oracle would pass a
+  // product with the same pair defect (Risk 6).
+  it.effect('rw r2 M1: the oracle takes no read pair as sound', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const oracle = yield* fs.readFileString(
+        new URL('../test/world.ts', import.meta.url).pathname,
+      );
+      expect(oracle.match(/read\.closes|lastRead|soundSampled|lastHeard/g) ?? []).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
+  );
   // O10 excuses a turn from Playing by a silence of the stand only when that silence began by
   // the turning read's sample: a silence in a host hold after it is not what the read saw.
   // Under mutant `stand-1s` this world breaks O10.
