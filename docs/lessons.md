@@ -2483,3 +2483,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** Rounds 1 and 2 of the rewrite each closed the ways the review found text to reach a reader (words split by tags, attributes, stylesheets, then invisible characters, generated content, joins, the sender, meta tags), and each review found one more.
 - **Cause:** The check rested on "it can rebuild what a reader sees by understanding every way text reaches the page", and a source it did not understand was dropped, not failed.
 - **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `HTML_ELEMENTS`, `UNSEEN_ATTRIBUTES`, `UNSEEN_META`, `LETTER_HEADERS`, `WORDLESS`; `apps/firsttheblade/scripts/promise-census.ts` `fail-closed an element the check does not read`
+
+### email-promise-joins-in-document-order
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "At each gap, build the other layout's sentence."
+- **Source:** ftb-copy/rw-round-2-findings.md F3
+- **Wrong:** The promise check joins runs of words in the order the page holds them, so a stylesheet that moves a box out of that order (`order`, a reversed flex row, an absolute position) can set side by side two runs the check never reads joined.
+- **Cause:** Where a box is drawn is the browser's layout, and the check reads the page, not its layout.
+- **Guard:** none: a residual; the built stylesheet sets `order: 0` only and reverses no row, and a review reads a stylesheet that moves a box with words.
