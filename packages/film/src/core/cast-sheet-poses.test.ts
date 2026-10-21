@@ -253,17 +253,30 @@ describe('a member of its own design', () => {
 });
 
 describe('a pose sheet that draws a smaller figure beside the grown one', () => {
-  const grown = at();
-  const child = smaller(grown, 0.75);
-  const options: SheetOptions = { kind: 'poses', count: 2, anchor: 1, standing: [1, 2] };
+  // The grown one stands about 2.66 of its heads (386 px, its head 145), the
+  // child about 2.2 of its own (320 px): drawn at 0.75 of the grown height,
+  // its head is a larger share of it than the grown one's.
+  const grown = at({ robeDepth: 220 });
+  const child = at({ robeDepth: 154 });
+  const options: SheetOptions = {
+    kind: 'poses',
+    count: 2,
+    anchor: 1,
+    standing: [1, 2],
+    heads: 2.6,
+    figures: [{ view: 2, height: 0.75, heads: 2.2 }],
+  };
+  const flagged = (views: ReadonlyArray<Raster>) =>
+    flagsOf(read(views, options)).filter((f) => /^(height|head):/.test(f));
 
-  // Held to the grown one, this figure flags its height and its head.
-  test("holds the smaller figure's height and head to its share of the grown one's", () => {
-    const m = read([grown, child], {
-      ...options,
-      figures: [{ view: 2, height: 0.75, heads: 3.44 }],
-      heads: 3.44,
-    });
-    expect(flagsOf(m)).toEqual([]);
+  test("holds the smaller figure's height and head to its share of the grown one's and its own heads", () => {
+    expect(flagged([grown, smaller(child, (0.75 * 386) / 320)])).toEqual([]);
+  });
+
+  // Each drawn wrong once: the child as tall as the grown one, and a child of
+  // the grown one's proportions, its head the grown share and not its own.
+  test('flags a smaller figure drawn at the grown height, or with the grown head', () => {
+    expect(flagged([smaller(grown, 320 / 386), child])).toEqual(['height:2,1', 'head:2,1']);
+    expect(flagged([grown, smaller(grown, 0.75)])).toEqual(['head:2,1']);
   });
 });
