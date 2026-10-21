@@ -2482,4 +2482,4 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-copy/rw-round-2-findings.md F1; ftb-copy/rw-round-2-findings.md F2; ftb-copy/rw-round-2-findings.md F5
 - **Wrong:** Rounds 1 and 2 of the rewrite each closed the ways the review found text to reach a reader (words split by tags, attributes, stylesheets, then invisible characters, generated content, joins, the sender, meta tags), and each review found one more.
 - **Cause:** The check rested on "it can rebuild what a reader sees by understanding every way text reaches the page", and a source it did not understand was dropped, not failed.
-- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `HTML_ELEMENTS`, `UNSEEN_ATTRIBUTES`, `UNSEEN_META`, `LETTER_HEADERS`; `apps/firsttheblade/scripts/promise-census.ts` `fail-closed an element the check does not read`
+- **Guard:** code: `apps/firsttheblade/scripts/promise.ts` `HTML_ELEMENTS`, `UNSEEN_ATTRIBUTES`, `UNSEEN_META`, `LETTER_HEADERS`, `WORDLESS`; `apps/firsttheblade/scripts/promise-census.ts` `fail-closed an element the check does not read`

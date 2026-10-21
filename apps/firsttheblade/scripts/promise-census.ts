@@ -23,8 +23,8 @@ import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 /**
  * One way the promise was lost, or one source of words the check refuses:
  * the words put in a file of the app (after the build when `after`, so
- * `dist/` is no longer the build of what the app holds), and what the check
- * must say of it.
+ * `dist/` is no longer the build of what the app holds; a new file of those
+ * words when `find` is empty), and what the check must say of it.
  */
 interface Case {
   readonly name: string;
@@ -403,6 +403,13 @@ const CASES: ReadonlyArray<Case> = [
     '<a href="mailto:hello@firsttheblade.com?subject=Weekly">Write</a>',
     ['unread: link words mailto:hello@firsttheblade.com?subject=Weekly'],
   ),
+  {
+    name: 'fail-closed a picture the check does not know',
+    file: 'public/weekly.png',
+    find: '',
+    put: 'We email you weekly.',
+    said: ['unread: dist/weekly.png'],
+  },
   noticePrints('fail-closed a meta tag with no name', '<meta http-equiv="refresh" content="0">', [
     'unread: meta',
   ]),
@@ -471,6 +478,12 @@ const runCase = (app: string, scratch: string, found: Case) =>
     );
     const inject = Effect.gen(function* () {
       const file = path.join(copy, found.file);
+      if (found.find === '') {
+        if (yield* fs.exists(file)) {
+          return yield* new CaseFailed({ reason: `stale: ${found.file} is there already` });
+        }
+        return yield* fs.writeFileString(file, found.put);
+      }
       const source = yield* fs.readFileString(file);
       const times = source.split(found.find).length - 1;
       if (times !== 1) {

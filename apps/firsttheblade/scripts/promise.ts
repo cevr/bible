@@ -938,22 +938,37 @@ const artefactOf = (name: string, kind: string, words: Words): Artefact => {
 /** How a file's text is read into words. */
 type Reader = (text: string) => Words;
 
+/** How each kind of file in `dist/` is read, by its extension: a file whose extension is not here fails the run. */
+const DIST_READERS = new Map<string, Reader>([
+  ['.html', htmlWords],
+  ['.svg', htmlWords],
+  ['.xml', markupWords({ elements: XML_ELEMENTS, breakAll: true })],
+  ['.css', cssWords],
+  ['.txt', textWords],
+  ['.webmanifest', jsonWords],
+]);
+
 /**
- * How each kind of file in `dist/` is read, by its extension. Pictures and
- * fonts hold no words a reader reads as text, and the browser script's are
- * the phone menu's, which the served pages print too
- * (`email-promise-browser-script`).
+ * The built files the check does not read, each by its kind, with why no
+ * reader reads words in them the check does not read elsewhere. Any other
+ * picture, font or script fails the run (`unread:`) until it is read or
+ * listed here, and a review reads the reason.
  */
-const DIST_READERS = new Map<string, Option.Option<Reader>>([
-  ['.html', Option.some(htmlWords)],
-  ['.svg', Option.some(htmlWords)],
-  ['.xml', Option.some(markupWords({ elements: XML_ELEMENTS, breakAll: true }))],
-  ['.css', Option.some(cssWords)],
-  ['.txt', Option.some(textWords)],
-  ['.webmanifest', Option.some(jsonWords)],
-  ...['.webp', '.jpg', '.png', '.ico', '.woff2', '.js'].map(
-    (extension) => [extension, Option.none<Reader>()] as const,
-  ),
+const WORDLESS = new Set([
+  // The kit draws these from HTML whose words it reads (`kit/draw.ts` `SEEN`).
+  ...['dist/og/home.jpg', 'dist/og/land.jpg', 'dist/og/path.jpg', 'dist/og/remedies.jpg'],
+  ...['dist/og/taught.jpg', 'dist/apple-touch-icon.png', 'dist/favicon.ico'],
+  ...['dist/icon-192.png', 'dist/icon-512.png'],
+  // Paintings, with no words in them (`email-promise-painted-words`).
+  ...['dist/assets/field-768.webp', 'dist/assets/field-1536.webp', 'dist/assets/field-3072.webp'],
+  ...['dist/assets/night-768.webp', 'dist/assets/night-1536.webp'],
+  ...['dist/assets/mark-112.webp', 'dist/assets/mark-320.webp'],
+  // The font's glyphs.
+  ...['dist/assets/Newsreader-normal-latin.woff2', 'dist/assets/Newsreader-normal-latin-ext.woff2'],
+  ...['dist/assets/Newsreader-italic-latin.woff2', 'dist/assets/Newsreader-italic-latin-ext.woff2'],
+  // The browser's scripts: the phone menu, whose links the served pages print, the confirm
+  // page's button, and the library (`email-promise-browser-script`).
+  ...['dist/assets/client.js', 'dist/assets/confirm.js', 'dist/assets/Effect.js'],
 ]);
 
 /** A built file's kind: its path, the build's content hash taken off, so a kind outlives a change of its bytes. */
@@ -975,12 +990,12 @@ const distArtefacts = Effect.fn('Promise.dist')(function* (dist: string) {
       const full = path.join(dist, entry);
       const file = `dist/${entry}`;
       if ((yield* fs.stat(full)).type !== 'File') return { artefacts: [], unread: [] };
+      if (WORDLESS.has(distKind(file))) return { artefacts: [], unread: [] };
       const reader = Option.fromNullishOr(DIST_READERS.get(path.extname(entry)));
       if (Option.isNone(reader)) return { artefacts: [], unread: [file] };
-      if (Option.isNone(reader.value)) return { artefacts: [], unread: [] };
       const text = yield* fs.readFileString(full);
       return {
-        artefacts: [artefactOf(file, distKind(file), reader.value.value(text))],
+        artefacts: [artefactOf(file, distKind(file), reader.value(text))],
         unread: [],
       };
     }),
