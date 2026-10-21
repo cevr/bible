@@ -1217,6 +1217,12 @@ describe('the player by the world: the part 6 sweep (rw r3 part 7)', () => {
     'web',
     1412,
   );
+
+  // An end read while a seek short of the end is pending: the end lands the seek, whose place
+  // stays the reader's (P7), so a Resume after a failure plays from it.
+  seed('an end read before a lock-screen seek landed', 'ios', 631);
+  seed('an end read before a lock-screen seek landed', 'ios', 733);
+  seed('an end read before a lock-screen seek landed', 'web', 688);
 });
 
 // O2 judges the page's give-up by what the page was told (orchestrator, after r3 part 6): a

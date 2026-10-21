@@ -208,10 +208,32 @@ const placed = (after: Proved, read: Read): Proved => {
   return { ...after, proof: { ...after.proof, place: Option.some(read.status.positionMs) } };
 };
 
+/**
+ * Whether an `ended` read shows the device before `pending` landed: a seek's completion clears
+ * an end (iOS `HybridOneAudio.swift:204`, Android `HybridOneAudio.kt:302`), and from a target
+ * short of the end the device reaches it no faster than time passes. The end still lands the
+ * act, but the act's place stays the reader's (P7).
+ */
+const beforeLanding = (pending: Pending, read: Read) =>
+  Option.exists(
+    Option.fromNullishOr(read.status.durationMs),
+    (length) => length - pending.target > read.answered - pending.known + slack,
+  );
+
 /** The proof after `read`, and what it proved. */
 export const readOf = (proof: Proof, read: Read): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
-  if (read.status.state === 'ended') return { proof: ended(proof), seen: 'nothing' };
+  if (read.status.state === 'ended')
+    return {
+      proof: {
+        ...ended(proof),
+        place: Option.map(
+          Option.filter(proof.pending, (it) => beforeLanding(it, read)),
+          (it) => it.target,
+        ),
+      },
+      seen: 'nothing',
+    };
   if (read.asked < proof.endedAt) return { proof, seen: 'stale' };
   if (read.asked < proof.landed) return { proof, seen: 'nothing' };
   return Option.match(proof.pending, {
