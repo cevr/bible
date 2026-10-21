@@ -7,12 +7,15 @@
  * directory it runs in, so it runs with the root as its directory: the root
  * holds a link to the app's `dist/` (the build under test) and the run's own
  * outbox and log. Its environment is only `PATH`, `HOME`, `TMPDIR` and
- * `PORT`, and Bun finds no `.env` in the root, so no secret of the app's
- * reaches a run and its admin token is a fresh one.
+ * `PORT`, and Bun reads no `.env` (`--no-env-file`), so no secret of the
+ * app's reaches a run, even from a `.env` put in the root, and its admin
+ * token is a fresh one. A root holds one preview at a time: its record is
+ * how `stop` finds it.
  */
 import {
   Config,
   DateTime,
+  Duration,
   Effect,
   FileSystem,
   Option,
@@ -34,7 +37,13 @@ const PREVIEW_ENTRY = `${APP_DIR}/src/worker/preview.ts`;
 /** `bun run preview`'s own port: the owner's preview, never driven. */
 const OWNER_PORT = 8470;
 
-const READY_WITHIN = '20 seconds';
+/** How long the readiness wait gives each try, and the preview in all. */
+export interface ReadyDeadlines {
+  readonly each: Duration.Input;
+  readonly within: Duration.Input;
+}
+
+const READY: ReadyDeadlines = { each: '1 second', within: '20 seconds' };
 
 /** A command's whole output, and its exit code. */
 export const run = Effect.fn('Verify.run')(function* (
@@ -79,11 +88,51 @@ export const listenersOn = Effect.fn('Verify.listenersOn')(function* (port: numb
     .map(Number);
 });
 
-/** Whether `origin` answers its home page with 200. */
-export const answers = Effect.fn('Verify.answers')(function* (origin: string) {
+/** Whether `origin` answers its home page with 200 within `each`. */
+export const answers = Effect.fn('Verify.answers')(function* (
+  origin: string,
+  each: Duration.Input,
+) {
   const client = yield* HttpClient.HttpClient;
-  const response = yield* client.get(`${origin}/`).pipe(Effect.option);
+  const response = yield* client.get(`${origin}/`).pipe(Effect.timeout(each), Effect.option);
   return Option.exists(response, (r) => r.status === 200);
+});
+
+/**
+ * Waits for `origin` to answer, each try and the whole wait under their own
+ * deadline, and fails as `NotReady` once the wait runs out or the preview
+ * exits (`exited`) before it answers.
+ */
+export const awaitReady = Effect.fn('Verify.awaitReady')(function* (
+  origin: string,
+  exited: Effect.Effect<unknown, unknown>,
+  log: string,
+  deadlines: ReadyDeadlines = READY,
+) {
+  const within = Duration.format(Duration.fromInputUnsafe(deadlines.within));
+  const answered = answers(origin, deadlines.each).pipe(
+    Effect.flatMap((ok) => {
+      if (ok) return Effect.void;
+      return Effect.fail(NotReady.make({ message: `${origin} does not answer yet` }));
+    }),
+    // The deadline is the timeout below; the count is a second bound, past it.
+    Effect.retry({ schedule: Schedule.spaced('100 millis'), times: 1000 }),
+    Effect.timeout(deadlines.within),
+    Effect.mapError(() =>
+      NotReady.make({ message: `${origin} did not answer within ${within}; see ${log}` }),
+    ),
+  );
+  const died = exited.pipe(
+    Effect.option,
+    Effect.flatMap((code) =>
+      Effect.fail(
+        NotReady.make({
+          message: `the preview exited (${Option.getOrElse(code, () => 'no code')}) before ${origin} answered; see ${log}`,
+        }),
+      ),
+    ),
+  );
+  yield* Effect.raceFirst(answered, died);
 });
 
 const paths = (root: string) => ({
@@ -115,6 +164,30 @@ export const readRecord = Effect.fn('Verify.readRecord')(function* (root: string
   );
 });
 
+/** The preview's process: `entry` run by Bun in `root` with `env` alone. */
+export const previewCommand = (
+  entry: string,
+  root: string,
+  env: Readonly<Record<string, string>>,
+) =>
+  ChildProcess.make('bun', ['--no-env-file', entry], {
+    cwd: root,
+    env,
+    extendEnv: false,
+    stdin: 'ignore',
+    forceKillAfter: '5 seconds',
+  });
+
+/** Whether `lsof -Fn` output names `root` as the directory. */
+export const cwdIs = (lsof: string, root: string) => lsof.split('\n').includes(`n${root}`);
+
+/** Whether the record's PID is a preview running in the record's root. */
+const isPreviewOf = Effect.fn('Verify.isPreviewOf')(function* (record: LaunchRecord) {
+  const { out: command } = yield* run('ps', ['-o', 'command=', '-p', String(record.pid)]);
+  const { out: cwd } = yield* run('lsof', ['-a', '-p', String(record.pid), '-d', 'cwd', '-Fn']);
+  return command.includes('src/worker/preview.ts') && cwdIs(cwd, record.root);
+});
+
 /** Refuses the owner's port and a port something already holds. */
 const freePort = Effect.fn('Verify.freePort')(function* (port: number) {
   if (port === OWNER_PORT)
@@ -124,6 +197,17 @@ const freePort = Effect.fn('Verify.freePort')(function* (port: number) {
   const held = yield* listenersOn(port);
   if (held.length > 0)
     return yield* Refused.make({ message: `port ${port} is held by pid ${held.join(',')}` });
+});
+
+/** Refuses a root whose recorded preview still runs: its record is the only way to stop it. */
+const freeRoot = Effect.fn('Verify.freeRoot')(function* (root: string) {
+  const held = yield* readRecord(root).pipe(Effect.option);
+  if (Option.isNone(held)) return;
+  const { pid } = held.value;
+  if (yield* isPreviewOf(held.value).pipe(Effect.orElseSucceed(() => false)))
+    return yield* Refused.make({
+      message: `${root} holds a running preview (pid ${pid}): run verify:stop --root ${root}, or pick another root`,
+    });
 });
 
 /** The scratch root, made with its link to the app's build. */
@@ -147,6 +231,7 @@ const prepareRoot = Effect.fn('Verify.prepareRoot')(function* (root: string) {
  * written to `<root>/launch.json`. `exited` waits for the server to stop.
  */
 export const launch = Effect.fn('Verify.launch')(function* (root: string, port: number) {
+  yield* freeRoot(root);
   yield* freePort(port);
   const resolved = yield* prepareRoot(root);
   const at = paths(resolved);
@@ -158,27 +243,10 @@ export const launch = Effect.fn('Verify.launch')(function* (root: string, port: 
     TMPDIR: yield* Config.String('TMPDIR').pipe(Config.withDefault('/tmp')),
     PORT: String(port),
   };
-  const handle = yield* spawner.spawn(
-    ChildProcess.make('bun', [PREVIEW_ENTRY], {
-      cwd: resolved,
-      env,
-      extendEnv: false,
-      stdin: 'ignore',
-      forceKillAfter: '5 seconds',
-    }),
-  );
+  const handle = yield* spawner.spawn(previewCommand(PREVIEW_ENTRY, resolved, env));
   yield* Stream.run(handle.all, fs.sink(at.log)).pipe(Effect.ignore, Effect.forkScoped);
   const origin = `http://127.0.0.1:${port}`;
-  yield* answers(origin).pipe(
-    Effect.flatMap((ok) => {
-      if (ok) return Effect.void;
-      return Effect.fail(NotReady.make({ message: `${origin} does not answer yet` }));
-    }),
-    Effect.retry({ schedule: Schedule.spaced('100 millis'), times: 200 }),
-    Effect.mapError(() =>
-      NotReady.make({ message: `${origin} did not answer within ${READY_WITHIN}; see ${at.log}` }),
-    ),
-  );
+  yield* awaitReady(origin, handle.exitCode, at.log);
   const record: LaunchRecord = {
     root: resolved,
     port,
@@ -201,9 +269,7 @@ export const launch = Effect.fn('Verify.launch')(function* (root: string, port: 
  */
 export const stop = Effect.fn('Verify.stop')(function* (root: string) {
   const record = yield* readRecord(root);
-  const { out: command } = yield* run('ps', ['-o', 'command=', '-p', String(record.pid)]);
-  const { out: cwd } = yield* run('lsof', ['-a', '-p', String(record.pid), '-d', 'cwd', '-Fn']);
-  if (!command.includes('src/worker/preview.ts') || !cwd.includes(`n${record.root}`))
+  if (!(yield* isPreviewOf(record)))
     return yield* Refused.make({
       message: `pid ${record.pid} is not the preview of ${record.root}; nothing stopped`,
     });

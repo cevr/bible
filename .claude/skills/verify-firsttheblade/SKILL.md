@@ -44,13 +44,17 @@ its proof; `tmp/` is git-ignored. Pick a free port per run (`PORT`, never
    bun run --cwd apps/firsttheblade verify:launch --root "$PWD/$ROOT" --port $PORT
    ```
 
-   Ready is its one JSON line, printed once the home page answers 200:
+   Ready is its one JSON line, printed once the home page answers 200
+   (each try gets 1 s, the whole wait 20 s; a preview that exits first, or
+   never answers, ends in `NotReady`):
    `{"root":…,"port":…,"origin":"http://127.0.0.1:<port>","pid":…,"head":…,"outbox":…,"log":…}`.
    The record is kept at `$ROOT/launch.json`. The preview runs with the root
    as its directory: `dist` there links to the app's build, its letters go to
    `$ROOT/tmp/outbox/<n>.txt`, its log is `$ROOT/preview.log`, and no `.env`
-   is read, so no secret of the app's enters a run. The list is empty at
-   each launch.
+   is read (`bun --no-env-file`, even with a `.env` in the root), so no
+   secret of the app's enters a run. The list is empty at each launch. A
+   root holds one preview: a launch in a root whose recorded preview still
+   runs is `Refused`; stop it first, or use another root.
 
 A stage instead: build, then
 
@@ -148,7 +152,8 @@ error (`Refused`, `NotBuilt`, `NotReady`, `DoctorFailed`, `JourneyFailed`,
 its trace: `JourneyFailed: confirm skeleton: expected … (evidence <dir>)`
 names the journey, the step and its evidence, where `<n>-failed.png` and
 `<n>-failed.aria.txt` keep the page as it stood. Their logic is tested by
-`apps/firsttheblade/scripts/verify/verify.test.ts`.
+`apps/firsttheblade/scripts/verify/verify.test.ts` and
+`apps/firsttheblade/scripts/verify/instance.test.ts`.
 
 | Command                                                                                                          | What it prints                                                                                                |
 | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -159,8 +164,8 @@ names the journey, the step and its evidence, where `<n>-failed.png` and
 | `bun run --cwd apps/firsttheblade verify:drive <journey>… --root <dir> --port <p> --evidence <dir> [--no-video]` | `{"passed":true,"doctor":…,"journeys":[{"journey","steps","video"}]}`; journeys `confirm`, `confirm-noscript` |
 | `bun run --cwd apps/firsttheblade verify:stage up\|down --stage agent-<name> --root <dir>`                       | `{"stage","action","url","log"}`                                                                              |
 
-`verify:drive` launches its own preview on `--port` in `--root` (so the
-root must not hold a running one), runs the doctor, then each journey in its
+`verify:drive` launches its own preview on `--port` in `--root` (a root
+whose preview still runs is `Refused`), runs the doctor, then each journey in its
 own context of one muted Chrome (`channel: 'chrome'`, headless).
 
 ## Hosts

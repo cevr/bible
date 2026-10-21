@@ -16,7 +16,7 @@
  *
  * A stage (`--origin`) is checked by `answers` and `load` alone, with GET.
  */
-import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { type Duration, Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { Headers, HttpClient } from 'effect/http';
 
 import { APP_DIR, headOf, listenersOn, readRecord, run } from './instance.ts';
@@ -45,16 +45,22 @@ const newestUnder = Effect.fn('Verify.newestUnder')(function* (dir: string) {
   return Math.max(0, ...times);
 });
 
-const answersCheck = Effect.fn('Verify.answersCheck')(function* (origin: string) {
+/** How long the doctor gives each request. */
+const ANSWER_WITHIN: Duration.Input = '5 seconds';
+
+/** The pages an instance answers, each request under `within`. */
+export const answersCheck = Effect.fn('Verify.answersCheck')(function* (
+  origin: string,
+  within: Duration.Input = ANSWER_WITHIN,
+) {
   const client = yield* HttpClient.HttpClient;
   const status = (path: string) =>
-    client
-      .get(`${origin}${path}`)
-      .pipe(
-        Effect.mapError((error) =>
-          DoctorFailed.make({ check: 'answers', message: `${path}: ${error.message}` }),
-        ),
-      );
+    client.get(`${origin}${path}`).pipe(
+      Effect.timeout(within),
+      Effect.mapError((error) =>
+        DoctorFailed.make({ check: 'answers', message: `${path}: ${error.message}` }),
+      ),
+    );
   const home = yield* status('/');
   if (home.status !== 200) return yield* fail('answers', `/ answered ${home.status}`);
   if (Option.isNone(Headers.get(home.headers, 'content-security-policy')))

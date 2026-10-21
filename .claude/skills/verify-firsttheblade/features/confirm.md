@@ -29,7 +29,7 @@ seven days, replaced, or cut short leads to "This link has run out".
 ## Driving it with verify:drive
 
 - **Preconditions:** a build of the commit under test; a free port; a root
-  with no preview running. `verify:drive` launches its own preview and signs
+  with no preview running (a root whose preview still runs is `Refused`). `verify:drive` launches its own preview and signs
   up through the form itself.
 - **States:** loading (the skeleton), default (the confirmed notice), error
   (expired, by agent-browser below). Empty, open and focus-visible are n/a.
