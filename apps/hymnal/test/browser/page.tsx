@@ -9,6 +9,9 @@
  * read each time the list moved by itself after the reader scrolled it.
  */
 
+// oxlint-disable-next-line import/no-unassigned-import -- it changes the page's console and Error before React reads them.
+import './traces';
+
 import { useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 
