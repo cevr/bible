@@ -1125,6 +1125,26 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
           expect(yield* w.until(() => tag(w) === 'Playing', 8000)).toBe(true);
         }),
     );
+  // A read asked before an act cannot start P4's wait, even when it samples after the act
+  // (android 351): the wait starts at the first read asked after it.
+  for (const at of [100, 250, 400])
+    fixed(
+      `rw r2 M7: offline Buffering, a lock-screen play ${at} ms after a read's ask, before its sample: Failed by the read asked after it`,
+      'android',
+      { lag: () => 600, sample: () => 0.9 },
+      (w) =>
+        Effect.gen(function* () {
+          yield* playing(w);
+          w.connect(false);
+          w.stall(120_000);
+          expect(yield* w.until(() => tag(w) === 'Buffering', 10_000)).toBe(true);
+          const asked = w.reads.length;
+          expect(yield* w.until(() => w.reads.length > asked, 2000)).toBe(true);
+          yield* w.run(at);
+          w.press('play');
+          expect(yield* w.until(() => tag(w) === 'Failed', 40_000)).toBe(true);
+        }),
+    );
   // The ios 59 world with the late lock-screen seek landing as the load sounds: the read after
   // it says a place past 218,900 by sound, not 218,900 itself (Decided 12: a read never lands
   // an act, and the page's own seek lands at its answer).

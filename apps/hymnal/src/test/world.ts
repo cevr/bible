@@ -288,8 +288,12 @@ const initial = (platform: Platform, start: number) => ({
   /** When the page last turned to a reading state (Loading, Playing, Buffering). */
   readingFrom: start,
   readGap: 0,
-  /** Each read's sample and answer, the latest two minutes. */
-  answered: new Array<{ readonly sampleAt: number; readonly answered: number }>(),
+  /** Each read's ask, sample and answer, the latest two minutes. */
+  answered: new Array<{
+    readonly asked: number;
+    readonly sampleAt: number;
+    readonly answered: number;
+  }>(),
   soundSince: Number.NaN,
   /** The latest act: a page command, a lock-screen press, a play from a place. */
   lastAct: start,
@@ -1192,7 +1196,7 @@ export const makeWorld = (
   const answerDue = (due: ReadonlyArray<Read>) => {
     for (const read of due) {
       w.reads.splice(w.reads.indexOf(read), 1);
-      w.answered.push({ sampleAt: read.sampleAt, answered: w.t });
+      w.answered.push({ asked: read.asked, sampleAt: read.sampleAt, answered: w.t });
       if (w.answered.length > 1000) w.answered.splice(0, 500);
       const seen = Option.getOrThrow(read.seen);
       // The unseen sound is seen once a read sampled after the hold that kept it closes on
@@ -1229,8 +1233,9 @@ export const makeWorld = (
   // until then), so the wait runs from the act or its landing, whichever is later.
   const quietFor = (since: number) => w.t - Math.max(since, w.lastAct, w.landedAt);
   /**
-   * How long a run has been seen: from the answer of the first read that sampled the device
-   * after the run began (P4 dates a wait from a read that saw it; Decided 4).
+   * How long a run has been seen: from the answer of the first read asked once the run began
+   * (P4 dates a wait from a read that saw it; Decided 4). A read asked before an act spans
+   * it, so it starts no wait, whenever it sampled (Terms).
    */
   const seenFor = (since: number) => {
     const from = Math.max(since, w.lastAct, w.landedAt);
@@ -1238,7 +1243,7 @@ export const makeWorld = (
     // stops reading cannot empty the rule (Decided 11).
     const capped = Math.max(from, w.holdEnd) + cadence;
     const first = Option.match(
-      Arr.findFirst(w.answered, (it) => it.sampleAt > from),
+      Arr.findFirst(w.answered, (it) => it.asked >= from && it.sampleAt > from),
       { onNone: () => capped, onSome: (it) => Math.min(it.answered, capped) },
     );
     return w.t - first;
