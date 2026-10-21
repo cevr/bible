@@ -1103,6 +1103,59 @@ describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
         expect(w.sought.slice(sought)).toEqual([]);
       }),
   );
+
+  // The end (orchestrator, after part 5): a seek the device clamps to the end lands at the end
+  // at its answer, and the next Resume plays from 0:00 (P8).
+  seed('a seek past the end, then a failure at the end', 'ios', 304);
+  seed('a lock-screen seek past the end, then a play', 'ios', 381);
+  seed('a lock-screen seek past the end, a play, then a pause', 'ios', 400);
+
+  /** Lags drawn in order, then 50 ms: the answers they time come in the order the test wants. */
+  const lags = (first: ReadonlyArray<number>) => {
+    const queue = [...first];
+    return {
+      set: (next: ReadonlyArray<number>) => queue.splice(0, queue.length, ...next),
+      lag: () => queue.shift() ?? 50,
+    };
+  };
+  const ending = lags([]);
+  fixed(
+    'rw r3 part 6 (ios 381): Ended, a seek past the end answered ended before any read, then Resume: from 0:00',
+    'ios',
+    { lag: ending.lag, sample: () => 1 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 236);
+        expect(yield* w.until(() => tag(w) === 'Ended', 10_000)).toBe(true);
+        yield* w.run(1000);
+        // The seek's answer in 20 ms, the read beside it sampled at 600 ms.
+        ending.set([20, 600]);
+        w.send(Command.Seek({ seconds: 245 }));
+        yield* w.run(100);
+        w.send(Command.Resume());
+        yield* w.run(1000);
+        expect(w.plays.at(-1)?.from).toBe(0);
+      }),
+  );
+
+  fixed(
+    'rw r3 part 6 (ios 304): Ended, the device fails at its end: Failed keeps no place, and Resume plays from 0:00',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 236);
+        expect(yield* w.until(() => tag(w) === 'Ended', 10_000)).toBe(true);
+        yield* w.run(1000);
+        w.fail();
+        w.send(Command.Pause());
+        expect(yield* w.until(() => tag(w) === 'Failed', 2000)).toBe(true);
+        expect(atOf(w.state())).toEqual(Option.none());
+        w.send(Command.Resume());
+        yield* w.run(1000);
+        expect(w.plays.at(-1)?.from).toBe(0);
+      }),
+  );
 });
 
 // The oracle's repairs of round 2 (rw r2 M1 to M7): each world breaks the rule only by the

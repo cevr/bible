@@ -528,15 +528,22 @@ export const makeWorld = (
    * screen's `seekTo` and an ended item's `seekTo(0)` bump no generation
    * (HybridOneAudio.kt:264-267, :977-980, :995-1001); the web's `seeked`
    * resolves every page seek still listening. The status is the device's at
-   * the completion, told after a lag.
+   * the completion, told after a lag. An answer that says `ended` samples the
+   * end at the completion once the page has it: a seek the device clamped to
+   * its end lands at the end, judged at the device's answer (P8).
    */
   const completed = (own: boolean) => {
     Option.map(w.seekAsk, (it) => {
       if (platform === 'ios' && !own) return;
       w.seekAsk = Option.none();
       const status = said();
+      const at = w.t;
+      const answer = (ask: typeof it) => () => {
+        if (status.state === 'ended') w.endedSampled = Math.max(w.endedSampled, at);
+        ask.resolve(status);
+      };
       for (const ask of [...w.seekAsksBefore.splice(0), it])
-        w.answers.push({ dueAt: w.t + knobs.lag(), run: () => ask.resolve(status) });
+        w.answers.push({ dueAt: w.t + knobs.lag(), run: answer(ask) });
     });
   };
   /** A seek that lands after `after` ms, or at once. */
@@ -755,8 +762,9 @@ export const makeWorld = (
   const noteAct = () => {
     // Whether the device stands at its end: it ended, and no landing, load or replay has moved
     // it since (a pause or a failure leaves it there). World truth, never the page's tag.
-    // A read must have sampled it ended: an end no read saw is one the page cannot know. A
-    // reader's seek since that read is the reader's place, landed or refused (P7).
+    // A read or a seek's answer must have sampled it ended: an end nothing sampled is one the
+    // page cannot know. A reader's seek since that sample is the reader's place, landed or
+    // refused (P7); a seek the device clamped to its end is sampled at its answer.
     w.endedBefore =
       w.endedAt > Number.NEGATIVE_INFINITY &&
       w.endedAt >= Math.max(w.landedAt, w.loadAt, w.leftEndAt) &&

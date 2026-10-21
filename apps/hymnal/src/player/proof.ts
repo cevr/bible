@@ -187,7 +187,15 @@ const placed = (after: Proved, read: Read): Proved => {
   // A failed device still says where it stood, unless it let the recording go (0).
   const letGo =
     read.status.state === 'idle' || (read.status.state === 'failed' && read.status.positionMs <= 0);
-  if (!after.proof.sounded || letGo) return after;
+  // A load that sounded and keeps no place has ended: a read at the recording's end then shows
+  // the end, and a play after it is from 0:00 (P8).
+  const atEnd =
+    Option.isNone(after.proof.place) &&
+    Option.exists(
+      Option.fromNullishOr(read.status.durationMs),
+      (length) => read.status.positionMs >= length - slack,
+    );
+  if (!after.proof.sounded || letGo || atEnd) return after;
   return { ...after, proof: { ...after.proof, place: Option.some(read.status.positionMs) } };
 };
 
