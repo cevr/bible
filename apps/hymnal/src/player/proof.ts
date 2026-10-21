@@ -208,7 +208,7 @@ const placed = (after: Proved, read: Read): Proved => {
 export const readOf = (proof: Proof, read: Read): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
   if (read.status.state === 'ended') return { proof: ended(proof), seen: 'nothing' };
-  if (read.asked < proof.landed) return { proof, seen: 'stale' };
+  if (read.asked < proof.landed) return { proof, seen: 'nothing' };
   return Option.match(proof.pending, {
     onNone: () => placed(paired(proof, read), read),
     // Two reads after the act at one place prove silence while it is pending: a landing would

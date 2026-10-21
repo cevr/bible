@@ -1117,6 +1117,9 @@ describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
   seed('Playing with no sound, the part 5 O1 class', 'ios', 178);
   seed('Playing with no sound, the part 5 O1 class', 'android', 72);
   seed('Playing with no sound, the part 5 O1 class', 'web', 122);
+  // A read asked before a landing's answer still shows the device's state: here Paused after a
+  // lock-screen seek took an ended recording to a place.
+  seed('Ended, a lock-screen seek, a read asked before its answer says paused', 'web', 381);
 
   // O2 (orchestrator, after part 5): a landing restarts P4's wait, also at the place the device
   // already stood at.
