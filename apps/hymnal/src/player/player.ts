@@ -443,6 +443,17 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           );
         };
         /**
+         * A `paused` the reader did not ask for is the device's own pause, and the page shows
+         * Paused: the device is asked to pause once, so it holds what the page shows. Android
+         * starts a recording paused before it was prepared and says `paused` over its sound
+         * (One 2.8.1, HybridOneAudio.kt:199-204); a device paused already stays so.
+         */
+        const heldPaused = Effect.suspend(() => {
+          if (held.wants === 'pause') return Effect.void;
+          held.wants = 'pause';
+          return Effect.ignore(device.pause);
+        });
+        /**
          * Read the device's status once and show it; whether to read on. The
          * reads end when the device fails, ends, is idle or paused with no
          * place pending, or when the load is given up.
@@ -480,7 +491,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                         lengthIn(get.registry.get(state)),
                       ),
                     }),
-                  ),
+                  ).pipe(Effect.andThen(heldPaused)),
                   Option.isNone(held.proof.pending),
                 ),
               ),

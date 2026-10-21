@@ -237,6 +237,13 @@ const initial = (platform: Platform, start: number) => ({
   place: 0,
   length,
   ready: false,
+  /**
+   * Android's `playbackPaused` set before MediaPlayer is prepared (a pause, the lock screen's
+   * pause, an interruption): One keeps loading, its prepare listener starts the player anyway,
+   * and it says `paused` while the device sounds, until a resume, a play or a stop clears it
+   * (One 2.8.1, HybridOneAudio.kt:199-204, :240-251, :922-935, :1034-1036).
+   */
+  pausedEarly: false,
   /** How much the device holds ahead of its place, ms. */
   ahead: 0,
   /** A server stall (D3, online), or a closed socket: no bytes until then. */
@@ -417,7 +424,10 @@ export const makeWorld = (
     if (platform === 'android' && w.phase === 'failed') return { state: 'failed', positionMs: 0 };
     if (platform === 'android' && w.phase !== 'idle' && !w.ready)
       return { state: 'loading', positionMs: 0 };
-    const status = { state: stateOf(platform, w.phase), positionMs: w.place };
+    // Once prepared, a pause from before says `paused` over the sound (:1034-1036); an end wins.
+    let state = stateOf(platform, w.phase);
+    if (w.pausedEarly && w.phase !== 'ended') state = 'paused';
+    const status = { state, positionMs: w.place };
     if (w.ready) return { ...status, durationMs: w.length };
     return status;
   };
@@ -535,6 +545,7 @@ export const makeWorld = (
       phase: 'loading',
       place: 0,
       ready: false,
+      pausedEarly: false,
       ahead: 0,
       loadLeft: knobs.loadFor(),
       landing: Option.none(),
@@ -546,6 +557,7 @@ export const makeWorld = (
     count('D1 load');
   };
   const resumeDevice = () => {
+    w.pausedEarly = false;
     if (w.phase === 'ended') {
       w.place = 0;
       w.leftEndAt = w.t;
@@ -556,8 +568,11 @@ export const makeWorld = (
     } else if (w.phase === 'paused' && w.ready) startSound();
     else if (w.phase === 'paused') w.phase = 'loading';
   };
+  /** Whether a pause now is Android's before prepare: kept as a word, the load goes on. */
+  const pausesEarly = () => platform === 'android' && w.phase === 'loading' && !w.ready;
   const pauseDevice = () => {
-    if (holding(w.phase) && w.phase !== 'ended') w.phase = 'paused';
+    if (pausesEarly()) w.pausedEarly = true;
+    else if (holding(w.phase) && w.phase !== 'ended') w.phase = 'paused';
   };
 
   const seek = (positionMs: number) => {
@@ -610,7 +625,13 @@ export const makeWorld = (
     seek,
     stop: () => {
       dropSeek(true);
-      Object.assign(w, { phase: 'idle', place: 0, ready: false, landing: Option.none() });
+      Object.assign(w, {
+        phase: 'idle',
+        place: 0,
+        ready: false,
+        pausedEarly: false,
+        landing: Option.none(),
+      });
       return later(() => {});
     },
     getPlaybackStatus: () =>
@@ -823,6 +844,8 @@ export const makeWorld = (
   };
   /** What a phone's session does at the press. */
   const pressPhone = (kind: Press, to: number) => {
+    // One's lock-screen play clears a pause from before prepare whatever the phase (:977-983).
+    if (kind === 'play') w.pausedEarly = false;
     if (kind === 'play' && (w.phase === 'ended' || w.phase === 'paused')) resumeDevice();
     if (kind === 'pause') pauseDevice();
     // MediaPlayer seeks only once prepared (One catches the refusal and tells nothing,
@@ -1010,10 +1033,16 @@ export const makeWorld = (
   /** The device pauses itself (D12). */
   const interrupt = () => {
     if (!soundPhase(w.phase) && !silentPhase(w.phase)) return;
+    count('D12 interrupted');
+    // Before prepare, Android's interruption only sets `playbackPaused` (:922-935): the load goes
+    // on and the device starts at prepare, so the pause takes hold, as One says it, there.
+    if (pausesEarly()) {
+      w.pausedEarly = true;
+      return;
+    }
     w.phase = 'paused';
     w.pauseAt = w.t;
     w.wants = false;
-    count('D12 interrupted');
   };
 
   /** The item turns ready: a refused seek to the place it starts at is where the device is. */
@@ -1026,6 +1055,12 @@ export const makeWorld = (
   };
   const becomeReady = () => {
     turnReady();
+    // A pause from before prepare: the device sounds, saying `paused` (:199-204). From here the
+    // device says it paused itself, and the reader is owed no sound.
+    if (w.pausedEarly) {
+      w.wants = false;
+      w.pauseAt = w.t;
+    }
     w.ahead = Math.max(w.ahead, 1500);
     let silentFor = 0;
     if (platform === 'ios') silentFor = knobs.silentFor();

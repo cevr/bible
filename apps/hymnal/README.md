@@ -128,7 +128,10 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   Stopped with the reader's place, and the device lets it go. iOS keeps
   such a pause, but Android's MediaPlayer starts once prepared and the web
   rejects the waiting `play()`, so one rule serves all three: Stopped, and
-  a Play from the place.
+  a Play from the place. A `paused` the reader did not ask for (an
+  interruption, or a lock-screen pause) shows Paused, and the page asks the
+  device to pause once: Android starts a recording paused before it was
+  prepared and says `paused` over its sound (`HybridOneAudio.kt:199-204`).
 - The order the rules rest on (inferred from One 2.8.1 and Nitro 0.37.1,
   not measured on a device): a phone applies a lock-screen press and calls
   the app's listeners in one main-thread task (iOS

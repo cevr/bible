@@ -288,6 +288,76 @@ describe("the world draws One's seek completion order (rw r2 M8)", () => {
   );
 });
 
+// Android's pause before MediaPlayer is prepared holds nothing (orchestrator, decision (a)): the
+// prepare listener starts the player whatever `playbackPaused` says (HybridOneAudio.kt:199-204),
+// and the status then says `paused` over the sound (:1034-1036).
+describe("the world draws Android's pause before prepare (rw r3 decision (a))", () => {
+  /** What One says of the device now, as the adapter would read it. */
+  const status = (w: World) =>
+    Effect.gen(function* () {
+      let seen = Option.none<Status>();
+      void w.audio.getPlaybackStatus().then((it) => (seen = Option.some(it)));
+      yield* w.run(100);
+      return Option.getOrThrow(seen);
+    });
+  const early = (name: string, pause: (w: World) => void) =>
+    fixed(
+      `android: ${name} before prepare: the load goes on, and at prepare the device sounds saying paused`,
+      'android',
+      { loadFor: () => 2000 },
+      (w) =>
+        Effect.gen(function* () {
+          void w.audio.play('https://hymns.test/1.mp3');
+          yield* w.run(500);
+          pause(w);
+          expect(yield* status(w)).toEqual({ state: 'loading', positionMs: 0 });
+          expect(yield* w.until(() => w.ready, 5000)).toBe(true);
+          yield* w.run(1000);
+          const after = yield* status(w);
+          expect(after.state).toBe('paused');
+          expect(after.positionMs).toBeGreaterThan(0);
+          expect(sound(w)).toBe(true);
+          // A resume clears the pause, and the device says what it does (:263-272).
+          void w.audio.resume();
+          yield* w.run(200);
+          expect((yield* status(w)).state).toBe('playing');
+        }),
+      { judged: false },
+    );
+  // `pause` sets `playbackPaused` and pauses only a player that plays (:240-251).
+  early('a pause', (w) => void w.audio.pause());
+  // An interruption (audio focus lost) does the same (:922-935).
+  early('an interruption', (w) => w.interrupt());
+  // The lock screen's pause too (:992-995).
+  early("the lock screen's pause", (w) => w.press('pause'));
+
+  // The page cannot see the interruption (the seam carries none, and One says `loading 0` until
+  // prepared), so it learns of it at the first read after prepare that says `paused`. A device
+  // that sounds there while the page shows Paused is one the reader hears and cannot stop: the
+  // page asks the pause again, and the device holds it.
+  fixed(
+    'android: an interruption before prepare: the page shows Paused, and the device is silent within a cadence of it',
+    'android',
+    { loadFor: () => 2000 },
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(500);
+        w.interrupt();
+        expect(yield* w.until(() => tag(w) === 'Paused', 5000)).toBe(true);
+        yield* w.run(cadence);
+        expect(sound(w)).toBe(false);
+        expect(w.phase).toBe('paused');
+        // The reader's Resume plays on from where the device stood.
+        const stood = w.place;
+        w.send(Command.Resume());
+        expect(yield* w.until(() => tag(w) === 'Playing', 5000)).toBe(true);
+        expect(w.plays.length).toBe(1);
+        expect(Math.abs(w.place - stood)).toBeLessThan(5000);
+      }),
+  );
+});
+
 describe('the player by the world: each earlier counterexample', () => {
   fixed(
     'r1 F1 A: a 20 s hold, offline from 1 s, the buffer plays on: Playing, then Failed once it runs out',
