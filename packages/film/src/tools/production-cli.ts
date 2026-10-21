@@ -29,6 +29,7 @@ import {
   Console,
   Data,
   DateTime,
+  Duration,
   Effect,
   FileSystem,
   Match,
@@ -228,12 +229,16 @@ type Listing = Data.TaggedEnum<{
 }>;
 const Listing = Data.taggedEnum<Listing>();
 
+/** How long `film publish` waits on the lab's answer: the stamp has landed, so a lab that holds the call never holds the line. */
+const LAB_ANSWER_SECONDS = 5;
+
 /**
  * Whether the lab at `url` lists the set in `folder`, asked of the lab
  * itself (its `sets`, its index read fresh): the lab reads its own review
  * roots, which a command run from another checkout (a worktree) does not
- * share. A lab that does not answer, or answers in a shape this checkout
- * does not read, leaves it unknown: the publish has landed either way.
+ * share. A lab that does not answer within `LAB_ANSWER_SECONDS`, or answers
+ * in a shape this checkout does not read, leaves it unknown: the publish has
+ * landed either way.
  */
 const listedByLab = (url: string, folder: string) =>
   Effect.gen(function* () {
@@ -255,7 +260,14 @@ const listedByLab = (url: string, folder: string) =>
         onSome: (set) => Listing.Listed({ ref: set.set, link: set.links.local }),
       },
     );
-  }).pipe(Effect.catch((error) => Effect.succeed(Listing.Unknown({ reason: error.message }))));
+  }).pipe(
+    Effect.timeoutOrElse({
+      duration: Duration.seconds(LAB_ANSWER_SECONDS),
+      orElse: () =>
+        Effect.succeed(Listing.Unknown({ reason: `no answer in ${LAB_ANSWER_SECONDS} s` })),
+    }),
+    Effect.catch((error) => Effect.succeed(Listing.Unknown({ reason: error.message }))),
+  );
 
 export const publish = Command.make(
   'publish',

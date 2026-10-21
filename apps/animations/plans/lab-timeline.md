@@ -108,7 +108,7 @@ bun run lab ask --production righteousness-by-faith --title "Punchy subtitles or
 bun run lab forward --production look --after 5 --title "One Line" --decision <the decision's at>
 ```
 
-`film publish` stamps the set's `review.json` (every other field kept), then asks the running lab (`FILM_LAB_URL`) whether it lists the set and prints the lab's link when it does; the lab's own review roots decide, so a worktree's command never guesses from its own. The
+`film publish` stamps the set's `review.json` (every other field kept), then asks the running lab (`FILM_LAB_URL`) whether it lists the set and prints the lab's link when it does; the lab's own review roots decide, so a worktree's command never guesses from its own. A lab that does not answer in 5 seconds leaves it unknown, and the line says so. The
 stamp is the store's (`ProductionStore.stamp`), and the lab's `publish_set` stamps by it too: both refuse a
 production that keeps no ledger (`ProductionUnkept`) and a version it has not opened (`VersionUnknown`), so a
 unit in its own worktree starts the production's ledger (`film production new`) before it publishes. An

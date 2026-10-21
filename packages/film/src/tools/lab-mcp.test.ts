@@ -26,6 +26,7 @@ import {
   Exit,
   Fiber,
   FileSystem,
+  Latch,
   Layer,
   Option,
   Path,
@@ -1949,6 +1950,30 @@ describe('film publish', () => {
           );
         }),
       ),
+  );
+
+  it.effect('says the listing is unknown once a lab that takes the call never answers it', () =>
+    provided(
+      Effect.gen(function* () {
+        const path = yield* Path.Path;
+        const { lab } = yield* labWithMcp;
+        const { tool } = yield* mcpSession(lab);
+        yield* productionWithSet(tool);
+        const asked = yield* Latch.make(false);
+        const held = yield* Effect.forkChild(
+          filmCli(() => {
+            Latch.openUnsafe(asked);
+            // oxlint-disable-next-line effect/noNewPromise -- fetch's own contract: a lab that holds the call is a promise that never settles
+            return new Promise<Response>(() => {});
+          }, ['publish', path.join(path.resolve('out'), 'judge-faces'), '--production', 'f']),
+        );
+        yield* asked.await;
+        yield* TestClock.adjust('5 seconds');
+        const { failed, lines } = yield* Fiber.join(held);
+        expect(failed).toBe('');
+        expect(lines).toEqual([expect.stringMatching(/lists it is unknown \(no answer in 5 s\)$/)]);
+      }),
+    ),
   );
 });
 

@@ -18,6 +18,7 @@ import {
   Array as Arr,
   Boolean as Bool,
   Config,
+  Duration,
   Effect,
   Option,
   Predicate,
@@ -29,6 +30,9 @@ import { MCP_PATH } from './lab-mcp.ts';
 
 /** The protocol version the client speaks. */
 const PROTOCOL = '2025-06-18';
+
+/** How long a session's end waits on the lab before its scope closes without it. */
+const END_SECONDS = 5;
 
 /** The lab a command asks: the always-on one unless `FILM_LAB_URL` names another (a spare lab's port). */
 export const labUrl = Config.String('FILM_LAB_URL').pipe(
@@ -200,8 +204,9 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
 
   /**
    * `session` ended in the lab, as the MCP spec ends one: a DELETE with no
-   * body. A lab that already forgot it (it restarted) or has gone is left
-   * as it is: the session went with it.
+   * body. A lab that already forgot it (it restarted), has gone, or holds
+   * the call past `END_SECONDS` is left as it is: a scope never waits on a
+   * lab that does not answer to close.
    */
   const end = (session: string) =>
     http
@@ -217,6 +222,7 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
         Effect.tap((ended) =>
           Effect.logDebug(`lab.client.ended url=${url} status=${ended.status}`),
         ),
+        Effect.timeout(Duration.seconds(END_SECONDS)),
         Effect.ignore,
       );
 
@@ -224,9 +230,11 @@ export const labClient = Effect.fn('LabClient.make')(function* (url: string) {
    * A session for as long as its scope: started now, ended when the scope
    * closes. Its end is kept the moment the lab names it, so a handshake
    * that fails after that (`notifications/initialized` lost) ends it too.
+   * The handshake can be interrupted (a caller's time limit on a lab that
+   * holds the call): until the lab names the session there is none to end.
    */
   const session = Effect.gen(function* () {
-    const id = yield* Effect.acquireRelease(initialize, end);
+    const id = yield* Effect.acquireRelease(Effect.interruptible(initialize), end);
     yield* send({ jsonrpc: '2.0', method: 'notifications/initialized' }, Option.some(id));
     return id;
   });
