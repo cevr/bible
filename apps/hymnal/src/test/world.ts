@@ -248,8 +248,10 @@ const initial = (platform: Platform, start: number) => ({
   holdEnd: Number.NEGATIVE_INFINITY,
   /** A seek landing later (D10, D8); `own` when the page asked it. */
   landing: Option.none<{ readonly to: number; readonly at: number; readonly own: boolean }>(),
-  /** A phone's page seek One has not answered (r2 M8, `r3/premise-choice.md`). */
+  /** The page's latest seek One has not answered (r2 M8, `r3/premise-choice.md`). */
   seekAsk: Option.none<SeekAsk>(),
+  /** The web's page seeks a later seek superseded: their `seeked` listeners wait on the next completion. */
+  seekAsksBefore: new Array<SeekAsk>(),
   reads: new Array<Read>(),
   answers: new Array<{ readonly dueAt: number; readonly run: () => void }>(),
   tells: new Array<Tell>(),
@@ -478,20 +480,25 @@ export const makeWorld = (
     }
   };
   /**
-   * A page seek One will not resolve. iOS rejects it: a later seek cancels
+   * The page seek on its way, superseded by a later seek or `cleared` with the
+   * recording (a play or a stop). iOS rejects it: a later seek cancels
    * AVPlayer's (`finished == false`), and a new item fails `self.player ===
    * player` (HybridOneAudio.swift:199-203). Android never settles it: a later
    * seek's generation, or `clearPlayer`, drops its listener
-   * (HybridOneAudio.kt:295-300, :1131-1136).
+   * (HybridOneAudio.kt:295-300, :1131-1136). The web's `seeked` listener stays
+   * on the element, so a superseded seek resolves at the next completion, and
+   * a cleared one is rejected at `emptied` (One 2.8.1,
+   * `src/platform/audio/index.ts:256-277`).
    */
-  const dropSeek = () => {
+  const dropSeek = (cleared: boolean) => {
+    const reject = (it: SeekAsk, message: string) =>
+      w.answers.push({ dueAt: w.t + knobs.lag(), run: () => it.reject(new Error(message)) });
     Option.map(w.seekAsk, (it) => {
-      if (platform === 'ios')
-        w.answers.push({
-          dueAt: w.t + knobs.lag(),
-          run: () => it.reject(new Error('The seek was superseded')),
-        });
+      if (platform === 'ios') reject(it, 'The seek was superseded');
+      if (platform === 'web') w.seekAsksBefore.push(it);
     });
+    if (cleared)
+      for (const it of w.seekAsksBefore.splice(0)) reject(it, 'Playback failed or stopped');
     w.seekAsk = Option.none();
   };
   /**
@@ -499,15 +506,17 @@ export const makeWorld = (
    * completion (HybridOneAudio.swift:198-207); Android's one listener takes
    * whichever seek completes while its generation is the latest: the lock
    * screen's `seekTo` and an ended item's `seekTo(0)` bump no generation
-   * (HybridOneAudio.kt:264-267, :977-980, :995-1001). The status is the
-   * device's at the completion, told after a lag.
+   * (HybridOneAudio.kt:264-267, :977-980, :995-1001); the web's `seeked`
+   * resolves every page seek still listening. The status is the device's at
+   * the completion, told after a lag.
    */
   const completed = (own: boolean) => {
     Option.map(w.seekAsk, (it) => {
       if (platform === 'ios' && !own) return;
       w.seekAsk = Option.none();
       const status = said();
-      w.answers.push({ dueAt: w.t + knobs.lag(), run: () => it.resolve(status) });
+      for (const ask of [...w.seekAsksBefore.splice(0), it])
+        w.answers.push({ dueAt: w.t + knobs.lag(), run: () => ask.resolve(status) });
     });
   };
   /** A seek that lands after `after` ms, or at once. */
@@ -521,7 +530,7 @@ export const makeWorld = (
   };
 
   const load = () => {
-    dropSeek();
+    dropSeek(true);
     Object.assign(w, {
       phase: 'loading',
       place: 0,
@@ -541,7 +550,9 @@ export const makeWorld = (
       w.place = 0;
       w.leftEndAt = w.t;
       startSound();
-      if (platform === 'android') completed(false);
+      // Android's and the web's one listener takes this seek to 0:00 too (HybridOneAudio.kt:264-267;
+      // the element's `seeked`, One 2.8.1 `src/platform/audio/index.ts:241`).
+      if (platform !== 'ios') completed(false);
     } else if (w.phase === 'paused' && w.ready) startSound();
     else if (w.phase === 'paused') w.phase = 'loading';
   };
@@ -574,12 +585,9 @@ export const makeWorld = (
     let after = knobs.landAfter();
     // MediaPlayer sounds from 0:00 until a play from a place lands (D4, 50 to 400 ms).
     if (Option.isSome(w.fromPending) && platform === 'android') after = Math.min(300, after);
-    if (!phone) {
-      landAfter(positionMs, after, true);
-      return later(said);
-    }
-    // One answers a phone's seek at its completion, never before (`r3/premise-choice.md`).
-    dropSeek();
+    // One answers a seek at its completion, never before: a phone's (`r3/premise-choice.md`)
+    // and the web's, at the element's `seeked` (One 2.8.1, `src/platform/audio/index.ts:246-278`).
+    dropSeek(false);
     return new Promise<Status>((resolve, reject) => {
       w.seekAsk = Option.some({ resolve, reject });
       landAfter(positionMs, after, true);
@@ -601,7 +609,7 @@ export const makeWorld = (
     },
     seek,
     stop: () => {
-      dropSeek();
+      dropSeek(true);
       Object.assign(w, { phase: 'idle', place: 0, ready: false, landing: Option.none() });
       return later(() => {});
     },
@@ -855,7 +863,7 @@ export const makeWorld = (
     }
     // The lock screen's seek is a later AVPlayer seek: it cancels a page seek on its way.
     if (kind === 'seek' && platform === 'ios' && holding(w.phase)) {
-      dropSeek();
+      dropSeek(false);
       landAfter(to, knobs.remoteLand(), false);
     }
     const event = Option.match(

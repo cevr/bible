@@ -2,8 +2,9 @@
  * A device's playback the test holds: One's `Audio` session as a phone has
  * it, with no sound. A recording loads when played; the test moves it on
  * (`device.now`), turns the connection off and on (`device.online`), and
- * presses the lock screen's buttons (`device.press`), holds a seek back
- * until it moves the playback itself (`device.lagging`), and has the device
+ * presses the lock screen's buttons (`device.press`), holds a seek's answer
+ * back until it moves the playback onto the place itself (`device.lagging`;
+ * One answers a seek at its completion), and has the device
  * say `loading` for a few reads (`device.waiting`). What the player
  * asked is kept: each URL played, each place sought and each announcement.
  */
@@ -23,6 +24,8 @@ export const fakeDevice = () => {
   let now: Status = { state: 'idle', positionMs: 0 };
   /** Whether the next read is the first since the device turned to `playing` at a place. */
   let fresh = false;
+  /** Each lagging seek's place and its answer, given once the test moves the playback there. */
+  let landings = new Array<{ readonly to: number; readonly answer: (status: Status) => void }>();
   const device = {
     /**
      * The playback now. A device set to play sounds into its place: the first
@@ -35,6 +38,9 @@ export const fakeDevice = () => {
     set now(next: Status) {
       fresh = next.state === 'playing' && next.positionMs >= sounds;
       now = next;
+      const landed = landings.filter((it) => Math.abs(it.to - next.positionMs) <= 2);
+      landings = landings.filter((it) => !landed.includes(it));
+      for (const it of landed) it.answer(said(next));
     },
     /** The connection: setting it tells the player the change. */
     get online() {
@@ -46,7 +52,7 @@ export const fakeDevice = () => {
     played: new Array<string>(),
     /** Each place sought, in milliseconds. */
     sought: new Array<number>(),
-    /** While true, `seek` adds its place to `sought` and leaves `now` as it is. */
+    /** While true, `seek` adds its place to `sought`, leaves `now` as it is, and answers once the test sets `now` onto the place. */
     lagging: false,
     /**
      * While above 0, the device says `loading` in place of its state: a
@@ -119,7 +125,18 @@ export const fakeDevice = () => {
         Effect.suspend(() => {
           device.sought.push(positionMs);
           return Match.value(device.lagging).pipe(
-            Match.when(true, () => Effect.succeed(device.now)),
+            Match.when(true, () =>
+              Effect.callback<Status>((resume) => {
+                const landing = {
+                  to: positionMs,
+                  answer: (status: Status) => resume(Effect.succeed(status)),
+                };
+                landings.push(landing);
+                return Effect.sync(() => {
+                  landings = landings.filter((it) => it !== landing);
+                });
+              }),
+            ),
             Match.orElse(() => at({ ...device.now, positionMs })),
           );
         }),

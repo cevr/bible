@@ -712,8 +712,10 @@ describe('the player by the world: each earlier counterexample', () => {
         expect(tag(w)).toBe('Buffering');
         const sought = w.t;
         w.send(Command.Seek({ seconds: 10 }));
-        yield* w.run(900);
-        w.place += 120;
+        yield* w.run(400);
+        // The device lands 120 ms past the asked number, and answers the seek there.
+        expect(Option.map(w.landing, (it) => it.to)).toEqual(Option.some(10_000));
+        w.landing = Option.map(w.landing, (it) => ({ ...it, to: it.to + 120 }));
         yield* w.run(5000);
         expect(w.shownSince(sought)).not.toContain('Playing');
       }),
