@@ -294,13 +294,14 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         /**
          * An act the page knows now, moving the device to `target` ms if it
          * names one. No pair spans it, so a page that showed Playing shows
-         * Buffering until a pair after it proves sound again.
+         * Buffering until a pair after it proves sound again. It starts the
+         * wait again, so a Retry beside Buffering goes until the new wait runs out.
          */
         const act = (target: Option.Option<number>) =>
           Effect.flatMap(now, (at) => {
             held.proof = Proof.acted(held.proof, at, target);
             const was = get.registry.get(state);
-            if (!Player.$is('Playing')(was)) return Effect.void;
+            if (!Player.$is('Playing')(was) && !Player.$is('Buffering')(was)) return Effect.void;
             return show(
               Player.Buffering({ track: was.track, at: was.at, length: was.length, retry: false }),
             );
@@ -359,7 +360,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
          * The recording on the lock screen and in Control Center, once per
          * recording: once the device holds it (it answered an ask, or it
          * plays) and the player has not let it go. Whatever command comes
-         * next, an announce begun is not cut off.
+         * next, an announce begun is not cut off. It runs beside the reads,
+         * so its answer never holds the next read back.
          */
         const announceOnce = (track: Track, answer: Option.Option<boolean>) =>
           Effect.suspend(() => {
@@ -367,7 +369,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             const holds = Option.contains(answer, true) || Player.$is('Playing')(page);
             if (!holds || letGo(page) || held.announced === held.id) return Effect.void;
             held.announced = held.id;
-            return Effect.uninterruptible(announce(track));
+            return Effect.forkDetach(announce(track)).pipe(Effect.asVoid);
           });
         /** The load given up: the page offers Retry, and the device lets the recording go. */
         const giveUp = (track: Track) =>
@@ -415,7 +417,8 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 Match.when('landed', () => buffering(false)),
                 Match.orElse(() => Player.Playing({ track, at, length })),
               ),
-            Buffering: ({ retry }) => buffering(retry),
+            // Under the stand the wait is under 15 s: no Retry.
+            Buffering: () => buffering(false),
             Loading: () => Player.Loading({ track }),
             Idle: () => buffering(false),
             Paused: () => buffering(false),
