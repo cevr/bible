@@ -92,6 +92,20 @@ refrain after stanza 1 on the tune's first verse, or, for `first-and-last`
 and `after-last`, after the last stanza alone on the last verse, and keeps
 that one.
 
+The compile also writes `data/sdah-1985/topics.json`: the hymnal's 62
+sections as each page prints them at its foot, as ranges of hymn numbers
+(`Topics` in `@bible/hymnal/hymn`, `{ id, name, first, last }`, ordered).
+The schema refuses a table that is not a partition of 1–695, so every hymn
+has exactly one topic, and `topicOf(topics, n)` gives it. `scripts/topics.ts`
+builds it from hymnal.db's sections and `data/fixes/topics.json`, where the
+print differs: a range filed under another section (421–437 print ETERNAL
+LIFE), a name the print gives otherwise (HOLY SCRIPTURES, a trailing
+carriage return), and each page foot read as a witness (an owner photo, a
+hymnary.org scan page, or `contiguity` for a hymn no shown page prints,
+between two printed witnesses of the same heading). A section split in two
+with no move for it is refused (`TopicsError`), never repaired. The report
+lists each topic with its witnesses and the topics no page witnesses.
+
 A hymnal.db row whose text contradicts its printed page is rewritten from
 `data/fixes/<n>.json`: the page as printed, its `print` naming the source
 and each line's `from` the page image, system and row it was read from.
