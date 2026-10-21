@@ -5,7 +5,8 @@
 // the ask shows what a keep sets, never the painting's own height. The views
 // stand side by side, their tops on one row, with the anchor's band
 // across them: the top of the head, the chin and the soles. A view whose head does not read is
-// drawn at its height's share of the anchor's head; a heads sheet, and a
+// drawn at the anchor's head scaled by the two figures' heights, each over
+// its own heads; a heads sheet, and a
 // view that does not stand (lying, crouching), only at one head height.
 // Under headgear the head reads the face opening, whose top is not the
 // view's, so no body is drawn to the canon there either (the canon is read
@@ -32,12 +33,23 @@ const BAND: readonly [number, number, number] = [0, 170, 90];
 
 type View = SheetMeasure['views'][number];
 
-/** A view's head in the sheet's pixels: its own, else the anchor's by its height, else its height over its own heads. */
-const headOf = (v: View, anchor: Option.Option<View>, heads: number): number =>
+/**
+ * A view's head in the sheet's pixels: its own, else the anchor's scaled by
+ * the two figures' heights each over its own heads (a smaller figure's head
+ * is a larger share of it), else its height over its own heads.
+ */
+const headOf = (
+  v: View,
+  heads: number,
+  anchor: Option.Option<{ readonly view: View; readonly heads: number }>,
+): number =>
   Option.getOrElse(Option.fromUndefinedOr(v.head), () =>
     Option.getOrElse(
       Option.flatMap(anchor, (a) =>
-        Option.map(Option.fromUndefinedOr(a.head), (head) => (head * v.height) / a.height),
+        Option.map(
+          Option.fromUndefinedOr(a.view.head),
+          (head) => (head * (v.height / heads)) / (a.view.height / a.heads),
+        ),
       ),
       () => v.height / heads,
     ),
@@ -64,7 +76,11 @@ const normalised = (
 
 /** The try `sheet`, measured as `m` under `options`, each view normalised as the trace will make it, the canon's band across. */
 export const sheetPreview = (sheet: Raster, m: SheetMeasure, options: SheetOptions): Raster => {
-  const anchor = Arr.get(m.views, m.anchor - 1);
+  const anchorHeads = statureOf(options, m.anchor).heads;
+  const anchor = Option.map(Arr.get(m.views, m.anchor - 1), (view) => ({
+    view,
+    heads: anchorHeads,
+  }));
   const standing = standingOf(options, m.views);
   const bodies = m.kind !== 'heads';
   const traced = bodies && options.headgear !== true;
@@ -75,7 +91,7 @@ export const sheetPreview = (sheet: Raster, m: SheetMeasure, options: SheetOptio
         raster: normalised(
           sheet,
           v,
-          headOf(v, anchor, heads),
+          headOf(v, heads, anchor),
           traced && standing.includes(v.view),
           heads,
         ),
@@ -91,7 +107,6 @@ export const sheetPreview = (sheet: Raster, m: SheetMeasure, options: SheetOptio
     ],
     closed: false,
   });
-  const anchorHeads = statureOf(options, m.anchor).heads;
   const band = [GAP, GAP + PREVIEW_HEAD, ...((traced && [GAP + anchorHeads * PREVIEW_HEAD]) || [])];
   return strokeRaster(row, band.map(across), BAND, 2);
 };
