@@ -1,0 +1,823 @@
+{
+  "print": "The hymnal's sections as its pages print them at the foot, where hymnal.db's `categories` and each hymn's `category_id` say otherwise; read 2026-10-20. `moves`: hymns hymnal.db files under `from` that the print puts under `to` (421-437 print ETERNAL LIFE, hymnal.db files them under Salvation and Redemption). `names`: a section's name as printed where hymnal.db's differs (51 ends in a carriage return; 23 prints HOLY SCRIPTURES under 275 and 276). `printed`: each page foot read, the hymn it stands under, its heading in the print's capitals, and where it was read: an owner photo (`photos/sdah-1985/<file>`, Apple Vision OCR, its letters equal to the heading; 275, 276, 341, 428-a and 436-b-p2 read by eye from a crop of the foot) or a hymnary.org scan page (`scan:<page>`). A foot cut off or under a finger (575, 588, 643) is left out. `contiguity`: a hymn no shown page prints (427: scan 414 withheld, 415 a copy of 413; 435: on withheld pages only), placed with the hymns on both sides of it, each printed under the same heading.",
+  "moves": [
+    {
+      "first": 421,
+      "last": 437,
+      "from": 29,
+      "to": 41
+    }
+  ],
+  "names": [
+    {
+      "id": 23,
+      "name": "Holy Scriptures"
+    },
+    {
+      "id": 51,
+      "name": "Loving Service"
+    }
+  ],
+  "printed": [
+    {
+      "hymn": 1,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/001.jpg"
+    },
+    {
+      "hymn": 3,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/003.jpg"
+    },
+    {
+      "hymn": 10,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/010.jpg"
+    },
+    {
+      "hymn": 13,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/013-c.jpg"
+    },
+    {
+      "hymn": 13,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/013.jpg"
+    },
+    {
+      "hymn": 14,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/013-p2.jpg"
+    },
+    {
+      "hymn": 14,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/014.jpg"
+    },
+    {
+      "hymn": 23,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/023.jpg"
+    },
+    {
+      "hymn": 33,
+      "heading": "ADORATION AND PRAISE",
+      "from": "photos/sdah-1985/033.jpg"
+    },
+    {
+      "hymn": 41,
+      "heading": "MORNING WORSHIP",
+      "from": "photos/sdah-1985/041.jpg"
+    },
+    {
+      "hymn": 55,
+      "heading": "EVENING WORSHIP",
+      "from": "photos/sdah-1985/054.jpg"
+    },
+    {
+      "hymn": 55,
+      "heading": "EVENING WORSHIP",
+      "from": "photos/sdah-1985/055.jpg"
+    },
+    {
+      "hymn": 61,
+      "heading": "OPENING OF WORSHIP",
+      "from": "photos/sdah-1985/061-c.jpg"
+    },
+    {
+      "hymn": 61,
+      "heading": "OPENING OF WORSHIP",
+      "from": "photos/sdah-1985/061.jpg"
+    },
+    {
+      "hymn": 62,
+      "heading": "OPENING OF WORSHIP",
+      "from": "photos/sdah-1985/061-p2.jpg"
+    },
+    {
+      "hymn": 86,
+      "heading": "MAJESTY AND POWER OF GOD",
+      "from": "photos/sdah-1985/086.jpg"
+    },
+    {
+      "hymn": 91,
+      "heading": "MAJESTY AND POWER OF GOD",
+      "from": "photos/sdah-1985/091.jpg"
+    },
+    {
+      "hymn": 95,
+      "heading": "POWER OF GOD IN NATURE",
+      "from": "photos/sdah-1985/095.jpg"
+    },
+    {
+      "hymn": 100,
+      "heading": "FAITHFULNESS OF GOD",
+      "from": "photos/sdah-1985/100.jpg"
+    },
+    {
+      "hymn": 102,
+      "heading": "FAITHFULNESS OF GOD",
+      "from": "photos/sdah-1985/102-b.jpg"
+    },
+    {
+      "hymn": 102,
+      "heading": "FAITHFULNESS OF GOD",
+      "from": "photos/sdah-1985/102-c.jpg"
+    },
+    {
+      "hymn": 102,
+      "heading": "FAITHFULNESS OF GOD",
+      "from": "photos/sdah-1985/102.jpg"
+    },
+    {
+      "hymn": 103,
+      "heading": "FAITHFULNESS OF GOD",
+      "from": "photos/sdah-1985/102-b-p2.jpg"
+    },
+    {
+      "hymn": 108,
+      "heading": "GRACE AND MERCY OF GOD",
+      "from": "photos/sdah-1985/108.jpg"
+    },
+    {
+      "hymn": 112,
+      "heading": "GRACE AND MERCY OF GOD",
+      "from": "photos/sdah-1985/112.jpg"
+    },
+    {
+      "hymn": 120,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/120.jpg"
+    },
+    {
+      "hymn": 122,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/122-b.jpg"
+    },
+    {
+      "hymn": 122,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/122-c.jpg"
+    },
+    {
+      "hymn": 122,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/122.jpg"
+    },
+    {
+      "hymn": 123,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/122-b-p2.jpg"
+    },
+    {
+      "hymn": 123,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/123.jpg"
+    },
+    {
+      "hymn": 125,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/125.jpg"
+    },
+    {
+      "hymn": 126,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/126.jpg"
+    },
+    {
+      "hymn": 127,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/127.jpg"
+    },
+    {
+      "hymn": 128,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/128.jpg"
+    },
+    {
+      "hymn": 138,
+      "heading": "BIRTH",
+      "from": "photos/sdah-1985/138.jpg"
+    },
+    {
+      "hymn": 145,
+      "heading": "LIFE AND MINISTRY",
+      "from": "photos/sdah-1985/145.jpg"
+    },
+    {
+      "hymn": 175,
+      "heading": "RESURRECTION AND ASCENSION",
+      "from": "photos/sdah-1985/175.jpg"
+    },
+    {
+      "hymn": 178,
+      "heading": "PRIESTHOOD",
+      "from": "photos/sdah-1985/178.jpg"
+    },
+    {
+      "hymn": 179,
+      "heading": "PRIESTHOOD",
+      "from": "photos/sdah-1985/178-p2.jpg"
+    },
+    {
+      "hymn": 179,
+      "heading": "PRIESTHOOD",
+      "from": "photos/sdah-1985/179.jpg"
+    },
+    {
+      "hymn": 194,
+      "heading": "LOVE OF CHRIST FOR US",
+      "from": "photos/sdah-1985/194.jpg"
+    },
+    {
+      "hymn": 203,
+      "heading": "SECOND ADVENT",
+      "from": "photos/sdah-1985/203.jpg"
+    },
+    {
+      "hymn": 209,
+      "heading": "SECOND ADVENT",
+      "from": "photos/sdah-1985/209.jpg"
+    },
+    {
+      "hymn": 214,
+      "heading": "SECOND ADVENT",
+      "from": "photos/sdah-1985/214.jpg"
+    },
+    {
+      "hymn": 215,
+      "heading": "SECOND ADVENT",
+      "from": "photos/sdah-1985/215.jpg"
+    },
+    {
+      "hymn": 219,
+      "heading": "SECOND ADVENT",
+      "from": "photos/sdah-1985/219.jpg"
+    },
+    {
+      "hymn": 224,
+      "heading": "KINGDOM AND REIGN",
+      "from": "photos/sdah-1985/224.jpg"
+    },
+    {
+      "hymn": 225,
+      "heading": "KINGDOM AND REIGN",
+      "from": "photos/sdah-1985/225-p2.jpg"
+    },
+    {
+      "hymn": 225,
+      "heading": "KINGDOM AND REIGN",
+      "from": "photos/sdah-1985/225.jpg"
+    },
+    {
+      "hymn": 226,
+      "heading": "KINGDOM AND REIGN",
+      "from": "photos/sdah-1985/226.jpg"
+    },
+    {
+      "hymn": 231,
+      "heading": "GLORY AND PRAISE",
+      "from": "photos/sdah-1985/231.jpg"
+    },
+    {
+      "hymn": 232,
+      "heading": "GLORY AND PRAISE",
+      "from": "photos/sdah-1985/232.jpg"
+    },
+    {
+      "hymn": 255,
+      "heading": "GLORY AND PRAISE",
+      "from": "photos/sdah-1985/255-p2.jpg"
+    },
+    {
+      "hymn": 255,
+      "heading": "GLORY AND PRAISE",
+      "from": "photos/sdah-1985/255.jpg"
+    },
+    {
+      "hymn": 259,
+      "heading": "HOLY SPIRIT",
+      "from": "photos/sdah-1985/259.jpg"
+    },
+    {
+      "hymn": 261,
+      "heading": "HOLY SPIRIT",
+      "from": "photos/sdah-1985/261.jpg"
+    },
+    {
+      "hymn": 267,
+      "heading": "HOLY SPIRIT",
+      "from": "photos/sdah-1985/267.jpg"
+    },
+    {
+      "hymn": 267,
+      "heading": "HOLY SPIRIT",
+      "from": "photos/sdah-1985/268.jpg"
+    },
+    {
+      "hymn": 275,
+      "heading": "HOLY SCRIPTURES",
+      "from": "photos/sdah-1985/275.jpg"
+    },
+    {
+      "hymn": 276,
+      "heading": "HOLY SCRIPTURES",
+      "from": "photos/sdah-1985/276.jpg"
+    },
+    {
+      "hymn": 282,
+      "heading": "INVITATION",
+      "from": "photos/sdah-1985/282-1.jpg"
+    },
+    {
+      "hymn": 284,
+      "heading": "INVITATION",
+      "from": "photos/sdah-1985/284.jpg"
+    },
+    {
+      "hymn": 313,
+      "heading": "CONSECRATION",
+      "from": "photos/sdah-1985/313.jpg"
+    },
+    {
+      "hymn": 320,
+      "heading": "CONSECRATION",
+      "from": "photos/sdah-1985/320.jpg"
+    },
+    {
+      "hymn": 341,
+      "heading": "SALVATION AND REDEMPTION",
+      "from": "photos/sdah-1985/341.jpg"
+    },
+    {
+      "hymn": 342,
+      "heading": "SALVATION AND REDEMPTION",
+      "from": "photos/sdah-1985/341-p2.jpg"
+    },
+    {
+      "hymn": 342,
+      "heading": "SALVATION AND REDEMPTION",
+      "from": "photos/sdah-1985/342.jpg"
+    },
+    {
+      "hymn": 355,
+      "heading": "MISSION OF THE CHURCH",
+      "from": "photos/sdah-1985/355.jpg"
+    },
+    {
+      "hymn": 356,
+      "heading": "MISSION OF THE CHURCH",
+      "from": "photos/sdah-1985/356.jpg"
+    },
+    {
+      "hymn": 362,
+      "heading": "MISSION OF THE CHURCH",
+      "from": "photos/sdah-1985/362.jpg"
+    },
+    {
+      "hymn": 375,
+      "heading": "MISSION OF THE CHURCH",
+      "from": "photos/sdah-1985/375.jpg"
+    },
+    {
+      "hymn": 398,
+      "heading": "COMMUNION",
+      "from": "photos/sdah-1985/397.jpg"
+    },
+    {
+      "hymn": 402,
+      "heading": "COMMUNION",
+      "from": "photos/sdah-1985/401.jpg"
+    },
+    {
+      "hymn": 402,
+      "heading": "COMMUNION",
+      "from": "photos/sdah-1985/402.jpg"
+    },
+    {
+      "hymn": 417,
+      "heading": "JUDGMENT",
+      "from": "photos/sdah-1985/417.jpg"
+    },
+    {
+      "hymn": 419,
+      "heading": "RESURRECTION OF THE SAINTS",
+      "from": "photos/sdah-1985/419.jpg"
+    },
+    {
+      "hymn": 419,
+      "heading": "RESURRECTION OF THE SAINTS",
+      "from": "photos/sdah-1985/420.jpg"
+    },
+    {
+      "hymn": 420,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/419.jpg"
+    },
+    {
+      "hymn": 420,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/420.jpg"
+    },
+    {
+      "hymn": 421,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:406"
+    },
+    {
+      "hymn": 422,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:407"
+    },
+    {
+      "hymn": 423,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:408"
+    },
+    {
+      "hymn": 424,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:409"
+    },
+    {
+      "hymn": 424,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:410"
+    },
+    {
+      "hymn": 425,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:411"
+    },
+    {
+      "hymn": 425,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:412"
+    },
+    {
+      "hymn": 426,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:413"
+    },
+    {
+      "hymn": 427,
+      "heading": "ETERNAL LIFE",
+      "from": "contiguity"
+    },
+    {
+      "hymn": 428,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/428-a.jpg"
+    },
+    {
+      "hymn": 428,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/428-b.jpg"
+    },
+    {
+      "hymn": 429,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:416"
+    },
+    {
+      "hymn": 430,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:417"
+    },
+    {
+      "hymn": 431,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:418"
+    },
+    {
+      "hymn": 432,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:419"
+    },
+    {
+      "hymn": 433,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:420"
+    },
+    {
+      "hymn": 434,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:421"
+    },
+    {
+      "hymn": 435,
+      "heading": "ETERNAL LIFE",
+      "from": "contiguity"
+    },
+    {
+      "hymn": 436,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/436-b.jpg"
+    },
+    {
+      "hymn": 436,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/436-c.jpg"
+    },
+    {
+      "hymn": 436,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/436.jpg"
+    },
+    {
+      "hymn": 437,
+      "heading": "ETERNAL LIFE",
+      "from": "photos/sdah-1985/436-b-p2.jpg"
+    },
+    {
+      "hymn": 437,
+      "heading": "ETERNAL LIFE",
+      "from": "scan:424"
+    },
+    {
+      "hymn": 438,
+      "heading": "EARLY ADVENT",
+      "from": "photos/sdah-1985/438.jpg"
+    },
+    {
+      "hymn": 459,
+      "heading": "OUR LOVE FOR GOD",
+      "from": "photos/sdah-1985/459.jpg"
+    },
+    {
+      "hymn": 461,
+      "heading": "JOY AND PEACE",
+      "from": "photos/sdah-1985/461.jpg"
+    },
+    {
+      "hymn": 464,
+      "heading": "JOY AND PEACE",
+      "from": "photos/sdah-1985/464.jpg"
+    },
+    {
+      "hymn": 465,
+      "heading": "JOY AND PEACE",
+      "from": "photos/sdah-1985/465.jpg"
+    },
+    {
+      "hymn": 467,
+      "heading": "JOY AND PEACE",
+      "from": "photos/sdah-1985/467.jpg"
+    },
+    {
+      "hymn": 471,
+      "heading": "JOY AND PEACE",
+      "from": "photos/sdah-1985/471.jpg"
+    },
+    {
+      "hymn": 493,
+      "heading": "MEDITATION AND PRAYER",
+      "from": "photos/sdah-1985/493.jpg"
+    },
+    {
+      "hymn": 497,
+      "heading": "MEDITATION AND PRAYER",
+      "from": "photos/sdah-1985/497-b.jpg"
+    },
+    {
+      "hymn": 497,
+      "heading": "MEDITATION AND PRAYER",
+      "from": "photos/sdah-1985/497.jpg"
+    },
+    {
+      "hymn": 498,
+      "heading": "MEDITATION AND PRAYER",
+      "from": "photos/sdah-1985/497-b-p2.jpg"
+    },
+    {
+      "hymn": 505,
+      "heading": "MEDITATION AND PRAYER",
+      "from": "photos/sdah-1985/505.jpg"
+    },
+    {
+      "hymn": 506,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/506.jpg"
+    },
+    {
+      "hymn": 509,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/509.jpg"
+    },
+    {
+      "hymn": 515,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/515-1.jpg"
+    },
+    {
+      "hymn": 515,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/515-2.jpg"
+    },
+    {
+      "hymn": 527,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/527.jpg"
+    },
+    {
+      "hymn": 532,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/532-b.jpg"
+    },
+    {
+      "hymn": 532,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/532.jpg"
+    },
+    {
+      "hymn": 533,
+      "heading": "FAITH AND TRUST",
+      "from": "photos/sdah-1985/532-b-p2.jpg"
+    },
+    {
+      "hymn": 541,
+      "heading": "GUIDANCE",
+      "from": "photos/sdah-1985/540.jpg"
+    },
+    {
+      "hymn": 541,
+      "heading": "GUIDANCE",
+      "from": "photos/sdah-1985/541.jpg"
+    },
+    {
+      "hymn": 547,
+      "heading": "GUIDANCE",
+      "from": "photos/sdah-1985/547.jpg"
+    },
+    {
+      "hymn": 549,
+      "heading": "GUIDANCE",
+      "from": "photos/sdah-1985/548.jpg"
+    },
+    {
+      "hymn": 562,
+      "heading": "THANKFULNESS",
+      "from": "photos/sdah-1985/562.jpg"
+    },
+    {
+      "hymn": 580,
+      "heading": "LOVING SERVICE",
+      "from": "photos/sdah-1985/580.jpg"
+    },
+    {
+      "hymn": 581,
+      "heading": "LOVING SERVICE",
+      "from": "photos/sdah-1985/581.jpg"
+    },
+    {
+      "hymn": 583,
+      "heading": "LOVING SERVICE",
+      "from": "photos/sdah-1985/583.jpg"
+    },
+    {
+      "hymn": 584,
+      "heading": "LOVING SERVICE",
+      "from": "photos/sdah-1985/583-p2.jpg"
+    },
+    {
+      "hymn": 584,
+      "heading": "LOVING SERVICE",
+      "from": "photos/sdah-1985/584.jpg"
+    },
+    {
+      "hymn": 586,
+      "heading": "LOVE FOR ONE ANOTHER",
+      "from": "photos/sdah-1985/585.jpg"
+    },
+    {
+      "hymn": 589,
+      "heading": "LOVE FOR ONE ANOTHER",
+      "from": "photos/sdah-1985/589.jpg"
+    },
+    {
+      "hymn": 606,
+      "heading": "CHRISTIAN WARFARE",
+      "from": "photos/sdah-1985/606.jpg"
+    },
+    {
+      "hymn": 620,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/620.jpg"
+    },
+    {
+      "hymn": 626,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/626-b.jpg"
+    },
+    {
+      "hymn": 626,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/626.jpg"
+    },
+    {
+      "hymn": 627,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/626-b-p2.jpg"
+    },
+    {
+      "hymn": 628,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/628.jpg"
+    },
+    {
+      "hymn": 629,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/628-p2.jpg"
+    },
+    {
+      "hymn": 629,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/629.jpg"
+    },
+    {
+      "hymn": 632,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/632-p2.jpg"
+    },
+    {
+      "hymn": 632,
+      "heading": "PILGRIMAGE",
+      "from": "photos/sdah-1985/632.jpg"
+    },
+    {
+      "hymn": 634,
+      "heading": "STEWARDSHIP",
+      "from": "photos/sdah-1985/634.jpg"
+    },
+    {
+      "hymn": 636,
+      "heading": "STEWARDSHIP",
+      "from": "photos/sdah-1985/636.jpg"
+    },
+    {
+      "hymn": 638,
+      "heading": "STEWARDSHIP",
+      "from": "photos/sdah-1985/638.jpg"
+    },
+    {
+      "hymn": 639,
+      "heading": "STEWARDSHIP",
+      "from": "photos/sdah-1985/639.jpg"
+    },
+    {
+      "hymn": 641,
+      "heading": "STEWARDSHIP",
+      "from": "photos/sdah-1985/641.jpg"
+    },
+    {
+      "hymn": 650,
+      "heading": "LOVE IN THE HOME",
+      "from": "photos/sdah-1985/650.jpg"
+    },
+    {
+      "hymn": 651,
+      "heading": "LOVE IN THE HOME",
+      "from": "photos/sdah-1985/651.jpg"
+    },
+    {
+      "hymn": 654,
+      "heading": "LOVE IN THE HOME",
+      "from": "photos/sdah-1985/654.jpg"
+    },
+    {
+      "hymn": 655,
+      "heading": "LOVE IN THE HOME",
+      "from": "photos/sdah-1985/654-p2.jpg"
+    },
+    {
+      "hymn": 655,
+      "heading": "LOVE IN THE HOME",
+      "from": "photos/sdah-1985/655.jpg"
+    },
+    {
+      "hymn": 657,
+      "heading": "MARRIAGE",
+      "from": "photos/sdah-1985/657.jpg"
+    },
+    {
+      "hymn": 663,
+      "heading": "SENTENCES AND RESPONSES",
+      "from": "photos/sdah-1985/663.jpg"
+    },
+    {
+      "hymn": 669,
+      "heading": "SENTENCES AND RESPONSES",
+      "from": "photos/sdah-1985/669.jpg"
+    },
+    {
+      "hymn": 677,
+      "heading": "SENTENCES AND RESPONSES",
+      "from": "photos/sdah-1985/677.jpg"
+    },
+    {
+      "hymn": 687,
+      "heading": "SENTENCES AND RESPONSES",
+      "from": "photos/sdah-1985/687.jpg"
+    }
+  ]
+}

@@ -11,11 +11,14 @@
  * their syllables less sure), or `Plain` (the words alone, no chords). A
  * `Plain` part carries no syllables and no chords.
  *
+ * The topics (`Topics`) are the hymnal's sections as its pages print them at
+ * the foot, each a range of hymn numbers; `topicOf` gives a hymn's.
+ *
  * This module imports only `effect` and `./chord.js`, so React Native reads
  * it without Bun, Node or the pronouncing dictionary.
  */
 
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 
 import * as Chord from './chord.js';
 
@@ -188,3 +191,56 @@ export const Index = Schema.Struct({
   hymns: Schema.Array(Schema.Struct({ number: Schema.Int, title: Schema.String, level: Level })),
 });
 export type Index = typeof Index.Type;
+
+/** The last hymn the compiled set carries: the readings after it are not compiled. */
+const LAST_HYMN = 695;
+
+/** A section of the hymnal, as its pages print it at the foot: its id in hymnal.db, its name and its hymns. */
+export const Topic = Schema.Struct({
+  id: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  name: Schema.String.check(Schema.isNonEmpty(), Schema.isTrimmed()),
+  first: Schema.Int,
+  last: Schema.Int,
+});
+export type Topic = typeof Topic.Type;
+
+/** Why a table is not a partition of 1–695: the first fault found, by topic index. */
+const partitionFault = (topics: readonly Topic[]): string | undefined => {
+  if (topics.length === 0) return 'no topics';
+  const ids = new Set<number>();
+  for (const [i, topic] of topics.entries()) {
+    if (ids.has(topic.id)) return `topic ${i}: id ${topic.id} repeats`;
+    ids.add(topic.id);
+    if (topic.first > topic.last)
+      return `topic ${i}: first ${topic.first} after last ${topic.last}`;
+    const start = i === 0 ? 1 : (topics[i - 1]?.last ?? 0) + 1;
+    if (topic.first !== start) return `topic ${i}: starts at ${topic.first}, not ${start}`;
+  }
+  const end = topics[topics.length - 1]?.last;
+  return end === LAST_HYMN ? undefined : `the last topic ends at ${end}, not ${LAST_HYMN}`;
+};
+
+/**
+ * The topics of the compiled hymnal, ordered by `first`: a partition of
+ * 1–695, so every hymn has exactly one. A table with a gap, an overlap, a
+ * range out of order or reversed, an end other than 1 and 695, or an id
+ * twice is refused.
+ */
+export const Topics = Schema.Struct({
+  version: Schema.Literal(1),
+  book: Schema.Literals(['sdah-1985']),
+  topics: Schema.Array(Topic),
+}).check(
+  Schema.makeFilter((table) => partitionFault(table.topics) ?? true, {
+    expected: 'topics that partition hymns 1-695 in order',
+  }),
+);
+export type Topics = typeof Topics.Type;
+
+/** The topic whose range holds hymn `number`; none for a number in no range. */
+export const topicOf = (topics: Topics, number: number): Option.Option<Topic> =>
+  Option.fromUndefinedOr(
+    topics.topics.find(
+      (topic) => topic.first <= number && number <= topic.last && Number.isInteger(number),
+    ),
+  );

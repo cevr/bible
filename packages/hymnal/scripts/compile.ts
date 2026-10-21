@@ -9,7 +9,10 @@
  * folder (`<out>.report.md`): the hymns and parts by level, the reasons,
  * the inexact and count-mismatched files, the held list, the refrains by
  * order (each sung otherwise than after each stanza in its sung order), the
- * alignment key's comparison and the time taken. Paths default to the
+ * topics with their witnesses, the alignment key's comparison and the time
+ * taken. It writes `<out>/topics.json`, the hymnal's sections as hymn ranges
+ * (`./topics.ts`, from hymnal.db and `data/fixes/topics.json`), and decodes
+ * it back. Paths default to the
  * repository's (`packages/core/data/hymnal.db`, `packages/hymnal/data/midi`,
  * `packages/hymnal/data/sdah-1985`, `packages/hymnal/data/key`); where a
  * refrain is sung comes from `data/fixes/refrains.json` (`./sources.ts`).
@@ -19,13 +22,24 @@
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { HymnalService, HymnId } from '@bible/core/hymnal';
 import { layerHymnalBun } from '@bible/core/hymnal/bun';
-import { ConfigProvider, Data, Effect, Layer, Result, Schema } from 'effect';
+import { ConfigProvider, Data, Effect, Layer, Option, Result, Schema } from 'effect';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { compile } from '../src/compile.js';
-import { Hymn, Index, type Level, Order, type Part, type Reason, sung } from '../src/hymn.js';
+import {
+  Hymn,
+  Index,
+  type Level,
+  Order,
+  type Part,
+  type Reason,
+  sung,
+  topicOf,
+  Topics,
+} from '../src/hymn.js';
 import { decodeOrders, HELD, sourceOf } from './sources.js';
+import { buildTopics, decodeFixes, type Fixes, readRows } from './topics.js';
 
 const ROOT = path.resolve(import.meta.dir, '../../..');
 const FIRST = 1;
@@ -43,6 +57,8 @@ const keyDir = flag('--key', 'packages/hymnal/data/key');
 
 /** Where the hymnal sings each refrain, read off its page. */
 const REFRAINS = path.resolve(import.meta.dir, '../data/fixes/refrains.json');
+/** The print's corrections to hymnal.db's sections, each page foot read as its witness. */
+const TOPIC_FIXES = path.resolve(import.meta.dir, '../data/fixes/topics.json');
 
 const pad = (n: number) => String(n).padStart(3, '0');
 
@@ -83,6 +99,32 @@ const encodeHymn = Schema.encodeSync(Hymn);
 const encodeIndex = Schema.encodeSync(Index);
 const decodeHymn = Schema.decodeUnknownEffect(Schema.fromJsonString(Hymn));
 const decodeIndex = Schema.decodeUnknownEffect(Schema.fromJsonString(Index));
+const encodeTopics = Schema.encodeSync(Topics);
+const decodeTopics = Schema.decodeUnknownEffect(Schema.fromJsonString(Topics));
+
+/** Builds the topics, writes `topics.json` and decodes it back. */
+const writeTopics = (fixes: Fixes) =>
+  Effect.gen(function* () {
+    const topics = yield* buildTopics(yield* readRows, fixes);
+    const file = path.join(out, 'topics.json');
+    yield* Effect.promise(() => Bun.write(file, `${JSON.stringify(encodeTopics(topics))}\n`));
+    return yield* decodeTopics(yield* Effect.promise(() => Bun.file(file).text()));
+  });
+
+/** Each topic with its range and the page feet that witness it, then the topics no page witnesses. */
+const topicsOf = (topics: Topics, fixes: Fixes) => {
+  const witnesses = (id: number) =>
+    fixes.printed.filter((p) => Option.exists(topicOf(topics, p.hymn), (topic) => topic.id === id));
+  const bare = topics.topics.filter((t) => witnesses(t.id).length === 0);
+  return [
+    ...topics.topics.map((t) => {
+      const seen = witnesses(t.id).map((p) => `${p.hymn} ${p.from}`);
+      return `- ${t.first}-${t.last} ${t.name} (${t.id}): ${seen.join(', ') || 'no witness'}`;
+    }),
+    '',
+    `Witnessed by no page: ${bare.map((t) => `${t.name} (${t.first}-${t.last})`).join(', ') || 'none'}`,
+  ];
+};
 
 /** A key file's lines: each syllable's letters and its notes (`text_N`, `text_0`; one by default). */
 const readKey = (text: string) =>
@@ -248,6 +290,7 @@ const keyLineOf = (keys: readonly KeyResult[]) => {
 
 interface Run {
   readonly summary: string;
+  readonly topics: readonly string[];
   readonly compiled: readonly Hymn[];
   readonly failed: readonly string[];
   readonly counts: ReturnType<typeof tally>;
@@ -256,7 +299,7 @@ interface Run {
   readonly seconds: string;
 }
 
-const reportOf = ({ summary, compiled, failed, counts, keys, keyLine, seconds }: Run) => {
+const reportOf = ({ summary, topics, compiled, failed, counts, keys, keyLine, seconds }: Run) => {
   const inexact = compiled.filter((hymn) => !hymn.verses.exact).map((hymn) => hymn.number);
   const mismatched = compiled
     .filter((hymn) => hymn.verses.text !== hymn.verses.midi)
@@ -292,6 +335,10 @@ const reportOf = ({ summary, compiled, failed, counts, keys, keyLine, seconds }:
     '## Refrains',
     '',
     ...refrainsOf(compiled),
+    '',
+    '## Topics',
+    '',
+    ...topics,
     '',
     '## Failed',
     '',
@@ -330,13 +377,24 @@ const program = Effect.gen(function* () {
   const compiled = results.filter(Result.isSuccess).map((r) => r.success);
   const failed = results.filter(Result.isFailure).map((r) => r.failure.why);
   const decoded = yield* writeIndex(compiled);
+  const fixes = yield* decodeFixes(yield* Effect.promise(() => Bun.file(TOPIC_FIXES).text()));
+  const topics = yield* writeTopics(fixes);
   const keys = yield* readKeys(compiled);
   const counts = tally(compiled);
   const keyLine = keyLineOf(keys);
   const seconds = ((performance.now() - started) / 1000).toFixed(1);
   const { byHymn, byPart } = counts;
-  const summary = `hymns=${results.length} compiled=${compiled.length} failed=${failed.length} decoded=${decoded} syllable=${byHymn.syllable} line=${byHymn.line} text=${byHymn.text}`;
-  const report = reportOf({ summary, compiled, failed, counts, keys, keyLine, seconds });
+  const summary = `hymns=${results.length} compiled=${compiled.length} failed=${failed.length} decoded=${decoded} topics=${topics.topics.length} syllable=${byHymn.syllable} line=${byHymn.line} text=${byHymn.text}`;
+  const report = reportOf({
+    summary,
+    topics: topicsOf(topics, fixes),
+    compiled,
+    failed,
+    counts,
+    keys,
+    keyLine,
+    seconds,
+  });
   yield* Effect.promise(() => Bun.write(`${out}.report.md`, report));
   console.log(
     `${summary} parts.syllable=${byPart.syllable} parts.line=${byPart.line} parts.text=${byPart.text} seconds=${seconds}`,
