@@ -2954,7 +2954,9 @@ papers drift held to the anchor view as the try measured it, in numbers and
 words: its head's pixels and share of its height, its hand's share of the
 head, its papers' colours by name and hex, `colourWords` in
 `core/cast-sheet-pixels.ts`; on a heads sheet a head is held by its eyes'
-spacing, in pixels, to its turn's first head); on `facing`,
+spacing, in pixels, to its turn's first head; a smaller figure's height,
+head and hands are held to its own size, a share of the anchor's, never the
+anchor's own); on `facing`,
 `sameWay`, `roll` or `squash` the retry also sends the underlay as its last
 reference (`mannequinUnderlay`, `core/cast-underlay.ts`, pure: a blank
 mannequin per standing view, their soles on one row with no line drawn

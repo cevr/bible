@@ -52,6 +52,7 @@ import {
   grownHeadsOf,
   standingOf,
   statureOf,
+  type Stature,
   sheetOverlay,
   sheetTable,
   type Slot,
@@ -147,11 +148,52 @@ interface Drifting {
   readonly views: ReadonlyArray<SheetMeasure['views'][number]>;
   /** A heads sheet: a head is held by its width to its turn's first head, not by its height to the anchor. */
   readonly heads: boolean;
-  /** How many of its own heads the anchor's figure stands. */
-  readonly anchorHeads: number;
+  /** The anchor view, by its number on the sheet. */
+  readonly anchorView: number;
+  /** Each view's stature (`statureOf`): its share of the grown height and its own heads. */
+  readonly stature: (view: number) => Stature;
   /** Whether the sheet draws a smaller figure beside the grown member. */
   readonly smaller: boolean;
 }
+
+/** A view's size against the anchor's: its share of the anchor's height, and its head's share of the anchor's head. */
+const besideAnchor = (held: Drifting, view: number) => {
+  const own = held.stature(view);
+  const anchor = held.stature(held.anchorView);
+  return {
+    height: own.height / anchor.height,
+    head: own.height / own.heads / (anchor.height / anchor.heads),
+  };
+};
+
+/** Whether a view is drawn at the anchor's own size. */
+const atAnchorSize = (held: Drifting, view: number): boolean => {
+  const { height, head } = besideAnchor(held, view);
+  return Math.abs(height - 1) < 0.005 && Math.abs(head - 1) < 0.005;
+};
+
+/** A percentage in words: "67 %". */
+const percent = (x: number): string => `${Math.round(100 * x)} %`;
+
+/**
+ * A drift said for each view at its own size: the views at the anchor's
+ * size in one sentence (`grown`), each smaller figure in its own (`own`), so
+ * a retry never asks a child to stand as tall as the grown member.
+ */
+const bySize = (
+  held: Drifting,
+  views: ReadonlyArray<number>,
+  grown: (views: ReadonlyArray<number>) => string,
+  own: (view: number, size: ReturnType<typeof besideAnchor>) => string,
+): string => {
+  const smaller = views.filter((v) => !atAnchorSize(held, v));
+  if (smaller.length === 0) return grown(views);
+  const rest = views.filter((v) => atAnchorSize(held, v) && v !== held.anchorView);
+  return [
+    ...smaller.map((v) => own(v, besideAnchor(held, v))),
+    ...((rest.length > 0 && [grown(rest)]) || []),
+  ].join(' ');
+};
 
 /** A share in words, for a prompt beside its number: "about a third of". */
 const shareWords = (x: number): string =>
@@ -249,33 +291,58 @@ const driftOf = (check: SheetCheck, views: ReadonlyArray<number>, held: Drifting
     Match.when(
       'squash',
       () =>
-        `Every ${(held.smaller && 'grown ') || ''}figure stands about ${headsWords(held.anchorHeads)} of its own heads tall, as the underlay's figures do.`,
+        `Every ${(held.smaller && 'grown ') || ''}figure stands about ${headsWords(held.stature(held.anchorView).heads)} of its own heads tall, as the underlay's figures do.`,
     ),
-    Match.whenOr(
-      'height',
-      'ground',
-      () => `Figure ${v} stands as tall as the others, its soles level with theirs.`,
+    Match.whenOr('height', 'ground', () =>
+      bySize(
+        held,
+        views,
+        (grown) =>
+          `Figure ${grown.join(' and ')} stands as tall as the others, its soles level with theirs.`,
+        (view, size) =>
+          `Figure ${view} stands about ${percent(size.height)} of figure ${held.anchorView}'s height, its soles level with theirs: it is the smaller figure the layout names.`,
+      ),
     ),
     Match.when(
       'head',
       () =>
         (held.heads && headsDrift(held, views)) ||
-        heldTo(
+        bySize(
           held,
           views,
-          'head',
-          (who, anchor, size) => `${who}'s head is as big as figure ${anchor}'s: ${size}.`,
-          `Figure ${v}'s head is the same size as the others'.`,
+          (grown) =>
+            heldTo(
+              held,
+              grown,
+              'head',
+              (who, anchor, size) => `${who}'s head is as big as figure ${anchor}'s: ${size}.`,
+              `Figure ${grown.join(' and ')}'s head is the same size as the others'.`,
+            ),
+          (view, size) =>
+            `Figure ${view}'s head is about ${percent(size.head)} of figure ${held.anchorView}'s${Option.getOrElse(
+              Option.map(
+                Option.flatMap(held.anchor, (a) => Option.fromUndefinedOr(a.head)),
+                (px) => `, about ${Math.round(px * size.head)} pixels tall on this sheet`,
+              ),
+              () => '',
+            )}: a smaller figure's head is a larger share of its height.`,
         ),
     ),
     Match.when('hand', () =>
-      heldTo(
+      bySize(
         held,
         views,
-        'hand',
-        (who, anchor, size) =>
-          `${who}'s round hands are as big as figure ${anchor}'s: ${size}, as the kept concept draws them.`,
-        `Figure ${v}'s hands are the same size as the others', as the kept concept draws them.`,
+        (grown) =>
+          heldTo(
+            held,
+            grown,
+            'hand',
+            (who, anchor, size) =>
+              `${who}'s round hands are as big as figure ${anchor}'s: ${size}, as the kept concept draws them.`,
+            `Figure ${grown.join(' and ')}'s hands are the same size as the others', as the kept concept draws them.`,
+          ),
+        (view) =>
+          `Figure ${view}'s round hands are the same share of its own head as figure ${held.anchorView}'s are of its head, as the kept concept draws them.`,
       ),
     ),
     Match.when('width', () => `Figures ${v} are the same width.`),
@@ -533,7 +600,8 @@ const gatedTry = (ctx: TryContext, emit: (line: CastLine) => Effect.Effect<void>
         anchor: Option.flatMap(measure, (m) => Arr.findFirst(m.views, (v) => v.view === m.anchor)),
         views: Option.match(measure, { onNone: () => [], onSome: (m) => m.views }),
         heads: ctx.run.kind === 'heads',
-        anchorHeads: statureOf(ctx.options, ctx.options.anchor).heads,
+        anchorView: ctx.options.anchor,
+        stature: (view) => statureOf(ctx.options, view),
         smaller: (ctx.options.figures ?? []).length > 0,
       };
       const drifts = first.flags.map((f) => driftOf(f.check, f.views, held));

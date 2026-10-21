@@ -229,6 +229,14 @@ describe('a member of its own sizes', () => {
         expect(calls[0]?.prompt).not.toContain('The hair and the beard');
         const [grown, child] = standing(files.get(`${OUT}/underlay-poses.png`) ?? new Uint8Array());
         expect((child ?? 0) / (grown ?? 1)).toBeCloseTo(0.5, 1);
+        // The first try draws the child as tall as the grown one: the retry holds it to its own size.
+        const retry = calls[1]?.prompt ?? '';
+        expect(retry).toContain(
+          "Figure 2 stands about 50 % of figure 1's height, its soles level with theirs",
+        );
+        expect(retry).toMatch(/Figure 2's head is about 65 % of figure 1's, about \d+ pixels tall/);
+        expect(retry).not.toContain('Figure 2 stands as tall as the others');
+        expect(retry).not.toContain("Figure 2's head is as big as figure 1's");
       }).pipe(
         Effect.provide(
           castOver(files, calls, (r) => (underlaid(r) && clean) || wrong, childBeside),
