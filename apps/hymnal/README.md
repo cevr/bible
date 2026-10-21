@@ -84,7 +84,10 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   `playing`. An act (a page command, a lock-screen press, a play from a
   place) that moves the device is pending until a read shows its landing:
   a place from its target to its target plus the time since the page learnt
-  of it. No pair is taken across an act, no length of a gap and no count of
+  of it, or since the ask of the latest read that saw the device elsewhere,
+  each within 2 ms (One rounds a place). A device that stands where such a
+  read saw it has not landed, and one that refused the place lands only by
+  coming onto it. No pair is taken across an act, no length of a gap and no count of
   reads proves anything, and the player alone owns the waits; the adapter
   asks a play's place again while the device holds the recording, and never
   gives up by its own clock.
