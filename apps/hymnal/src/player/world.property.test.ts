@@ -10,8 +10,9 @@
  */
 
 import { describe, expect, it } from 'effect-bun-test';
-import * as BunServices from '@effect/platform-bun/BunServices';
-import { Clock, Console, Effect, FileSystem, Option } from 'effect';
+// oxlint-disable-next-line effect/noNodeBuiltinImport -- the test preload's happy-dom AbortSignal is not the one Bun's file system takes, so Effect's FileSystem fails here: the M1 guard reads the oracle's source with node's.
+import { readFileSync } from 'node:fs';
+import { Clock, Console, Effect, Option } from 'effect';
 import { TestClock } from 'effect/testing';
 
 import {
@@ -1130,13 +1131,10 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
   // the unseen-sound excuse ends by its time bound alone. A pair in the oracle would pass a
   // product with the same pair defect (Risk 6).
   it.effect('rw r2 M1: the oracle takes no read pair as sound', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const oracle = yield* fs.readFileString(
-        new URL('../test/world.ts', import.meta.url).pathname,
-      );
+    Effect.sync(() => {
+      const oracle = readFileSync(new URL('../test/world.ts', import.meta.url), 'utf8');
       expect(oracle.match(/read\.closes|lastRead|soundSampled|lastHeard/g) ?? []).toEqual([]);
-    }).pipe(Effect.provide(BunServices.layer)),
+    }),
   );
   // O10 excuses a turn from Playing by a silence of the stand only when that silence began by
   // the turning read's sample: a silence in a host hold after it is not what the read saw.
