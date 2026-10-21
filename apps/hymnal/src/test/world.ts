@@ -253,6 +253,8 @@ const initial = (platform: Platform, start: number) => ({
   /** The latest read that closed a sound pair by the world (`Read.closes`): the load has sounded as a read can show it. */
   soundSampled: Number.NEGATIVE_INFINITY,
   lastSound: Number.NEGATIVE_INFINITY,
+  /** The latest seek sound carried onto (O10): a page cannot tell it from a landing that moved the device. */
+  carriedAt: Number.NEGATIVE_INFINITY,
   /** The sample of the read that last turned the page to Playing (O10): reads are sequential, so the latest. */
   playingFrom: Number.NEGATIVE_INFINITY,
   /** The latest read's sample, and the largest gap between two samples while the page reads and the host runs. */
@@ -993,6 +995,7 @@ export const makeWorld = (
       Option.filter(w.target, (it) => !it.landed && before < it.to - 2 && w.place >= it.to - 2),
       (it) => {
         it.landed = true;
+        w.carriedAt = w.t;
       },
     );
     w.ahead -= step;
@@ -1238,7 +1241,8 @@ export const makeWorld = (
    */
   const judgeStand = (now: Player) => {
     if (now._tag === 'Playing' && w.was !== 'Playing') w.playingFrom = w.lastSampleAt;
-    const unacted = Math.max(w.lastAct, w.toldAt, w.landedAt, w.loadAt) < w.playingFrom;
+    const unacted =
+      Math.max(w.lastAct, w.toldAt, w.landedAt, w.carriedAt, w.loadAt) < w.playingFrom;
     if (isWaiting(now) && w.was === 'Playing' && unacted && w.t - w.lastSound < standFloor)
       breach('O10 Buffering early', `silentFor=${w.t - w.lastSound} page=${now._tag}`);
   };
