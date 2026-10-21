@@ -69,32 +69,76 @@ above the tabs shows the hymn playing (its number, title and Play or Pause);
 a press on it opens the hymn. Playing another hymn replaces the first.
 
 - `src/player/player.ts` holds the player: its states (idle, loading,
-  playing, buffering, paused, ended, failed) as an Effect atom, and the
-  commands that move it. A recording that loads again mid-hymn keeps its
-  bar and its times, and shows the reader's last ask: after a play it
-  buffers with Pause (a stall, a seek past what the device holds, or iOS's
-  wait of a few ms after a resume); after a pause it is paused (the web
-  loads a paused place it does not hold). It plays through the `Playback`
-  service; `playback.live.ts` is One's `Audio` session (AVPlayer on iOS, an
-  `<audio>` element on the web). The page shows the reader's ask at once
-  (a Play buffers, a Pause pauses), before the device answers it. One's
-  `Audio` sends no status events, so the player reads the status every
-  250 ms while the device says it loads or plays, and while it has not
-  answered a play, a resume or a seek (the web's `play()` waits until the
-  element plays), whatever the page shows. Each ask runs beside the reads,
-  so a Start or a Retry is read from its press.
-- A recording that cannot play says so on the page: "The recording needs a
-  connection." when the device is offline, else "The recording could not be
-  played.", with Retry beside it. A first load whose status shows no
-  progress for 15 s (the web's element waits with no error when the
-  connection drops mid-load) fails the same way, and the device lets the
-  recording go (One's `stop`).
-- A Pause before the first sound (the lock screen's, or the Media
-  Session's) stops the recording: the page shows Paused with Play, and the
-  device lets it go, since no device keeps such a pause (the web rejects
-  the waiting `play()` and keeps a failure; Android's MediaPlayer starts
-  once prepared). From there, and from a failure, any Play starts the
-  recording again from its start; a seek has nothing to act on.
+  playing, buffering, paused, ended, stopped, failed) as an Effect atom, and
+  the commands that move it. It plays through the `Playback` service;
+  `playback.live.ts` is One's `Audio` session (AVPlayer on iOS, MediaPlayer
+  on Android, an `<audio>` element on the web). The page shows the reader's
+  ask at once (a Play loads, a Pause pauses), before the device answers it.
+  One's `Audio` sends no status events and no byte counts, so the player
+  reads the status every 250 ms and proves what the device does from those
+  reads (`src/player/proof.ts`).
+- A read is the device's state at one unknown instant between its ask and
+  its answer. Two reads with no act between them prove silence when the
+  place stayed within 2 ms and both say `loading` or `playing`, whatever the
+  gap; they prove sound when the place moved on and the second says
+  `playing`. An act (a page command, a lock-screen press, a play from a
+  place) that moves the device is pending until a read shows its landing:
+  a place from its target to its target plus the time since the page learnt
+  of it. No pair is taken across an act, no length of a gap and no count of
+  reads proves anything, and the player alone owns the waits; the adapter
+  asks a play's place again while the device holds the recording, and never
+  gives up by its own clock.
+- The rules. **P1:** after each act that asks for sound (Start, Resume, the
+  lock screen's play) the page shows Loading until a pair proves sound, or
+  Buffering once the load (each `play`) has sounded; a seek or a
+  lock-screen act before that proof keeps the tag. **P2:** Playing at the
+  first read that closes a sound pair while the device says `playing`; a
+  landing ends it until a pair after it. **P3:** silence proved for 2 s
+  shows Buffering after the first sound, Loading before it. **P4:** a wait
+  starts at the answer of the first read of the silence run after the
+  latest act, never earlier, and each act starts it again. **P5:** Failed
+  (offline, with the reader's place) and one `stop`, once silence has been
+  proved for 15 s while the reader wants to hear and One's `Network` told
+  offline 15 s before, both at one read's ask; a device that says `failed`
+  shows Failed at that read. **P6:** online, the same 15 s after the first
+  sound shows Retry beside Buffering, and the device plays on. **P7:** the
+  reader's place is where a sound pair last left the device, or the latest
+  seek since; Failed and Stopped carry it, and a Resume from them, from
+  Buffering with Retry, or from the lock screen on any of them, plays from
+  it. A Start plays from 0:00. **P8:** Ended once a read says `ended`, and
+  only then; a Resume from Ended plays from 0:00, or follows a phone that
+  already plays the recording again (the lock screen's play acts before
+  the page hears of it).
+- The page says each state in a line beside its button (`src/player/PlayerControl.tsx`):
+  Loading and Buffering read "Loading the recording…" with Pause; Failed
+  reads "The recording needs a connection." offline, else "The recording
+  could not be played."; Stopped reads Paused. Retry (Resume) shows beside
+  a Failed page, and beside Buffering once it offers Retry.
+- A Pause before the first sound stops the recording: the page shows
+  Stopped with the reader's place, and the device lets it go. iOS keeps
+  such a pause, but Android's MediaPlayer starts once prepared and the web
+  rejects the waiting `play()`, so one rule serves all three: Stopped, and
+  a Play from the place.
+- The order the rules rest on (inferred from One 2.8.1 and Nitro 0.37.1,
+  not measured on a device): a phone applies a lock-screen press and calls
+  the app's listeners in one main-thread task (iOS
+  `ios/Nitro/HybridOneAudio.swift:698-727`, Android
+  `HybridOneAudio.kt:971-1015`), and a status read resolves in a later one
+  (iOS `:159` and `:826`, Android `:230-234`); Nitro sends the listener call
+  and the read's promise to JS through one `CallInvokerDispatcher`
+  (`cpp/utils/JSCallback.hpp:106-114`,
+  `cpp/threading/CallInvokerDispatcher.hpp:24-25`,
+  `cpp/jsi/JSIConverter+Promise.hpp:56-68`). So the page knows every press
+  before it handles a read that shows it. On the web the Media Session's
+  handlers are the page's own. A later One that tells presses on another
+  path breaks this order, and with it the rule that one pair proves sound.
+- Known gaps. **1:** a server that stops sending while online leaves the
+  page in Loading or Buffering; after the first sound Retry shows after
+  15 s. **2:** Android sounds from 0:00 for a moment before a play from a
+  place lands (MediaPlayer's lead-in; One 2.8.1 has no way round it).
+  **3:** a host pause hides what happens inside it: a connection blip One
+  tells no change for, or sound no read sampled, is unseen, and the page
+  keeps the place from before it.
 - The app announces the hymn to the lock screen and Control Center once
   per recording, once the device holds it, and follows their play, pause
   and seek: each press is a command of the
@@ -131,18 +175,16 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   them), other pointers and buttons, a screen reader's steps and
   playback's ticks, from anywhere on the bar and often its ends, in
   Chrome's event order.
-- `src/player/status.property.test.ts` holds the page to the reader's Play
-  over seeded runs on each device's playback (the web's element, AVPlayer,
-  MediaPlayer, each modelled from One's source) and a network that loads
-  at once, at Slow 4G, at 3G or at 3 kB/s (Chrome's slowest), with Plays
-  and Pauses from the page, the bar's seeks and the lock screen or Media
-  Session, the connection dropped and back, and errors with Retry: after a
-  Play the page never shows Paused, the status is read while the device
-  answers, a spinner ends, a paused device makes no sound, a sound shows
-  Playing, Failed shows only for a recording that failed or lost its
-  connection, and on a working network each Play shows Playing within the
-  model's time to the first sound and a second. Its fixed cases each
-  assert every act ran and the page each ends on.
+- `src/player/world.property.test.ts` holds the page to these rules in a
+  world of One's devices (`src/test/world.ts`, measured constants from the
+  iOS and Android captures): seeded runs on iOS, Android and the web of
+  slow and silent loads, dry spells, iOS's closed socket, failures, host
+  pauses with presses and connection changes inside them, lock-screen and
+  page acts at any phase, landings that lag, and the end. The world judges
+  the page at each step by what the device did, never by what the page
+  proved; each earlier counterexample is a fixed case. A deep sweep runs by
+  hand: `WORLD_SEEDS=8000 bun test --preload ./src/test/setup.ts
+  src/player/world.property.test.ts -t seeded`.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in
