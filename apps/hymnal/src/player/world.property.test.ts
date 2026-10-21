@@ -412,24 +412,22 @@ describe('the player by the world: each earlier counterexample', () => {
         }),
     );
 
-  for (const platform of ['ios', 'android', 'web'] as const)
-    fixed(
-      `rw r1 M8 O6 at the end (${platform}): a seek past the end, a read sees it ended, Pause, Resume: plays from 0:00`,
-      platform,
-      {},
-      (w) =>
-        Effect.gen(function* () {
-          yield* playing(w);
-          w.send(Command.Seek({ seconds: 241.76 }));
-          expect(yield* w.until(() => w.endedSampled >= w.endedAt, 3000)).toBe(true);
-          yield* w.run(100);
-          w.send(Command.Pause());
-          yield* w.run(1000);
-          w.send(Command.Resume());
-          yield* w.run(500);
-          expect(w.plays.at(-1)?.from).toBe(0);
-        }),
-    );
+  /** Each sweep seed traced and cleared: run alone, it breaks no rule. */
+  const traced: Record<Platform, ReadonlyArray<number>> = {
+    // The end class (a place past the end the page kept after a read saw it ended).
+    ios: [119, 120, 278],
+    android: [235, 255],
+    web: [201, 320],
+  };
+  it.effect('rw r1 M8: each traced sweep seed breaks no rule', () =>
+    Effect.gen(function* () {
+      const broken = new Array<string>();
+      for (const platform of ['ios', 'android', 'web'] as const)
+        for (const seed of traced[platform])
+          broken.push(...(yield* seeded(platform, seed, 1)).broken);
+      expect(broken).toEqual([]);
+    }),
+  );
 
   fixed(
     'rw r1 M7: Android sounds, fails saying 0: Failed keeps the place, and Resume plays from it',
