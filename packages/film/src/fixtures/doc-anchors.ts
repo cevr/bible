@@ -229,12 +229,22 @@ export const ANCHORED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> =
 export const SKILL_DIRS = ['.claude/skills/film', '.claude/skills/film-architecture-loop'];
 
 /**
+ * The verify skills, each with the app it drives: every `.md` under one is
+ * whole, read for its anchors from the repo root or the app, and for its
+ * `bun run`s, each a script of the package its `--cwd` names.
+ */
+export const VERIFY_SKILLS: ReadonlyArray<readonly [string, string]> = [
+  ['.claude/skills/verify-firsttheblade', 'apps/firsttheblade'],
+];
+
+/**
  * A doc the docs test reads, before its text: `framework` (the film README
  * and its skills, read in full against the code), `spanned` (it names the
- * code in passing) or `anchored` (its anchors alone are read).
+ * code in passing), `anchored` (its anchors alone are read) or `verify` (a
+ * verify skill's: its anchors and its scripts).
  */
 export interface DocPlace extends Omit<Doc, 'text'> {
-  readonly role: 'framework' | 'spanned' | 'anchored';
+  readonly role: 'framework' | 'spanned' | 'anchored' | 'verify';
 }
 
 /**
@@ -261,6 +271,16 @@ export const docPlaces = (root: string): ReadonlyArray<DocPlace> => [
   ),
   ...SPANNED.map(([path, bases]): DocPlace => ({ path, bases, whole: false, role: 'spanned' })),
   ...ANCHORED.map(([path, bases]): DocPlace => ({ path, bases, whole: true, role: 'anchored' })),
+  ...VERIFY_SKILLS.flatMap(([dir, app]) =>
+    Array.from(new Glob('**/*.md').scanSync({ cwd: `${root}/${dir}` }))
+      .sort()
+      .map((file): DocPlace => ({
+        path: `${dir}/${file}`,
+        bases: ['', app],
+        whole: true,
+        role: 'verify',
+      })),
+  ),
 ];
 
 /** The doc at `place`, read from `root`. */

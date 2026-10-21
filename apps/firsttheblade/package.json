@@ -7,13 +7,19 @@
     "build": "vite build && vite build --ssr src/prerender.tsx --outDir .prerender && bun .prerender/prerender.js",
     "preview": "bun src/worker/preview.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test src",
+    "test": "bun test src scripts",
     "gate:timed": "bun run contrast",
     "contrast": "bun scripts/contrast.ts",
     "kit": "bun kit/draw.ts",
     "plan": "bun run build && alchemy plan alchemy.run.ts --stage prod",
     "deploy": "bun run build && alchemy deploy alchemy.run.ts --stage prod",
-    "mail:send": "bun scripts/mail-send.ts"
+    "mail:send": "bun scripts/mail-send.ts",
+    "verify:launch": "bun --no-env-file scripts/verify/cli.ts launch",
+    "verify:stop": "bun --no-env-file scripts/verify/cli.ts stop",
+    "verify:doctor": "bun --no-env-file scripts/verify/cli.ts doctor",
+    "verify:outbox": "bun --no-env-file scripts/verify/cli.ts outbox",
+    "verify:drive": "bun --no-env-file scripts/verify/cli.ts drive",
+    "verify:stage": "bun --no-env-file scripts/verify/cli.ts stage"
   },
   "dependencies": {
     "@bible/ui": "workspace:*",

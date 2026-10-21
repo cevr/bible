@@ -135,7 +135,11 @@ bun run typecheck
 bun run plan       # build, then show what `prod` would change
 bun run deploy     # build, then deploy `prod`
 bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to the email list
+bun run verify:drive confirm --root <dir> --port <p> --evidence <dir>   # drive the site as a visitor (verify:launch, :doctor, :outbox, :stop, :stage too)
 ```
+
+How to run and drive the site to check a change, with the proof it keeps,
+is the `verify-firsttheblade` skill (`.claude/skills/verify-firsttheblade`).
 
 Alchemy asks before it changes anything. In a shell that can't prompt (Claude Code's `!`, CI), pass the approval through: `bun run deploy --yes`.
 

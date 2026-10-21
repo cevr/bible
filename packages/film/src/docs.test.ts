@@ -26,8 +26,8 @@
 //   table rows) apart from its code blocks, wherever a block sits;
 // - each path written in backticks (a code span of the prose, or in a code
 //   block: a template an agent pastes names real paths too), in these docs
-//   and in NORTH_STAR.md, PRIOR_ARTS.md, CLAUDE.md, the design language and the packages' and
-//   apps' READMEs, from the repo root or from the doc's own package
+//   and in NORTH_STAR.md, PRIOR_ARTS.md, CLAUDE.md, the design language, the packages' and
+//   apps' READMEs and the verify skills, from the repo root or from the doc's own package
 //   (`lab/page-shell.tsx`, `src/…`), exists, and each symbol written after it
 //   (`tools/review.ts` `Review.read`) is declared in its code, as the parser
 //   reads it (`Review` bound by a declaration, a function's local among
@@ -1310,7 +1310,10 @@ describe('the docs', () => {
   it.effect('read every doc the framework, the runbook and the packages keep', () =>
     Effect.sync(() => {
       expect(PLACES.filter((place) => place.role === 'framework').length).toBeGreaterThan(10);
-      expect(PLACES.filter((place) => place.role !== 'framework').length).toBe(9);
+      expect(
+        PLACES.filter((place) => place.role === 'spanned' || place.role === 'anchored').length,
+      ).toBe(9);
+      expect(PLACES.filter((place) => place.role === 'verify').length).toBeGreaterThan(5);
     }),
   );
 
@@ -1735,13 +1738,16 @@ describe('the docs', () => {
  * What a doc names that the code lacks, beyond its anchors, by its role: a
  * framework doc's every name (`drift`), a passing doc's routes and spans
  * (the owner's runbook, the prior arts and the app's README name routes
- * too), an anchored doc's none.
+ * too), an anchored doc's none, and a verify skill's doc each `bun run`
+ * (`bun run --cwd apps/firsttheblade verify:drive`: a script of that package).
  */
 const NAMES_DRIFT: Record<DocPlace['role'], (doc: Doc, code: Code) => ReadonlyArray<string>> = {
   framework: drift,
   spanned: (doc, code) =>
     spanDrift(markdownOf(doc.text), code).map((what) => `${doc.path}: ${what}`),
   anchored: () => [],
+  verify: (doc, code) =>
+    scriptDrift(markdownOf(doc.text), code).map((what) => `${doc.path}: ${what}`),
 };
 
 // A test each doc, run together: the code is read once (`repoCode`) and each

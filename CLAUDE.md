@@ -77,6 +77,12 @@ boundaries use one line per event in the form `[area] action key=value`. Never
 log credentials, tokens, or private reading/note content. Do not introduce a
 second development log directory or transport.
 
+## Verifying an app
+
+To run an app and check a change in it as its user does, use its verify
+skill: the First the Blade site is `.claude/skills/verify-firsttheblade`
+(launch, doctor, drive, proof).
+
 <!-- effect-solutions:start -->
 
 ## Web UI
