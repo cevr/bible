@@ -974,9 +974,7 @@ const distArtefacts = Effect.fn('Promise.dist')(function* (dist: string) {
     Effect.gen(function* () {
       const full = path.join(dist, entry);
       const file = `dist/${entry}`;
-      if ((yield* fs.stat(full)).type !== 'File' || entry === STAMP) {
-        return { artefacts: [], unread: [] };
-      }
+      if ((yield* fs.stat(full)).type !== 'File') return { artefacts: [], unread: [] };
       const reader = Option.fromNullishOr(DIST_READERS.get(path.extname(entry)));
       if (Option.isNone(reader)) return { artefacts: [], unread: [file] };
       if (Option.isNone(reader.value)) return { artefacts: [], unread: [] };
@@ -1160,7 +1158,7 @@ const problemsOf = ({ artefacts, unread }: Read): ReadonlyArray<string> => {
  */
 const staleProblems = Effect.fn('Promise.stale')(function* (app: string) {
   const stamp = yield* readStamp(app);
-  if (Option.isNone(stamp)) return [`stale: dist/${STAMP} is missing; run bun run build`];
+  if (Option.isNone(stamp)) return [`stale: ${STAMP} is missing; run bun run build`];
   const wrote = stamp.value.files;
   const files = yield* builtFiles(app);
   const sources = yield* sourcesHash(app);

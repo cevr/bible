@@ -1,12 +1,15 @@
 /**
- * The build's stamp, `dist/.built.json`: the hash of the sources the build
+ * The build's stamp, `.prerender/built.json`: the hash of the sources the build
  * reads (turbo's `build` inputs, `../turbo.json`) and each file it wrote,
  * with the hash of its bytes. `bun run build` writes it last; the promise check (`./promise.ts`)
  * reads it, so the gate can check turbo's build, cached or not, and refuse a
  * `dist/` built from other sources, holding a file another build left, or
  * changed since (`docs/lessons.md` `email-promise-built-twice`).
  *
- *   bun scripts/built.ts    # writes dist/.built.json for the dist/ there
+ *   bun scripts/built.ts    # writes .prerender/built.json for the dist/ there
+ *
+ * The stamp sits beside the server build, not in `dist/`, so it is not
+ * served, and turbo caches and restores it with the build's outputs.
  */
 import { createHash } from 'node:crypto';
 
@@ -28,8 +31,8 @@ const buildInputs = Effect.fn('Built.inputs')(function* (app: string) {
   return turbo.tasks.build.inputs.map((input) => input.replace(/\/\*\*$/, ''));
 });
 
-/** The stamp's file, in `dist/`. */
-export const STAMP = '.built.json';
+/** The stamp's file, from the app. */
+export const STAMP = '.prerender/built.json';
 
 /** The stamp: the hash of the sources, and each file the build wrote (from `dist/`) with the hash of its bytes. */
 const Built = Schema.Struct({
@@ -72,9 +75,9 @@ export const sourcesHash = Effect.fn('Built.sources')(function* (app: string) {
   return yield* hashOf(app, (yield* Effect.forEach(inputs, (entry) => filesOf(app, entry))).flat());
 });
 
-/** Each file of `dist/` (from `dist/`, the stamp left out) with the hash of its bytes. */
+/** Each file of `dist/` (from `dist/`) with the hash of its bytes. */
 export const builtFiles = Effect.fn('Built.dist')(function* (app: string) {
-  const files = (yield* filesOf(app, 'dist')).filter((file) => file !== `dist/${STAMP}`);
+  const files = yield* filesOf(app, 'dist');
   const hashes = yield* Effect.forEach(files, (file) => hashOf(app, [file]));
   return Object.fromEntries(
     files.map((file, i) => [file.replace(/^dist\//, ''), hashes[i] ?? ''] as const),
@@ -85,7 +88,7 @@ export const builtFiles = Effect.fn('Built.dist')(function* (app: string) {
 export const readStamp = Effect.fn('Built.read')(function* (app: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const text = yield* Effect.option(fs.readFileString(path.join(app, 'dist', STAMP)));
+  const text = yield* Effect.option(fs.readFileString(path.join(app, STAMP)));
   return Option.flatMap(text, Schema.decodeOption(Schema.fromJsonString(Built)));
 });
 
@@ -98,7 +101,7 @@ const write = Effect.gen(function* () {
     files: yield* builtFiles(app),
   };
   const json = yield* Schema.encodeEffect(Schema.fromJsonString(Built))(built);
-  yield* fs.writeFileString(path.join(app, 'dist', STAMP), `${json}\n`);
+  yield* fs.writeFileString(path.join(app, STAMP), `${json}\n`);
   yield* Effect.logInfo('built.stamped').pipe(
     Effect.annotateLogs({ files: Object.keys(built.files).length }),
   );

@@ -194,10 +194,11 @@ bun run promise:census  # the promise check, red on each way the promise was los
 
 The app's `gate` is `bun scripts/promise.ts && bun run promise:census`:
 `bun run gate` runs it with the checks, after turbo's build, so the check
-reads that build, cached or not. The build stamps `dist/` last
-(`scripts/built.ts`: the hash of its sources and of each file it wrote),
-and the check refuses a `dist/` that is not the build of the sources as they
-stand (`email-promise-built-twice`); `bun run promise` builds first. The promise
+reads that build, cached or not. The build writes a stamp last
+(`scripts/built.ts`, into `.prerender/`, so it is not served: the hash of
+its sources and of each file it wrote), and the check refuses a `dist/` that
+is not the build of the sources as they stand (`email-promise-built-twice`);
+`bun run promise` builds first. The promise
 check reads what a reader gets, the built pages (parsed as a browser parses
 them), every letter the list sends (its sender, subject, text and HTML) and
 the channel kit, so a sentence about how often or what we email is checked
