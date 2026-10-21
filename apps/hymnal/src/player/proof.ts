@@ -229,16 +229,20 @@ interface Answered {
 /**
  * The proof after the device answered the page's seek to `target` ms (or a
  * play's seek) with `answer`, and whether the act landed. It lands when the
- * act is still the pending one and the answer's place lies in the window,
- * or says `ended`. A landing onto the place the device already stood at
- * keeps the silence run; one that moved it breaks the run. The answer opens
- * the next pair only if it was asked since the latest act: its status is the
- * device's after the landing, never a sound pair's end.
+ * act is still the pending one, known by the ask, and the answer's place
+ * lies in the window, or when an answer asked since the latest act says
+ * `ended`. An answer may come after later commands: an act known after its
+ * ask is not the one it answers. A landing onto the place the device
+ * already stood at keeps the silence run; one that moved it breaks the run.
+ * The answer opens the next pair only if it was asked since the latest act:
+ * its status is the device's after the landing, never a sound pair's end.
  */
 export const answered = (proof: Proof, answer: Read, target: number): Answered => {
-  if (answer.status.state === 'ended') return { proof: ended(proof), landed: true };
+  const fresh = answer.asked >= proof.known;
+  if (answer.status.state === 'ended' && fresh) return { proof: ended(proof), landed: true };
+  if (answer.status.state === 'ended') return { proof, landed: false };
   const lands = Option.exists(proof.pending, (pending) => {
-    if (Math.abs(pending.target - target) > slack) return false;
+    if (Math.abs(pending.target - target) > slack || pending.known > answer.asked) return false;
     const to = Option.match(Option.fromNullishOr(answer.status.durationMs), {
       onNone: () => pending.target,
       onSome: (length) => Math.min(pending.target, length),
@@ -249,7 +253,6 @@ export const answered = (proof: Proof, answer: Read, target: number): Answered =
   if (!lands) return { proof, landed: false };
   const after = Option.flatMap(proof.pending, (it) => it.after);
   const quiet = Option.exists(after, (it) => pairOf(it, answer) === 'silence');
-  const fresh = answer.asked >= proof.known;
   return {
     proof: {
       ...proof,

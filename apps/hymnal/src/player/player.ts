@@ -28,6 +28,7 @@
  * serves all three: Stopped, and a Play from the reader's place.
  */
 
+import type { Scope } from 'effect';
 import {
   Clock,
   Context,
@@ -35,6 +36,7 @@ import {
   Deferred,
   Duration,
   Effect,
+  Fiber,
   Match,
   Layer,
   Option,
@@ -204,6 +206,17 @@ const linkLayer = Layer.effect(Link)(
   }),
 );
 
+/**
+ * Where the device's answers to the player's asks run: the player's runtime,
+ * never the command that asked. A command runs in place of the one before
+ * it, but the device has each ask once it is sent, so its answer lands the
+ * act it answers whatever command comes next.
+ */
+class Answers extends Context.Service<Answers, Scope.Scope>()('hymnal/Answers') {}
+
+/** The scope of the player's runtime, closed with it. */
+const answersLayer = Layer.effect(Answers)(Effect.scope);
+
 /** The hymn the player holds, if any. */
 export const trackOf: (player: Player) => Option.Option<Track> = Player.$match({
   Idle: () => Option.none(),
@@ -256,24 +269,28 @@ interface Held {
   wants: Intent;
   proof: Proof.Proof;
   seeking: Option.Option<{ readonly to: number; asking: boolean }>;
+  moving: Option.Option<Fiber.Fiber<unknown, unknown>>;
   id: number;
   announced: number;
 }
 
 /** The player's atoms over the device's `playback`, reading its status every `every` while it moves. */
 export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input) => {
-  const runtime = Atom.runtime(Layer.provideMerge(linkLayer, playback));
+  const runtime = Atom.runtime(
+    Layer.provideMerge(Layer.mergeAll(linkLayer, answersLayer), playback),
+  );
   const state = Atom.make<Player>(Player.Idle()).pipe(Atom.keepAlive);
   /**
    * What the player holds across the commands: the reader's intent, what the
    * reads have proved, the place a seek still asks the device for (and
-   * whether that ask is in flight), and the recording's count and the count
-   * it was announced at.
+   * whether that ask is in flight), the ask that moves the device, and the
+   * recording's count and the count it was announced at.
    */
   const held: Held = {
     wants: 'play',
     proof: Proof.none,
     seeking: Option.none(),
+    moving: Option.none(),
     id: 0,
     announced: -1,
   };
@@ -283,6 +300,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
       Effect.fn('Player.send')(function* (command: Command, get: Atom.FnContext) {
         const device = yield* Playback;
         const link = yield* Link;
+        const answers = yield* Answers;
         const now = Clock.currentTimeMillis;
         const show = (player: Player) => Effect.sync(() => get.set(state, player));
         const offline = () => !link.told().online;
@@ -322,6 +340,23 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               if (Option.isNone(held.proof.pending)) held.seeking = Option.none();
             }),
           );
+        /** The ask that moves the device cut off: a newer one moves it, or the recording is let go. */
+        const cut = Effect.suspend(() => {
+          const fiber = held.moving;
+          held.moving = Option.none();
+          return Option.match(fiber, { onNone: () => Effect.void, onSome: Fiber.interrupt });
+        });
+        /**
+         * An ask that moves the device (a play or a seek), run in the player's scope in place of
+         * the one before it: the adapter asks a play's seek again until it lands, so only the
+         * latest place is asked. A command that moves nothing leaves it to its answer.
+         */
+        const moves = (operation: Effect.Effect<unknown>) =>
+          Effect.gen(function* () {
+            yield* cut;
+            const fiber = yield* Effect.forkIn(operation, answers, { startImmediately: true });
+            held.moving = Option.some(fiber);
+          });
         /** The place a seek asks, asked of the device until an answer lands it. */
         const askSeek = (to: number) =>
           Effect.gen(function* () {
@@ -338,7 +373,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
             );
           });
-        /** A seek the device refused, answered outside its window, or one a newer command cut off, asked again while it holds the recording. */
+        /** A seek the device refused or answered outside its window, asked again while it holds the recording. */
         const askAgain = (status: Status) =>
           Option.match(
             Option.filter(
@@ -347,7 +382,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             ),
             {
               onNone: () => Effect.void,
-              onSome: ({ to }) => Effect.forkChild(askSeek(to)).pipe(Effect.asVoid),
+              onSome: ({ to }) => moves(askSeek(to)),
             },
           );
         /** The hymn on the lock screen and in Control Center; a failure only logged. */
@@ -381,6 +416,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           Effect.logWarning('player.load.stalled').pipe(
             Effect.annotateLogs({ track: track.number }),
             Effect.andThen(show(failed(track))),
+            Effect.andThen(cut),
             Effect.andThen(Effect.ignore(device.stop)),
           );
         /**
@@ -543,20 +579,29 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               more = yield* readOnce(track, answered);
             }
           });
-        /** Ask the device, and show its status while it answers and after. A refusal is `refused`: `true` reads on, `false` shows Failed. */
+        /**
+         * Ask the device, and show its status while it answers and after. A refusal is
+         * `refused`: `true` reads on, `false` shows Failed. An ask that `moving` moves the device
+         * runs in place of the one before it (`moves`).
+         */
         const ask = (
           track: Track,
           operation: Effect.Effect<unknown, PlaybackError>,
           refused: (error: PlaybackError) => Effect.Effect<boolean>,
+          moving = false,
         ) =>
           Effect.gen(function* () {
             const answered = yield* Deferred.make<boolean>();
-            // Started at once, so the device has the ask before the first read.
-            yield* operation.pipe(
+            const asking = operation.pipe(
               Effect.as(true),
               Effect.catchTag('PlaybackError', refused),
               Effect.flatMap((goOn) => Deferred.succeed(answered, goOn)),
-              Effect.forkChild({ startImmediately: true }),
+            );
+            // Started at once, so the device has the ask before the first read; its answer
+            // runs in the player's scope, so a command sent meanwhile does not cut it off.
+            yield* Match.value(moving).pipe(
+              Match.when(true, () => moves(asking)),
+              Match.orElse(() => Effect.forkIn(asking, answers, { startImmediately: true })),
             );
             yield* watch(track, answered);
           });
@@ -589,11 +634,15 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 Effect.tap(answeredAt(asked, fromMs)),
                 Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
               );
-            yield* ask(track, played, (error) =>
-              Effect.logWarning('player.play.failed').pipe(
-                Effect.annotateLogs({ track: track.number, message: error.message }),
-                Effect.as(false),
-              ),
+            yield* ask(
+              track,
+              played,
+              (error) =>
+                Effect.logWarning('player.play.failed').pipe(
+                  Effect.annotateLogs({ track: track.number, message: error.message }),
+                  Effect.as(false),
+                ),
+              true,
             );
           });
         const current = get.registry.get(state);
@@ -637,14 +686,20 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
                 // device that holds the recording again already played it from 0:00 to the
                 // place this read saw, an act the page follows, known from the read's ask (the
                 // device moves on from it no faster than time passes); a device still at its
-                // end plays the recording again.
+                // end plays the recording again, from the place of a seek asked since the end
+                // (an end leaves no place, so with none from 0:00).
                 const asked = yield* now;
                 const status = yield* device.status.pipe(Effect.option);
                 const again = Option.filter(status, holdsRecording);
-                if (Option.isNone(again)) return yield* load(track, 0);
+                if (Option.isNone(again))
+                  return yield* load(
+                    track,
+                    Option.getOrElse(held.proof.place, () => 0),
+                  );
                 held.wants = 'play';
                 // The followed place supersedes any seek still asked from before the end.
                 held.seeking = Option.none();
+                yield* cut;
                 held.proof = Proof.followed(held.proof, asked, again.value.positionMs);
                 yield* show(
                   Player.Buffering({
@@ -672,6 +727,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               // the recording go keeps the place it reached.
               yield* lastLook;
               yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
+              yield* cut;
               yield* device.stop.pipe(Effect.catchTag('PlaybackError', logged), Effect.asVoid);
               return;
             }
@@ -711,7 +767,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               );
               return;
             }
-            yield* ask(track, askSeek(ms), logged);
+            yield* ask(track, askSeek(ms), logged, true);
           });
         /** The hymn the command is about: the one it starts, else the one held. */
         const subject = Option.liftPredicate(command, Command.$is('Start')).pipe(

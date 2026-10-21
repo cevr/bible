@@ -23,6 +23,7 @@ import {
   morning,
   owed,
   type Platform,
+  proving,
   reachable,
   rng,
   roam,
@@ -1047,6 +1048,59 @@ describe('the player by the world: each earlier counterexample', () => {
         yield* w.until(() => w.phase === 'dry', 5000);
         yield* w.run(2000 + 2 * span + step);
         expect(tag(w)).toBe('Buffering');
+      }),
+  );
+});
+
+// The sweep classes of round 3 part 5, each seed's world as the sweep drew it.
+describe('the player by the world: the part 5 sweep (rw r3 part 6)', () => {
+  /** One seed of `platform`, 90 s as the seeded case draws it: the rules it broke. */
+  const seed = (name: string, platform: Platform, at: number) =>
+    it.effect(`${name} (${platform} ${at}) breaks no rule`, () =>
+      Effect.gen(function* () {
+        expect((yield* seeded(platform, at, 1)).broken).toEqual([]);
+      }),
+    );
+
+  // A command sent while a play or a seek still asks the device: the act lands at its answer.
+  seed('a lock-screen play while the first load asks', 'ios', 843);
+  seed('a lock-screen play while the first load asks', 'android', 414);
+  seed('a press of play while the first load asks', 'web', 179);
+  seed('a seek and a play told together after an end', 'web', 607);
+  seed('a Resume while a play from a place asks its seek', 'web', 316);
+
+  fixed(
+    'rw r3 part 6 (ios 843): a lock-screen play while the first load asks: Playing once it sounds',
+    'ios',
+    { loadFor: () => 3000, lag: () => 300 },
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(100);
+        w.press('play');
+        expect(yield* w.until(() => sound(w), 10_000)).toBe(true);
+        yield* w.run(proving + span + step);
+        expect(tag(w)).toBe('Playing');
+      }),
+  );
+
+  fixed(
+    'rw r3 part 6 (web 316): a Resume while a play from a place asks its seek: no place asked again',
+    'web',
+    { loadFor: () => 1000, lag: () => 300 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 25);
+        w.fail();
+        expect(yield* w.until(() => tag(w) === 'Failed', 2000)).toBe(true);
+        w.send(Command.Resume());
+        yield* w.run(100);
+        w.interrupt();
+        expect(yield* w.until(() => tag(w) === 'Paused', 3000)).toBe(true);
+        const sought = w.sought.length;
+        w.send(Command.Resume());
+        yield* w.run(3000);
+        expect(w.sought.slice(sought)).toEqual([]);
       }),
   );
 });
