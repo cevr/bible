@@ -66,6 +66,14 @@ export const cadence = span + answerMost + step;
  * and two answers past the stand, and a step (Decided 11).
  */
 export const allowance = 2000 + 2 * span + 2 * answerMost + step;
+/**
+ * O10's floor: P3's stand less the most a correct page's proof of silence can lead the device
+ * by. The pair's reads sample inside their own spans, so the silence they bracket runs from the
+ * first read's sample (at or before its answer) to the second's (at or after its ask): at least
+ * the `asked_b − answered_a` the stand counts. The world dates the last sound at the end of its
+ * step, the instant a read sampled after it sees, so the lead is nothing (Decided 11).
+ */
+export const standFloor = 2000;
 /** O3's `P`: the latest a correct page proves a sound pair, two read spans and an answer. */
 export const proving = 2 * span + answerMost;
 /** O4's and O5's span: the wait, two read spans and a step. */
@@ -204,6 +212,7 @@ const pressCommand = (kind: Press) =>
 const isLetGo = Predicate.or(Predicate.isTagged('Failed'), Predicate.isTagged('Stopped'));
 const isHalted = Predicate.or(Predicate.isTagged('Paused'), Predicate.isTagged('Stopped'));
 const isAfterSound = Predicate.or(isLetGo, Predicate.isTagged('Ended'));
+const isWaiting = Predicate.or(Predicate.isTagged('Loading'), Predicate.isTagged('Buffering'));
 const asksSound = Predicate.or(Predicate.isTagged('Start'), Predicate.isTagged('Resume'));
 
 /** The states in which the page reads the device. */
@@ -244,6 +253,8 @@ const initial = (platform: Platform, start: number) => ({
   /** The latest read that closed a sound pair by the world (`Read.closes`): the load has sounded as a read can show it. */
   soundSampled: Number.NEGATIVE_INFINITY,
   lastSound: Number.NEGATIVE_INFINITY,
+  /** The sample of the read that last turned the page to Playing (O10): reads are sequential, so the latest. */
+  playingFrom: Number.NEGATIVE_INFINITY,
   /** The latest read's sample, and the largest gap between two samples while the page reads and the host runs. */
   lastSampleAt: start,
   /**
@@ -1219,7 +1230,19 @@ export const makeWorld = (
     if (isHalted(now) && Math.max(w.pauseAt, w.pauseTold) < w.playTold)
       breach('O9 Paused on its own', `page=${now._tag}`);
   };
-  /** The rules O1 to O9, judged by the world at this step. */
+  /**
+   * O10: no early Buffering. Once Playing, with no load, act, tell or landing since the read that
+   * turned it so sampled the device (a landing after that sample is news to the page), the page
+   * turns to Loading or Buffering only after the device has not sounded for P3's stand, less
+   * what a correct proof can lead the device by (`standFloor`).
+   */
+  const judgeStand = (now: Player) => {
+    if (now._tag === 'Playing' && w.was !== 'Playing') w.playingFrom = w.lastSampleAt;
+    const unacted = Math.max(w.lastAct, w.toldAt, w.landedAt, w.loadAt) < w.playingFrom;
+    if (isWaiting(now) && w.was === 'Playing' && unacted && w.t - w.lastSound < standFloor)
+      breach('O10 Buffering early', `silentFor=${w.t - w.lastSound} page=${now._tag}`);
+  };
+  /** The rules O1 to O10, judged by the world at this step. */
   const judge = () => {
     const now = page();
     judgeSound(now);
@@ -1227,6 +1250,7 @@ export const makeWorld = (
     judgePlace(now);
     judgeSeek();
     judgeEnd(now);
+    judgeStand(now);
     const retry = isRetry(now);
     if (now._tag !== w.was || retry !== w.wasRetry) {
       w.history.push({ t: w.t, tag: now._tag, retry });

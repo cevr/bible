@@ -2,7 +2,7 @@
  * The player's stall rules, judged by the world (`src/test/world.ts`): the
  * player and its adapter run over One's `Audio` and `Network` as each
  * platform has them, and the world judges the page at each 50 ms step by
- * the rules O1 to O9 (the spec of the stall rules, "The oracle").
+ * the rules O1 to O10 (the spec of the stall rules, "The oracle").
  *
  * The seeded cases draw the whole domain, D1 to D13, and fail when any item
  * of it went unreached. The fixed cases are each counterexample found
