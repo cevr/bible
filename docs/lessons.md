@@ -3193,3 +3193,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The render's own resident-size cap was 1.0 GB, so nine hymns of B1 (46, 158, 224, 253, 291, 337, 362, 423, 425) failed at 1.00 to 1.17 GB with sound that passed every other check.
 - **Cause:** The render's peak moves with when the collector runs and how many renders share the machine; the cap was set from one quiet run's peak.
 - **Guard:** code: `packages/hymnal/scripts/render/run.test.ts` `is kept with no render when its render's recorded peak failed a lower cap and is under today's`.
+
+### hymn-silence-check-calibrated
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "`spec.md:141` asks for calibration on the pilot's six hymns, with the numbers and the margin in `state.md`. `state.md` has no such record"
+- **Source:** render/round-1-findings.md F1
+- **Wrong:** The silence check held −45 LUFS for 1.0 s with no measurement behind the numbers, so a soft passage could fail a hymn, or a dropout pass, unseen.
+- **Cause:** The numbers came from the spec, and no step measured the pilot's hymns against them.
+- **Guard:** skill: a threshold is calibrated by a measurement an agent runs before changing it, not by a test of the code. Carried by `packages/hymnal/README.md`: "Measure the six again before changing the silence check or the sound."

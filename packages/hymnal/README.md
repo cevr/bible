@@ -228,6 +228,11 @@ the listening pilot. The code is `scripts/render/`; its numbers are data in
   while notes sound, onset lag, every stem sounding through its own last
   note's release, and each process's peak memory. A hymn that fails gets a
   `<n>.png` sheet beside its record, gone once it passes.
+- The silence check's numbers, −45 LUFS for 1.0 s, are calibrated on the
+  pilot's six hymns (1, 46, 93, 108, 250, 462): their quietest momentary
+  block while notes sound reads −20.0 to −21.9 LUFS, 23 dB or more above
+  the threshold (2026-10-22).
+  Measure the six again before changing the silence check or the sound.
 
 The cache is `$HYMN_RENDER_CACHE` (default `~/.cache/manna-hymn-render`), and
 the set goes to `sets/warm-1/` there unless `--out` names a folder: `<n>.mp3`,
@@ -240,7 +245,8 @@ whose key changed, and checks every other again from its record
 that fails, so a change to the checks renders nothing. The manifest lists the
 records that stand under today's key, each passed or failed by today's
 checks. Before each hymn the run waits while swap
-use is over 8 GB or the load over 12, and stops under 3 GB of free disk. The
+use is over 8 GB or the load over `--load` (12 by default), and stops under
+3 GB of free disk. The
 bytes are this Mac's: another host's sampler and FFmpeg give others, so a set
 is rendered on one host and recorded with its tools' hashes.
 
