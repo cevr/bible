@@ -309,6 +309,21 @@ describe('kit:approve', () => {
       expect(yield* approvedOn(root, ASK)).toEqual(['LabUnread', true]);
     }).pipe(Effect.scoped));
 
+  test('refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice', () =>
+    Effect.gen(function* () {
+      const { root, stills } = yield* pinnedOn(ASK);
+      const shows = Object.keys(showing(stills));
+      yield* holding([held({}, shows, 'Asking')], showing(stills));
+      expect(yield* approvedOn(root, ASK)).toEqual(['AskUnanswered', true]);
+      yield* holding([held({ sway: SWAY }, shows)], showing(stills));
+      expect(yield* approvedOn(root, ASK)).toEqual(['AskUnanswered', true]);
+      const REVISE: AskAnswers[string] = { kind: 'choose', value: 'revise', label: 'Revise them' };
+      for (const answer of [REVISE, NOTE, { kind: 'skipped' } as const]) {
+        yield* holding([held({ [STILLS_QUESTION]: answer }, shows)], showing(stills));
+        expect(yield* approvedOn(root, ASK)).toEqual(['AskNotApproval', true]);
+      }
+    }).pipe(Effect.scoped));
+
   test('refuses a record not pending on the ask, and an approval already given', () =>
     Effect.gen(function* () {
       const { root, stills } = yield* pinnedOn(OTHER);
