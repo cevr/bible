@@ -11,7 +11,7 @@
     "build": "one build",
     "prebuild:native": "bun vite/prebuild.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.infra.json",
-    "test": "bun run test:browser & browser=$!; bun run test:app && bun run test:infra; rest=$?; wait $browser && exit $rest",
+    "test": "bun run test:browser & browser=$!; bun run test:infra & infra=$!; bun run test:app; app=$?; wait $infra && wait $browser && exit $app",
     "test:app": "bun test --preload ./src/test/setup.ts src",
     "test:browser": "bun test ./test/browser --timeout 30000",
     "test:infra": "bun test infra scripts",
