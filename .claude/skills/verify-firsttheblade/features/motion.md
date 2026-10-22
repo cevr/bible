@@ -43,8 +43,9 @@ emblems at rest.
   `apps/firsttheblade/src/motion/shaders.test.ts`,
   `apps/firsttheblade/src/motion/styles.test.ts`,
   `apps/firsttheblade/src/ui/emblems.test.ts`,
-  `apps/firsttheblade/kit/field-paint.test.ts` and
-  `apps/firsttheblade/kit/field-still.test.ts`.
+  `apps/firsttheblade/kit/field-paint.test.ts`,
+  `apps/firsttheblade/kit/field-still.test.ts` and
+  `apps/firsttheblade/kit/approval.test.ts`.
 
 1. **Hero.** `ab set viewport 1280 800`, `ab open $O/`, then
    `ab record start "$EVIDENCE/motion/motion.webm"`. After 4 s,
