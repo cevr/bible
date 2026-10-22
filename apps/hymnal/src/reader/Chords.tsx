@@ -71,6 +71,7 @@ export function ChordControls({
         </Text>
         <Switch
           aria-label="Chords"
+          accessibilityLabel="Chords"
           value={on}
           onValueChange={onChange}
           trackColor={{ true: accent }}
@@ -337,12 +338,12 @@ const styles = StyleSheet.create({
   stepDisabled: { opacity: 0.35 },
   glyph: { fontSize: 20, lineHeight: 22, fontWeight: '600' },
   reading: { fontSize: 15, color: color.ink, fontVariant: ['tabular-nums'] },
-  line: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6 },
+  line: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6, marginBottom: 8 },
   word: { flexDirection: 'row' },
   box: { flexDirection: 'column' },
   syllable: { flexDirection: 'row' },
   hyphen: { width: 0, flexGrow: 1, overflow: 'hidden', alignItems: 'center' },
   hyphenText: { color: color.muted },
   chord: { fontSize: 15, lineHeight: 20, fontWeight: '600', paddingRight: 6 },
-  lineLevel: { gap: 0 },
+  lineLevel: { marginBottom: 8 },
 });
