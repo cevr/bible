@@ -3,13 +3,16 @@
  * folder is refused; a folder that records the live Worker, D1 and queue
  * passes; and each of the three, missing, unreadable, of another type or
  * recording another resource's name (a second D1 made by a deploy that had
- * no state), is refused by name.
+ * no state), is refused by name. The stack's gate reads the `.alchemy` folder
+ * Alchemy runs with, on stage `prod` only.
  */
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
+import { AlchemyContext } from 'alchemy/AlchemyContext';
+import { Stage } from 'alchemy/Stage';
 import { Effect, FileSystem, Option, Path } from 'effect';
 
-import { checkProdState } from './prod-state.ts';
+import { checkProdState, prodStateGate } from './prod-state.ts';
 
 const STATE = '.alchemy/state/firsttheblade/prod';
 
@@ -71,7 +74,7 @@ const appWith = Effect.fn('test.appWith')(function* (
 
 /** The check's answer for `app`: `pass`, or the line it refuses with. */
 const answer = (app: string) =>
-  checkProdState(app).pipe(
+  checkProdState(`${app}/.alchemy`).pipe(
     Effect.match({ onSuccess: () => 'pass', onFailure: (error) => error.message }),
   );
 
@@ -82,8 +85,9 @@ describe('the prod state check', () => {
     Effect.scoped(
       Effect.gen(function* () {
         for (const files of [Option.none(), Option.some([])]) {
-          const line = yield* answer(yield* appWith(files));
-          expect(line).toContain(`no prod Alchemy state at ${STATE}`);
+          const app = yield* appWith(files);
+          const line = yield* answer(app);
+          expect(line).toContain(`no prod Alchemy state at ${app}/${STATE}`);
           expect(line).toContain(`Copy the main checkout's apps/firsttheblade/${STATE}`);
           expect(line).not.toContain('\n');
         }
@@ -127,6 +131,27 @@ describe('the prod state check', () => {
             }
           }
         }
+      }),
+    ));
+
+  test("the stack's gate checks the state Alchemy reads on stage prod, and nothing on another stage", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const gate = (app: string, stage: string) =>
+          prodStateGate().pipe(
+            Effect.provideService(Stage, stage),
+            Effect.provideService(AlchemyContext, {
+              dotAlchemy: `${app}/.alchemy`,
+              dev: false,
+              adopt: false,
+            }),
+            Effect.match({ onSuccess: () => 'pass', onFailure: (error) => error.message }),
+          );
+        const bare = yield* appWith(Option.none());
+        const live = yield* appWith(Option.some(LIVE));
+        expect(yield* gate(bare, 'prod')).toContain(`no prod Alchemy state at ${bare}/${STATE}`);
+        expect(yield* gate(live, 'prod')).toBe('pass');
+        expect(yield* gate(bare, 'agent-mailtest')).toBe('pass');
       }),
     ));
 });

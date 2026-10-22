@@ -1675,7 +1675,7 @@ The form of an entry, each field on its own line:
 - **Source:** memory reference_ftb_prod_state.md; the orchestrator's brief for unit ftb-prodstate (run p5)
 - **Wrong:** A prod deploy ran from the ftb-copy-2 worktree, which had no prod Alchemy state. Alchemy planned "8 to create", made a second D1 and queue, and bound the live Worker `firsttheblade` to them for about 70 s; the contact rule failed as owned by someone else.
 - **Cause:** The prod state is local and git-ignored, in the main checkout's `apps/firsttheblade/.alchemy/state/firsttheblade/prod` only, and Alchemy reads a missing state folder as a stack never deployed.
-- **Guard:** code: `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a checkout with no prod state folder, or an empty one, and says what to do`, `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a state that lacks any one live resource, or holds it unreadable, of another type or under another name`
+- **Guard:** code: `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a checkout with no prod state folder, or an empty one, and says what to do`, `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a state that lacks any one live resource, or holds it unreadable, of another type or under another name`, `apps/firsttheblade/scripts/prod-state.test.ts` `the stack's gate checks the state Alchemy reads on stage prod, and nothing on another stage`
 
 ### letter-tests-use-the-sent-path
 

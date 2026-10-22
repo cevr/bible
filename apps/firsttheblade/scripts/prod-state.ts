@@ -1,12 +1,14 @@
 /**
- * The prod state check: `bun run plan` and `bun run deploy` run it before
- * anything else, and stop when this checkout's Alchemy state for stage
- * `prod` (`.alchemy/state/firsttheblade/prod`, git-ignored, local only) does
- * not record the live site's resources. Without that state Alchemy plans
- * every resource as new: it makes a second D1 and queue and binds the live
- * Worker to them (`docs/lessons.md` `prod-deploy-needs-prod-state`).
+ * The prod state check: it stops a prod plan or deploy when Alchemy's state
+ * for stage `prod` (`.alchemy/state/firsttheblade/prod`, git-ignored, local
+ * to the main checkout) does not record the live site's resources. Without
+ * that state Alchemy plans every resource as new: it makes a second D1 and
+ * queue and binds the live Worker to them (`docs/lessons.md`
+ * `prod-deploy-needs-prod-state`). The stack runs it on stage `prod`
+ * (`prodStateGate`, in `alchemy.run.ts`); `bun run deploy` also runs it
+ * first, so a refusal does not wait for `test:slow`.
  *
- *   bun scripts/prod-state.ts    # exits 1 with one line when the prod state is not here
+ *   bun scripts/prod-state.ts    # exits 1 with one line when the app's prod state is not here
  *
  * Alchemy's local state keeps one JSON file per resource, named by its
  * logical id, with the resource's type and, under `attr`, what the cloud
@@ -14,10 +16,12 @@
  * each by the name the live resource has.
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
+import { dotAlchemyDirectory } from 'alchemy/AlchemyContext';
+import { Stage } from 'alchemy/Stage';
 import { Console, Data, Effect, FileSystem, Option, Path, Schema } from 'effect';
 
-/** The prod stage's state folder, from the app. */
-export const PROD_STATE = '.alchemy/state/firsttheblade/prod';
+/** The prod stage's state folder, under the `.alchemy` folder Alchemy keeps its state in. */
+const PROD_STATE = 'state/firsttheblade/prod';
 
 /** A live resource as the prod state records it: its file, its type, and its name under `attr`. */
 interface Live {
@@ -65,7 +69,7 @@ export class ProdStateMissing extends Data.TaggedError('ProdStateMissing')<{
   readonly reason: string;
 }> {
   override get message() {
-    return `prod-state: ${this.reason}. Copy the main checkout's apps/firsttheblade/${PROD_STATE} into this checkout, or run this from the main checkout.`;
+    return `prod-state: ${this.reason}. Copy the main checkout's apps/firsttheblade/.alchemy/${PROD_STATE} there, or deploy from the main checkout's apps/firsttheblade.`;
   }
 }
 
@@ -81,29 +85,41 @@ const lacking = Effect.fn('ProdState.lacking')(function* (dir: string, live: Liv
   return Option.some(`${live.label} ${live.name}`);
 });
 
-/** Fails with `ProdStateMissing` unless the state folder of the app at `app` records every live resource. */
-export const checkProdState = Effect.fn('ProdState.check')(function* (app: string) {
+/** Fails with `ProdStateMissing` unless the prod state under the `.alchemy` folder `dotAlchemy` records every live resource. */
+export const checkProdState = Effect.fn('ProdState.check')(function* (dotAlchemy: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const dir = path.join(app, PROD_STATE);
+  const dir = path.resolve(dotAlchemy, PROD_STATE);
   const files = yield* Effect.orElseSucceed(fs.readDirectory(dir), () => []);
   if (files.length === 0) {
-    return yield* new ProdStateMissing({ reason: `no prod Alchemy state at ${PROD_STATE}` });
+    return yield* new ProdStateMissing({ reason: `no prod Alchemy state at ${dir}` });
   }
   const missing = (yield* Effect.forEach(LIVE, (live) => lacking(dir, live))).flatMap((gap) =>
     Option.toArray(gap),
   );
   if (missing.length > 0) {
     return yield* new ProdStateMissing({
-      reason: `the prod state at ${PROD_STATE} does not record ${missing.join(', ')}`,
+      reason: `the prod state at ${dir} does not record ${missing.join(', ')}`,
     });
   }
+});
+
+/**
+ * The stack's check: `checkProdState` on stage `prod`, over the `.alchemy`
+ * folder this run of Alchemy reads its state from; nothing on any other
+ * stage. `alchemy.run.ts` runs it first, while Alchemy is still building the
+ * stack and before it plans, so every prod plan and deploy runs it, whatever
+ * command starts it.
+ */
+export const prodStateGate = Effect.fn('ProdState.gate')(function* () {
+  if ((yield* Stage) !== 'prod') return;
+  yield* checkProdState(yield* dotAlchemyDirectory);
 });
 
 if (import.meta.main)
   Effect.gen(function* () {
     const path = yield* Path.Path;
-    yield* checkProdState(path.dirname(import.meta.dir));
+    yield* checkProdState(path.join(path.dirname(import.meta.dir), '.alchemy'));
   }).pipe(
     Effect.tapError((error) => Console.error(error.message)),
     Effect.provide(BunServices.layer),

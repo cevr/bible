@@ -133,7 +133,7 @@ bun run preview    # dist/ through the Worker's policy on http://localhost:8470 
 bun run test       # the Worker's policy, the email list, the pages' data, the sitemap
 bun run typecheck
 bun run plan       # the prod state check, the stills gate (build, walk dist/), then show what `prod` would change
-bun run deploy     # the prod state check, then the stills gate (build, walk dist/) and deploy `prod`; the stack runs the gate first on stage prod
+bun run deploy     # the prod state check, test:slow, then the stills gate (build, walk dist/) and deploy `prod`; the stack runs both checks first on stage prod
 bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to the email list
 bun run verify:drive confirm --root <dir> --port <p> --evidence <dir>   # drive the site as a visitor (verify:launch, :doctor, :outbox, :stop, :stage too)
 ```
@@ -148,9 +148,11 @@ Alchemy asks before it changes anything. In a shell that can't prompt (Claude Co
 The prod state is local: Alchemy keeps it in
 `.alchemy/state/firsttheblade/prod` (gitignored), in the main checkout
 only. A checkout without it plans every resource as new and binds the live
-Worker to a second D1 and queue, so `bun run plan` and `bun run deploy` first
-run `scripts/prod-state.ts`, which stops them unless the state records the
-live Worker, the list's D1 and the film queue by their names. To deploy from
+Worker to a second D1 and queue, so on stage `prod` the stack first runs
+`scripts/prod-state.ts`, which stops every plan and deploy, however started,
+unless the state records the live Worker, the list's D1 and the film queue
+by their names. `bun run deploy` runs it before `test:slow` too, so a refusal
+comes at once. To deploy from
 a worktree, copy the main checkout's state folder and `.env` in, and read
 the plan first: on prod it updates resources or changes nothing, and a
 resource to create that the change did not add means stop. After the deploy,
