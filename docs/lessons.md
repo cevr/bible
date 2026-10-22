@@ -822,7 +822,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F4
 - **Wrong:** A commit of the unit exported a name no file imports, and the film's package entries test was red on it until a later fix commit.
 - **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run the film's exports test.
-- **Guard:** code: `packages/film/package.json` `bun test ./src/docs.slow.test.ts ./src/exports.slow.test.ts`, `package.json` `bun run --cwd packages/film test:guard`
+- **Guard:** code: `packages/film/src/exports.slow.test.ts` `describe('the package entries'`, `packages/film/package.json` `"test:slow": "bun test --parallel --no-isolate --max-concurrency=3 .slow.test.`: the film's `test:slow` runs it, in `bun run test:slow` and before each deploy.
 
 ### film-budget-measured-quiet
 
@@ -1372,7 +1372,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-testspeed/findings.md F2
 - **Wrong:** The gate was red in 10 of 10 runs: a case took ten times its time alone (0.47 s alone, 6.1 s in the gate) past its 5 s limit.
 - **Cause:** `turbo run gate test` ran every workspace's tests in parallel beside the typechecks, builds and Selah's native gate, each test runner one worker per core.
-- **Guard:** code: `packages/scripts/src/gate.test.ts` `the gate is gate.sh: the checks, then the tests under the lock`, `packages/scripts/src/gate.test.ts` `the tests run each workspace's alone, one after another`
+- **Guard:** code: `packages/scripts/src/gate.test.ts` `is gate.sh: the lint in the background beside the unit tests, under no lock` (the gate runs no typecheck, build or native gate beside the tests), `packages/scripts/src/gate.test.ts` `is test-slow.sh: typecheck, builds and each test:slow one at a time under the lock`
 
 ### test-git-turns-maintenance-off
 
@@ -1432,7 +1432,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-testspeed/findings.md F5
 - **Wrong:** A cold gate failed in firsttheblade's contrast check: its screenshots missed their 30 s limit, at the checks' lowered priority beside every cold typecheck and build and Selah's native build.
 - **Cause:** The checks phase was laid for work with no time limit, and a package's own `gate` script, which waits on a browser, was taken as one.
-- **Guard:** code: `packages/scripts/src/gate.test.ts` `a package's own gate holds no time limit (Selah's native gate, firsttheblade's promise check): a check with a time limit is its gate:timed, run with the tests`
+- **Guard:** code: `packages/scripts/src/gate.test.ts` `no workspace keeps a gate but Selah's native one, which its test:slow runs`, `packages/scripts/src/gate.test.ts` `is test-slow.sh: typecheck, builds and each test:slow one at a time under the lock` (a check that waits on a browser is a workspace's `test:slow`, run alone)
 
 ### cpu-bound-cases-run-serial
 
@@ -2542,7 +2542,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-copy/rw-round-2-findings.md F7
 - **Wrong:** On a cache miss, the gate's `promise` step built the app again after turbo's `build`, about 2 s of work done twice.
 - **Cause:** The step built fresh so it never read a stale `dist/`, rather than checking the one turbo built; a check by file times would refuse a cached build after a source is saved unchanged, so the build stamps the hash of its sources and of each file it wrote.
-- **Guard:** code: `apps/firsttheblade/package.json` `"gate": "bun scripts/promise.ts && bun run promise:census"`; `apps/firsttheblade/scripts/built.ts` `sourcesHash`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F7 a source changed after the build`
+- **Guard:** code: `apps/firsttheblade/package.json` `"test:slow": "bun scripts/promise.ts && bun run promise:census`; `apps/firsttheblade/scripts/built.ts` `sourcesHash`; `apps/firsttheblade/scripts/promise-census.ts` `rw-r2-F7 a source changed after the build`
 
 ### email-promise-download-name
 
@@ -3032,7 +3032,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-3-findings.md F4
 - **Wrong:** The ledger test gave 5 failures on a commit of the unit that renamed the tests its entries cite, and `merge-audit --each` said every commit was green.
 - **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run the ledger test, `packages/scripts/src/lessons/ledger.slow.test.ts`.
-- **Guard:** code: `./package.json` `bun test ./packages/scripts/src/lessons/ledger.slow.test.ts`, the root `guard` script that `merge-audit --each` runs on each commit.
+- **Guard:** code: `packages/scripts/package.json` `"test:slow": "bun test --parallel=4 .slow.test.`, the scripts workspace's `test:slow`, which runs the ledger test in `bun run test:slow`.
 
 ### images-ship-as-their-own-files
 

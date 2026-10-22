@@ -11,7 +11,7 @@
     "./recording-manifest": "./src/recording-manifest.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "bun test --path-ignore-patterns='**/*.slow.test.*'",
     "test:slow": "bun test .slow.test.",
     "align": "bun scripts/align.ts",

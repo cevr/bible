@@ -14,7 +14,7 @@
     "deploy": "turbo run test:slow --filter=@bible/egw-search && alchemy deploy alchemy.run.ts --stage prod",
     "test:deploy": "vite build && bun test ./tests/deploy.integration.ts",
     "test:browser": "bun run build && playwright test --config=test/browser/playwright.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "bun test --path-ignore-patterns='**/*.slow.test.*' src server",
     "test:slow": "bun test .slow.test. && playwright test --config=test/browser/playwright.config.ts"
   },

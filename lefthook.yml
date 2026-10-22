@@ -1,8 +1,11 @@
 pre-commit:
   jobs:
     # Budget: under 5 s. Only the staged files are linted (with fixes) and
-    # formatted; stage_fixed re-stages what the tools rewrote. The gate
-    # (typecheck, build, tests) runs by hand between units.
+    # formatted; stage_fixed re-stages what the tools rewrote. Then the
+    # workspaces the staged files lie in are typechecked, incrementally
+    # (packages/scripts/src/precommit-typecheck.ts). The gate (lint and unit
+    # tests) runs by hand between units; builds and the slow tests are
+    # `bun run test:slow`.
     - name: lint
       glob: '*.{ts,tsx,js,jsx,mts,cts}'
       run: bun x oxlint --fix {staged_files}
@@ -11,6 +14,9 @@ pre-commit:
     - name: fmt
       run: bun x oxfmt --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
+
+    - name: typecheck
+      run: bun packages/scripts/src/precommit-typecheck.ts
 
     # Guard rail: a render carries the film's mix, and the mix carries the
     # generated score and effects, so no video (or m4a) is committed under the

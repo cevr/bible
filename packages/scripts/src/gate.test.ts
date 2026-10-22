@@ -1,9 +1,9 @@
-// The gate's two phases as the root manifest, turbo's config and
-// `gate.sh` lay them: the checks run no workspace's tests and no check that
-// holds a time limit, and the timed work runs each workspace's alone, under
-// the host's test lock. Beside the checks and one another, a case of 0.47 s
-// alone takes 6.1 s and fails its 5 s limit, and the contrast check's
-// browser misses its 30 s screenshot limit; alone, each holds it.
+// The gate and the slow suite as the root manifest, turbo's config, `gate.sh`
+// and `test-slow.sh` lay them. The gate is the lint's deterministic rules
+// beside every workspace's unit tests, each cached on its inputs, under no
+// lock. Everything else (typecheck, builds, slow tests, browser checks, the
+// full lint) is the slow suite, run one task at a time under the host's test
+// lock, by hand and before each deploy.
 
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { JSONC } from 'bun';
@@ -12,17 +12,24 @@ import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { commandsOf } from './test-budget/shell.ts';
 
 const Manifest = Schema.fromJsonString(
-  Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) }),
+  Schema.Struct({
+    name: Schema.optionalKey(Schema.String),
+    scripts: Schema.Record(Schema.String, Schema.String),
+  }),
 );
 
 const Turbo = Schema.Struct({
   tasks: Schema.Record(
     Schema.String,
-    Schema.Struct({ dependsOn: Schema.optionalKey(Schema.Array(Schema.String)) }),
+    Schema.Struct({
+      dependsOn: Schema.optionalKey(Schema.Array(Schema.String)),
+      inputs: Schema.optionalKey(Schema.Array(Schema.String)),
+      cache: Schema.optionalKey(Schema.Boolean),
+    }),
   ),
 });
 
-/** The root manifest's scripts, turbo's tasks and `gate.sh`'s text. */
+/** The root manifest's scripts, turbo's tasks, the two shell scripts' lines and each workspace's manifest. */
 const laid = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -33,7 +40,15 @@ const laid = Effect.gen(function* () {
   const turbo = yield* Schema.decodeUnknownEffect(Turbo)(
     JSONC.parse(yield* fs.readFileString(path.join(root, 'turbo.json'))),
   );
-  const sh = yield* fs.readFileString(path.join(import.meta.dir, 'gate.sh'));
+  const linesOf = (file: string) =>
+    Effect.map(fs.readFileString(path.join(import.meta.dir, file)), (text) =>
+      text.split('\n').map((line) => line.trim()),
+    );
+  const gate = yield* linesOf('gate.sh');
+  const slow = yield* linesOf('test-slow.sh');
+  const hooks = (yield* fs.readFileString(path.join(root, 'lefthook.yml')))
+    .split('\n')
+    .map((line) => line.trim());
   const packages = yield* Effect.forEach(['apps', 'packages'], (group) =>
     Effect.flatMap(fs.readDirectory(path.join(root, group)), (names) =>
       Effect.forEach(names, (name) =>
@@ -46,84 +61,108 @@ const laid = Effect.gen(function* () {
       ),
     ),
   );
-  return { scripts, turbo, sh, packages: packages.flat() };
+  return { scripts, turbo, gate, slow, hooks, packages: packages.flat() };
 }).pipe(Effect.provide(BunServices.layer));
 
-/** A script's commands, and those of each script `concurrently` runs in it. */
-const commandsIn = (script: string): ReadonlyArray<ReadonlyArray<string>> =>
-  commandsOf(script).flatMap((command) => {
-    if (command[0] !== 'concurrently') return [command];
-    return command
-      .slice(1)
-      .filter((word) => !word.startsWith('-'))
-      .flatMap(commandsIn);
-  });
+/** The `turbo run` lines of a shell script, each as its words. */
+const turboRuns = (lines: ReadonlyArray<string>) =>
+  lines
+    .filter((line) => line.startsWith('node_modules/.bin/turbo run '))
+    .map((line) => ['turbo', ...line.split(/\s+/).slice(1)]);
 
-/** A command that is `turbo run` with `task` among its tasks. */
-const runsTask = (command: ReadonlyArray<string>, task: string) =>
-  command[0] === 'turbo' && command[1] === 'run' && command.slice(2).includes(task);
+/** Whether a line takes a lock (`flock`, `lockf`). */
+const locks = (line: string) => /\b(flock|lockf)\b/.test(line) && !line.startsWith('#');
 
-describe("the gate's phases", () => {
-  it.effect('the gate is gate.sh: the checks, then the tests under the lock', () =>
+describe('the gate', () => {
+  it.effect('is gate.sh: the lint in the background beside the unit tests, under no lock', () =>
     Effect.gen(function* () {
-      const { scripts, sh } = yield* laid;
+      const { scripts, gate } = yield* laid;
       expect(commandsOf(scripts['gate'] ?? '')).toEqual([['sh', 'packages/scripts/src/gate.sh']]);
-      const lines = sh.split('\n').map((line) => line.trim());
-      const checks = lines.indexOf('low bun run gate:checks');
-      const tests = lines.indexOf('locked bun run gate:tests');
-      expect(checks).toBeGreaterThan(-1);
-      expect(tests).toBeGreaterThan(checks);
-    }),
-  );
-
-  it.effect("the checks run no workspace's test: turbo's gate task depends on none", () =>
-    Effect.gen(function* () {
-      const { scripts, turbo } = yield* laid;
-      const commands = commandsIn(scripts['gate:checks'] ?? '');
-      expect(commands.some((command) => runsTask(command, 'gate'))).toBe(true);
-      expect(commands.filter((command) => runsTask(command, 'test'))).toEqual([]);
-      expect(turbo.tasks['gate']?.dependsOn ?? []).not.toContain('test');
-      expect(turbo.tasks['gate']?.dependsOn ?? []).not.toContain('^test');
-    }),
-  );
-
-  it.effect("the tests run each workspace's alone, one after another", () =>
-    Effect.gen(function* () {
-      const { scripts } = yield* laid;
-      const runs = commandsIn(scripts['gate:tests'] ?? '').filter((command) =>
-        runsTask(command, 'test'),
-      );
+      expect(gate).toContain('bun packages/scripts/src/lint-gate.ts &');
+      const runs = turboRuns(gate);
       expect(runs).toHaveLength(1);
-      expect(runs[0]).toContain('--concurrency=1');
+      expect(runs[0]?.filter((word) => !word.startsWith('-'))).toEqual(['turbo', 'run', 'test']);
+      expect(gate.filter(locks)).toEqual([]);
     }),
   );
 
+  it.effect("caches each workspace's tests on its inputs, and a test waits on no build", () =>
+    Effect.gen(function* () {
+      const { turbo } = yield* laid;
+      const test = turbo.tasks['test'];
+      expect(test?.cache).not.toBe(false);
+      expect(test?.dependsOn).toEqual(['^transit']);
+      expect(test?.inputs).toContain('$TURBO_DEFAULT$');
+      expect(turbo.tasks['transit']?.dependsOn).toEqual(['^transit']);
+    }),
+  );
+});
+
+describe('the slow suite', () => {
   it.effect(
-    "a package's own gate holds no time limit (Selah's native gate, firsttheblade's promise check): a check with a time limit is its gate:timed, run with the tests",
+    'is test-slow.sh: typecheck, builds and each test:slow one at a time under the lock, then the full lint, the format and the dead exports',
     () =>
       Effect.gen(function* () {
-        const { scripts, turbo, packages } = yield* laid;
-        const gates = packages
-          .filter(({ manifest }) => Option.exists(manifest, ({ scripts }) => 'gate' in scripts))
-          .map(({ dir }) => dir);
-        expect([...gates].sort()).toEqual(['apps/firsttheblade', 'apps/selah']);
-        const promise = packages
-          .filter(({ dir }) => dir === 'apps/firsttheblade')
-          .flatMap(({ manifest }) => Option.toArray(manifest))
-          .map(({ scripts }) => scripts['gate']);
-        expect(promise).toEqual(['bun scripts/promise.ts && bun run promise:census']);
-        expect(turbo.tasks['gate:timed']).toBeDefined();
-        const timed = commandsIn(scripts['gate:tests'] ?? '').filter((command) =>
-          runsTask(command, 'gate:timed'),
+        const { scripts, slow } = yield* laid;
+        expect(commandsOf(scripts['test:slow'] ?? '')).toEqual([
+          ['sh', 'packages/scripts/src/test-slow.sh'],
+        ]);
+        expect(slow.filter(locks).length).toBeGreaterThan(0);
+        const runs = turboRuns(slow);
+        expect(runs).toHaveLength(1);
+        expect(runs[0]).toEqual(
+          expect.arrayContaining(['typecheck', 'build', 'test:slow', '--concurrency=1']),
         );
-        expect(timed).toHaveLength(1);
-        expect(timed[0]).toContain('test');
-        expect(timed[0]).toContain('--concurrency=1');
-        expect(
-          commandsIn(scripts['gate:checks'] ?? '').filter((command) =>
-            runsTask(command, 'gate:timed'),
+        expect(slow).toEqual(
+          expect.arrayContaining(['bun run lint', 'bun run fmt:check', 'bun run dead-exports']),
+        );
+      }),
+  );
+
+  it.effect("runs before each deploy: a deploy script starts with its workspace's test:slow", () =>
+    Effect.gen(function* () {
+      const { packages } = yield* laid;
+      const deploys = packages.flatMap(({ manifest }) =>
+        Option.toArray(manifest)
+          .filter(({ scripts }) => 'deploy' in scripts)
+          .map(({ name, scripts }) => ({ name, first: commandsOf(scripts['deploy'] ?? '')[0] })),
+      );
+      expect(deploys.length).toBeGreaterThan(0);
+      for (const { name, first } of deploys) {
+        expect(first).toEqual(['turbo', 'run', 'test:slow', `--filter=${name}`]);
+      }
+    }),
+  );
+
+  it.effect("no workspace keeps a gate but Selah's native one, which its test:slow runs", () =>
+    Effect.gen(function* () {
+      const { packages } = yield* laid;
+      const gates = packages.flatMap(({ dir, manifest }) =>
+        Option.toArray(manifest)
+          .filter(({ scripts }) => 'gate' in scripts)
+          .map(({ scripts }) => ({ dir, gate: scripts['gate'], slow: scripts['test:slow'] })),
+      );
+      expect(gates.map(({ dir }) => dir)).toEqual(['apps/selah']);
+      expect(gates[0]?.slow).toBe(gates[0]?.gate);
+    }),
+  );
+});
+
+describe('the pre-commit', () => {
+  it.effect(
+    'typechecks the workspaces the staged files lie in, each incrementally from its own build info',
+    () =>
+      Effect.gen(function* () {
+        const { hooks, packages } = yield* laid;
+        expect(hooks).toContain('run: bun packages/scripts/src/precommit-typecheck.ts');
+        const plain = packages.flatMap(({ dir, manifest }) =>
+          Option.toArray(manifest).flatMap(({ scripts }) =>
+            commandsOf(scripts['typecheck'] ?? '')
+              .filter((command) => command[0] === 'tsc' && !command.includes('--incremental'))
+              .map(() => dir),
           ),
-        ).toEqual([]);
+        );
+        expect(plain).toEqual([]);
       }),
   );
 });

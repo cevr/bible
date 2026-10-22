@@ -25,7 +25,7 @@
 //                           # `grown-debt <line>` per line the base lacks and
 //                           # `base-unavailable <why>`; exits 1 on any
 //
-// Part of `bun run guard` and of the gate's checks, so CI and the gate run it.
+// Part of `bun run test:slow` (`test-slow.sh`), by hand and before a deploy.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';

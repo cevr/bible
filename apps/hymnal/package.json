@@ -10,7 +10,7 @@
     "android": "one run:android",
     "build": "one build",
     "prebuild:native": "bun vite/prebuild.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.infra.json",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/app.tsbuildinfo && tsc --noEmit -p tsconfig.test.json --incremental --tsBuildInfoFile node_modules/.cache/tsc/test.tsbuildinfo && tsc --noEmit -p tsconfig.infra.json --incremental --tsBuildInfoFile node_modules/.cache/tsc/infra.tsbuildinfo",
     "test": "bun run test:infra & infra=$!; bun run test:app; app=$?; wait $infra && exit $app",
     "test:app": "bun test --preload ./src/test/setup.ts --path-ignore-patterns='**/*.slow.test.*' src",
     "test:browser": "bun test ./test/browser --timeout 30000",

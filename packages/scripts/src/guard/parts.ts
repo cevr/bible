@@ -98,6 +98,23 @@ export const sizesOf = Effect.fn('guard.sizesOf')(function* (
 
 /**
  * Runs the tool `bin` (a path from `root`) once per part, side by side,
+ * `args` before the part's files (relative to `root`), and answers each
+ * part's run in the parts' order, printing nothing.
+ */
+export const runEachPart = Effect.fn('guard.runEachPart')(function* (
+  root: string,
+  bin: string,
+  args: ReadonlyArray<string>,
+  parts: ReadonlyArray<ReadonlyArray<string>>,
+) {
+  const path = yield* Path.Path;
+  return yield* Effect.forEach(parts, runPart(root, path.join(root, bin), args), {
+    concurrency: Math.max(1, parts.length),
+  });
+});
+
+/**
+ * Runs the tool `bin` (a path from `root`) once per part, side by side,
  * `args` before the part's files (relative to `root`); prints each part's
  * output in the parts' order once all have ended and answers the highest
  * exit code, 0 when there is no part.
@@ -108,10 +125,7 @@ export const runParts = Effect.fn('guard.runParts')(function* (
   args: ReadonlyArray<string>,
   parts: ReadonlyArray<ReadonlyArray<string>>,
 ) {
-  const path = yield* Path.Path;
-  const runs = yield* Effect.forEach(parts, runPart(root, path.join(root, bin), args), {
-    concurrency: Math.max(1, parts.length),
-  });
+  const runs = yield* runEachPart(root, bin, args, parts);
   yield* Effect.forEach(
     runs.filter((run) => run.output !== ''),
     (run) => Console.log(run.output.trimEnd()),

@@ -203,7 +203,7 @@ const run = (each: Case) =>
     return { stdout, stderr, code: Number(code), left, outsideLeft };
   }).pipe(Effect.scoped);
 
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+const seconds = (ms: number) => `${(ms / 1000).toFixed(2)} s`;
 
 /** Every way the run breaks the rule in `each`; none when it holds. */
 const violations = (
@@ -217,7 +217,7 @@ const violations = (
   },
 ) => {
   const found: Array<string> = [];
-  const times = [...result.stdout.matchAll(/^\s+(\d+\.\d s) {2}x$/gm)].map((match) => match[1]);
+  const times = [...result.stdout.matchAll(/^\s+(\d+\.\d\d s) {2}x$/gm)].map((match) => match[1]);
   const readable = each.own === 'whole';
   for (const foreign of each.foreign) {
     if (times.includes(seconds(foreign.ms)))

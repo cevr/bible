@@ -39,7 +39,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "./scripts/build-native.sh check && bun test --parallel --path-ignore-patterns='**/*.slow.test.*'",
     "test:slow": "bun test .slow.test.",
     "test:watch": "bun test --watch",

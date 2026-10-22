@@ -11,7 +11,7 @@
   "type": "module",
   "scripts": {
     "build": "bun scripts/build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "bun test --path-ignore-patterns='**/*.slow.test.*' test/commands test/core test/lib",
     "test:slow": "bun test .slow.test.",
     "test:watch": "bun test test/commands test/core --watch",

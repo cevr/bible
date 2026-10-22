@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
 // `bun run test:budget [<workspace>…]`: the tests' time budget. Each
-// workspace's `test` finishes in under 10 seconds wall on the owner's laptop,
-// measured alone; there is no budget on the sum (owner, 2026-10-18: "should
+// workspace's `test` finishes in under 1 second wall on the owner's laptop,
+// measured alone (owner, 2026-10-22: "our unit test should be under a second
+// for sure"); there is no budget on the sum (owner, 2026-10-18: "should
 // not ahve their tests and budgets entangled"). This runs each workspace's
-// `test` by itself, one after another, as `turbo run test --filter=<name>`
-// (the `test` task is never cached; a build it depends on runs, or replays
-// from turbo's cache, first and outside its span), reads that workspace's
+// `test` by itself, one after another, as `turbo run test --filter=<name>
+// --force` (`--force` runs the cached `test` task again rather than replay
+// it; its dependencies' `transit` tasks do nothing), reads that workspace's
 // `test` span from turbo's run summary, and fails when any one reaches the
 // budget. Named workspaces are measured alone and the rest are left out; with
 // none named, every workspace that `bun run test` runs is measured.
@@ -174,7 +175,15 @@ const measure = (root: string, name: string) =>
         spawner.spawn(
           ChildProcess.make(
             'turbo',
-            ['run', 'test', `--filter=${name}`, '--summarize', '--ui=stream', '--no-color'],
+            [
+              'run',
+              'test',
+              `--filter=${name}`,
+              '--force',
+              '--summarize',
+              '--ui=stream',
+              '--no-color',
+            ],
             {
               cwd: root,
               stdin: 'inherit',
@@ -286,7 +295,7 @@ const command = Command.make(
         UnreachedTests: (error) => refuse(error.message),
       }),
     ),
-).pipe(Command.withDescription("Measure each workspace's tests alone against the 10 s budget"));
+).pipe(Command.withDescription("Measure each workspace's tests alone against the 1 s budget"));
 
 Command.run(command, { version: '1.0.0' }).pipe(
   Effect.provide(BunServices.layer),

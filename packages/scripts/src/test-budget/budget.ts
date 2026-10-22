@@ -1,5 +1,5 @@
 // The tests' time budget, judged: each workspace's `test`, run alone, under
-// 10 seconds wall: 10,000 ms or more is over. There is no budget on the sum:
+// 1 second wall: 1,000 ms or more is over. There is no budget on the sum:
 // the workspaces are separate projects, and one's verdict never depends on
 // another's (owner, 2026-10-18: "should not ahve their tests and budgets
 // entangled").
@@ -19,7 +19,7 @@
 import { Option } from 'effect';
 
 /** The budget, in milliseconds, for each workspace's `test`. */
-const BUDGET_MS = 10_000;
+const BUDGET_MS = 1_000;
 
 /** One workspace's `test`, run alone: its time (none when its own summary did not read) and its exit code. */
 interface Workspace {
@@ -55,7 +55,7 @@ interface Judged {
   readonly code: 0 | 1;
 }
 
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+const seconds = (ms: number) => `${(ms / 1000).toFixed(2)} s`;
 
 const averages = (load: Load) =>
   `${load.one.toFixed(1)} over 1 min and ${load.five.toFixed(1)} over 5 min`;

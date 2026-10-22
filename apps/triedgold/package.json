@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
-    "typecheck": "react-router typegen && tsc --noEmit",
+    "typecheck": "react-router typegen && tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test:slow": "bun test .slow.test.",
     "plan": "react-router build && alchemy plan alchemy.run.ts --stage prod",
     "deploy": "turbo run test:slow --filter=@bible/triedgold && alchemy deploy alchemy.run.ts --stage prod",

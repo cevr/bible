@@ -7,7 +7,7 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit && bun src/typecheck-coverage.ts",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo && bun src/typecheck-coverage.ts",
     "test": "bun test --parallel=4 --path-ignore-patterns='**/*.slow.test.*' src lint",
     "test:slow": "bun test --parallel=4 .slow.test.",
     "build:topics": "bun src/topics-compiler/main.ts",

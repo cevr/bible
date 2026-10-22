@@ -17,7 +17,7 @@
     "./separator": "./src/separator/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "bun --conditions=browser --conditions=development test src",
     "test:browser": "bun test ./test/browser --timeout 30000",
     "test:slow": "bun run test:browser"

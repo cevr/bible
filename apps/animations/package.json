@@ -34,7 +34,7 @@
     "store:keys": "bun infra/keys.ts --stage prod",
     "seed-look": "bun art/seed-look.ts",
     "fill-picks": "bun productions/fill-picks.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "bun test --parallel --path-ignore-patterns='**/*.slow.test.*' ./checkouts.test.ts ./rules.test.ts ./scripts.test.ts ./src/films/righteousness-by-faith/rigs && bun cli.ts drafts",
     "test:slow": "bun test .slow.test."
   },

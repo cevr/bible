@@ -24,9 +24,8 @@
     "./measure": "./src/measure.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/typecheck.tsbuildinfo",
     "test": "bun test --parallel --no-isolate --max-concurrency=3 --timings=node_modules/.cache/bun-test/timings.json --update-timings --path-ignore-patterns='**/*.slow.test.*' src lint",
-    "test:guard": "bun test ./src/docs.slow.test.ts ./src/exports.slow.test.ts",
     "test:slow": "bun test --parallel --no-isolate --max-concurrency=3 .slow.test. && bun run test:e2e",
     "test:e2e": "bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 --preload ./e2e/preload.ts --timeout 20000 e2e",
     "test:e2e:check": "bun src/lab/fixtures/e2e-check.ts",

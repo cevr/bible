@@ -76,6 +76,8 @@ const RUN_BY_NAME: ReadonlyMap<string, string> = new Map([
     'packages/film/src/tools/page-render-worker.ts',
     'the Worker packages/film/src/tools/page-render.ts spawns',
   ],
+  ['packages/scripts/src/lint-gate.ts', 'the lint packages/scripts/src/gate.sh runs'],
+  ['packages/scripts/src/precommit-typecheck.ts', 'the pre-commit typecheck lefthook.yml runs'],
 ]);
 
 /** The `package.json` of directory `dir`, read: none for a directory that is no package. */

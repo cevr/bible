@@ -35,14 +35,6 @@
     "dev": {
       "cache": false,
       "persistent": true
-    },
-    "gate": {
-      "dependsOn": ["typecheck", "build"],
-      "outputs": []
-    },
-    "gate:timed": {
-      "dependsOn": ["build"],
-      "outputs": []
     }
   }
 }

@@ -8,7 +8,6 @@
       "cache": false
     },
     "typecheck": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false },
-    "test:slow": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false },
-    "gate": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false }
+    "test:slow": { "dependsOn": [], "inputs": ["$TURBO_DEFAULT$"], "cache": false }
   }
 }
