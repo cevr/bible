@@ -1836,6 +1836,587 @@
         "swaplines:2.4"
       ],
       "layout": "d4820abb7cab88b8"
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip0.jpg system 1, lyric row 1. (stanza 1 row 1): the row prints 8 words, the database's line 1 words 1-3, line 2 words 1-3 and line 3 words 1-2, once each, with no words between row words 3 and 4 or 6 and 7, no bracketed words and no repeat sign. The database also sings line 1 words 4-6 and line 2 words 4-6 (each line's words 1-3 again), 6 words the page does not print, so the row's last two words fall 6 words past its count.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 row 1 ends \"we shall\" at word 15, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip0.jpg system 2, top lyric row (stanza 1 row 2): the row prints 16 words, the database's line 3 words 3-7, line 4 words 1-3 (row word 6 lowercase), line 5 and line 6 words 1-2, once each. Between row words 8 and 9, its middle two, the database also sings line 4 words 4-6 (line 4 words 1-3 again), 3 words the page does not print, so the row's last two words fall 3 words past its count.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 row 2 holds its middle \"as i\" at no place its count gives",
+        "220 shape (shape2-25): stanza 1 row 2 ends \"we shall\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip800.jpg system 3, top lyric row (stanza 1 row 3): the row prints 15 words, the database's line 6 words 3-7, line 7 and line 8 words 1-3 (row word 13 lowercase), once each, with no words after them before the double bar, where the database sings line 8 words 4-6 (line 8 words 1-3 again), so the row's last two words stand twice in line 8 and once on the page. Its opening and middle fall 3 words past the count only because stanza 1 row 2 does not print line 4 words 4-6 (220-2).",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 row 3 opens \"see the\" at two places its count gives",
+        "220 shape (shape2-25): stanza 1 row 3 holds its middle \"see the\" at no place its count gives",
+        "220 shape (shape2-25): stanza 1 row 3 ends \"he comes\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip800.jpg system 4 (refrain row 1 after stanza 1): the row prints 9 words, the database's line 9 words 1-7 and line 10 words 1-2, once each, with no words between row words 7 and 8, where the database sings line 9 words 8-10 (line 9 words 5-7 again), so its last two words fall 3 words past its count. It opens 6 words past its count because the page prints neither line 8 words 4-6, sung just before the row (220-3), nor line 4 words 4-6 (220-2).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 1: row 1 opens \"with the\" at word 52, its count gives word 46",
+        "220 shape (shape2-25): the refrain after stanza 1: row 1 ends \"with the\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (row, layout): When_He_Comes2-strip0.jpg system 5, middle lyric row (refrain row 2, shared by every stanza): the row prints 5 words, the database's line 10 words 3-7, once each, straight after system 4's row on 220-strip800.jpg ends on line 10 words 1-2, so where it opens the page prints what the database sings. The count gives 3 words early only because system 4's row does not print line 9 words 8-10 (220-4).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 1: row 2 opens \"alleluias ringing\" at word 64, its count gives word 61"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): When_He_Comes2-strip0.jpg system 5: the middle lyric row ends on the database's line 10 word 7, with an exclamation mark and no words after it, and the top lyric row (refrain row 3 after stanza 1) prints 8 words, line 11 and line 12 words 1-2, once each, opening with a capital. Between them the database sings line 10 words 8-10 (line 10 words 5-7 again), 3 words the page does not print.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 1: row 3 opens \"as i\" at word 72, its count gives word 69"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): When_He_Comes2-strip0.jpg system 6, middle lyric row (refrain row 5, shared by every stanza): the row prints 7 words, the database's line 13 words 1-7, once, and ends at the final barline with no words after them; the page prints nothing below When_He_Comes2-strip0.jpg. The database sings line 13 words 8-10 (line 13 words 5-7 again), 3 words the page does not print.",
+      "settles": [
+        "220 shape (shape2-25): stanza 1 sings 3 words from \"to the\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip0.jpg system 1, lyric row 2. (stanza 2 row 1): the row prints 8 words, the database's line 1 words 1-3, line 2 words 1-3 and line 3 words 1-2, once each, with no words between row words 3 and 4 or 6 and 7, no bracketed words and no repeat sign. The database also sings line 1 words 4-6 and line 2 words 4-6 (each line's words 1-3 again), 6 words the page does not print, so the row's last two words fall 6 words past its count.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 row 1 ends \"we shall\" at word 15, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip0.jpg system 2, middle lyric row (stanza 2 row 2): the row prints 15 words, the database's line 3 words 3-6, line 4 words 1-3 (row word 5 lowercase), line 5 and line 6 words 1-2, once each. Between row words 7 and 8 the database also sings line 4 words 4-6 (line 4 words 1-3 again), 3 words the page does not print, so the row's middle and last two words fall 3 words past its count.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 row 2 holds its middle \"we shall\" at no place its count gives",
+        "220 shape (shape2-25): stanza 2 row 2 ends \"see the\" at word 33, its count gives word 30"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip800.jpg systems 3-4: stanza 2 row 3 ends on line 8 word 3 with no words after it before the double bar, and refrain row 1 prints 9 words, line 9 words 1-7 and line 10 words 1-2, once each; the database sings line 8 words 4-6 (line 8 words 1-3 again) between them, so the row opens 3 words past its count. Inside the row it also sings line 9 words 8-10 (line 9 words 5-7 again) between row words 7 and 8, which the page does not print, so the row's last two words fall 3 words past its count too.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 2: row 1 opens \"with the\" at word 49, its count gives word 46",
+        "220 shape (shape2-25): the refrain after stanza 2: row 1 ends \"with the\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (row, layout): When_He_Comes2-strip0.jpg system 5, middle lyric row (refrain row 2, shared by every stanza): the row prints 5 words, the database's line 10 words 3-7, once each, straight after system 4's row on 220-strip800.jpg ends on line 10 words 1-2, so where it opens the page prints what the database sings. The count gives 3 words early only because system 4's row does not print line 9 words 8-10 (220-10).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 2: row 2 opens \"alleluias ringing\" at word 61, its count gives word 58"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): When_He_Comes2-strip0.jpg system 5, middle lyric row: the shared 5 words end on line 10 word 7 with an exclamation mark, and stanza 2's refrain row 3 follows in the same row, 8 words, line 11 and line 12 words 1-2, once each, opening with a capital. Between them the database sings line 10 words 8-10 (line 10 words 5-7 again), 3 words the page does not print.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 2: row 3 opens \"we shall\" at word 69, its count gives word 66"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): When_He_Comes2-strip0.jpg system 6, middle lyric row (refrain row 5, shared by every stanza): the row prints 7 words, the database's line 13 words 1-7, once, and ends at the final barline with no words after them; the page prints nothing below When_He_Comes2-strip0.jpg. The database sings line 13 words 8-10 (line 13 words 5-7 again), 3 words the page does not print.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 sings 3 words from \"to the\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (row, layout): 220-strip800.jpg system 3, middle lyric row (stanza 2 row 3): row word 11 is printed lowercase after a word with no punctuation, so no poem line opens there; the page's poem line runs from row word 5, a capital after a comma, to row word 13, and lyric rows 1. and 3. print the same word lowercase under the same note. The database has the same 9 words once each, in the same order, and only divides them into its line 7 and line 8 words 1-3.",
+      "settles": [
+        "220 shape (shape2-25): stanza 2 line 8 opens on word 11 of stanza 2 row 3, which the page prints with no capital"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip0.jpg system 1, lyric row 3. (stanza 3 row 1): the row prints 8 words, the database's line 1 words 1-3, line 2 words 1-3 and line 3 words 1-2, once each, with no words between row words 3 and 4 or 6 and 7, no bracketed words and no repeat sign. The database also sings line 1 words 4-6 and line 2 words 4-6 (each line's words 1-3 again), 6 words the page does not print, so the row's last two words fall 6 words past its count.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 row 1 ends \"we shall\" at word 15, its count gives word 9"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip0.jpg system 2, bottom lyric row (stanza 3 row 2): the row prints 19 words, the database's line 3 words 3-8, line 4 words 1-3 (row word 7 lowercase), line 5 and line 6 words 1-2, once each. Between row words 9 and 10 the database also sings line 4 words 4-6 (line 4 words 1-3 again), 3 words the page does not print, so the row's middle and last two words fall 3 words past its count.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 row 2 holds its middle \"we shall\" at no place its count gives",
+        "220 shape (shape2-25): stanza 3 row 2 ends \"when he\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (row, layout): 220-strip800.jpg system 3, bottom lyric row (stanza 3 row 3): the row prints 17 words, the database's line 6 words 3-8, line 7 and line 8 words 1-3 (row word 15 lowercase), once each, straight after stanza 3 row 2 ends on line 6 words 1-2 on 220-strip0.jpg, so where it opens the page prints what the database sings. The count gives 3 words early only because stanza 3 row 2 does not print line 4 words 4-6 (220-16).",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 row 3 opens \"calls his\" at word 37, its count gives word 34"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): 220-strip800.jpg systems 3-4: stanza 3 row 3 ends on line 8 word 3 with no words after it before the double bar, and refrain row 1 prints 9 words, line 9 words 1-7 and line 10 words 1-2, once each; the database sings line 8 words 4-6 (line 8 words 1-3 again) between them, so the row opens 3 words past its count. Inside the row it also sings line 9 words 8-10 (line 9 words 5-7 again) between row words 7 and 8, which the page does not print, so the row's last two words fall 3 words past its count too.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 3: row 1 opens \"with the\" at word 57, its count gives word 54",
+        "220 shape (shape2-25): the refrain after stanza 3: row 1 ends \"with the\" at two places its count gives"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (row, layout): When_He_Comes2-strip0.jpg system 5, middle lyric row (refrain row 2, shared by every stanza): the row prints 5 words, the database's line 10 words 3-7, once each, straight after system 4's row on 220-strip800.jpg ends on line 10 words 1-2, so where it opens the page prints what the database sings. The count gives 3 words early only because system 4's row does not print line 9 words 8-10 (220-18).",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 3: row 2 opens \"alleluias ringing\" at word 69, its count gives word 66"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): When_He_Comes2-strip0.jpg system 5: the middle lyric row's shared 5 words end on line 10 word 7 with an exclamation mark, and the bottom lyric row (refrain row 3 after stanza 3) prints 10 words, line 11 and line 12 words 1-2, once each, opening with a capital. Between them the database sings line 10 words 8-10 (line 10 words 5-7 again), 3 words the page does not print.",
+      "settles": [
+        "220 shape (shape2-25): the refrain after stanza 3: row 3 opens \"we shall\" at word 77, its count gives word 74"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        },
+        {
+          "image": "When_He_Comes2.png",
+          "crop": "When_He_Comes2-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "d4543278475070dd",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): When_He_Comes2-strip0.jpg system 6, middle lyric row (refrain row 5, shared by every stanza): the row prints 7 words, the database's line 13 words 1-7, once, and ends at the final barline with no words after them; the page prints nothing below When_He_Comes2-strip0.jpg. The database sings line 13 words 8-10 (line 13 words 5-7 again), 3 words the page does not print.",
+      "settles": [
+        "220 shape (shape2-25): stanza 3 sings 3 words from \"to the\" on, in no row the page prints"
+      ]
+    },
+    {
+      "sites": [],
+      "row": "",
+      "readings": ["shape2-25 (the shape reading of the page)"],
+      "printed": "",
+      "sung": "",
+      "kind": "disputed",
+      "crops": [
+        {
+          "image": "220.png",
+          "crop": "220-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "764393f903ff611e",
+          "shows": ""
+        },
+        {
+          "image": "220.png",
+          "crop": "220-strip800.jpg",
+          "box": [0, 800, 1274, 850],
+          "sha": "978fef53b948ecc5",
+          "shows": ""
+        }
+      ],
+      "judge": "shape-judge-judge-220b (Opus, effort max)",
+      "why": "Second reading (page, words): Systems 1-3: lyric rows 1. and 2. both end at bar 8, before the double bar, on their stanza's line 8 words 1-3, the last under the same note, so the page prints the same rows for both stanzas, each running through the database's line 8 word 3. Stanza 1 counts 7 lines only because the database sings line 4 words 4-6 under system 2 (220-2), 3 words the page does not print, which puts the check's placing of stanza 1 row 3 3 words short, at line 7 word 7.",
+      "settles": ["220 shape (shape2-25): stanza 2 has 8 lines, stanza 1 7, under the same systems"]
     }
   ]
 }
