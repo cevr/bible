@@ -20,6 +20,8 @@ export interface HymnText {
   readonly title: string;
   /** The first line of stanza 1, as the hymnal indexes it. */
   readonly firstLine: string;
+  /** The hymnal's topical section the hymn is printed in, by its printed name. */
+  readonly topic: string;
   readonly sections: ReadonlyArray<Section>;
 }
 
@@ -28,7 +30,8 @@ const sectionOf = (verse: number | 'refrain', lines: ReadonlyArray<string>): Sec
   return { kind: 'stanza', n: verse, lines };
 };
 
-export const textOf = (hymn: Hymn): HymnText => {
+/** The words of `hymn`, in the topical section named `topic`. */
+export const textOf = (hymn: Hymn, topic: string): HymnText => {
   const runs: Array<{ verse: number | 'refrain'; lines: string[] }> = [];
   for (const line of sung(hymn)) {
     const last = runs.at(-1);
@@ -40,6 +43,7 @@ export const textOf = (hymn: Hymn): HymnText => {
     number: hymn.number,
     title: hymn.title,
     firstLine: Option.getOrElse(Option.fromNullishOr(first), () => ''),
+    topic,
     sections: runs.map(({ verse, lines }) => sectionOf(verse, lines)),
   };
 };

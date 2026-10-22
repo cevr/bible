@@ -1,16 +1,17 @@
 /* oxlint-disable effect/noNodeBuiltinImport, effect/noTryCatch, effect/noThrowStatement, effect/noNewError, effect/noGlobals -- a build-time host script: the bundler plugin and the test preload call it synchronously, so it reads the compiled set from disk, fails the build naming the file that does not decode, and writes its JSON to standard output. */
 
 /**
- * Every compiled hymn's words (`HymnText`), in number order: read by the
- * `virtual:hymnal` plugin (`hymnal.ts`, which runs this file under Bun and
- * reads its standard output) and by the app's tests.
+ * Every compiled hymn's words (`HymnText`), in number order, each with its
+ * topical section's name from the compiled topics (`topics.json`, through
+ * `topicOf`): read by the `virtual:hymnal` plugin (`hymnal.ts`, which runs
+ * this file under Bun and reads its standard output) and by the app's tests.
  */
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { Hymn } from '@bible/hymnal/hymn';
-import { Schema } from 'effect';
+import { Hymn, Topics, topicOf } from '@bible/hymnal/hymn';
+import { Option, Schema } from 'effect';
 
 import { type HymnText, textOf } from '../src/hymns/text';
 
@@ -21,18 +22,37 @@ const folder = join(
 );
 
 const decode = Schema.decodeUnknownSync(Schema.fromJsonString(Hymn));
+const decodeTopics = Schema.decodeUnknownSync(Schema.fromJsonString(Topics));
 
-export const readWords = (): ReadonlyArray<HymnText> =>
-  readdirSync(folder)
+/** The compiled hymn in `file`; the build fails naming a file that does not decode. */
+const decodeHymn = (file: string): Hymn => {
+  try {
+    return decode(readFileSync(file, 'utf8'));
+  } catch (cause) {
+    throw new Error(`hymnal: ${file} does not decode`, { cause });
+  }
+};
+
+/** The name of the topic that holds `hymn`; the build fails for a hymn in none. */
+const topicName = (topics: Topics, hymn: Hymn): string =>
+  Option.getOrThrowWith(
+    Option.map(topicOf(topics, hymn.number), (topic) => topic.name),
+    () => new Error(`hymnal: hymn ${hymn.number} is in no topic of topics.json`),
+  );
+
+/** The compiled topical sections. */
+export const readTopics = (): Topics =>
+  decodeTopics(readFileSync(join(folder, 'topics.json'), 'utf8'));
+
+export const readWords = (): ReadonlyArray<HymnText> => {
+  const topics = readTopics();
+  return readdirSync(folder)
     .filter((name) => /^\d{3}\.json$/.test(name))
     .toSorted()
     .map((name) => {
-      const file = join(folder, name);
-      try {
-        return textOf(decode(readFileSync(file, 'utf8')));
-      } catch (cause) {
-        throw new Error(`hymnal: ${file} does not decode`, { cause });
-      }
+      const hymn = decodeHymn(join(folder, name));
+      return textOf(hymn, topicName(topics, hymn));
     });
+};
 
 if (import.meta.main) process.stdout.write(JSON.stringify(readWords()));
