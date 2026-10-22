@@ -3,7 +3,8 @@
  * URL (Vite fingerprints it under `/assets/`, which is cached for a year).
  * The field is brand round 5's repaint of round 4's field at 3072 px; the
  * night and the mark are round 4's paintings in palette 09; the emblems are
- * round 3's series marks in the same colours.
+ * round 3's series marks in the same colours, except Health and Cure's: the
+ * healing leaf of Revelation 22:2, which the owner picked on ask ab7bf68d1be.
  */
 import emblemLand from '../art/emblem-land.svg';
 import emblemPath from '../art/emblem-path.svg';

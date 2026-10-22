@@ -46,7 +46,10 @@ export const OUTSIDE: ReadonlyArray<Outside> = [
   { image: 'public/icon-512.png', why: ICON },
   { image: 'src/art/emblem-land.svg', why: EMBLEM },
   { image: 'src/art/emblem-path.svg', why: EMBLEM },
-  { image: 'src/art/emblem-remedies.svg', why: EMBLEM },
+  {
+    image: 'src/art/emblem-remedies.svg',
+    why: 'a series emblem: the healing leaf the owner picked on ask ab7bf68d1be, laid in the page as markup, not a painting',
+  },
   { image: 'src/art/emblem-taught.svg', why: EMBLEM },
   { image: 'src/art/mark-112.webp', why: MARK },
   { image: 'src/art/mark-320.webp', why: MARK },

@@ -5,8 +5,8 @@ move: the near wheat sways in the wind, gusts crossing it from the right,
 and a light shimmers out along the rays from the sun on the right horizon.
 At the foot of each page the night's painted stars twinkle and faint stars
 drift. Pointing at a series card, pressing it or focusing its link stirs its
-emblem: the suns rise and their rays reach out, the tree sways, the book
-turns a leaf. A visitor who asks for less motion sees the stills and the
+emblem: the path's sun rises and its rays reach out, the tree sways, the
+healing leaf sways on its stem, the book turns a leaf. A visitor who asks for less motion sees the stills and the
 emblems at rest.
 
 ## Sub-features
@@ -65,7 +65,8 @@ emblems at rest.
    `ab hover "a[href='/series/the-path-of-the-just']"`: the path's sun swells
    up from its horizon and its rays reach out over 0.6 s, and fall back when
    the pointer leaves. Hover each of the four; the book's leaf crosses from
-   right to left.
+   right to left, and Health and Cure's leaf leans a few degrees to the
+   right about its stem's foot and does not turn.
 5. **Card focus.** `ab press Tab` until a card's link is focused: the card's
    emblem stirs as on hover, and rests again when the focus moves on.
 6. **Phone.** `ab set viewport 390 844` and reload: the field and the night

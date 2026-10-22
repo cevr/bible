@@ -779,8 +779,9 @@ a {
 
 /*
  * A card pointed at, pressed or focused stirs its emblem (`./ui/emblems.ts`):
- * the suns rise from their horizons and their rays reach out, the tree sways
- * and the book turns a leaf, each eased with no spring past its pose. `--stir`
+ * the path's sun rises from its horizon and its rays reach out, the tree and
+ * the healing leaf sway, and the book turns a leaf, each eased with no spring
+ * past its pose. `--stir`
  * is 0 at rest and 1 stirred; pointing stirs only where a pointer hovers, so
  * a tap does not leave a card stirred.
  */
@@ -796,13 +797,11 @@ a {
 .card:has(h3 a:focus-visible) {
   --stir: 1;
 }
-.emblem-path svg > g:nth-of-type(1),
-.emblem-remedies svg > g:nth-of-type(1) {
+.emblem-path svg > g:nth-of-type(1) {
   scale: calc(1 + 0.12 * var(--stir));
   transition: scale var(--motion-emblem) var(--motion-ease);
 }
-.emblem-path svg > g:nth-of-type(2),
-.emblem-remedies svg > g:nth-of-type(3) {
+.emblem-path svg > g:nth-of-type(2) {
   scale: calc(1 + 0.22 * var(--stir));
   opacity: calc(1 - 0.15 * var(--stir));
   transition:
@@ -813,9 +812,11 @@ a {
 .emblem-path svg > g:nth-of-type(2) {
   transform-origin: 70px 50px;
 }
-.emblem-remedies svg > g:nth-of-type(1),
-.emblem-remedies svg > g:nth-of-type(3) {
-  transform-origin: 50px 56px;
+/* The healing leaf and its stem sway as one about the stem's foot. */
+.emblem-remedies svg > * {
+  transform-origin: 50px 92px;
+  rotate: calc(5deg * var(--stir));
+  transition: rotate var(--motion-emblem) var(--motion-ease);
 }
 .emblem-land svg > g:nth-of-type(5),
 .emblem-land svg > g:nth-of-type(6) {

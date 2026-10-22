@@ -258,7 +258,8 @@ a3e589137f5, 2026-10-21), so a review reads for each:
 The field (`src/art/field-*.webp`, 768 to 3072 px) is brand round 5's repaint
 of round 4's field. The night and the mark (`src/art/`, and `kit/art/` at full
 size) are round 4's paintings. The series emblems are round 3's, in the same
-colours. The thumbnails' paintings (`kit/art/robe.webp`, `kit/art/court.webp`)
+colours, except Health and Cure's healing leaf (Revelation 22:2, the owner's
+pick on ask ab7bf68d1be). The thumbnails' paintings (`kit/art/robe.webp`, `kit/art/court.webp`)
 are from Righteousness by Faith. `bun run kit` draws the YouTube banner and the
 link cards in `public/og/` from the site's field, and the icons from the mark.
 

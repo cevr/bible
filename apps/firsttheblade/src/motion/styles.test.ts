@@ -353,6 +353,44 @@ const sprung = (sheet: ReadonlyArray<Rule>) => {
     );
 };
 
+/** Whether tokens read `var(--stir)`, inside `calc()` or any other function too. */
+const readsStir = (tokens: ReadonlyArray<TokenOrValue>): boolean =>
+  tokens.some(
+    (token) =>
+      (token.type === 'var' && token.value.name.ident === '--stir') ||
+      (token.type === 'function' && readsStir(token.value.arguments)),
+  );
+
+/** The properties that move or fade a drawn part. */
+const MOVES: ReadonlySet<string> = new Set([
+  'rotate',
+  'scale',
+  'translate',
+  'transform',
+  'opacity',
+]);
+
+/**
+ * Each declaration on an emblem that moves a part by anything but its card's
+ * `--stir` (a fixed pose, or an animation), named by its rule's header and
+ * the property. Less motion and a coarse pointer hold `--stir` at 0, so only
+ * a part moved by it is held still there.
+ */
+const unstirred = (sheet: ReadonlyArray<Rule>) =>
+  sheet
+    .filter((rule) => isEmblem(rule.chain))
+    .flatMap((rule) =>
+      rule.declarations
+        .map(({ declaration }) => ({ declaration, name: nameOf(declaration) }))
+        .filter(
+          ({ declaration, name }) =>
+            name.startsWith('animation') ||
+            (MOVES.has(name) &&
+              !(declaration.property === 'unparsed' && readsStir(declaration.value.value))),
+        )
+        .map(({ name }) => `${rule.header}: ${name}`),
+    );
+
 /** Each value a property is given for a selector list (written as CSS), with the media it is given under, in source order. */
 const given = (sheet: ReadonlyArray<Rule>, selector: string, property: string) => {
   const target = rules(`${selector} {}`)[0]?.chain;
@@ -568,6 +606,29 @@ describe('the stylesheet as rules', () => {
       '.emblem-path &: cubic-bezier(0, 0, 1, 2)',
     ]);
   });
+
+  plain('find an emblem part moved by anything but its card’s stir', () => {
+    const sheet = rules(
+      [
+        '.emblem-remedies svg > * { transform-origin: 50px 92px; rotate: calc(5deg * var(--stir)); transition: rotate 600ms ease }',
+        '.emblem-taught .leaf { scale: calc(1 - 2 * var(--stir)) 1 }',
+        '.emblem-path g { opacity: calc(1 - 0.15 * var(--stir, 0)) }',
+        '.card:hover .emblem-remedies svg > * { rotate: 5deg }',
+        '.emblem-land g { transform: rotate(-5deg) }',
+        '.emblem-path g { translate: 0 calc(-4px * var(--lift)) }',
+        '.emblem-remedies g { animation: sway 2s ease-in-out infinite }',
+        '.x { .emblem-taught & { animation-name: turn } }',
+        '.card:hover { opacity: 0.9 }',
+      ].join(' '),
+    );
+    expect(unstirred(sheet)).toEqual([
+      '.card:hover .emblem-remedies svg > *: rotate',
+      '.emblem-land g: transform',
+      '.emblem-path g: translate',
+      '.emblem-remedies g: animation',
+      '.emblem-taught &: animation-name',
+    ]);
+  });
 });
 
 describe('the motion in the stylesheet', () => {
@@ -585,6 +646,47 @@ describe('the motion in the stylesheet', () => {
       const sheet = yield* stylesheet;
       expect(sheet.filter((rule) => isEmblem(rule.chain)).length).toBeGreaterThan(0);
       expect(sprung(sheet)).toEqual([]);
+    }));
+
+  test('each emblem part moves only with its card’s stir, so less motion and a tap leave every emblem at rest', () =>
+    Effect.gen(function* () {
+      expect(unstirred(yield* stylesheet)).toEqual([]);
+    }));
+
+  test('the healing leaf sways as one about its stem’s foot, and does not turn as the book’s leaf does', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const drawing = yield* fs.readFileString(
+        path.join(import.meta.dir, '..', 'art', 'emblem-remedies.svg'),
+      );
+      // The drawing is the blade's group, then its stem and veins as one path from the stem's foot.
+      const foot = /<\/g>\s*<path d="M(\d+) (\d+)L/.exec(drawing);
+      expect(foot).not.toBeNull();
+      const sheet = yield* stylesheet;
+      const parts = '.emblem-remedies svg > *';
+      expect(given(sheet, parts, 'transform-origin')).toEqual(
+        expected(
+          `${parts} { transform-origin: ${foot?.[1]}px ${foot?.[2]}px }`,
+          parts,
+          'transform-origin',
+        ),
+      );
+      const remedies = sheet.filter((rule) =>
+        rule.chain.some((list) =>
+          list.some((selector) =>
+            selector.some(
+              (component) => component.type === 'class' && component.name === 'emblem-remedies',
+            ),
+          ),
+        ),
+      );
+      const moved = remedies.flatMap((rule) =>
+        rule.declarations
+          .map(({ declaration }) => nameOf(declaration))
+          .filter((name) => MOVES.has(name)),
+      );
+      expect(moved).toEqual(['rotate']);
     }));
 
   test('a card rests unstirred, and a focused or pressed card stirs as a pointed one does', () =>

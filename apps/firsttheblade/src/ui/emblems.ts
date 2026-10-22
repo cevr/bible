@@ -1,8 +1,8 @@
 /**
  * The emblems as drawings laid in the page, so their parts can move when a
  * card is pointed at or focused (`.emblem` in `../styles.css`): the path's
- * sun and the remedies' sun rise from their horizons, the land's tree stirs,
- * and the book turns a leaf. The book gains the leaf here: a copy of its
+ * sun rises from its horizon, the land's tree stirs, the healing leaf sways on
+ * its stem, and the book turns a leaf. The book gains the leaf here: a copy of its
  * right page and that page's lines, laid over them under the spine, so at
  * rest the drawing is the same and a turn shows the leaf crossing to the left.
  */
