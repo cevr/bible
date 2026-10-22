@@ -1812,7 +1812,7 @@ The form of an entry, each field on its own line:
 - **Source:** the owner's notes on the First the Blade hero, 2026-10-21 (unit ftb-motion brief, note 1); he circled the light rays at the top left and the sun at the right
 - **Wrong:** The hero's painted field threw its light rays down from the top-left corner while its sun sat low on the right horizon, so the light came from no sun.
 - **Cause:** The field was painted as one picture, its rays and its sun each drawn for themselves, and nothing held the light to its source.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/src/motion/sun.test.ts` `never grows brighter as it goes out of the sun, in any direction`. They hold the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name." The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/src/motion/sun.test.ts` `never grows brighter as it goes out of the sun, in any direction`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
 
 ### field-old-rays-on-left-hills
 
@@ -1852,7 +1852,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-1-findings.md F1
 - **Wrong:** `lightFromTheSun` checked only the procedural `sunLight` the kit lays on, never a still's pixels, so the base's stills with the old top-left rays passed every test when swapped back in.
 - **Cause:** The guard was written against the light the kit computes, not the picture it ships.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. They hold the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name." The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
 
 ### night-smoothstep-edges-in-order
 
@@ -2652,7 +2652,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-2-findings.md F1
 - **Wrong:** `skyLight` read a still's light against the still's own sky and row colours, in luma, with a rise of 0.07 allowed; head mixed 0.3 or 0.4 toward the old stills, gold or white beams from the top left, and the kit's repaint cut short to 0.2 or 0.3 of the width or laid at 0.5 or 0.7 all passed, and so did 34 of 40 seeded top-left rays beyond the WebP noise.
 - **Cause:** The guard held a still against itself, so what the still held moved its own reference, and its tolerance came from no measured noise.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`. They hold the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name." The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
 
 ### hero-sway-seen-at-a-glance
 
@@ -2692,7 +2692,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-3-findings.md F1
 - **Wrong:** Three rounds of a measured light guard (`skyLight` against the master's clear sky, `lightFromTheSun` with a 0.02 rise) each passed lights from the top left: a 1 px white or gold line, counsel's faint ray, and the kit's repaint at 0.95 of its reach.
 - **Cause:** The rule was a measure of the painting's sky, and the painting's own texture reads 2 to 4 times the WebP noise against any clear-sky reference, so no tolerance both passes the shipped stills and refuses a faint line; whether light comes from the sun is the owner's look.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse a still the record does not name, and a record entry with no file`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. The rewrite (ftb-motion rewrite-spec.md) holds the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name."
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse a still the record does not name, and a record entry with no file`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. The rewrite (ftb-motion rewrite-spec.md) holds the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`).
 
 ### field-still-approved-in-a-lab-ask
 
@@ -2733,3 +2733,73 @@ The form of an entry, each field on its own line:
 - **Wrong:** The comments on `SWAY` and `SWAY_FLOOR` told the old value and the round that raised it ("raised it from 0.0045", "round 3 raised it to this").
 - **Cause:** The comments were written as the change's story, not as what the code does and why.
 - **Guard:** none: the repo's rule is `CLAUDE.md` "**Comments:**", read by every review; a lint pattern for `round \d` would also refuse the ledger's own Sources and the film rounds the comments name on purpose.
+
+### stills-are-what-the-app-serves
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the served-still inventory is a file-name glob, so an added still outside it ships unrecorded and the gate stays green"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F1
+- **Wrong:** The stills rule read `src/art` by a `field-` name and `public/og` whole, so a shader layer `src/art/sky-768.webp` imported from `scene.ts`, or a still at `public/field-hero.webp`, shipped with no record entry and the provenance test stayed green.
+- **Cause:** The inventory was a list of the names the stills had, not what the app serves.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each a still the record names or an image outside the rule, with why`, `apps/firsttheblade/kit/field-still.test.ts` `refuse an image added under any served folder or named from any module, until the record names it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse a new layer the shader imports and a still served from public/, by any name`. They hold the rule: "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason." The inventory (`apps/firsttheblade/kit/served.ts`) reads every image file under `public/` and `src/`, and every image a module names, by Vite's parser and lightningcss.
+
+### approval-reads-the-owners-answer
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`kit:approve` records `approved` for any answer, any ask and the bytes as they stand, so the record can name stills the ask never showed"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F2
+- **Wrong:** `kit:approve --ask <id> --answer <words>` wrote `approved` for an empty answer, for an ask the lab did not hold, and over stills changed after the ask, hashing the files as they stood.
+- **Cause:** The answer was typed by the agent, not read from the lab, and the approval did not compare the stills with the ones the pending record pinned.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the stills the ask showed, in the lab's words`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the owner has not answered`, `apps/firsttheblade/kit/approval.test.ts` `refuses an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.test.ts` `refuses a record not pending on the ask`, `apps/firsttheblade/kit/approval.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
+
+### prod-deploy-refuses-pending-stills
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "nothing refuses a `pending` record at merge or prod deploy"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F3
+- **Wrong:** The prod deploy built and shipped with the record `pending`, so stills the owner had not approved could reach the site.
+- **Cause:** Only the kit and its test read the record; the deploy did not.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses a pending record, and stills the approved record does not hold`, `apps/firsttheblade/kit/approval.test.ts` `runs first in the prod deploy, and not in the stage deploy`.
+
+### styles-test-reads-with-a-css-parser
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the styles reader still misses an ungated hover in four inputs (repeat of round 3 F2's class)"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F4
+- **Wrong:** The styles test's hand reader passed four ungated hover stirs: `.cards .card:HOVER`, a rule after `@layer motion;`, an unquoted `url(x}y.png)` and `content: "\}"`, after two rounds of fixes for other spellings.
+- **Cause:** Each hand reader rested on the premise "the hover rules can be found by reading the stylesheet's text shape", and each fix covered the spellings found so far, not CSS.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `find each hover stir outside the fine-pointer query, however it is written`, `apps/firsttheblade/src/motion/styles.test.ts` `refuse each generated ungated hover stir and pass each gated one`, `apps/firsttheblade/src/motion/styles.test.ts` `are read with their media, their selectors and parents, and their declarations`. The test reads the sheet with lightningcss, the parser Vite builds it with, and walks its rules, selectors and media queries.
+
+### one-code-cases-change-one-code
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the \"one pixel one code\" cases do not test a one-code change"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F5
+- **Wrong:** At JPEG quality 100 a one-code nudge encoded to the same bytes as the unchanged still, so the case named a one-code change it never made.
+- **Cause:** The case compared the nudged encode with the shipped file, which differs by re-encoding alone, not with an unchanged control encoded the same way.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`: each change is encoded beside an unchanged control the same way and kept only when its bytes differ from the control.
+
+### earlier-lights-rebuilt-from-the-base
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the earlier-round cases start from the resized master, not from the base stills or the probes' inputs"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F6
+- **Wrong:** The earlier-round light cases were painted over the master resized to each width, not over the stills origin/main shipped, so they were not the counterexamples the probes found.
+- **Cause:** The cases were rebuilt from the nearest input to hand, not from the receipts.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`: each case starts from the base's still (`git show c56180093:apps/firsttheblade/src/art/field-<width>.webp`) or the probe's input, in the probe's order.
+
+### sun-comment-tells-history
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`src/motion/sun.ts:4-6` tells history"
+- **Source:** ftb-motion/rewrite-round-1-findings.md F7
+- **Wrong:** The comment on the sun told the owner's revise of 2026-10-21 (the painted rays from the top left while the sun sat at the right).
+- **Cause:** The comment was written as the change's story, not as what the code does and why.
+- **Guard:** none: the repo's rule is `CLAUDE.md` "**Comments:**", read by every review, as for `sway-comments-tell-history`.
