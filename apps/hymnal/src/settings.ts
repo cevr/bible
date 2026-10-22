@@ -14,6 +14,8 @@ import { type Layer, Schema } from 'effect';
 import type * as KeyValueStore from 'effect/persistence/KeyValueStore';
 import * as Atom from 'effect/reactivity/Atom';
 
+import { Move, still } from './hymns/chords';
+
 /** How the app is shown: as the system is set, or always light, or always dark. */
 export const Appearance = Schema.Literals(['system', 'light', 'dark']);
 export type Appearance = typeof Appearance.Type;
@@ -33,5 +35,10 @@ export const settingsOn = (store: Layer.Layer<KeyValueStore.KeyValueStore>) => {
     /** A hymn shows its words alone until the reader turns chords on. */
     chords: setting('chords', Schema.Boolean, false),
     appearance: setting('appearance', Appearance, 'system'),
+    /**
+     * Each hymn's transpose and capo, by its number: a move fits one hymn's
+     * key and the singers' range for it, so it never reaches another hymn.
+     */
+    move: Atom.family((number: number) => setting(`move.${number}`, Move, still)),
   };
 };

@@ -52,3 +52,27 @@ describe('the appearance setting', () => {
     expect(registry.get(settings.appearance)).toBe('system');
   });
 });
+
+describe('a hymn’s transpose and capo', () => {
+  it('starts at no transpose and no capo', () => {
+    const { settings, registry } = launch(new Map());
+    expect(registry.get(settings.move(100))).toEqual({ transpose: 0, capo: 0 });
+  });
+
+  it('is kept for its own hymn alone, when the app is opened again', () => {
+    const device = new Map<string, string>();
+    const first = launch(device);
+    first.registry.set(first.settings.move(100), { transpose: 2, capo: 2 });
+    expect(first.registry.get(first.settings.move(1))).toEqual({ transpose: 0, capo: 0 });
+    first.registry.dispose();
+
+    const again = launch(device);
+    expect(again.registry.get(again.settings.move(100))).toEqual({ transpose: 2, capo: 2 });
+    expect(again.registry.get(again.settings.move(1))).toEqual({ transpose: 0, capo: 0 });
+  });
+
+  it('reads a stored move it cannot decode as none', () => {
+    const { settings, registry } = launch(new Map([['move.100', '{"transpose":9,"capo":2}']]));
+    expect(registry.get(settings.move(100))).toEqual({ transpose: 0, capo: 0 });
+  });
+});

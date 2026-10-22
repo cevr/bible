@@ -44,15 +44,24 @@ const topicName = (topics: Topics, hymn: Hymn): string =>
 export const readTopics = (): Topics =>
   decodeTopics(readFileSync(join(folder, 'topics.json'), 'utf8'));
 
+let hymns: ReadonlyArray<Hymn> = [];
+
+/**
+ * Every compiled hymn, in number order, read once per process: the words
+ * here and the chords (`chords.ts`) both derive from it.
+ */
+export const readHymns = (): ReadonlyArray<Hymn> => {
+  if (hymns.length === 0)
+    hymns = readdirSync(folder)
+      .filter((name) => /^\d{3}\.json$/.test(name))
+      .toSorted()
+      .map((name) => decodeHymn(join(folder, name)));
+  return hymns;
+};
+
 export const readWords = (): ReadonlyArray<HymnText> => {
   const topics = readTopics();
-  return readdirSync(folder)
-    .filter((name) => /^\d{3}\.json$/.test(name))
-    .toSorted()
-    .map((name) => {
-      const hymn = decodeHymn(join(folder, name));
-      return textOf(hymn, topicName(topics, hymn));
-    });
+  return readHymns().map((hymn) => textOf(hymn, topicName(topics, hymn)));
 };
 
 if (import.meta.main) process.stdout.write(JSON.stringify(readWords()));
