@@ -8,7 +8,8 @@
 // - `withoutJudged`: every rule but the judged ones (TypeSafe Jev over the
 //   network, reading a store that changes without the file changing). The JS
 //   plugins (`oxlint-plugin-effect`, the `film` plugin) read no file but the
-//   one they lint, so their answer on a file is kept by its content.
+//   one they lint, so their answer on a file is kept by its content, under a
+//   key of their own code (`closure.ts`).
 //
 // A derived config is written into a cache folder, so each JS plugin given as
 // a path is made absolute; every override glob in the repo's config starts

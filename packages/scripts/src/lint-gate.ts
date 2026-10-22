@@ -10,9 +10,10 @@
 //    file the run passed is kept.
 //
 // The kept files live in `node_modules/.cache/manna-lint/kept.json`, under a
-// key of the derived config, the film plugin's files and `bun.lock` (the
-// versions of oxlint, its effect plugin and effect): a change to any of them
-// lints every file again. Prints a failing oxlint's report, then one line of
+// key of the derived config, every repository file the JS plugins run (each
+// plugin and the modules it imports, `lint-gate/closure.ts`) and `bun.lock`
+// (the versions of oxlint, its effect plugin and effect): a change to any of
+// them lints every file again. Prints a failing oxlint's report, then one line of
 // counts and time; exits with the highest code an oxlint answered.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
@@ -24,6 +25,7 @@ import { availableParallelism } from 'node:os';
 
 import { gateFiles, lintIgnored } from './guard/files.js';
 import { partsOf, runEachPart, shareOf, sizesOf } from './guard/parts.js';
+import { importClosure, pluginsOf } from './lint-gate/closure.js';
 import {
   Kept,
   LintConfig,
@@ -40,8 +42,6 @@ const LINTED = /\.[cm]?[jt]sx?$/;
 const CACHE = 'node_modules/.cache/manna-lint';
 /** The judged plugin as the config names it. */
 const JUDGED_PLUGIN = './packages/scripts/lint/judged.ts';
-/** The film plugin's folder: its files are part of the kept files' key. */
-const FILM_PLUGIN = 'packages/film/lint';
 /** Files a part takes before another part pays its JS plugins' load (0.3 s). */
 const PER_PART = 64;
 
@@ -63,9 +63,8 @@ Effect.gen(function* () {
     JSONC.parse(yield* fs.readFileString(path.join(root, '.oxlintrc.json'))),
   );
   const native = yield* Schema.encodeEffect(ConfigJson)(nativeOnly(config));
-  const plugins = yield* Schema.encodeEffect(ConfigJson)(
-    withoutJudged(config, JUDGED_PLUGIN, (plugin) => path.join(root, plugin)),
-  );
+  const pluginsConfig = withoutJudged(config, JUDGED_PLUGIN, (plugin) => path.join(root, plugin));
+  const plugins = yield* Schema.encodeEffect(ConfigJson)(pluginsConfig);
   const nativeFile = path.join(cache, 'native.json');
   const pluginsFile = path.join(cache, 'plugins.json');
   yield* Effect.all(
@@ -75,11 +74,9 @@ Effect.gen(function* () {
 
   const ignored = yield* lintIgnored(root);
   const files = (yield* gateFiles(root)).filter((file) => LINTED.test(file) && !ignored(file));
-  const filmPlugin = (yield* fs.readDirectory(path.join(root, FILM_PLUGIN), { recursive: true }))
-    .filter((file) => LINTED.test(file))
-    .toSorted();
+  const pluginFiles = yield* importClosure(root, pluginsOf(pluginsConfig));
   const keyParts = yield* Effect.forEach(
-    [...filmPlugin.map((file) => path.join(FILM_PLUGIN, file)), 'bun.lock'],
+    [...pluginFiles, 'bun.lock'],
     (file) =>
       Effect.map(fs.readFile(path.join(root, file)), (bytes) => `${file}\0${hashOf(bytes)}`),
     { concurrency: 16 },
