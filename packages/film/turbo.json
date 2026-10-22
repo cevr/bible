@@ -17,8 +17,7 @@
         "$TURBO_ROOT$/apps/animations/README.md",
         "$TURBO_ROOT$/apps/animations/plans/lab.md",
         "$TURBO_ROOT$/apps/animations/plans/lab-mcp.md",
-        "$TURBO_ROOT$/.claude/skills/film/SKILL.md",
-        "$TURBO_ROOT$/.claude/skills/film/CRAFT.md",
+        "$TURBO_ROOT$/.claude/skills/film/**",
         "$TURBO_ROOT$/docs/lessons.md",
         "$TURBO_ROOT$/apps/firsttheblade/kit/approval.ts"
       ]

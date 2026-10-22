@@ -12,6 +12,7 @@ import {
   Predicate,
 } from 'effect';
 import { expect } from 'bun:test';
+import { tmpdir } from 'node:os';
 
 import { getCallSequence, type ServiceCall } from './sequence-recorder.js';
 import { createTestLayer, type TestLayerConfig } from './test-layer.js';
@@ -64,6 +65,14 @@ export interface RunCliResult {
  *  failed — failed runs still record observable side effects before the failure
  *  point, and tests need to assert on them.
  */
+/**
+ * The `HOME` a command sees under test: a folder of this test process in the
+ * system's temp folder. A command that opens its local databases there
+ * (`~/.bible/…`) starts each run from none, and writes nothing into the
+ * workspace.
+ */
+const TEST_HOME = `${tmpdir()}/manna-cli-test/${process.pid}`;
+
 const runProvided = (
   cli: (args: string[]) => Effect.Effect<void, unknown, unknown>,
   args: string[],
@@ -83,6 +92,7 @@ const runProvided = (
     Effect.provideService(
       ConfigProvider.ConfigProvider,
       ConfigProvider.fromUnknown({
+        HOME: TEST_HOME,
         GEMINI_API_KEY: 'test-key',
         OPENAI_API_KEY: 'test-key',
         ANTHROPIC_API_KEY: 'test-key',
