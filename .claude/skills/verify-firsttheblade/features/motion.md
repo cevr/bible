@@ -43,11 +43,11 @@ emblems at rest.
   `apps/firsttheblade/src/motion/shaders.test.ts`,
   `apps/firsttheblade/src/motion/styles.test.ts`,
   `apps/firsttheblade/src/ui/emblems.test.ts`,
-  `apps/firsttheblade/kit/field-paint.test.ts`,
-  `apps/firsttheblade/kit/field-still.test.ts`,
-  `apps/firsttheblade/kit/approval.test.ts`,
+  `apps/firsttheblade/kit/field-paint.slow.test.ts`,
+  `apps/firsttheblade/kit/field-still.slow.test.ts`,
+  `apps/firsttheblade/kit/approval.slow.test.ts`,
   `apps/firsttheblade/kit/build-walk.test.ts`,
-  `apps/firsttheblade/kit/shippable.test.ts` and
+  `apps/firsttheblade/kit/shippable.slow.test.ts` and
   `apps/firsttheblade/scripts/computed.ts`
   (`bun run --cwd apps/firsttheblade computed`, by hand after a build, not in
   the gate: the leaf as Chrome computes it and where it stands on the page,
@@ -100,7 +100,7 @@ emblems at rest.
   (`apps/firsttheblade/kit/served.ts` `OUTSIDE`). The record is
   `apps/firsttheblade/kit/approved-stills.json`. The build walk is the guard
   (`kit:shippable`, run first by the stack on stage `prod`);
-  `apps/firsttheblade/kit/field-still.test.ts` is the fast check over the
+  `apps/firsttheblade/kit/field-still.slow.test.ts` is the fast check over the
   source. Whether a still's light comes from the sun is the owner's look,
   not a measure: on the stage, hash each served still against the record,
   and judge the light by eye at 1:1.

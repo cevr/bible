@@ -1,8 +1,8 @@
 // The cast sheet's measure on sheets drawn with known faults (`fixtures/figure.ts`):
 // a clean turnaround reads no flag, and each fault drawn into a turnaround
 // is the flag it was drawn for. The poses, heads and headgear sheets are read
-// in `cast-sheet-poses.test.ts`, and the crowded turnarounds and the sheets
-// that do not read as drawn in `cast-sheet-crowded.test.ts`, so the three
+// in `cast-sheet-poses.slow.test.ts`, and the crowded turnarounds and the sheets
+// that do not read as drawn in `cast-sheet-crowded.slow.test.ts`, so the three
 // files run side by side.
 
 import { describe, expect, test } from 'bun:test';

@@ -11,7 +11,7 @@
 // `studio/inspector.dom.test.ts`'s. A phone keeps three lanes. Its touch
 // targets are measured with every place's (`touch-targets.dom.test.ts`, the
 // studio's states in `studio-states.ts`); the replaced pages' redirects are
-// the lab server's (`servedPlace`, `tools/lab-page.test.ts`).
+// the lab server's (`servedPlace`, `tools/lab-page.slow.test.ts`).
 
 import { BunServices } from '@effect/platform-bun';
 import { Boolean as Bool, Effect, FileSystem, Match, Option, Path } from 'effect';

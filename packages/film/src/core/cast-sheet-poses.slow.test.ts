@@ -3,7 +3,7 @@
 // drawn wrong is the flag it was drawn for, and what a sheet cannot show is
 // said, never flagged. A member of its own design is held to its own heads,
 // and a smaller figure (a child) to its share of the grown one. The
-// turnarounds are read in `cast-sheet.test.ts`.
+// turnarounds are read in `cast-sheet.slow.test.ts`.
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';

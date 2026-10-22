@@ -9,7 +9,7 @@
 // fake ElevenLabs. A test's own graph (`testing.ts`, `fixtures/`, a
 // `*.test.ts`) is a fake's, not the app's, and is not swept.
 //
-// The guard reads bindings, not spellings (oxc-parser, as `lab.test.ts`'s
+// The guard reads bindings, not spellings (oxc-parser, as `lab.slow.test.ts`'s
 // `loadersReached` does): a name is followed through its import (aliased,
 // a namespace's member, a re-export, a package's entry) or a top-level
 // `const` alias to the module that declares it, so a layer built under

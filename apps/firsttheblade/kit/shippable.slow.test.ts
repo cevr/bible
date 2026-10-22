@@ -192,7 +192,9 @@ describe('kit:shippable', () => {
       const { scripts } = yield* Schema.decodeEffect(Scripts)(
         yield* fs.readFileString(`${APP}/package.json`),
       );
-      expect(scripts['deploy']).toBe('alchemy deploy alchemy.run.ts --stage prod');
+      expect(scripts['deploy']).toBe(
+        'turbo run test:slow --filter=@bible/firsttheblade && alchemy deploy alchemy.run.ts --stage prod',
+      );
       expect(scripts['plan']).toBe('alchemy plan alchemy.run.ts --stage prod');
     }).pipe(Effect.scoped));
 

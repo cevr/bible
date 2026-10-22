@@ -12,7 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
+    "test": "bun test --path-ignore-patterns='**/*.slow.test.*'",
+    "test:slow": "bun test .slow.test.",
     "align": "bun scripts/align.ts",
     "chart": "bun scripts/chart.ts",
     "census": "bun scripts/census.ts",

@@ -1,6 +1,6 @@
 // The figure measure on figures drawn with known numbers (`fixtures/figure.ts`),
 // each ratio against the geometry it was drawn with. The real crops are read
-// in `tools/figure-crops.test.ts`, which decodes their PNGs.
+// in `tools/figure-crops.slow.test.ts`, which decodes their PNGs.
 
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';

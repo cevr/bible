@@ -303,9 +303,9 @@ the SHA-256 of each still. Each ask the record names is saved beside it in
 `kit/fixtures/` (`ask-<id>.json`, the lab's record as it gave it, and
 `ask-<id>.shown.json`, the hash of each file it showed): `kit:pin` saves the
 ask it pins on and `kit:approve` saves it again answered, and `kit:approve`,
-`kit:shippable` and `kit/approval.test.ts` hold each approval the record
+`kit:shippable` and `kit/approval.slow.test.ts` hold each approval the record
 keeps to them.
-`kit/field-still.test.ts` refuses every served still whose bytes differ from
+`kit/field-still.slow.test.ts` refuses every served still whose bytes differ from
 the record, each the record does not name and each it names with no file,
 and an image added under any served folder or named from any module. It
 also refuses each still with one byte changed, re-encoded, one pixel one level off,
@@ -319,16 +319,16 @@ reads the ask from the lab (`kit/lab-asks.ts`) with the lab's receipt (an
 ask made before the lab kept one is refused), and turns the record approved
 only when he chose approve, each pinned still's SHA-256 is that of a file an
 image block on a step he reached or a kept earlier approval showed, and
-every still is the one pinned (`kit/approval.test.ts`).
+every still is the one pinned (`kit/approval.slow.test.ts`).
 On stage `prod` the stack
 (`alchemy.run.ts`) runs `kit:shippable` before any resource, so every prod
 plan and deploy builds the site and refuses a pending record, an approval
 its saved ask does not hold, a still the approvals' shown files do not hold,
 and each built image the record and
-`OUTSIDE` do not hold (`kit/shippable.test.ts`); a stage deploy does not run
+`OUTSIDE` do not hold (`kit/shippable.slow.test.ts`); a stage deploy does not run
 it. The
 far hills' streak lifts (`kit/field-paint.ts` `HILL_STREAKS`) were measured on
-the master: `kit/field-paint.test.ts` holds the master's SHA-256, so a new
+the master: `kit/field-paint.slow.test.ts` holds the master's SHA-256, so a new
 master refuses them until they are measured again. The field and the night move in the browser
 (`src/motion/scene.ts`): a WebGL2 canvas over each still, loaded only for a
 reader who has not asked for less motion, drawing only while it is on the

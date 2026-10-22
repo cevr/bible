@@ -89,7 +89,7 @@ const serving = (files: ReadonlyMap<string, string>) => {
   });
   const layer = Layer.succeed(
     HttpClient.HttpClient,
-    HttpClient.mapRequest(client, HttpClientRequest.prependUrl('http://lab.test')),
+    HttpClient.mapRequest(client, HttpClientRequest.prependUrl('http://lab.slow.test')),
   );
   return { layer, asked };
 };

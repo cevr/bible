@@ -25,7 +25,7 @@ const TIMINGS = '{"voice":"v","scenes":{}}';
 const onPage = (client: HttpClient.HttpClient) =>
   Layer.succeed(
     HttpClient.HttpClient,
-    HttpClient.mapRequest(client, HttpClientRequest.prependUrl('http://lab.test')),
+    HttpClient.mapRequest(client, HttpClientRequest.prependUrl('http://lab.slow.test')),
   );
 
 /** A client that answers every URL with `status` and `body`, and notes the paths it was asked. */

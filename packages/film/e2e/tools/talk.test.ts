@@ -6,7 +6,7 @@
 // own voice in the pieces the cut keeps (a second mix makes nothing new). The
 // take's original is never rewritten. No real footage, nothing paid for, and
 // the private store is a folder here. What needs no media (the words, the
-// cues, the page's cut, the narrator refused) is `src/tools/talk.test.ts`'s.
+// cues, the page's cut, the narrator refused) is `src/tools/talk.slow.test.ts`'s.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';

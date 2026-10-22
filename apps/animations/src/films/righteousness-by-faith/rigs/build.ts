@@ -12,7 +12,7 @@
 // frees that very print, which it lists. A build whose stamp still holds
 // (`unbuilt`) compiles nothing, so to build with a newer CLI, delete the
 // stamp first. Fails when the CLI reports a problem. The film's test
-// (`build.test.ts`) holds the overrides, the locks and the committed file to
+// (`build.slow.test.ts`) holds the overrides, the locks and the committed file to
 // the rigs through the same checks.
 // `bun src/films/righteousness-by-faith/rigs/build.ts`, from the app's
 // folder or anywhere: paths are this file's. The CLI is `rive` on the PATH,

@@ -8,7 +8,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit && bun src/typecheck-coverage.ts",
-    "test": "bun test --parallel=4 src lint",
+    "test": "bun test --parallel=4 --path-ignore-patterns='**/*.slow.test.*' src lint",
+    "test:slow": "bun test --parallel=4 .slow.test.",
     "build:topics": "bun src/topics-compiler/main.ts",
     "build:vectors": "bun src/vector-compiler/main.ts",
     "fetch:stills": "bun src/fetch-stills.ts",

@@ -158,7 +158,7 @@ and exits 1. The tags: `NoSession`, `SimulatorDown`, `ReadinessTimedOut`,
 command or flag; the help goes to stderr). The commands: `boot`, `install`,
 `doctor`, `open`, `tap`, `back`, `fill`, `scroll`, `shot`, `snapshot`, `record`, `log`,
 `down`, and `serve` (the dev server's own process, which `boot` starts).
-Its tests: `apps/hymnal/scripts/sim/sim.test.ts`, run by the hymnal's
+Its tests: `apps/hymnal/scripts/sim/sim.slow.test.ts`, run by the hymnal's
 `test:infra`.
 
 ## Hosts

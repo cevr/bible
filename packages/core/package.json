@@ -40,7 +40,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "./scripts/build-native.sh check && bun test",
+    "test": "./scripts/build-native.sh check && bun test --parallel --path-ignore-patterns='**/*.slow.test.*'",
+    "test:slow": "bun test .slow.test.",
     "test:watch": "bun test --watch",
     "sync:bible": "bun run src/sync/bible-sync-main.ts",
     "sync:bible:force": "bun run src/sync/bible-sync-main.ts --force"

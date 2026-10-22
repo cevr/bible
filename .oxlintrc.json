@@ -310,7 +310,7 @@
       // events it also refuses name the film's own adapters, so they stay
       // allowed here. The URL's bans are the film block's URL bans in
       // `effect/noGlobals`, which follows every hop of the global object
-      // (packages/film/lint/config.test.ts probes every block that bans the
+      // (packages/film/lint/config.slow.test.ts probes every block that bans the
       // URL, and holds each to the film's URL entries).
       "files": [
         "**/packages/url-state/src/**/*.ts",
@@ -647,7 +647,7 @@
       // The purity rule (packages/film/README.md): core imports none of the
       // film's other layers, and the engine neither the player nor the tools.
       // A block that keeps a folder out keeps out each package export that
-      // resolves into it (packages/film/lint/config.test.ts).
+      // resolves into it (packages/film/lint/config.slow.test.ts).
       "files": ["**/packages/film/src/core/**/*.ts", "**/packages/film/src/core/**/*.tsx"],
       "rules": {
         "no-restricted-imports": [
@@ -1308,7 +1308,7 @@
       // A change's, a request's and an approve run's ids are made unique,
       // never written by hand. A later block that sets
       // no-restricted-properties replaces this list, so such a block repeats
-      // it (packages/film/lint/config.test.ts holds every such block to these
+      // it (packages/film/lint/config.slow.test.ts holds every such block to these
       // entries).
       "files": [
         "**/packages/film/src/**/*.ts",
@@ -1497,7 +1497,7 @@
       // reaches the one host API it adapts says so (`oxlint-disable-next-line`,
       // with why), so an adapter reaching another's API is red as any page is.
       // `Reflect.get(window, …)` is `effect/noReflectGet`'s.
-      // packages/film/lint/config.test.ts lints every such form against this
+      // packages/film/lint/config.slow.test.ts lints every such form against this
       // list.
       "files": [
         "**/packages/film/src/lab/**/*.ts",

@@ -256,6 +256,22 @@ describe("a workspace's test files", () => {
         takes('bun test --path-ignore-patterns=src src', 'none', 'none');
         takes('bun test --path-ignore-patterns=./ src', 'none', 'none');
         takes('bun test --path-ignore-patterns=guard src', 'test', 'test');
+        // A glob by name (`**/*<run>*`) skips each file whose name holds the run, at any
+        // depth (measured on bun 1.4.3: `**/*.slow.test.*` skips a.slow.test.ts at the
+        // root and in src/guard), with no regard to case.
+        expect(
+          reaches({ test: "bun test --path-ignore-patterns='**/*.slow.test.*'" }, [
+            'src/guard/parts.slow.test.ts',
+            'a.SLOW.test.ts',
+            'src/a.test.ts',
+            'src/slow.test.ts',
+          ]),
+        ).toEqual([
+          'src/guard/parts.slow.test.ts: none',
+          'a.SLOW.test.ts: none',
+          'src/a.test.ts: test',
+          'src/slow.test.ts: test',
+        ]);
         // Bun's scan matches a folder by a glob or an escape in a way the reader does not
         // reproduce (measured: `**/guard/` and `src\/guard` skip src/guard, `src/**/` every
         // file), and a `..` or empty segment it may resolve: such a pattern reaches none.

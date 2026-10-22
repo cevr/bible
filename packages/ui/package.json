@@ -19,7 +19,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun --conditions=browser --conditions=development test src",
-    "test:browser": "bun test ./test/browser --timeout 30000"
+    "test:browser": "bun test ./test/browser --timeout 30000",
+    "test:slow": "bun run test:browser"
   },
   "dependencies": {
     "@floating-ui/dom": "1.8.0",

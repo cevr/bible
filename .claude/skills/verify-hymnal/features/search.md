@@ -23,7 +23,7 @@ the reader leaves and comes back.
 
 - **Preconditions:** the Search tab at its field, not at a hymn opened from it (Gotchas).
 - **States:** default, empty, focus-visible (the field). Open, loading and error are n/a.
-- **Regression:** `apps/hymnal/src/hymns/search.test.ts`, `apps/hymnal/test/browser/list.test.ts`.
+- **Regression:** `apps/hymnal/src/hymns/search.test.ts`, `apps/hymnal/test/browser/list.slow.test.ts`.
 
 1. **Open.** `sim open search --expect "role=search label=Number, title or first line"` on iOS; on the web `--expect "label=Number, title or first line"`. → `ok`.
 2. **Text match.** `sim fill "role=search label=Number, title or first line" "great is thy"` (web: without `role=search`). → `ok`; the snapshot holds one result, `100, Great Is Thy Faithfulness`.

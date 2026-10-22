@@ -3,7 +3,7 @@
 // (`test:e2e`, `test:browser`) names it. A test file no script reaches
 // passes the gate without ever running, and lets its workspace fit the
 // budget by running less: `test:budget` measures no workspace that leaves
-// one out, and `reach.test.ts` holds every workspace of the repo to it.
+// one out, and `reach.slow.test.ts` holds every workspace of the repo to it.
 //
 // What the check reads is which files a runner takes and loads as tests:
 // the scripts, their flags, a bunfig, a playwright config, the walk. What
@@ -36,8 +36,9 @@
 // a filter that starts with `./` names a file or a folder by its path from
 // the workspace; any other filter takes each file the scan finds whose path
 // holds it; `--path-ignore-patterns` takes no file it names, nor any under
-// a folder it names, and one that is a glob reaches nothing (bun's match of
-// a folder by a glob is not reproduced).
+// a folder it names; of the globs, only `**/*<name>*` is read (it takes no file
+// whose name holds `<name>`), and any other reaches nothing (bun's match of a
+// folder by a glob is not reproduced).
 // `playwright test` takes a file as its config sets it (`playwrightRun`):
 // under the config's `testDir`, its absolute path matched by its
 // `testMatch` and not by its `testIgnore`, each read as playwright's file
@@ -262,12 +263,22 @@ const bareIgnore = (pattern: string) => pattern.replace(/^(?:\.\/)+/, '').replac
 const PLAIN_SEGMENT = /^(?!\.{1,2}$)[A-Za-z0-9._-]+$/;
 
 /**
- * Whether an ignore pattern is plain: bare (`bareIgnore`), it is empty, `.`,
- * or `/`-joined plain segments (`PLAIN_SEGMENT`). Any other character (a
- * glob's `*?[]{}!`, a backslash bun reads as an escape) or segment (`..`,
- * an empty one) makes it a pattern the reader does not read.
+ * An ignore pattern that skips a file by its name, at any depth: `**` then
+ * `/*`, a plain run (letters, digits, `.`, `_`, `-`), and `*`, as
+ * `**\/*.slow.test.*` (measured on bun 1.4.3: it skips `a.slow.test.ts` at the
+ * workspace's root and in any folder under it).
+ */
+const NAME_IGNORE = /^\*\*\/\*([A-Za-z0-9._-]+)\*$/;
+
+/**
+ * Whether an ignore pattern is plain: one by name (`NAME_IGNORE`), or, bare
+ * (`bareIgnore`), it is empty, `.`, or `/`-joined plain segments
+ * (`PLAIN_SEGMENT`). Any other character (a glob's `*?[]{}!`, a backslash
+ * bun reads as an escape) or segment (`..`, an empty one) makes it a pattern
+ * the reader does not read.
  */
 const isPlainIgnore = (pattern: string) => {
+  if (NAME_IGNORE.test(pattern)) return true;
   const bare = bareIgnore(pattern);
   return (
     bare === '' || bare === '.' || bare.split('/').every((segment) => PLAIN_SEGMENT.test(segment))
@@ -302,13 +313,17 @@ const bunTestOf = (words: ReadonlyArray<string>): ReadonlyArray<Run> =>
   });
 
 /**
- * Whether a plain ignore pattern (`isPlainIgnore`) skips `file`: it names
+ * Whether a plain ignore pattern (`isPlainIgnore`) skips `file`: the file's
+ * name holds the run of one by name (`NAME_IGNORE`), or the pattern names
  * the file, or a folder the file is under, by its path from the workspace
  * (measured on bun 1.4.3: `src/guard` skips `src/guard/a.test.ts`, `guard`
  * skips nothing deeper). Read bare (`bareIgnore`) and with no regard to
  * case, so it may skip more than bun does, never less.
  */
 const skips = (pattern: string, file: string) => {
+  const name = Option.fromNullishOr(NAME_IGNORE.exec(pattern)?.[1]);
+  if (Option.isSome(name))
+    return (file.split('/').at(-1) ?? '').toLowerCase().includes(name.value.toLowerCase());
   const at = bareIgnore(pattern).toLowerCase();
   const path = file.toLowerCase();
   return at === '' || at === '.' || path === at || path.startsWith(`${at}/`);
@@ -504,7 +519,7 @@ const PLAYWRIGHT_MATCH = '**/*.@(spec|test).?(c|m)[jt]s?(x)';
 /**
  * A test of a file's absolute path by a glob, as playwright's
  * `createFileMatcher` makes one: `**\/` before it unless it starts so, read
- * by minimatch (the version playwright bundles, held by `reach.test.ts`)
+ * by minimatch (the version playwright bundles, held by `reach.slow.test.ts`)
  * with no regard to case and dot files taken. A regex it tests as written.
  */
 const globMatcher = (pattern: string) => {
@@ -1083,7 +1098,7 @@ interface Workspace {
  * `bun test` in its workspace with the words it is given (the film's E2E
  * runner sets `--parallel`'s count and its fixtures' folder, nothing else),
  * so `bun <wrapper> <words>` takes what `bun test <words>` takes.
- * `reach.test.ts` holds each to a file of the repo that spawns `bun test`.
+ * `reach.slow.test.ts` holds each to a file of the repo that spawns `bun test`.
  */
 const BUN_TEST_WRAPPERS = ['packages/film/src/lab/fixtures/run-suite.ts'];
 

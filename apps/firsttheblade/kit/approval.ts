@@ -41,7 +41,7 @@
  *
  * `unapproved` names each still whose bytes differ from the record, each the
  * record does not name, and each the record names with no file;
- * `kit/field-still.test.ts` holds it empty. `bun run kit` and
+ * `kit/field-still.slow.test.ts` holds it empty. `bun run kit` and
  * `bun run kit:field` print it after they write, and never write the record.
  * `pin` (`bun run kit:pin`, `./pin.ts`) writes the record pending on an ask,
  * from the stills as they stand, and saves the ask. `approve`

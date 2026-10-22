@@ -1,4 +1,4 @@
-// Figures drawn in pixels for the measure's tests (`figure.test.ts`, the
+// Figures drawn in pixels for the measure's tests (`figure.slow.test.ts`, the
 // easel's match): the house look reduced to what the measure reads, flat
 // fills inside one warm dark ink line, so every ratio is known from the
 // numbers it was drawn with. A circle head with its outline, a hair cap
@@ -7,7 +7,7 @@
 // flat), two upright oval eyes, a mouth under them (open, or a closed
 // line, or none), a robe down to a hem, two feet (or none), a round hand, a
 // rail in front of the robe's foot (or none), and a wall's thin lines behind
-// it (or none). For a cast sheet's tests (`cast-sheet.test.ts`): the eyes
+// it (or none). For a cast sheet's tests (`cast-sheet.slow.test.ts`): the eyes
 // turned off the face's middle, long dark hair down the head's sides and a
 // beard (parted from the hair by a line, or running into it), the house arm
 // (a sleeve from the shoulder to the hand at rest at its end), a sleeve

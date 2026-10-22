@@ -10,7 +10,7 @@ import { Selection } from './selection.ts';
 import { EVERYWHERE, targetAt, targetAttr } from './target.ts';
 import { contextRows } from './menu.ts';
 
-const ORIGIN = 'https://lab.test';
+const ORIGIN = 'https://lab.slow.test';
 
 /** Copy link over a clipboard in memory, and what was written to it. */
 const copier = () => {

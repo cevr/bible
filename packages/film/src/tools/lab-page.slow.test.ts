@@ -4,10 +4,10 @@
 // another lab process served hears at once that it is old; a look's build is
 // the files as they stand, and a wedge builds them with a file read as other
 // text. What wakes a waiting page has files of its own, so the runner's
-// workers take them side by side: a save (`lab-page-saves.test.ts`), the
-// watches as a build's reads change (`lab-page-watches.test.ts`), a mix
-// (`lab-page-mixes.test.ts`) and a page that does not build
-// (`lab-page-failures.test.ts`). The app they serve is `fixtures/lab-app.ts`.
+// workers take them side by side: a save (`lab-page-saves.slow.test.ts`), the
+// watches as a build's reads change (`lab-page-watches.slow.test.ts`), a mix
+// (`lab-page-mixes.slow.test.ts`) and a page that does not build
+// (`lab-page-failures.slow.test.ts`). The app they serve is `fixtures/lab-app.ts`.
 
 import { BunHttpPlatform } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';

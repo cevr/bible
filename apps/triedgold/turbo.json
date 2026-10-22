@@ -13,9 +13,6 @@
         "package.json"
       ],
       "outputs": ["build/**"]
-    },
-    "test": {
-      "dependsOn": ["build"]
     }
   }
 }

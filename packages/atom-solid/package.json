@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun --conditions=browser --conditions=development test src test/ssr/server.test.ts",
-    "test:ssr": "bun test ./test/ssr/hydration.browser.ts --timeout 60000"
+    "test:ssr": "bun test ./test/ssr/hydration.browser.ts --timeout 60000",
+    "test:slow": "bun run test:ssr"
   },
   "dependencies": {
     "@solidjs/web": "catalog:",

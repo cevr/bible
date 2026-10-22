@@ -21,7 +21,7 @@ reader opens a hymn and comes back, or switches tabs and returns.
 
 - **Preconditions:** none beyond the baseline.
 - **States:** default. Focus-visible, open, loading, empty and error are n/a (the hymns are compiled in).
-- **Regression:** `apps/hymnal/test/browser/list.test.ts`, `apps/hymnal/src/reader/back.test.tsx`.
+- **Regression:** `apps/hymnal/test/browser/list.slow.test.ts`, `apps/hymnal/src/reader/back.test.tsx`.
 
 1. **First screen.** `sim open / --expect "role=link label=1, Praise to the Lord"`. → `ok`; the snapshot lists rows `1, Praise to the Lord`, `2, All Creatures of Our God and King`.
 2. **Scroll.** `sim scroll "role=link label=31, Tell Out My Soul" down` (any row below the fold). → `ok`; the row is on screen.

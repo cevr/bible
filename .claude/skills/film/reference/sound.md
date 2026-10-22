@@ -118,7 +118,7 @@ Most sounds are made of a few shapes. `core/synth/graph/presets.ts` builds each 
 | `bloom`   | `root`, `secs`                                              | a soft swell: the root's chord entering note by note under a rising shimmer                                 | each note's entry, up to 40 ms late                |
 | `notes`   | `root`, `count`, `secs`                                     | `count` bright plinks on two octaves of the root's scale, one after another, each ringing on                | each plink's note, time and level                  |
 
-Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.test.ts`). A second of each renders inside the 20 ms budget that **Speed is measured, never gated** sets below (`bun run test:perf` logs each). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
+Each family is pinned by its samples and heard to do what its doc says (`core/synth/graph/presets.slow.test.ts`). A second of each renders inside the 20 ms budget that **Speed is measured, never gated** sets below (`bun run test:perf` logs each). A family is the place to change a shape: an edit to it changes the label of every sound built from it.
 
 ### Seeds and streams
 

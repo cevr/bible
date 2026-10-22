@@ -1,7 +1,7 @@
 // The cast sheet's measure on turnarounds whose views crowd one another, and
 // on sheets that do not read as drawn (`fixtures/figure.ts`): each view's
 // width is read on its own body, and what a sheet cannot show is said, never
-// flagged. The clean and faulted turnarounds are read in `cast-sheet.test.ts`,
+// flagged. The clean and faulted turnarounds are read in `cast-sheet.slow.test.ts`,
 // so the two files run side by side.
 
 import { describe, expect, test } from 'bun:test';

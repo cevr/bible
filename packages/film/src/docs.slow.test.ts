@@ -1192,7 +1192,7 @@ const apiOf = (api: typeof LabHttpApi): Api => {
  * string that looks like one is not. A route (`GET /api/…`) is the method's;
  * a bare path is any method's route, a prefix of some (`/api/`,
  * `/api/films/probe`), or a path the file's own code writes (the routes a
- * test's own server answers, `tools/page-render.test.ts`).
+ * test's own server answers, `tools/page-render.slow.test.ts`).
  */
 const commentRouteDrift = (file: string, text: string, api: Api): ReadonlyArray<string> => {
   const parsed = parseSync(file, text);

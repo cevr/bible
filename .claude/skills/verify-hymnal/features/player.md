@@ -21,7 +21,7 @@ under its title. Play starts the recording: the button turns to `Pause`
 
 - **Preconditions:** the hymn reader open (`sim open hymns/100 --expect "label=Play hymn 100"`). Web only for steps that play (Gotchas).
 - **States:** default, loading. Error (`Retry`) needs the recording's host down and is n/a on a normal run.
-- **Regression:** `apps/hymnal/src/player/player.test.ts`, `apps/hymnal/src/player/ui.test.tsx`, `apps/hymnal/src/player/bar.property.test.tsx`, `apps/hymnal/src/player/world.property.test.ts`.
+- **Regression:** `apps/hymnal/src/player/player.test.ts`, `apps/hymnal/src/player/ui.slow.test.tsx`, `apps/hymnal/src/player/bar.property.slow.test.tsx`, `apps/hymnal/src/player/world.property.slow.test.ts`.
 
 1. **The control.** `sim snapshot reader`. → the tree holds `Play hymn 100` and the group `Recording`. On iOS stop here.
 2. **Play (web).** `sim tap "label=Play hymn 100"`. → `ok`; `sim snapshot playing` holds `Pause hymn 100` once loading ends (or `Loading hymn 100` before it).

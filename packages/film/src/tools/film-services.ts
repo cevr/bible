@@ -4,7 +4,7 @@
 // harness (`apps/animations/studio-harness.ts`), which drives this same lab
 // over a copy of a film with a fake ElevenLabs. A consumer that built these
 // layers itself would drift from the lab it means to be
-// (`film-services.test.ts` names the two and sweeps for a third).
+// (`film-services.slow.test.ts` names the two and sweeps for a third).
 
 import { AskMaterials } from './ask-materials.ts';
 import { AskStore } from './ask-store.ts';

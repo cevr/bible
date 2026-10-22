@@ -14,7 +14,10 @@ import { keysAs } from './changes.ts';
 /** A lab page, a Mac's or a PC's, with Note this frame bound to `n`, as the notes register it. */
 const page = (mac = false) => {
   const host = hostOf(
-    Layer.mergeAll(Keys.layerOn(new EventTarget(), mac), Clipboard.memory([], 'https://lab.test')),
+    Layer.mergeAll(
+      Keys.layerOn(new EventTarget(), mac),
+      Clipboard.memory([], 'https://lab.slow.test'),
+    ),
   );
   const hub = Effect.runSyncWith(host)(makeHub('player', () => pageHref.studio('f')));
   hub.commands.register({

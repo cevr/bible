@@ -181,7 +181,7 @@ each line that does not as `key inexact <hymn>:<line>`.
 The MIDI files, the hand charts, the key and the compiled set are tracked
 here (owner, 2026-10-18). Most tests build their MIDI in code
 (`src/midi-fixture.ts`); `src/score.test.ts` reads three files that carry no
-key signature (6, 162, 663). `src/fidelity.test.ts` compiles every hymn
+key signature (6, 162, 663). `src/fidelity.slow.test.ts` compiles every hymn
 fresh from hymnal.db, `data/fixes` and its MIDI file, as `bun run compile`
 does (in four workers, `src/fidelity-worker.ts`, so the compiles share the
 cores), and checks that `sung` gives exactly the printed lines in the order the
@@ -380,7 +380,7 @@ page prints but whose lines it divides otherwise (a long poem line written
 as two lines, a stanza a line longer than its siblings) keeps its own
 division: its ruling is a `layout` that settles the line.
 
-`src/layout.test.ts` runs the generated property over every hymn with a
+`src/layout.slow.test.ts` runs the generated property over every hymn with a
 deciding page (`domainOf`): each hymn's every mutation is made on its
 printed text and read again by the census's reader (`readText`), so no mark
 of the source is carried over, and held to its shape readings by the same check (`reachOf`, through `layoutLinesOf` and
@@ -468,7 +468,7 @@ too, its row as it is, and waits on the owner's word, until he answers it.
 220 waits on it: two judges read its engraving's 22 places, and the
 database sings words there the engraving prints once.
 
-`src/census.test.ts` reads the census, the inventory, the rulings, the
+`src/census.slow.test.ts` reads the census, the inventory, the rulings, the
 crops, the fixes and hymnal.db, and checks each entry against them: its
 deciding page, its base row, its state from its rulings, and its committed
 row as the base row with each ruling applied. Its mutant cases relabel an

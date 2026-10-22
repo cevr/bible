@@ -6,7 +6,8 @@
   "scripts": {
     "build": "./scripts/workspace.sh build",
     "typecheck": "./scripts/workspace.sh typecheck",
-    "test": "./scripts/workspace.sh test",
+    "test:native": "./scripts/workspace.sh test",
+    "test:slow": "./scripts/workspace.sh gate",
     "gate": "./scripts/workspace.sh gate",
     "benchmark": "./scripts/benchmark.sh"
   }

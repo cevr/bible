@@ -193,13 +193,13 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   bar holds the place sent until the player reaches it, or for 2 s. The
   played part of the track is in the accent, the rest in the line role;
   while the length is unknown the bar is disabled and its thumb is muted.
-- `src/player/bar.property.test.tsx` holds the web bar to these rules over
+- `src/player/bar.property.slow.test.tsx` holds the web bar to these rules over
   seeded runs of presses, all eight step keys (held, repeated with
   `repeat` set, their keyup lost) and modifiers held (each event says
   them), other pointers and buttons, a screen reader's steps and
   playback's ticks, from anywhere on the bar and often its ends, in
   Chrome's event order.
-- `src/player/world.property.test.ts` holds the page to these rules in a
+- `src/player/world.property.slow.test.ts` holds the page to these rules in a
   world of One's devices (`src/test/world.ts`, measured constants from the
   iOS and Android captures): seeded runs on iOS, Android and the web of
   slow and silent loads, dry spells, iOS's closed socket, failures, host
@@ -210,11 +210,11 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   waiting only after the stand of silence); each earlier counterexample is
   a fixed case. A deep sweep runs by
   hand: `WORLD_SEEDS=8000 bun test --preload ./src/test/setup.ts
-  src/player/world.property.test.ts -t seeded`.
+  src/player/world.property.slow.test.ts -t seeded`.
 - The tests run the player over a device the test holds
   (`src/test/device.ts`): each state and move in `src/player/player.test.ts`,
   and the page's control and the bar, pressed in a document, in
-  `src/player/ui.test.tsx`.
+  `src/player/ui.slow.test.tsx`.
 
 ## Recordings: R2 at hymns.cvr.im
 

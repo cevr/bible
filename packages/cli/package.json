@@ -12,7 +12,8 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test test/commands test/core test/lib",
+    "test": "bun test --path-ignore-patterns='**/*.slow.test.*' test/commands test/core test/lib",
+    "test:slow": "bun test .slow.test.",
     "test:watch": "bun test test/commands test/core --watch",
     "test:perf": "bun test test/perf"
   },

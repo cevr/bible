@@ -236,7 +236,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/findings.md F5
 - **Wrong:** The lab MCP's `publish_set` stripped `production` and `version` from its manifest, so the set landed on no production's timeline.
 - **Cause:** Its manifest patch is a `Schema.Struct` with no `production` or `version`, and a struct's decode drops the keys it does not name.
-- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `lands on the production's timeline, stamped as film publish stamps it`
+- **Guard:** code: `packages/film/src/tools/lab-mcp.slow.test.ts` `lands on the production's timeline, stamped as film publish stamps it`
 
 ### film-publish-asks-the-lab
 
@@ -246,7 +246,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/findings.md F6
 - **Wrong:** Run from a worktree, `film publish` said the lab would not list a set that the lab lists.
 - **Cause:** It judged the set by the command's own review roots, and a worktree's roots leave out the main checkout the lab serves.
-- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `says whether the running lab lists the set, as the lab answers it, and never claims what no lab said`
+- **Guard:** code: `packages/film/src/tools/lab-mcp.slow.test.ts` `says whether the running lab lists the set, as the lab answers it, and never claims what no lab said`
 
 ## The look
 
@@ -428,7 +428,7 @@ The form of an entry, each field on its own line:
 - **Source:** ask a9e82d17477 (`line`: thin); apps/animations/productions/righteousness-by-faith.json (2026-10-18 12:57); out/rbf-v3-cast-2026-10-18/docs/r3.md F7
 - **Wrong:** The figures' line was one width at every shot, so in a close shot (the farmer of the rain, Christ close in court) it read heavier than the concept's.
 - **Cause:** The ink's widths were written into the print as numbers; no shot could reach them.
-- **Guard:** code: `packages/film/src/style/rig/parts.ts` `inkBind` (every ink stroke of a figure and its hands binds its width to `ink`); `packages/film/src/style/house.ts` `inkAt` (0.75 from a head three tenths of the frame); `packages/film/src/style/figures-file.test.ts` `a figure's ink, bound to its view model's ink` (02dd143f6); `packages/film/src/rive/rive.test.ts` `draws an ink stroke as wide as its number maps it` (the runtime maps a bound width linearly; 202e1b3b3)
+- **Guard:** code: `packages/film/src/style/rig/parts.ts` `inkBind` (every ink stroke of a figure and its hands binds its width to `ink`); `packages/film/src/style/house.ts` `inkAt` (0.75 from a head three tenths of the frame); `packages/film/src/style/figures-file.slow.test.ts` `a figure's ink, bound to its view model's ink` (02dd143f6); `packages/film/src/rive/rive.slow.test.ts` `draws an ink stroke as wide as its number maps it` (the runtime maps a bound width linearly; 202e1b3b3)
 
 ### hand-follows-its-figures-shot
 
@@ -438,7 +438,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-closeink/review-1.md F1
 - **Wrong:** A hand drawn larger than the hand rig (the judge's at 1.23) read its shot with its own size in it, so in a push-in its ink thinned before its figure's.
 - **Cause:** The shot was read from the whole transform the rig was drawn under, and a scene folds a hand's size into the place it draws it at.
-- **Guard:** code: `packages/film/src/rive/rive.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
+- **Guard:** code: `packages/film/src/rive/rive.slow.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
 
 ### face-marks-are-line-too
 
@@ -448,7 +448,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-closeink/review-2.md F2
 - **Wrong:** The brows and the mouth line kept their widths at every shot while the rest of each figure's ink thinned in a close shot, so in the shots where a face reads most its marks grew heavy against its line.
 - **Cause:** The face's marks were read as features, not line; the owner's answer was "every figure's line".
-- **Guard:** code: `packages/film/src/style/figures-file.test.ts` `binds every ink stroke of a figure and its hands, the brows and the mouth among them`
+- **Guard:** code: `packages/film/src/style/figures-file.slow.test.ts` `binds every ink stroke of a figure and its hands, the brows and the mouth among them`
 
 ### sized-draw-throw-keeps-its-save
 
@@ -468,7 +468,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-closeink/review-3.md F1
 - **Wrong:** The generator test held each ink bind's source to an id's shape only, so a bind aimed at another number of the view model passed.
 - **Cause:** The test read the bind's form, not what it names.
-- **Guard:** code: `packages/film/src/style/figures-file.test.ts` `binds every ink stroke of a figure and its hands, the brows and the mouth among them`
+- **Guard:** code: `packages/film/src/style/figures-file.slow.test.ts` `binds every ink stroke of a figure and its hands, the brows and the mouth among them`
 
 ### sized-draw-proved-sized
 
@@ -478,7 +478,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-closeink/review-3.md F2
 - **Wrong:** The size test read only the widths Rive sets and the shot read, so a draw that ignored `size` passed.
 - **Cause:** The mock context wrote down no transform at a stroke.
-- **Guard:** code: `packages/film/src/rive/rive.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
+- **Guard:** code: `packages/film/src/rive/rive.slow.test.ts` `a rig drawn at a size is drawn that size, and follows the shot of the space it stands in, as its figure does`
 
 ### readme-row-after-face-fold
 
@@ -730,7 +730,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/findings.md F1
 - **Wrong:** The cast-sheet brief asked every member for about three and a third heads, and the measure squashed every anchor toward 3.36, so the plain figures (2.6 heads) and a child on a pose sheet were asked and held to the adult canon.
 - **Cause:** The brief and the measure read one constant, `CANON_HEADS`, and the record had no field for a member's own heads.
-- **Guard:** code: `packages/film/src/tools/cast-sheet-brief.test.ts` `stands a canon member at the canon, and a member of its own design at its own`, `packages/film/src/core/cast-sheet-poses.test.ts` `is held to its own heads, never the canon`
+- **Guard:** code: `packages/film/src/tools/cast-sheet-brief.test.ts` `stands a canon member at the canon, and a member of its own design at its own`, `packages/film/src/core/cast-sheet-poses.slow.test.ts` `is held to its own heads, never the canon`
 
 ### cast-brief-hair-only-when-shown
 
@@ -750,7 +750,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/findings.md F3
 - **Wrong:** The retry's underlay stood every standing mannequin at the canon's height, so the IDEA child was redrawn on an underlay that asks it to stand as tall as the grown figure.
 - **Cause:** `mannequinUnderlay` took one height for every view, and the record named no smaller figure.
-- **Guard:** code: `packages/film/src/core/cast-underlay.test.ts` `stands a smaller figure its share of the grown one's height, its head a larger share of it`, `packages/film/src/tools/cast-sheet-make.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
+- **Guard:** code: `packages/film/src/core/cast-underlay.slow.test.ts` `stands a smaller figure its share of the grown one's height, its head a larger share of it`, `packages/film/src/tools/cast-sheet-make.slow.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
 
 ## Gate and review
 
@@ -792,7 +792,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F1
 - **Wrong:** Two checkouts that asked about one item at once each kept their own answer, the later over the earlier, and the first checkout's findings file still reported its answer; a findings file older than the store's age still reported answers the store had dropped.
 - **Cause:** The store took each run's fresh answers over the ones kept meanwhile, and the run reported by its own answers, not the store's; the findings file kept no day.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `keeps the first answer kept for a key, and reports by it`, `packages/scripts/lint/judged.test.ts` `or a run past the store`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `keeps the first answer kept for a key, and reports by it`, `packages/scripts/lint/judged.slow.test.ts` `or a run past the store`
 
 ### judged-findings-know-their-item-code
 
@@ -802,7 +802,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F2
 - **Wrong:** The plugin reported a run's findings after a rule's selector or the code that makes the items changed, so a finding could sit on an item the rule no longer reads.
 - **Cause:** A rule's signature held its words, label, threshold and model but not its selector, and the findings file held no hash of the item code.
-- **Guard:** code: `packages/scripts/lint/judged.test.ts` `a rule of other words or selector, other item code`, `packages/scripts/src/judged/findings.ts` `makersHash`
+- **Guard:** code: `packages/scripts/lint/judged.slow.test.ts` `a rule of other words or selector, other item code`, `packages/scripts/src/judged/findings.ts` `makersHash`
 
 ### reach-reads-playwright-config
 
@@ -812,7 +812,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F3
 - **Wrong:** The reach check read `playwright test --config=…` as a run of every file under a folder named `test`, so a spec outside the config's testDir counted as reached.
 - **Cause:** Every command that was not a bun test was read as a list of path filters.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### each-commit-runs-film-exports
 
@@ -822,7 +822,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F4
 - **Wrong:** A commit of the unit exported a name no file imports, and the film's package entries test was red on it until a later fix commit.
 - **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run the film's exports test.
-- **Guard:** code: `packages/film/package.json` `bun test ./src/docs.test.ts ./src/exports.test.ts`, `package.json` `bun run --cwd packages/film test:guard`
+- **Guard:** code: `packages/film/package.json` `bun test ./src/docs.slow.test.ts ./src/exports.slow.test.ts`, `package.json` `bun run --cwd packages/film test:guard`
 
 ### film-budget-measured-quiet
 
@@ -831,7 +831,7 @@ The form of an entry, each field on its own line:
 - **Said:** "The film budget requirement remains unverified"
 - **Source:** p6-guardloop/review-1.md F5
 - **Wrong:** The unit left the film suite's budget with no counted measure: each run was at a load over the core count, which the budget does not count, and took 10.4 to 12.6 s.
-- **Cause:** The machine was busy with other units; the suite's long pole was one test file (`cast-sheet.test.ts`, 10.4 s inside the suite).
+- **Cause:** The machine was busy with other units; the suite's long pole was one test file (`cast-sheet.slow.test.ts`, 10.4 s inside the suite).
 - **Guard:** code: `packages/scripts/src/test-budget/budget.ts` `notMeasured`
 
 ### reach-takes-workspace-dot
@@ -842,7 +842,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-1.md F6
 - **Wrong:** `bun test ./` read as a filter no file matched, so a workspace's every test file was called unreached.
 - **Cause:** `./` normalised to an empty path, and a path filter matched only under a leading slash.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `bun test ./`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `bun test ./`
 
 ### judged-report-by-store-after-write
 
@@ -852,7 +852,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-2.md F1
 - **Wrong:** A run reported an item cached when it started by that answer, though another run had dropped it and kept another for its key before this run's write.
 - **Cause:** The run read an item's answer from the store as it first read it, before the store its write returned.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `reports a cached item by the store as its write left it`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `reports a cached item by the store as its write left it`
 
 ### judged-unkept-rule-left-out
 
@@ -862,7 +862,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-2.md F2
 - **Wrong:** When the store could not be written, the findings file held the rule with no findings for the file, so the plugin reported nothing there even after another checkout kept a finding.
 - **Cause:** A rule was left out of a file only for an item no answer came for, not for an answer the store does not keep.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `names the files whose answers the store does not keep when its write fails`, `packages/scripts/src/judged/cli.test.ts` `leaves the rule out of their file for the plugin`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `names the files whose answers the store does not keep when its write fails`, `packages/scripts/src/judged/cli.slow.test.ts` `leaves the rule out of their file for the plugin`
 
 ### reach-reads-playwright-ignore
 
@@ -872,7 +872,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-2.md F3
 - **Wrong:** The reach check called a spec reached that the config's `testIgnore` leaves out.
 - **Cause:** The config reader read `testDir` and `testMatch` and not `testIgnore`.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### film-budget-counted-run
 
@@ -892,7 +892,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-3.md F1
 - **Wrong:** When the store could not be written, a run's findings file held cached answers under today's day, though their own day in the store was not renewed and the store could drop them first.
 - **Cause:** A failed write left the cached answers counted as kept for the findings file, and the file's day was the run's, not the answers'.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `names every file unkept when the store kept its answers but could not renew their day`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `names every file unkept when the store kept its answers but could not renew their day`
 
 ### reach-reads-playwright-globs
 
@@ -902,7 +902,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-3.md F2
 - **Wrong:** The reach check read a `testIgnore` glob with no folder (`unreached.spec.ts`) as a path from the workspace, and missed a quoted `"testIgnore"` key, so it called reached a spec playwright leaves out.
 - **Cause:** Playwright puts `**/` before a glob that does not start so and matches it with no regard to case; the reader matched the glob as written and looked for the key unquoted only.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### film-budget-admitted
 
@@ -922,7 +922,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-4.md F1
 - **Wrong:** The reach check called reached a spec that a `testIgnore` regex with its folder in it (`/\/test\/browser\/a\.spec\.ts$/`) leaves out.
 - **Cause:** Playwright tests a regex against a test file's absolute path; the reader tested it against the path from the workspace, so a regex that names a leading `/` matched nothing.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### judged-findings-day-of-renewal
 
@@ -932,7 +932,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-4.md F2
 - **Wrong:** A judged run that crossed UTC midnight wrote its findings file under the day after the one it marked its answers seen, so the file outlived those answers by a day.
 - **Cause:** The runner read the clock again after `judge` for the findings file's day; `judge` had read it before it asked.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `answers the day it marked its answers seen: a run that crosses midnight answers the day it began`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `answers the day it marked its answers seen: a run that crosses midnight answers the day it began`
 
 ### judged-seen-day-monotonic
 
@@ -942,7 +942,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-5.md F1
 - **Wrong:** A judged run that began a day before another and ended after it marked the answers both read seen on its own, earlier day, so the store could drop an answer a day before the later run's findings file expired.
 - **Cause:** The store set an answer's seen day to the run's day, whatever day the answer already held.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `never marks an answer seen on a day before the one a later run marked it: a run that ends last keeps the later day`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `never marks an answer seen on a day before the one a later run marked it: a run that ends last keeps the later day`
 
 ### reach-reads-extglobs
 
@@ -952,7 +952,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-5.md F2
 - **Wrong:** The reach check called reached a spec that a `testIgnore` extglob (`*.@(spec|test).ts`) leaves out.
 - **Cause:** The reader matched a glob with Bun's `Glob`, which reads no extglobs; playwright reads a glob with the minimatch it bundles, dot files taken.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read by a glob as playwright reads one, with the minimatch playwright bundles`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are read by a glob as playwright reads one, with the minimatch playwright bundles`
 
 ### reach-parses-configs
 
@@ -962,7 +962,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-6.md F1
 - **Wrong:** The reach check read a `testIgnore` from a comment, or from an object the config does not export, as the config's own, and read a config that spreads another object into its export as if the spread set nothing.
 - **Cause:** The reader matched the config's text with regexes, which cannot tell a setting of the exported object from any other text.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-respects-git-ignore
 
@@ -972,7 +972,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-7.md F1
 - **Wrong:** The reach check called reached a tracked spec that git's ignore rules name, though playwright skips it when its config sets `respectGitIgnore: true` or sets neither it nor `testDir`.
 - **Cause:** The reader took the config's `testDir`, `testMatch` and `testIgnore` for all of playwright's file selection, and did not read `respectGitIgnore` or know which tracked files git ignores.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-reads-gitignore-as-playwright
 
@@ -982,7 +982,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-8.md F1
 - **Wrong:** The reach check called reached a spec that a `.gitignore` extglob (`*.@(spec|test).ts`) names, though playwright skips it when it respects git's ignores.
 - **Cause:** The reader asked git which tracked files its ignore rules name; playwright reads each `.gitignore` from its `testDir` down with minimatch, which matches some patterns git does not.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### judged-retry-ticks-until-done
 
@@ -992,7 +992,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-8.md F2
 - **Wrong:** A judged retry test hung when its run's setup read the disk slowly: it joined a run that still waited on the clock for its next ask.
 - **Cause:** The test moved the clock a fixed count of ticks, and slow real I/O let the count run out before the run's retry waited on the clock.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `asks again after a 429 that follows slow real I/O, and keeps the answers`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `asks again after a 429 that follows slow real I/O, and keeps the answers`
 
 ### reach-counts-named-tests
 
@@ -1002,7 +1002,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-9.md F1
 - **Wrong:** The reach check left out a test file that imports its runner under another name (`import { test as scenario } from /* runner */ 'bun:test'`), so no script had to reach it.
 - **Cause:** The reader took a file named as a test for one only when a regex found a runner import or a line that calls `describe`, `it` or `test`, and a comment or an alias hid both.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are each a file named as a test that is not data, in the deepest workspace or in none, and not a link`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are each a file named as a test that is not data, in the deepest workspace or in none, and not a link`
 
 ### reach-refuses-folder-moves
 
@@ -1012,7 +1012,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-10.md F1
 - **Wrong:** The reach check called every test file of a workspace reached by `cd src/test-budget && bun test`, which runs only the files under that folder.
 - **Cause:** The reader read each command of a script on its own, every path from the workspace's folder, and lost the folder a `cd` moved the script to.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that runs in another folder than its workspace`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script that runs in another folder than its workspace`
 
 ### reach-refuses-forwarded-words
 
@@ -1022,7 +1022,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-11.md F1
 - **Wrong:** The reach check called every test file reached by `bun run suite ./src` (with `suite: "bun test"`), which runs only the files under `src`.
 - **Cause:** The reader followed `bun run` to the script it names and dropped the words after the name, which bun hands to that script's last command.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that hands a script it runs more words`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script that hands a script it runs more words`
 
 ### reach-allows-known-flags
 
@@ -1032,7 +1032,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-11.md F2
 - **Wrong:** The reach check called specs reached by `playwright test -gfast`, `-Gcase` and `--list`, and test files reached by `bun test -tfast`, though each runs some cases or none.
 - **Cause:** The reader refused a list of narrowing flags by their exact spelling, so an attached short value, an alias or a mode it did not list passed.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
 
 ### reach-reads-and-chains
 
@@ -1042,7 +1042,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-11.md F3
 - **Wrong:** The reach check called every test file reached by `true || bun test`, which passes and runs no test.
 - **Cause:** The shell reader dropped the separators between commands, so the reader counted a command that `||`, `;`, `&` or `|` may skip, or whose failure they hide.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
 
 ### reach-refuses-shell-changes
 
@@ -1052,7 +1052,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-12.md F1
 - **Wrong:** The reach check called every test file reached by `export BUN_OPTIONS=-ttie && bun test`, which runs only the cases whose names match.
 - **Cause:** The variable refusal read only a bare assignment or `env` before a program, and not the shell's own commands (`export`, `source`, `alias`) that change what later commands run with.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
 
 ### reach-takes-the-last-config
 
@@ -1062,7 +1062,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-12.md F2
 - **Wrong:** The reach check read `-c wide.config.ts --config narrow.config.ts` by the wide config, and read a config named by an absolute or parent path as the default config, though playwright runs the narrow one, or the one named.
 - **Cause:** The reader gathered the values of `--config` and `-c` apart and took the last of their joined list, and fell back to the default config when it could not read the named path.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by the config the last --config or -c names, and by none for one not read`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by the config the last --config or -c names, and by none for one not read`
 
 ### reach-credits-runners-only
 
@@ -1072,7 +1072,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-12.md F3
 - **Wrong:** The reach check called `other/a.test.ts` reached by `echo ./other`, which runs no test.
 - **Cause:** The reader read any command it did not know as a wrapper of `bun test` that runs the files it names by path.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are run by hand by a script of their own: a bun test, a wrapper of it the repo names, or playwright`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are run by hand by a script of their own: a bun test, a wrapper of it the repo names, or playwright`
 
 ### reach-refuses-early-exits
 
@@ -1082,7 +1082,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-13.md F1
 - **Wrong:** The reach check called every test file reached by `exit 0 && bun test`, which passes and runs no test.
 - **Cause:** The shell refusal listed the commands that change what later commands run with, and not those that end the script before them (`exit`, `return`).
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
 
 ### reach-binds-define-config
 
@@ -1092,7 +1092,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-13.md F2
 - **Wrong:** The reach check read `export default defineConfig({ testDir: 'e2e' })` by its object, though the config's own `defineConfig` added a `testIgnore` that leaves a spec out.
 - **Cause:** The reader took a call by its callee's spelling, and did not ask what the name is bound to.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-refuses-reading-flags
 
@@ -1102,7 +1102,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-14.md F1
 - **Wrong:** The reach check took `bun test --loader=.ts:text --pass-with-no-tests src` as a run of every test file in `src`, though bun reads each file as text and runs no case.
 - **Cause:** The flag allow-list asked whether a flag narrows which files a run takes, and not whether it changes how bun reads the files it takes (`--loader`, `--define`, `--tsconfig-override`, `--env-file`).
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no bun test run that changes how bun reads a file`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no bun test run that changes how bun reads a file`
 
 ### reach-reads-config-load
 
@@ -1112,7 +1112,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-14.md F2
 - **Wrong:** The reach check read `export default { testDir: '.' }; module.exports = { testDir: 'narrow' };` by its default export, though playwright loads the object `module.exports` holds and takes only `narrow`.
 - **Cause:** The reader read the export statement alone, and did not ask what else loading the config does: a statement, a function or a name it does not bind can replace or change the export.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-names-config-calls
 
@@ -1122,7 +1122,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-15.md F1
 - **Wrong:** The reach check read `const stopped = Number.constructor('process.exit(0)')(); export default { testDir: '.' };` as a config that takes its tests, though loading it ends the run before playwright starts.
 - **Cause:** The reader allowed the names a config reads and not what it calls: a member of an allowed name reaches `Function`, and a call of it runs any code.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-reads-bunfig-tables
 
@@ -1132,7 +1132,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-15.md F2
 - **Wrong:** The reach check took `bun test src` as a run of every test file in `src` in a workspace whose `bunfig.toml` sets `[loader] ".ts" = "text"`, which makes bun read each file as text and run no case.
 - **Cause:** The bunfig reader checked the keys of `[test]` alone, and not the other tables, which change how bun reads a file.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no bun test run whose bunfig may narrow it or change how bun reads a file, and by one whose bunfig does neither`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no bun test run whose bunfig may narrow it or change how bun reads a file, and by one whose bunfig does neither`
 
 ### reach-refuses-shadowed-calls
 
@@ -1142,7 +1142,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F1
 - **Wrong:** The reach check read a config that declares `const Number = defineConfig.constructor` and then calls `Number('process.exit(0)')()` through it, as a config that takes its tests.
 - **Cause:** The reader allowed a call by the name `Number` without asking what the name is bound to: a config's own `const` can shadow it.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-trusts-loaded-code
 
@@ -1162,7 +1162,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F3
 - **Wrong:** The reach check took `playwright test --tsconfig other.json`, and a config that sets `tsconfig`, as runs it reads, though another tsconfig may map `@playwright/test` to a module whose `defineConfig` adds a `testIgnore`.
 - **Cause:** The flag and setting allow-lists asked whether a flag narrows which files run, and not whether it changes how the config's imports resolve. The toolchain's own resolution of a module (the tsconfig the repo keeps) stays trusted, as the code it resolves to is.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
 
 ### reach-refuses-shell-expansions
 
@@ -1172,7 +1172,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F4
 - **Wrong:** The reach check credited every file a glob names in `bun test --conditions ./src/guard/*.test.ts`, though the shell expands the glob and bun takes the first file as the condition's value, and credited `other/report.log.test.ts` to `bun test src > report.log`.
 - **Cause:** The script reader took a word as its text, not as the shell expands it, and took a redirection's target for a filter.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose words the shell expands or redirects`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script whose words the shell expands or redirects`
 
 ### reach-refuses-line-filters
 
@@ -1182,7 +1182,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F5
 - **Wrong:** The reach check credited every spec to `playwright test --pass-with-no-tests '.*|:999999'`, though playwright reads the trailing number as a line and runs no case.
 - **Cause:** The reader took a filter as a regex of the file alone, and did not read playwright's `parseLocationArg`.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
 
 ### reach-reads-test-dir
 
@@ -1192,7 +1192,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F6
 - **Wrong:** The reach check read `testDir: '/elsewhere'` as a folder under the config's, and `testDir: ''` as a set `testDir`, which turned git's ignore rules off though playwright turns them on.
 - **Cause:** The reader joined the value to the config's folder and asked whether the key is set, where playwright resolves an absolute path as it is and reads an empty one as none (`pathResolve`).
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-reads-disk
 
@@ -1202,7 +1202,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F7
 - **Wrong:** The reach check credited a spec that is a symbolic link, which playwright's walk skips, and read only the `.gitignore` files git lists, though playwright reads an untracked, ignored one too.
 - **Cause:** The reader's inputs came from git's file list, which carries no entry type and leaves ignored files out.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
 
 ### reach-reads-selection-not-cases
 
@@ -1222,7 +1222,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-16.md F9
 - **Wrong:** The judged plugin reported a run's findings after `settings.judged.store` named another store, though the new store kept no such answer.
 - **Cause:** The findings file named the checkout, the model, the rules, the files and the day, and not the store its answers came from.
-- **Guard:** code: `packages/scripts/lint/judged.test.ts` `reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, a run of another store, or a run past the store's age`
+- **Guard:** code: `packages/scripts/lint/judged.slow.test.ts` `reports the last run's findings of a file as it stands, and the store's for a file changed since, a rule of other words or selector, other item code, a run of another store, or a run past the store's age`
 
 ### reach-reads-printable-scripts
 
@@ -1232,7 +1232,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-17.md F1
 - **Wrong:** The reach check credited `true \` and `# comment && bun test` on the next line, which the shell joins into `true` and a comment, and `bun test src<U+00A0>lint`, which the shell hands bun as one filter.
 - **Cause:** The script reader split words on JavaScript's whitespace and read a comment before it joined continued lines, where the shell splits on a space, a tab and a line's end alone and joins lines first.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script that holds a character the shell may read otherwise than the reader`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script that holds a character the shell may read otherwise than the reader`
 
 ### reach-refuses-reserved-words
 
@@ -1242,7 +1242,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-18.md F1
 - **Wrong:** The reach check credited `! exit 0 && bun test` and `time exit 0 && bun test`, which the shell passes without running bun.
 - **Cause:** The reader asked whether a command's first word ends the script, and a reserved word (`!`, `time`) put the command that does behind it.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no script whose commands are joined by anything but && or set a variable`
 
 ### reach-prunes-ignored-folders
 
@@ -1252,7 +1252,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-18.md F2
 - **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='**/guard' src`, though bun's scan skips the folder the pattern matches and all under it.
 - **Cause:** The reader matched an ignore pattern against the file's path alone, not against each folder on it.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or a plain ignore pattern names`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `leave out what a flag's value or a plain ignore pattern names`
 
 ### reach-reads-filter-flags
 
@@ -1262,7 +1262,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-18.md F3
 - **Wrong:** The reach check credited `a.spec.ts` to the filter `^(?!.*A).*`, though playwright reads a filter with no regard to case and takes no path that holds an `a`.
 - **Cause:** The reader built a filter's regex with no flags, where playwright's `forceRegExp` gives `gi`, or the flags of a `/<pattern>/<flags>` form.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-reads-bun-scan
 
@@ -1272,7 +1272,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-18.md F4
 - **Wrong:** The reach check credited `src/.hidden/a.test.ts` and `a.test.mtsx` to `bun test`, though bun's scan enters no folder whose name starts with `.` and reads no `.mtsx` (measured on bun 1.4.3).
 - **Cause:** The reader used the repo's inventory of test names for bun's scan, which is narrower.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
 
 ### reach-refuses-ignore-globs
 
@@ -1282,7 +1282,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-19.md F1
 - **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='**/guard/'`, though bun's scan skips the folder (measured on bun 1.4.3), and so for `**/gu*/`, `**/[g]uard/`, `**/{guard}/` and `src/**/`.
 - **Cause:** The reader matched a glob with its own glob code against a folder's path with no closing `/`, where bun's scan matches folders by rules the reader does not reproduce.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no run that names an ignore glob`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no run that names an ignore glob`
 
 ### reach-refuses-mapped-filters
 
@@ -1292,7 +1292,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-19.md F2
 - **Wrong:** The reach check credited `e2e/a.spec.js` with an inline source map that names `original.ts` to `playwright test a.spec.js`, though playwright filters a mapped file by the sources its map names and leaves it out.
 - **Cause:** The reader matched a positional filter against the file's own path alone.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by playwright as its config's testDir, testMatch and testIgnore set them`
 
 ### reach-reads-plain-ignores
 
@@ -1302,7 +1302,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-20.md F1
 - **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test --path-ignore-patterns='src\/guard'`, though bun reads the backslash as an escape and skips the folder (measured on bun 1.4.3), and so for `src/guard/parts.test.t\s`.
 - **Cause:** The reader refused a deny-list of glob characters and read every other pattern literally, so a character bun reads otherwise passed.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `leave out what a flag's value or a plain ignore pattern names, and are reached by no run that names an ignore glob`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `leave out what a flag's value or a plain ignore pattern names, and are reached by no run that names an ignore glob`
 
 ### reach-refuses-mixed-filters
 
@@ -1312,7 +1312,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-21.md F1
 - **Wrong:** The reach check credited `src/guard/parts.test.ts` to `bun test ./missing parts`, though bun reads every filter as a path once one is (measured on bun 1.4.3), and so for `/guard` and `..`, which run none.
 - **Cause:** The reader read each filter on its own, a `./` one as a path and any other as a part of one, where bun picks one reading for the whole command.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are taken by a bun test that names no filter, a path, or a part of one`
 
 ### reach-refuses-optional-values
 
@@ -1322,7 +1322,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-21.md F2
 - **Wrong:** The reach check credited `all/left.spec.ts` to `playwright test --update-snapshots all narrow`, though playwright reads `all` as the snapshot mode and filters by `narrow` alone.
 - **Cause:** The allow-list read `--update-snapshots` and `-u` as taking no value, where playwright declares them `[mode]`, a value or none.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are reached by no playwright run that a flag or its config narrows by name, line, shard or history, or reads by another tsconfig`
 
 ### tests-bound-each-case
 
@@ -1332,7 +1332,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-22.md F1
 - **Wrong:** The case that sends no part after a refusal held both its statuses to the rate limit's bound of 32 requests, so a runner that sent all 20 parts after a refusal for credits passed it.
 - **Cause:** One bound, raised for the rate limit's retries, served a case that sends no retry.
-- **Guard:** code: `packages/scripts/src/judged/run.test.ts` `sends no part after one the account refuses, for credits or a rate limit`
+- **Guard:** code: `packages/scripts/src/judged/run.slow.test.ts` `sends no part after one the account refuses, for credits or a rate limit`
 
 ### reach-reads-linked-folders
 
@@ -1342,7 +1342,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-guardloop/review-23.md F1
 - **Wrong:** The reach check credited `w/linked/a.spec.ts` to `playwright test`, where `w/linked` is a tracked folder made a symbolic link: git still lists its file, and playwright's walk does not enter the link.
 - **Cause:** The reader asked whether the test file itself is a link, not whether a folder above it is one.
-- **Guard:** code: `packages/scripts/src/test-budget/reach.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
+- **Guard:** code: `packages/scripts/src/test-budget/reach.slow.test.ts` `are read from the repo on disk: each .gitignore playwright's walk reads, tracked or not, and each file that is a link or under one`
 
 ### button-words-optically-centred
 
@@ -1812,7 +1812,7 @@ The form of an entry, each field on its own line:
 - **Source:** the owner's notes on the First the Blade hero, 2026-10-21 (unit ftb-motion brief, note 1); he circled the light rays at the top left and the sun at the right
 - **Wrong:** The hero's painted field threw its light rays down from the top-left corner while its sun sat low on the right horizon, so the light came from no sun.
 - **Cause:** The field was painted as one picture, its rays and its sun each drawn for themselves, and nothing held the light to its source.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/src/motion/sun.test.ts` `never grows brighter as it goes out of the sun, in any direction`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/src/motion/sun.test.ts` `never grows brighter as it goes out of the sun, in any direction`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
 
 ### field-old-rays-on-left-hills
 
@@ -1822,7 +1822,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/self-findings.md F1
 - **Wrong:** The repainted field keeps faint diagonal streaks of the old top-left rays on its far-left hills, clear at 2x and faint at 1:1.
 - **Cause:** The kit paints the left of the sky again from its clear middle columns, and the hills are land, which it leaves as painted; the still's guard reads the sky's light alone (`skyLight`), so it does not see them. A streamline inversion to lift them failed.
-- **Guard:** code: `apps/firsttheblade/kit/field-paint.test.ts` `takes a streak’s step off its hill, so no edge is left across it`, `apps/firsttheblade/kit/field-paint.test.ts` `each has its step on the master, and the shipped still has none across it`. The owner chose to lift the streaks from the painting (ask a714e0e2d89); how faint a trace may stay is his eye on the stills.
+- **Guard:** code: `apps/firsttheblade/kit/field-paint.slow.test.ts` `takes a streak’s step off its hill, so no edge is left across it`, `apps/firsttheblade/kit/field-paint.slow.test.ts` `each has its step on the master, and the shipped still has none across it`. The owner chose to lift the streaks from the painting (ask a714e0e2d89); how faint a trace may stay is his eye on the stills.
 
 ### taught-card-stir-looks-like-rest
 
@@ -1852,7 +1852,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-1-findings.md F1
 - **Wrong:** `lightFromTheSun` checked only the procedural `sunLight` the kit lays on, never a still's pixels, so the base's stills with the old top-left rays passed every test when swapped back in.
 - **Cause:** The guard was written against the light the kit computes, not the picture it ships.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse every light the earlier light guards let through`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
 
 ### night-smoothstep-edges-in-order
 
@@ -1902,7 +1902,7 @@ The form of an entry, each field on its own line:
 - **Source:** rbf-lead/findings.md F3
 - **Wrong:** The reach chose the elbow out from the body, which for a hand held out beside him is the elbow above the line, and a choice by a fixed direction flipped the elbow as a hand swept across it.
 - **Cause:** Of the two elbows that reach a point, the choice was a fixed direction, not the side the arm comes from.
-- **Guard:** code: `packages/film/src/style/figure.test.ts` `bends with the elbow on the side of the line to the point its hand hangs on at rest`
+- **Guard:** code: `packages/film/src/style/figure.slow.test.ts` `bends with the elbow on the side of the line to the point its hand hangs on at rest`
 
 ### traced-ink-spikes
 
@@ -1942,7 +1942,7 @@ The form of an entry, each field on its own line:
 - **Source:** rbf-lead/findings.md F7
 - **Wrong:** The lead's top drew its outline along its hem over his trousers, where the sheet draws no line.
 - **Cause:** The garment's line ran round its whole outline, and the trousers lay behind all of it.
-- **Guard:** code: `packages/film/src/style/figure.test.ts` `a garment over trousers draws its line just behind the trousers' line, so their paper covers it under the hem; over other feet, no rule`
+- **Guard:** code: `packages/film/src/style/figure.slow.test.ts` `a garment over trousers draws its line just behind the trousers' line, so their paper covers it under the hem; over other feet, no rule`
 
 ### shoulder-turns-with-arm
 
@@ -1972,7 +1972,7 @@ The form of an entry, each field on its own line:
 - **Source:** rbf-lead/review-1.md F1
 - **Wrong:** A jointed arm whose elbow lay on its shoulder's pivot was made, and a reach of it answered NaN for its turn, its bend and its hand.
 - **Cause:** The figure checked that the elbow lay inside both sleeves, and nothing checked that the upper sleeve had a length.
-- **Guard:** code: `packages/film/src/style/figure.test.ts` `whose elbow lies outside either sleeve or on its shoulder's pivot, or whose hand lies short of its forearm's end, is refused`
+- **Guard:** code: `packages/film/src/style/figure.slow.test.ts` `whose elbow lies outside either sleeve or on its shoulder's pivot, or whose hand lies short of its forearm's end, is refused`
 
 ### traced-table-unread
 
@@ -2012,7 +2012,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F2
 - **Wrong:** A cast sheet's retry told a child to stand as tall as the anchor, with the anchor's head and hands.
 - **Cause:** The drift sentences held every view to the anchor's numbers, and the record's per-view stature reached the measure but not the retry's words.
-- **Guard:** code: `packages/film/src/tools/cast-sheet-make.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
+- **Guard:** code: `packages/film/src/tools/cast-sheet-make.slow.test.ts` `is briefed and underlaid at its own heads, its smaller figure smaller, with no hair paragraph`
 
 ### concept-cli-reads-the-record
 
@@ -2022,7 +2022,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F3
 - **Wrong:** `film concept brief` and `measure` by hand could not name a smaller figure, so they printed another prompt and flagged a child that `cast` passes.
 - **Cause:** The two commands took one flag per field of the sheet, and the record gained fields that no flag carried.
-- **Guard:** code: `packages/film/src/tools/concept-cli.test.ts` `measure the smaller figure at the record's share and heads, where the canon's flags it` and `packages/film/src/tools/concept-cli.test.ts` `brief the prompt the member's record paints from: its smaller figure, and no hair`
+- **Guard:** code: `packages/film/src/tools/concept-cli.slow.test.ts` `measure the smaller figure at the record's share and heads, where the canon's flags it` and `packages/film/src/tools/concept-cli.slow.test.ts` `brief the prompt the member's record paints from: its smaller figure, and no hair`
 
 ### smaller-figure-test-cannot-fail
 
@@ -2032,7 +2032,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F4
 - **Wrong:** The measure's smaller-figure test passed with the heads factor removed and with no hold on the child at all.
 - **Cause:** The test gave the child the grown member's heads, so the factor cancelled, and it asserted only that nothing was flagged.
-- **Guard:** code: `packages/film/src/core/cast-sheet-poses.test.ts` `flags a smaller figure drawn at the grown height, or with the grown head`
+- **Guard:** code: `packages/film/src/core/cast-sheet-poses.slow.test.ts` `flags a smaller figure drawn at the grown height, or with the grown head`
 
 ### preview-head-by-own-heads
 
@@ -2042,7 +2042,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F5
 - **Wrong:** A child whose head did not read was cut in the preview at the anchor's head scaled by height, about 18 % too large.
 - **Cause:** The fallback left out the two figures' own heads, and a smaller figure's head is a larger share of its height.
-- **Guard:** code: `packages/film/src/core/cast-preview.test.ts` `cuts a smaller figure whose head does not read at its own head, never the anchor's share of its height`
+- **Guard:** code: `packages/film/src/core/cast-preview.slow.test.ts` `cuts a smaller figure whose head does not read at its own head, never the anchor's share of its height`
 
 ### stamp-owned-by-the-store
 
@@ -2052,7 +2052,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F6
 - **Wrong:** `publish_set` refused a production with no ledger and an unopened version, and `film publish` stamped both.
 - **Cause:** The MCP wrote its own check as strings beside the store's `publish`, so the rule had two owners, and the two plan docs said opposite things.
-- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `refuses a production with no ledger, a version never opened and a version with no production alike through publish_set and film publish, and stamps nothing`
+- **Guard:** code: `packages/film/src/tools/lab-mcp.slow.test.ts` `refuses a production with no ledger, a version never opened and a version with no production alike through publish_set and film publish, and stamps nothing`
 
 ### publish-waits-on-a-held-lab
 
@@ -2062,7 +2062,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F7
 - **Wrong:** `film publish` stayed silent while a lab held its call, though the stamp had landed.
 - **Cause:** The listing had no time limit, and the lab client's handshake and session end could not be interrupted.
-- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `says the listing is unknown once a lab that takes the call never answers it`
+- **Guard:** code: `packages/film/src/tools/lab-mcp.slow.test.ts` `says the listing is unknown once a lab that takes the call never answers it`
 
 ### underlay-sizes-read-loose
 
@@ -2072,7 +2072,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F8
 - **Wrong:** The underlay's size test passed a child drawn at 2.5 heads where 2.2 was asked.
 - **Cause:** The test read the heads with `toBeCloseTo(x, 0)`, half a head either way, and drew no wrong child to reject.
-- **Guard:** code: `packages/film/src/core/cast-underlay.test.ts` `tells a child drawn at the wrong heads or the wrong share from the one asked`
+- **Guard:** code: `packages/film/src/core/cast-underlay.slow.test.ts` `tells a child drawn at the wrong heads or the wrong share from the one asked`
 
 ### smaller-figure-words-stale
 
@@ -2112,7 +2112,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/round-2-findings.md F2
 - **Wrong:** `film publish` printed the listing unknown when the lab answered `sets` and then held the session's DELETE.
 - **Cause:** The 5 s limit wrapped the scope, so it counted the session's end as well as the call.
-- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
+- **Guard:** code: `packages/film/src/tools/lab-mcp.slow.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
 
 ### session-end-limit-unguarded
 
@@ -2122,7 +2122,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/round-2-findings.md F3
 - **Wrong:** The test for a held lab held `initialize`, so the session's end never ran, and removing the end's time limit left it green.
 - **Cause:** The guard held the first request only, and no case let the lab open a session and then hold its end.
-- **Guard:** code: `packages/film/src/tools/lab-mcp.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
+- **Guard:** code: `packages/film/src/tools/lab-mcp.slow.test.ts` `prints the listing the lab gave once its session end is held, within the end's own limit`
 
 ### verify-ready-wait-no-deadline
 
@@ -2132,7 +2132,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-1-findings.md F1
 - **Wrong:** `verify:launch` and `verify:drive` retried the home page 200 times with no limit on one try, and the doctor's requests had none either, so a preview that took the connection and never answered held both forever instead of ending in `NotReady` or `DoctorFailed`.
 - **Cause:** The retry counted tries, not time, and a fetch waits as long as its own limit allows.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `fails a preview that takes the connection and never answers as NotReady, within its wait`; `apps/firsttheblade/scripts/verify/instance.test.ts` `fails at once as NotReady when the preview exits before it answers`; `apps/firsttheblade/scripts/verify/instance.test.ts` `fails the doctor's answers check on a request that never answers`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `fails a preview that takes the connection and never answers as NotReady, within its wait`; `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `fails at once as NotReady when the preview exits before it answers`; `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `fails the doctor's answers check on a request that never answers`
 
 ### verify-preview-reads-root-env
 
@@ -2142,7 +2142,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-1-findings.md F2
 - **Wrong:** The preview was spawned as `bun <entry>` in the scratch root, so a `.env` put in the root gave it `MAIL_ADMIN_TOKEN`, though its comment said no secret reaches a run.
 - **Cause:** The scripts ran with `--no-env-file`, but the child they spawned did not, and Bun reads `.env` from its working directory.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `starts the preview with no root's .env read`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `starts the preview with no root's .env read`
 
 ### verify-failed-step-keeps-token
 
@@ -2152,7 +2152,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-1-findings.md F3
 - **Wrong:** A failed step's message and the line its `failed` step kept were Playwright's own words, which name the confirm URL with its live token.
 - **Cause:** `redactTokens` covered letters and step URLs, not error messages.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `keeps no token in a failed step's message or its kept line`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `keeps no token in a failed step's message or its kept line`
 
 ### verify-launch-clobbers-root
 
@@ -2162,7 +2162,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-1-findings.md F4
 - **Wrong:** A second launch in a root checked only its port, then wrote its record over the first preview's, which `verify:stop` could then no longer find.
 - **Cause:** The skill stated "a root with no preview running", and no code held it.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `refuses a root whose preview still runs`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `refuses a root whose preview still runs`
 
 ### verify-hold-counts-capture
 
@@ -2192,7 +2192,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-1-findings.md F7
 - **Wrong:** `verify:stop` took a PID whose directory began with the root's path, such as `<root>2`, as that root's preview.
 - **Cause:** The `lsof` output was searched with `includes`, not read line by line.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `reads a root's directory from lsof by the whole path`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `reads a root's directory from lsof by the whole path`
 
 ### verify-stage-unproven-unsaid
 
@@ -2212,7 +2212,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-2-findings.md F1
 - **Wrong:** With the per-try `Effect.timeout` removed, a first try that stalled held the wait until its outer deadline, and every test stayed green because the outer deadline ended it as `NotReady` too.
 - **Cause:** The tests ended in `NotReady` either way, so neither deadline was told apart.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `ends a try that stalls at its own deadline, so the next try is ready`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `ends a try that stalls at its own deadline, so the next try is ready`
 
 ### verify-refusal-reason-unasserted
 
@@ -2222,7 +2222,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-2-findings.md F2
 - **Wrong:** The busy-root test asserted only `Refused`, which the port check also answers, so it held with the root check removed.
 - **Cause:** Two checks answer the same tag, and the test read the tag alone.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `refuses a root whose preview still runs`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `refuses a root whose preview still runs`
 
 ### verify-production-deadlines-untested
 
@@ -2232,7 +2232,7 @@ The form of an entry, each field on its own line:
 - **Source:** verify-ftb/round-2-findings.md F3
 - **Wrong:** The deadline tests passed short deadlines of their own, so `READY` or `ANSWER_WITHIN` could grow to minutes with every test green.
 - **Cause:** The defaults were parameters' defaults that no test read.
-- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.test.ts` `holds the deadlines the skill states: 1 s a try, 20 s a wait, 5 s a request`
+- **Guard:** code: `apps/firsttheblade/scripts/verify/instance.slow.test.ts` `holds the deadlines the skill states: 1 s a try, 20 s a wait, 5 s a request`
 
 ### email-cadence-limits
 
@@ -2652,7 +2652,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-2-findings.md F1
 - **Wrong:** `skyLight` read a still's light against the still's own sky and row colours, in luma, with a rise of 0.07 allowed; head mixed 0.3 or 0.4 toward the old stills, gold or white beams from the top left, and the kit's repaint cut short to 0.2 or 0.3 of the width or laid at 0.5 or 0.7 all passed, and so did 34 of 40 seeded top-left rays beyond the WebP noise.
 - **Cause:** The guard held a still against itself, so what the still held moved its own reference, and its tolerance came from no measured noise.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse every light the earlier light guards let through`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse any change to a served still until the owner approves it`. They hold the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`). The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
 
 ### hero-sway-seen-at-a-glance
 
@@ -2702,7 +2702,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-3-findings.md F1
 - **Wrong:** Three rounds of a measured light guard (`skyLight` against the master's clear sky, `lightFromTheSun` with a 0.02 rise) each passed lights from the top left: a 1 px white or gold line, counsel's faint ray, and the kit's repaint at 0.95 of its reach.
 - **Cause:** The rule was a measure of the painting's sky, and the painting's own texture reads 2 to 4 times the WebP noise against any clear-sky reference, so no tolerance both passes the shipped stills and refuses a faint line; whether light comes from the sun is the owner's look.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse a still the record does not name, and a record entry with no file`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. The rewrite (ftb-motion rewrite-spec.md) holds the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`).
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse a still the record does not name, and a record entry with no file`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse every light the earlier light guards let through`. The rewrite (ftb-motion rewrite-spec.md) holds the rules: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name", and "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason" (`OUTSIDE`, `apps/firsttheblade/kit/served.ts`).
 
 ### field-still-approved-in-a-lab-ask
 
@@ -2732,7 +2732,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-3-findings.md F3
 - **Wrong:** The streak lift's fixture was painted where `HILL_STREAKS` says, so a streak moved in the constant moved the fixture too and the test stayed green, while the master's real edge stayed and a step was lifted onto the wrong hill.
 - **Cause:** No test read the master's streaks.
-- **Guard:** code: `apps/firsttheblade/kit/field-paint.test.ts` `were measured on this master, so a new one refuses them until they are measured again`, `apps/firsttheblade/kit/field-paint.test.ts` `each has its step on the master, and the shipped still has none across it`.
+- **Guard:** code: `apps/firsttheblade/kit/field-paint.slow.test.ts` `were measured on this master, so a new one refuses them until they are measured again`, `apps/firsttheblade/kit/field-paint.slow.test.ts` `each has its step on the master, and the shipped still has none across it`.
 
 ### sway-comments-tell-history
 
@@ -2752,7 +2752,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F1
 - **Wrong:** The stills rule read `src/art` by a `field-` name and `public/og` whole, so a shader layer `src/art/sky-768.webp` imported from `scene.ts`, or a still at `public/field-hero.webp`, shipped with no record entry and the provenance test stayed green.
 - **Cause:** The inventory was a list of the names the stills had, not what the app serves.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each a still the record names or an image outside the rule, with why`, `apps/firsttheblade/kit/field-still.test.ts` `refuse an image added under any served folder or named from any module, until the record names it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse a new layer the shader imports and a still served from public/, by any name`. They hold the rule: "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason." The inventory (`apps/firsttheblade/kit/served.ts`) reads every image file under `public/` and `src/`, and every image a module names, by Vite's parser and lightningcss.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `are each a still the record names or an image outside the rule, with why`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse an image added under any served folder or named from any module, until the record names it`, `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse a new layer the shader imports and a still served from public/, by any name`. They hold the rule: "Every image the site serves is in the approval record or in a named list of images outside the rule, each with its reason." The inventory (`apps/firsttheblade/kit/served.ts`) reads every image file under `public/` and `src/`, and every image a module names, by Vite's parser and lightningcss.
 
 ### approval-reads-the-owners-answer
 
@@ -2762,7 +2762,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F2
 - **Wrong:** `kit:approve --ask <id> --answer <words>` wrote `approved` for an empty answer, for an ask the lab did not hold, and over stills changed after the ask, hashing the files as they stood.
 - **Cause:** The answer was typed by the agent, not read from the lab, and the approval did not compare the stills with the ones the pending record pinned.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.test.ts` `refuses a record not pending on the ask, and an approval already given`, `apps/firsttheblade/kit/approval.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses a record not pending on the ask, and an approval already given`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
 
 ### prod-deploy-refuses-pending-stills
 
@@ -2772,7 +2772,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F3
 - **Wrong:** The prod deploy built and shipped with the record `pending`, so stills the owner had not approved could reach the site.
 - **Cause:** Only the kit and its test read the record; the deploy did not.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`, `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`, `apps/firsttheblade/kit/shippable.slow.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`.
 
 ### styles-test-reads-with-a-css-parser
 
@@ -2792,7 +2792,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F5
 - **Wrong:** At JPEG quality 100 a one-code nudge encoded to the same bytes as the unchanged still, so the case named a one-code change it never made.
 - **Cause:** The case compared the nudged encode with the shipped file, which differs by re-encoding alone, not with an unchanged control encoded the same way.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`: each change is encoded beside an unchanged control the same way and kept only when its bytes differ from the control.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse any change to a served still until the owner approves it`: each change is encoded beside an unchanged control the same way and kept only when its bytes differ from the control.
 
 ### earlier-lights-rebuilt-from-the-base
 
@@ -2802,7 +2802,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F6
 - **Wrong:** The earlier-round light cases were painted over the master resized to each width, not over the stills origin/main shipped, so they were not the counterexamples the probes found.
 - **Cause:** The cases were rebuilt from the nearest input to hand, not from the receipts.
-- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`: each case starts from the base's still (`git show c56180093:apps/firsttheblade/src/art/field-<width>.webp`) or the probe's input, in the probe's order.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.slow.test.ts` `refuse every light the earlier light guards let through`: each case starts from the base's still (`git show c56180093:apps/firsttheblade/src/art/field-<width>.webp`) or the probe's input, in the probe's order.
 
 ### sun-comment-tells-history
 
@@ -2822,7 +2822,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F1
 - **Wrong:** The record pinned five link cards (`public/og/*.jpg`) whose bytes this unit changed and that no ask showed, and `approve` turned it approved on the owner's real answer to ask adf28c17753, which showed screenshots of the page.
 - **Cause:** The premise "an approval holds when the owner's answer says approve" was false: his answer does not say which bytes he saw, and nothing read what the ask showed. The new premise: an approval binds bytes the owner was shown. Rule: "A still is approved only if its SHA-256 equals a file that an image block of the approving ask showed, and that ask's `stills` answer is `approve`."
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753 as it holds no receipt, and with its saved hashes as one, as its image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`. `kit:approve` reads the hash of each image block's file from the receipt the lab keeps as it makes the ask, the hash of the copy its page serves (`packages/film/src/tools/ask-store.ts` `receipted`).
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses the owner's real answer to ask adf28c17753 as it holds no receipt, and with its saved hashes as one, as its image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.slow.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.slow.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`. `kit:approve` reads the hash of each image block's file from the receipt the lab keeps as it makes the ask, the hash of the copy its page serves (`packages/film/src/tools/ask-store.ts` `receipted`).
 
 ### served-images-read-from-the-build
 
@@ -2832,7 +2832,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F2
 - **Wrong:** The source reader passed a template `new URL`, an `import.meta.glob`, a `.jfif` import and a `.jxl` under `public/`, each of which the build emits, and the generator drew only the forms the reader held.
 - **Cause:** The premise "reading the source can list every image the site serves" was false: each reader holds the forms its author thought of. The new premise: the served images are read from the build output. Rule: "Every image file in the built site (`dist/`, after `vite build`) is in the approval record or in the named `OUTSIDE` list, each with its reason." A file is an image by its bytes, not its name.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
 
 ### every-prod-deploy-walks-the-build
 
@@ -2842,7 +2842,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F3
 - **Wrong:** `shippable` ran only from the `deploy` script, so `bunx alchemy deploy --stage prod` shipped with no check, and it read the sources, not `dist/`.
 - **Cause:** The gate sat on one command that starts a deploy, not in the stack every prod deploy runs.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`, `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`, `apps/firsttheblade/kit/shippable.slow.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`.
 
 ### approval-names-its-lab
 
@@ -2852,7 +2852,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F4
 - **Wrong:** The approved record kept the ask and the answers but not the lab URL they were read from, so a record approved from another checkout's lab read the same.
 - **Cause:** The lab was a dependency of `approve`, and its URL was not written down with what it gave.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`. `kit:shippable` prints the lab URL (`apps/firsttheblade/kit/shippable.ts` `checked`).
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`. `kit:shippable` prints the lab URL (`apps/firsttheblade/kit/shippable.ts` `checked`).
 
 ### sway-comment-names-the-old-value
 
@@ -2882,7 +2882,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/follow-up-1.md F1
 - **Wrong:** The test of the owner's real answer to ask ab47076e90b pinned the stills as they stand, so the re-pin of `public/og/remedies.jpg` on ask aa434d8c292 turned it red; and the record kept one approval, so a later ask had to show every still again, the unchanged ones too.
 - **Cause:** The test read the app's current stills, not the bytes the ask showed, and the record had no place for an approval that stays true of the bytes it showed.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.test.ts` `an earlier approval keeps the stills unchanged since: a later ask need show only the changed still, and a still changed since no ask showed is refused`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.slow.test.ts` `an earlier approval keeps the stills unchanged since: a later ask need show only the changed still, and a still changed since no ask showed is refused`.
 
 ### pinned-ask-saved-beside-the-record
 
@@ -2892,7 +2892,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/follow-up-1.md F2
 - **Wrong:** `kit:pin --ask aa434d8c292` wrote the record pending on an ask no file in `kit/fixtures/` held, so the committed-record test could not read it.
 - **Cause:** Saving the ask was a step done by hand, outside `pin` and `approve`.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`, `apps/firsttheblade/kit/approval.slow.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`.
 
 ### release-bundle-keeps-sdk-setup
 
@@ -2912,7 +2912,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-3-findings.md F1
 - **Wrong:** `imagesShown` read the image blocks of every step of the ask, so an ask whose stills sat only on a branch his answer did not take still approved them.
 - **Cause:** The reader took the ask's steps as what the page showed, but the page shows only the sections his answers reach; and the property's `held()` put its images on a step outside `answered`, so it held the defect as correct.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.slow.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### approval-receipt-made-with-the-ask
 
@@ -2922,7 +2922,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-3-findings.md F2; ftb-approval-receipts/round-1-findings.md F1; ftb-approval-receipts/round-2-findings.md F1
 - **Wrong:** `kit:approve` fetched each image block's file from the lab and hashed it at approve time, so a file rewritten after the answer approved bytes the owner never saw. Then the lab hashed each file as it made the ask but its page still served the set's file as it stood, so a second `publish_set` before the answer showed the owner other bytes than the receipt held, and `approve` took the receipt's. Then the docs said every image a page serves is a copy, while a board block and a video poster show live, and a file that failed to copy kept its live src with no receipt; the property drew only set files in image blocks on one page.
 - **Cause:** The premise "the lab's file at a shown src is what the owner saw" was false twice, and its replacement was written wider than the code held it, in six places worded apart. The rule is one sentence now, the doc of `receipted` in `ask-store.ts`, and each place that states it states it word for word: An image whose src the receipt names is served only as its copy. Each file-served image of an image block or an option is copied as the ask is made, or the make is refused (`AskRefused`, naming the src). A board block's panels and a video's poster or frame show live and bind nothing. The shown route serves a copy only while it holds its hash, and the lab refuses an answer while a copy no longer does.
-- **Guard:** code: `packages/film/src/tools/receipt-rule.test.ts` `is the doc of receipted in ask-store.ts, its first three sentences`, `packages/film/src/tools/receipt-rule.test.ts` `is stated word for word in each place that states it`, `packages/film/src/tools/ask-materials.test.ts` `shows each image file as the copy it makes with the ask, by its SHA-256, which a later rewrite of the file does not move; a video's frame has none`, `packages/film/src/tools/ask-materials.test.ts` `serves each image of random asks only as the copy its receipt holds, over the receipt rule's whole domain: set files, board tries and note stills, in image blocks and options, on pages of one to three steps and asks sharing a page, their files rewritten at random; a frame, a board block and a video block show live; a file missing or failing to copy refuses the make, naming its src`, `packages/film/src/tools/ask-materials.test.ts` `refuses an answer, and serves no bytes, once a copy its page shows no longer holds its hash, and takes and serves it while the copy does`, `packages/film/src/tools/lab-mcp.test.ts` `serves an ask's image from the copy it made, after a second publish_set rewrites the set's file, and takes the answer on it`, `packages/film/src/tools/ask-store.test.ts` `keeps the receipt of its images as it makes the ask: each try's file copied by its SHA-256 and shown as the copy; a try with no file refuses the make, naming its src`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`.
+- **Guard:** code: `packages/film/src/tools/receipt-rule.test.ts` `is the doc of receipted in ask-store.ts, its first three sentences`, `packages/film/src/tools/receipt-rule.test.ts` `is stated word for word in each place that states it`, `packages/film/src/tools/ask-materials.slow.test.ts` `shows each image file as the copy it makes with the ask, by its SHA-256, which a later rewrite of the file does not move; a video's frame has none`, `packages/film/src/tools/ask-materials.slow.test.ts` `serves each image of random asks only as the copy its receipt holds, over the receipt rule's whole domain: set files, board tries and note stills, in image blocks and options, on pages of one to three steps and asks sharing a page, their files rewritten at random; a frame, a board block and a video block show live; a file missing or failing to copy refuses the make, naming its src`, `packages/film/src/tools/ask-materials.slow.test.ts` `refuses an answer, and serves no bytes, once a copy its page shows no longer holds its hash, and takes and serves it while the copy does`, `packages/film/src/tools/lab-mcp.slow.test.ts` `serves an ask's image from the copy it made, after a second publish_set rewrites the set's file, and takes the answer on it`, `packages/film/src/tools/ask-store.test.ts` `keeps the receipt of its images as it makes the ask: each try's file copied by its SHA-256 and shown as the copy; a try with no file refuses the make, naming its src`, `apps/firsttheblade/kit/approval.slow.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.slow.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`.
 
 ### shown-copy-checked-before-it-is-served
 
@@ -2932,7 +2932,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-2-findings.md F2
 - **Wrong:** After the make, a write over a copy in `asks/shown/` left `shownFile` returning it, and the shown route served those bytes as `immutable`, so a browser could keep bytes the receipt does not hold after the copy was put right.
 - **Cause:** The route trusted a copy's name to stand for its bytes; only `answerPage` hashed it. `shownFile` now reads the copy once, hashes it, and refuses a copy that no longer holds its hash before any cacheable response; the route serves the bytes it hashed.
-- **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `refuses an answer, and serves no bytes, once a copy its page shows no longer holds its hash, and takes and serves it while the copy does`.
+- **Guard:** code: `packages/film/src/tools/ask-materials.slow.test.ts` `refuses an answer, and serves no bytes, once a copy its page shows no longer holds its hash, and takes and serves it while the copy does`.
 
 ### build-walk-reads-a-data-url-built-at-run-time
 
@@ -2962,7 +2962,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-1-findings.md F2
 - **Wrong:** The random approval test put every image on the two steps its answers reached, with a receipt equal to the files, so a mutant whose `imagesShown` read every step of the ask passed it.
 - **Cause:** The generator drew from a narrower domain than the rule's: image blocks on any step, answers that reach any subset of them (with a step the ask lacks and a step twice), and a receipt that misses files and holds others. The test now draws each of those, its oracle counts only blocks on the steps it drew as reached, and its `seen` holds a refusal of a still shown only on an unreached step.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### random-approval-draws-twin-stills
 
@@ -2972,7 +2972,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-1-findings.md F5
 - **Wrong:** Each still the random test rewrote got fresh random bytes, so a `stillsNotShown` that named one path per missing hash passed it.
 - **Cause:** Two stills that share bytes were outside the generator, though the rule names each still, not each hash. The test now writes some stills as byte copies of others, and its `seen` holds a refusal that names both of two stills of one hash.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### earlier-approvals-held-by-their-saved-ask
 
@@ -2982,7 +2982,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/round-1-findings.md F1
 - **Wrong:** An earlier entry of the record with no saved ask, an answer other than approve, hashes its saved receipt lacked, or the current ask's id passed `approve`, `shippable` and `prodGate`.
 - **Cause:** `Given` checked only the shape of an earlier entry; nothing read the ask it names.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approve and shippable refuse each kept approval its saved ask does not hold: no saved ask, one of another ask, not answered approve, other files than it saved, its receipt or the steps he reached, a repeat of the current ask`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `approve and shippable refuse each kept approval its saved ask does not hold: no saved ask, one of another ask, not answered approve, other files than it saved, its receipt or the steps he reached, a repeat of the current ask`, `apps/firsttheblade/kit/approval.slow.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`.
 
 ### past-ask-fixtures-bound-per-path
 
@@ -2992,7 +2992,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/round-1-findings.md F3
 - **Wrong:** The approval tests passed with `public/og/remedies.jpg` in `kit/fixtures/ask-ab47076e90b.stills/` holding the home card's bytes.
 - **Cause:** The test checked that the fixtures' hashes were among the shown ones, not that each path held the hash its ask showed for it.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`.
 
 ### random-approval-test-has-its-own-oracle
 
@@ -3002,7 +3002,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/round-1-findings.md F4
 - **Wrong:** A defect in `stillsNotShown` would change the result and the expectation together.
 - **Cause:** The test's expectation called the code it tested.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.slow.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### build-walk-reads-every-svg-encoding
 
@@ -3042,7 +3042,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-3-findings.md F5
 - **Wrong:** No image ships inlined now, but nothing refused one: a `?inline` import, or a data URL written in a script, a stylesheet or a drawing, puts an image inside another file of `dist/`, where the build walk does not read it.
 - **Cause:** The build walk reads the built site's files, one image per file, and nothing held the site's sources to shipping each image as a file of its own.
-- **Guard:** code: `apps/firsttheblade/src/worker/respond.test.ts` `every response, of each kind the Worker sends over random paths and methods, carries a content policy that lets no picture in from anywhere but this origin, so a data URL never paints`, `packages/film/lint/config.test.ts` `refuses an inlined import (Vite's own test of it) in every module the First the Blade site serves, scripts too, and passes a URL import`. The `?inline` import is refused by the site block's `no-restricted-imports` pattern in `.oxlintrc.json`, which the config test runs; a data URL written anywhere is refused by the browser under the content policy, so `film/no-data-url` and the source scan were removed (entry `data-url-refused-by-the-browser`).
+- **Guard:** code: `apps/firsttheblade/src/worker/respond.test.ts` `every response, of each kind the Worker sends over random paths and methods, carries a content policy that lets no picture in from anywhere but this origin, so a data URL never paints`, `packages/film/lint/config.slow.test.ts` `refuses an inlined import (Vite's own test of it) in every module the First the Blade site serves, scripts too, and passes a URL import`. The `?inline` import is refused by the site block's `no-restricted-imports` pattern in `.oxlintrc.json`, which the config test runs; a data URL written anywhere is refused by the browser under the content policy, so `film/no-data-url` and the source scan were removed (entry `data-url-refused-by-the-browser`).
 
 ### built-files-hold-no-data-url
 
@@ -3052,7 +3052,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-1-findings.md F3
 - **Wrong:** A `public/rogue.js` holding `data:image/png` passed every build-walk test, a `src/x.js` passed the lint, which read only `src/**/*.{ts,tsx}`, an import `./a.png?inline=1` passed the lint's `?inline` pattern though Vite inlines it, and no test held `assetsInlineLimit: 0`, without which Vite inlines each imported image under 4 KiB.
 - **Cause:** The guards read the sources, which cannot list what the build emits, and the source scan skipped every script as linted while the lint read only the TypeScript of `src/`.
-- **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `inlines no imported asset, so each image the build emits is a file of its own`, `packages/film/lint/config.test.ts` `refuses an inlined import (Vite's own test of it) in every module the First the Blade site serves, scripts too, and passes a URL import`, `apps/firsttheblade/src/worker/respond.test.ts` `every response, of each kind the Worker sends over random paths and methods, carries a content policy that lets no picture in from anywhere but this origin, so a data URL never paints`. A data URL in a built file is refused by the browser under the content policy, not by a reader of the file's text (entry `data-url-refused-by-the-browser`).
+- **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `inlines no imported asset, so each image the build emits is a file of its own`, `packages/film/lint/config.slow.test.ts` `refuses an inlined import (Vite's own test of it) in every module the First the Blade site serves, scripts too, and passes a URL import`, `apps/firsttheblade/src/worker/respond.test.ts` `every response, of each kind the Worker sends over random paths and methods, carries a content policy that lets no picture in from anywhere but this origin, so a data URL never paints`. A data URL in a built file is refused by the browser under the content policy, not by a reader of the file's text (entry `data-url-refused-by-the-browser`).
 
 ### leaf-hold-reads-every-rule-on-its-parts
 
@@ -3132,7 +3132,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-3-findings.md F3
 - **Wrong:** The material check refused an image whose file the lab did not serve as `AskInvalid` before the receipt rule ran, so a file missing at make time and one failing to copy were refused under two tags, and the property accepted either for both.
 - **Cause:** Two checks held one rule: the material check read each image's route, and `receipted` read it again to copy it. The material check no longer reads images; `receipted` resolves every src before it copies any file, and refuses one the lab serves no file for as `AskRefused`, naming it. The property holds the tag, the src and the reason for each fault kind.
-- **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `serves each image of random asks only as the copy its receipt holds, over the receipt rule's whole domain: set files, board tries and note stills, in image blocks and options, on pages of one to three steps and asks sharing a page, their files rewritten at random; a frame, a board block and a video block show live; a file missing or failing to copy refuses the make, naming its src`.
+- **Guard:** code: `packages/film/src/tools/ask-materials.slow.test.ts` `serves each image of random asks only as the copy its receipt holds, over the receipt rule's whole domain: set files, board tries and note stills, in image blocks and options, on pages of one to three steps and asks sharing a page, their files rewritten at random; a frame, a board block and a video block show live; a file missing or failing to copy refuses the make, naming its src`.
 
 ### ask-shows-an-earlier-asks-copy
 
@@ -3142,7 +3142,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-3-findings.md F4
 - **Wrong:** An ask made from a kept ask's machine, whose images show that ask's copies (`/api/asks/<id>/shown/<sha256>.png`), was refused as serving no image, a message that sends an agent to ask again the same way.
 - **Cause:** The receipt rule read only the routes of the lab's material (set files, board tries, note stills), not an ask's copy. `receipted` now reads a copy's route through the earlier ask (`shownFile`): one its receipt names, whose bytes hold its hash, is shown again as the same copy under the new ask's route; any other is refused as `AskRefused`, naming the src.
-- **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `shows a kept ask's copy again in an ask made from its machine, as the same copy under its own route, and refuses the make, naming the src, once the copy no longer holds its hash or is no copy that ask holds`.
+- **Guard:** code: `packages/film/src/tools/ask-materials.slow.test.ts` `shows a kept ask's copy again in an ask made from its machine, as the same copy under its own route, and refuses the make, naming the src, once the copy no longer holds its hash or is no copy that ask holds`.
 
 ### hymn-manifest-leaves-out-another-config
 

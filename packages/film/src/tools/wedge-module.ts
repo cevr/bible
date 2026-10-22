@@ -2,7 +2,7 @@
 // --draw --level`): the film's module built with the palette swapped
 // (`paletteSwaps`, `wedge.ts`) and imported, so the look it does not play is
 // the one drawn. Apart from `wedge.ts` because it imports a film: the lab
-// reads `wedge.ts`, and the lab imports no film (`lab.test.ts`).
+// reads `wedge.ts`, and the lab imports no film (`lab.slow.test.ts`).
 
 import { Array as Arr, Effect, FileSystem, Option, Path } from 'effect';
 import { PagesBroken } from '../core/easel.ts';

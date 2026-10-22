@@ -30,12 +30,13 @@
     "notes": "bun cli.ts lab notes",
     "media": "bun cli.ts media",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
-    "deploy": "alchemy deploy alchemy.run.ts --stage prod",
+    "deploy": "turbo run test:slow --filter=@bible/animations && alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
     "seed-look": "bun art/seed-look.ts",
     "fill-picks": "bun productions/fill-picks.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test --parallel ./checkouts.test.ts ./rules.test.ts ./scripts.test.ts ./src/films/righteousness-by-faith/rigs && bun cli.ts drafts"
+    "test": "bun test --parallel --path-ignore-patterns='**/*.slow.test.*' ./checkouts.test.ts ./rules.test.ts ./scripts.test.ts ./src/films/righteousness-by-faith/rigs && bun cli.ts drafts",
+    "test:slow": "bun test .slow.test."
   },
   "dependencies": {
     "@bible/film": "workspace:*",

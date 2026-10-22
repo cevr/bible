@@ -1,7 +1,7 @@
 // The docs' anchor reader: which docs teach the code, each read as GitHub
 // shows it (Bun's CommonMark and GFM parser), and each path a doc writes in
 // backticks (with the symbols after it) or as a link's target. One reader for
-// the docs test (`src/docs.test.ts`: every anchor names what the tree has) and
+// the docs test (`src/docs.slow.test.ts`: every anchor names what the tree has) and
 // for a review request (`fixtures/doc-lines.ts`: every doc line that names a file the
 // diff changed), so both read a doc's anchors the same way.
 

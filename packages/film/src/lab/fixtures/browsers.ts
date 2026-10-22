@@ -91,7 +91,7 @@ const flags = Effect.runSync(
 const forever = Scope.makeUnsafe();
 
 /** The tests' site: every case's origin is under it, and the assets' origin is it. */
-const SITE = 'lab.test';
+const SITE = 'lab.slow.test';
 
 /** The origin every case loads its scripts from (`asset`). */
 const ASSETS = `https://${SITE}`;

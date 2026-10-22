@@ -1,7 +1,7 @@
 // The Bun manifest lock refuses, as a failure, what is not another writer
 // holding it: a lock file that is no database, or a lock path that cannot be
 // opened. Only a held lock is "not taken yet" (`Option.none`, tried again;
-// `content-store.test.ts` covers taking, contention and retaking).
+// `content-store.slow.test.ts` covers taking, contention and retaking).
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';

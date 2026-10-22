@@ -4,8 +4,8 @@
  * outside the rule, each with its reason (`OUTSIDE`, `./served.ts`); and each
  * still is byte-identical to the one the record pins
  * (`kit/approved-stills.json`, `./approval.ts`). The guard over what ships
- * is the build walk (`./build-walk.ts`, `./shippable.test.ts`), and over
- * what the owner saw the approval's shown files (`./approval.test.ts`).
+ * is the build walk (`./build-walk.ts`, `./shippable.slow.test.ts`), and over
+ * what the owner saw the approval's shown files (`./approval.slow.test.ts`).
  *
  * The stills as they stand match the record, and the served images are the
  * record's and the outside list's. Over a copy of the app's served folders,

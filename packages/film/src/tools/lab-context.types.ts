@@ -10,7 +10,7 @@
 // layers are built on (`LayerNeeds`): a cue write is judged fresh, never on
 // this process's first import of the film. Each line below fails the
 // typecheck if a loader joins one of the lists. A loader reached through a
-// function is no service, so `lab.test.ts` follows the lab's imports for it.
+// function is no service, so `lab.slow.test.ts` follows the lab's imports for it.
 
 import type { Layer } from 'effect';
 import type { ChoicesNeeds } from './choices.ts';

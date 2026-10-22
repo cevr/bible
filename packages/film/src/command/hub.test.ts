@@ -20,7 +20,7 @@ interface Held {
 const pageWith = (href = pageHref.studio('f', { sel: beatSelection('one') }), mac = true) => {
   const target = new EventTarget();
   const host = hostOf(
-    Layer.mergeAll(Keys.layerOn(target, mac), Clipboard.memory([], 'https://lab.test')),
+    Layer.mergeAll(Keys.layerOn(target, mac), Clipboard.memory([], 'https://lab.slow.test')),
   );
   const hub = Effect.runSyncWith(host)(makeHub('player', () => href));
   const stop = Effect.runCallbackWith(host)(hub.listen);

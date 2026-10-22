@@ -2,7 +2,7 @@
 // this module): a press at once always carries its label and its try, and a later press has
 // neither.
 
-import type { Seen } from './list.test';
+import type { Seen } from './list.slow.test';
 
 export const aPressAtOnceIsLabelled = (v: Seen) => {
   if (v.press === 'now') {

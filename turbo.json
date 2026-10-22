@@ -32,6 +32,11 @@
       "outputs": [],
       "cache": false
     },
+    "test:slow": {
+      "dependsOn": ["build", "^build"],
+      "outputs": [],
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true

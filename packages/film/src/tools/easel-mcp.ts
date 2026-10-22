@@ -18,7 +18,7 @@
 //   (`film read scenes`, which resolves no timeline: a scene that does not
 //   lay out never keeps a painter from its journal).
 //
-// The lab imports no film module (`lab.test.ts`), so whatever reads a film's
+// The lab imports no film module (`lab.slow.test.ts`), so whatever reads a film's
 // modules (its clock, its check, its scene ids) runs the film CLI fresh
 // (`FreshFilm`), as the lab's own after-write check does. Every tool takes
 // `films`, the asker's films folder, absolute and with no `..`: a lab that

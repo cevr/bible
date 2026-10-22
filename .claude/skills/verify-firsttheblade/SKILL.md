@@ -159,7 +159,7 @@ its trace: `JourneyFailed: confirm skeleton: expected … (evidence <dir>)`
 names the journey, the step and its evidence, where `<n>-failed.png` and
 `<n>-failed.aria.txt` keep the page as it stood. Their logic is tested by
 `apps/firsttheblade/scripts/verify/verify.test.ts` and
-`apps/firsttheblade/scripts/verify/instance.test.ts`.
+`apps/firsttheblade/scripts/verify/instance.slow.test.ts`.
 
 | Command                                                                                                          | What it prints                                                                                                |
 | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |

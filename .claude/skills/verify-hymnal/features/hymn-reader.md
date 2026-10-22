@@ -21,7 +21,7 @@ title and a back button to where the reader came from.
 
 - **Preconditions:** none beyond the baseline.
 - **States:** default. Focus-visible, open, loading, empty and error are n/a.
-- **Regression:** `apps/hymnal/src/reader/reader.test.tsx`.
+- **Regression:** `apps/hymnal/src/reader/reader.slow.test.tsx`.
 
 1. **Open by deep link.** `sim open hymns/100 --expect "label=Stanza 1"`. → `ok`; on iOS `detail.prompts` is 0 or 1; the snapshot holds `100`, `Great Is Thy Faithfulness`, `Stanza 1`, `Refrain`.
 2. **Scroll to the end.** `sim scroll "label=Stanza 3" down`. → `ok`; `Stanza 3` is on screen (`sim shot`).

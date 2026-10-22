@@ -8,7 +8,7 @@
 // page's own `:root` resolves it at its width and pointer. Only the tokens
 // that file declares count: a variable a page or a part declares for itself
 // is no token, so a value it carries is read as the literal it is. The
-// source guard (`style-tokens.test.ts`) reads how a value is spelled; this
+// source guard (`style-tokens.slow.test.ts`) reads how a value is spelled; this
 // reads what is drawn, so a value no rule spells (a user agent's default: a
 // `<p>`'s margin, `bold`'s 700, a native field's colour) or one built where
 // no regex looks (a computed `calc`, a style set from data) is read the same

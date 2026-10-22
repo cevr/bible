@@ -4,7 +4,7 @@
 // which interrupts it) it writes into the profile as it shuts down (as
 // Chrome writes its `Local State`), making the profile again if it is gone.
 // The other process of a test of the run folder's release
-// (`run-folder.test.ts`). Its stdin is a pipe from the test, so it ends with
+// (`run-folder.slow.test.ts`). Its stdin is a pipe from the test, so it ends with
 // the test however the test went.
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
