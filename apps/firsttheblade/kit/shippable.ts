@@ -1,9 +1,9 @@
 /**
  * `bun run kit:shippable`: exits 0 only when the record of the approved
  * stills (`kit/approved-stills.json`, `./approval.ts`) is approved, each
- * still's SHA-256 is that of a file the approving ask or an earlier approval
- * it keeps showed, and a fresh
- * `bun run build` holds no image (found by its bytes under `dist/`,
+ * approval it keeps is held by its saved ask, each still's SHA-256 is that
+ * of a file the approving ask or an earlier approval it keeps showed, and a
+ * fresh `bun run build` holds no image (found by its bytes under `dist/`,
  * `./build-walk.ts`) the record and `OUTSIDE` do not hold. It prints the lab
  * the approval was read from.
  *

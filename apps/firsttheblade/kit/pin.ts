@@ -2,12 +2,13 @@
  * `bun run kit:pin --ask <id>`: writes the record of the approved stills
  * (`kit/approved-stills.json`, `./approval.ts`) pending on that ask, from the
  * stills as they stand, keeping each earlier approval that showed a pinned
- * still's bytes, and saves the ask as the lab gives it with the hash of each
- * file it shows (`kit/fixtures/ask-<id>.json` and `.shown.json`). It refuses
- * an ask the lab does not hold (`./lab-asks.ts`). Pinning binds nothing:
- * `kit:approve` approves only the stills whose bytes an image block of that
- * ask or of a kept approval showed, so a pin to bytes no ask showed is
- * refused there, whenever it was made.
+ * still's bytes, and saves the ask as the lab gives it with its receipt, the
+ * hash of each file it shows as the lab made it (`kit/fixtures/ask-<id>.json`
+ * and `.shown.json`). It refuses an ask the lab does not hold, and one made
+ * before the lab kept receipts (`./lab-asks.ts`). Pinning binds nothing:
+ * `kit:approve` approves only the stills whose bytes the receipt holds for
+ * an image block on a step the owner reached, or a kept approval showed, so
+ * a pin to bytes no ask showed him is refused there, whenever it was made.
  *
  * Only the coordinator runs it. The kit never writes the record.
  */

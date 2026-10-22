@@ -283,14 +283,16 @@ light comes from the sun is his look, so the code does not measure it. The
 record, `kit/approved-stills.json` (`kit/approval.ts`), holds his approval
 (the lab ask that shows him each still byte for byte as an image block,
 pending until he answers, then the lab URL it was read from, his answer's
-label, his answers and the SHA-256 of each file the ask showed), the earlier
+label, his answers and the SHA-256 of each file the ask showed on the steps
+he reached, by the receipt the lab kept as it made the ask), the earlier
 approvals that still show a pinned still's bytes (an approval stays true of
 the bytes it showed, so a later ask shows only the stills that changed), and
 the SHA-256 of each still. Each ask the record names is saved beside it in
 `kit/fixtures/` (`ask-<id>.json`, the lab's record as it gave it, and
 `ask-<id>.shown.json`, the hash of each file it showed): `kit:pin` saves the
-ask it pins on and `kit:approve` saves it again answered, and
-`kit/approval.test.ts` holds the committed record to them.
+ask it pins on and `kit:approve` saves it again answered, and `kit:approve`,
+`kit:shippable` and `kit/approval.test.ts` hold each approval the record
+keeps to them.
 `kit/field-still.test.ts` refuses every served still whose bytes differ from
 the record, each the record does not name and each it names with no file,
 and an image added under any served folder or named from any module. It
@@ -301,14 +303,16 @@ record and never write it. A repainted or re-encoded still goes to the owner
 as a lab ask that shows each still byte for byte as an image block (a crop or
 a render of it is not the still): `bun run kit:pin --ask <id>` pins the
 stills as they stand, and once he answers, `bun run kit:approve --ask <id>`
-reads the ask from the lab (`kit/lab-asks.ts`), fetches and hashes each image
-block it showed, and turns the record approved only when he chose approve,
-each pinned still's SHA-256 is that of a file the ask or a kept earlier
-approval showed, and every still is the one pinned (`kit/approval.test.ts`).
+reads the ask from the lab (`kit/lab-asks.ts`) with the lab's receipt (an
+ask made before the lab kept one is refused), and turns the record approved
+only when he chose approve, each pinned still's SHA-256 is that of a file an
+image block on a step he reached or a kept earlier approval showed, and
+every still is the one pinned (`kit/approval.test.ts`).
 On stage `prod` the stack
 (`alchemy.run.ts`) runs `kit:shippable` before any resource, so every prod
-plan and deploy builds the site and refuses a pending record, a still the
-approvals' shown files do not hold, and each built image the record and
+plan and deploy builds the site and refuses a pending record, an approval
+its saved ask does not hold, a still the approvals' shown files do not hold,
+and each built image the record and
 `OUTSIDE` do not hold (`kit/shippable.test.ts`); a stage deploy does not run
 it. The
 far hills' streak lifts (`kit/field-paint.ts` `HILL_STREAKS`) were measured on

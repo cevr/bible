@@ -87,8 +87,9 @@ emblems at rest.
   "GPU stall due to ReadPixels" warning: it is the drive's, not the site's.
 - The field's still is the kit's (`bun run --cwd apps/firsttheblade kit:field`).
   Its rules: a still is approved only if its SHA-256 equals a file that an
-  image block of the approving ask showed, and that ask's `stills` answer is
-  `approve`; and every image file of the built site (`dist/`, found by its
+  image block of the approving ask showed, on a step the owner's answer
+  reached, by the receipt the lab kept as it made the ask, and that ask's
+  `stills` answer is `approve`; and every image file of the built site (`dist/`, found by its
   bytes, `apps/firsttheblade/kit/build-walk.ts`) is in the approval record
   or in a named list of images outside the rule, each with its reason
   (`apps/firsttheblade/kit/served.ts` `OUTSIDE`). The record is

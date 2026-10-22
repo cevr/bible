@@ -2762,7 +2762,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F2
 - **Wrong:** `kit:approve --ask <id> --answer <words>` wrote `approved` for an empty answer, for an ask the lab did not hold, and over stills changed after the ask, hashing the files as they stood.
 - **Cause:** The answer was typed by the agent, not read from the lab, and the approval did not compare the stills with the ones the pending record pinned.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and a shown file the lab does not serve`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.test.ts` `refuses a record not pending on the ask, and an approval already given`, `apps/firsttheblade/kit/approval.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.test.ts` `refuses a record not pending on the ask, and an approval already given`, `apps/firsttheblade/kit/approval.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
 
 ### prod-deploy-refuses-pending-stills
 
@@ -2822,7 +2822,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F1
 - **Wrong:** The record pinned five link cards (`public/og/*.jpg`) whose bytes this unit changed and that no ask showed, and `approve` turned it approved on the owner's real answer to ask adf28c17753, which showed screenshots of the page.
 - **Cause:** The premise "an approval holds when the owner's answer says approve" was false: his answer does not say which bytes he saw, and nothing read what the ask showed. The new premise: an approval binds bytes the owner was shown. Rule: "A still is approved only if its SHA-256 equals a file that an image block of the approving ask showed, and that ask's `stills` answer is `approve`."
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block showed byte for byte, naming each: one shown as a crop, one in a block of another kind`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753, whose image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `approves on the owner's real answer to ask ab47076e90b over the stills it showed byte for byte, as kept with its saved record`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask saved beside it, and with the approved asks it keeps, each saved and answered approve, every still was shown byte for byte`. `kit:approve` fetches each image block's `src` from the lab and hashes it (`apps/firsttheblade/kit/lab-asks.ts` `shownHash`).
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753 as it holds no receipt, and with its saved hashes as one, as its image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`. `kit:approve` reads the hash of each image block's file from the receipt the lab keeps as it makes the ask (`packages/film/src/tools/ask-materials.ts` `shown`).
 
 ### served-images-read-from-the-build
 
@@ -2882,7 +2882,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/follow-up-1.md F1
 - **Wrong:** The test of the owner's real answer to ask ab47076e90b pinned the stills as they stand, so the re-pin of `public/og/remedies.jpg` on ask aa434d8c292 turned it red; and the record kept one approval, so a later ask had to show every still again, the unchanged ones too.
 - **Cause:** The test read the app's current stills, not the bytes the ask showed, and the record had no place for an approval that stays true of the bytes it showed.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves on the owner's real answer to ask ab47076e90b over the stills it showed byte for byte, as kept with its saved record`, `apps/firsttheblade/kit/approval.test.ts` `an earlier approval keeps the stills unchanged since: a later ask need show only the changed still, and a still changed since no ask showed is refused`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.test.ts` `an earlier approval keeps the stills unchanged since: a later ask need show only the changed still, and a still changed since no ask showed is refused`.
 
 ### pinned-ask-saved-beside-the-record
 
@@ -2892,7 +2892,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/follow-up-1.md F2
 - **Wrong:** `kit:pin --ask aa434d8c292` wrote the record pending on an ask no file in `kit/fixtures/` held, so the committed-record test could not read it.
 - **Cause:** Saving the ask was a step done by hand, outside `pin` and `approve`.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with the hash of each file it shows, and approve saves it again as answered`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask saved beside it, and with the approved asks it keeps, each saved and answered approve, every still was shown byte for byte`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`.
 
 ### release-bundle-keeps-sdk-setup
 
@@ -2903,3 +2903,53 @@ The form of an entry, each field on its own line:
 - **Wrong:** The Release app threw "iOS SDK bindings need a native iOS build" at launch and closed; the Debug app ran.
 - **Cause:** One's `ios-runtime.native.js` connects the SDK bindings as a side effect, but One's `package.json` lists no side effect for it, so the tree-shaken Release bundle dropped the call; the Debug bundle is not tree-shaken, and no unit had built Release.
 - **Guard:** code: `apps/hymnal/vite/sdkruntime.test.ts` `with sdkRuntime, the tree-shaken bundle connects the SDK bindings`, `apps/hymnal/vite/sdkruntime.test.ts` `without it, One’s package drops the set-up, so the plugin is still needed`.
+
+### approval-counts-reached-steps-only
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "approval counts image blocks in steps the owner never reached"
+- **Source:** ftb-motion/rewrite-round-3-findings.md F1
+- **Wrong:** `imagesShown` read the image blocks of every step of the ask, so an ask whose stills sat only on a branch his answer did not take still approved them.
+- **Cause:** The reader took the ask's steps as what the page showed, but the page shows only the sections his answers reach; and the property's `held()` put its images on a step outside `answered`, so it held the defect as correct.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`.
+
+### approval-receipt-made-with-the-ask
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "\"shown\" is the bytes the lab serves at approve time, not the bytes it showed before the answer"
+- **Source:** ftb-motion/rewrite-round-3-findings.md F2
+- **Wrong:** `kit:approve` fetched each image block's file from the lab and hashed it at approve time, so a file rewritten after the answer approved bytes the owner never saw.
+- **Cause:** The premise "the lab's file at a shown src is what the owner saw" was false: the lab serves its files fresh and rewrites renders in place. The new premise: the receipt is made by the lab when it makes the ask, the SHA-256 of each image block's file, and the kit reads only it.
+- **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `keeps the SHA-256 of each image file as the ask is made, which a later rewrite does not move; a video's frame has none`, `packages/film/src/tools/ask-store.test.ts` `keeps the receipt of its images as it makes the ask: each file's SHA-256 by its src, none for a try with no file`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`.
+
+### earlier-approvals-held-by-their-saved-ask
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "`approve` and `shippable` count each earlier approval without checking it against its saved ask"
+- **Source:** ftb-remedies-emblem/round-1-findings.md F1
+- **Wrong:** An earlier entry of the record with no saved ask, an answer other than approve, hashes its saved receipt lacked, or the current ask's id passed `approve`, `shippable` and `prodGate`.
+- **Cause:** `Given` checked only the shape of an earlier entry; nothing read the ask it names.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approve and shippable refuse each kept approval its saved ask does not hold: no saved ask, one of another ask, not answered approve, other files than it saved, its receipt or the steps he reached, a repeat of the current ask`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`.
+
+### past-ask-fixtures-bound-per-path
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the past ask's still fixtures are not bound to their hashes, one path at a time"
+- **Source:** ftb-remedies-emblem/round-1-findings.md F3
+- **Wrong:** The approval tests passed with `public/og/remedies.jpg` in `kit/fixtures/ask-ab47076e90b.stills/` holding the home card's bytes.
+- **Cause:** The test checked that the fixtures' hashes were among the shown ones, not that each path held the hash its ask showed for it.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`.
+
+### random-approval-test-has-its-own-oracle
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the random approval test takes its expected refusals from `stillsNotShown`, the function under test"
+- **Source:** ftb-remedies-emblem/round-1-findings.md F4
+- **Wrong:** A defect in `stillsNotShown` would change the result and the expectation together.
+- **Cause:** The test's expectation called the code it tested.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`.

@@ -2,16 +2,18 @@
  * `bun run kit:approve --ask <id>`: turns the record of the approved stills
  * (`kit/approved-stills.json`, `./approval.ts`) from pending on that ask to
  * approved. It reads the ask from the lab (`./lab-asks.ts`): the owner's
- * answer, and each image block's `src`, fetched from the lab and hashed. It
- * refuses an ask the lab does not hold, one he has not answered, an answer
- * to the stills question that is not the approve choice, a record not
- * pending on that ask, each pinned still whose SHA-256 no image block of the
- * ask or of an earlier approval the record keeps showed, and stills other
- * than the ones the record pinned, naming each. The record keeps the ask,
- * the lab URL it read, the answer's label, the SHA-256 of each shown file,
- * and the earlier approvals that hold a still this ask did not show; the
- * ask is saved again as answered (`kit/fixtures/ask-<id>.json` and
- * `.shown.json`).
+ * answer, the steps he reached, and the lab's receipt, the SHA-256 of each
+ * image block's file as the lab made the ask. It refuses a record not
+ * pending on that ask, an earlier approval the record keeps that its saved
+ * ask does not hold, an ask the lab does not hold, one with no receipt, one
+ * he has not answered, an answer to the stills question that is not the
+ * approve choice, each pinned still whose SHA-256 no image block on a step
+ * he reached or earlier approval showed, and stills other than the ones the
+ * record pinned, naming each. The record keeps the ask, the lab URL it
+ * read, the answer's label, the SHA-256 of each file shown on the steps he
+ * reached, and the earlier approvals that hold a still this ask did not
+ * show; the ask is saved again as answered (`kit/fixtures/ask-<id>.json`
+ * and `.shown.json`).
  *
  * Only the coordinator runs it, once the owner has answered. The kit never
  * writes the record.

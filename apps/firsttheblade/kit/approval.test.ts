@@ -1,33 +1,39 @@
 /**
  * The approval binds the bytes the owner was shown. `approve` turns the
  * record approved only on an ask he answered with the approve choice, and
- * only when every pinned still's SHA-256 is that of a file an image block of
- * that ask showed (as the lab serves it); it stores the lab, his answer's
- * label and the shown files' hashes, and refuses every other case, leaving
- * the record as it was. Over a seed: random pinned stills, random shown
- * files, random answers, and a re-pin after his answer to bytes no block
- * showed. An earlier approval stays true of the bytes it showed: a later ask
- * need show only what changed. `pin` and `approve` save the ask beside the
- * record, so the record as committed and each approval it keeps are of asks
- * whose saved records showed every still. A past real answer is checked
- * against the stills it showed, kept with its saved record, not the stills as
- * they stand. Each over a copy of the app, with a stand-in lab.
+ * only when every pinned still's SHA-256 is that of a file an image block
+ * on a step his answers reached showed, by the lab's receipt (the hash of
+ * each file as the lab made the ask); it stores the lab, his answer's label
+ * and the shown files' hashes, and refuses every other case, leaving the
+ * record as it was. An ask with no receipt is refused. Over a seed: random
+ * pinned stills, random shown files, random answers, and a re-pin after his
+ * answer to bytes no block showed, each checked against a model of the
+ * record the test keeps. An earlier approval stays true of the bytes it
+ * showed: a later ask need show only what changed. `pin` and `approve` save
+ * the ask beside the record, and each approval the record keeps is held to
+ * its saved ask (`checkKept`), so the record as committed and each approval
+ * it keeps are of asks whose saved records showed every still. A past real
+ * answer is checked against the stills it showed, each kept by its path
+ * with the hash its saved ask holds for it, not the stills as they stand.
+ * Each over a copy of the app, with a stand-in lab.
  */
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer, Match, Option, Ref, Schema } from 'effect';
+import { Context, Effect, FileSystem, Layer, Match, Option, Path, Ref, Schema } from 'effect';
 
 import {
   APPROVE,
   RECORD,
   STILLS_QUESTION,
+  ApprovalUnsound,
   Approved,
+  Given,
   approve,
-  imagesShown,
+  checkKept,
   pin,
   readRecord,
   savedAsk,
-  stillsNotShown,
+  shippable,
   StillsMoved,
   StillsNotShown,
 } from './approval.ts';
@@ -39,7 +45,6 @@ import {
   AskUnknown,
   LabAsk,
   LabAsks,
-  LabUnread,
 } from './lab-asks.ts';
 import { scratchApp } from './scratch-app.ts';
 
@@ -52,15 +57,18 @@ const LAB = 'http://lab.test/';
 /**
  * The owner's real answers, as the lab records them (`GET /api/asks/<id>`),
  * each with the SHA-256 of every file its image blocks showed, by `src`, as
- * the lab served them, all kept as they were read (`savedAsk`). The tests
- * read the files and never the lab. Ask ab47076e90b showed the nine stills
- * byte for byte and prod's link cards, and the bytes it showed of each still
- * are kept by the still's path (`ask-ab47076e90b.stills/`); ask adf28c17753
- * showed screenshots of the page, and its `ask wait` lines are kept too.
+ * the lab served them, all kept as they were read (`savedAsk`). Both asks
+ * were made before the lab kept receipts, so their records hold none. The
+ * tests read the files and never the lab. Ask ab47076e90b showed the nine
+ * stills byte for byte and prod's link cards, and the bytes it showed of
+ * each still are kept by the still's path (`ask-ab47076e90b.stills/`), the
+ * file it showed at `SHOWED_SET` by the same name; ask adf28c17753 showed
+ * screenshots of the page, and its `ask wait` lines are kept too.
  */
 const SHOWED = 'ab47076e90b';
 const SHOWED_AT = '2026-10-22T01:56:06.332Z';
 const SHOWED_STILLS = `${import.meta.dir}/fixtures/ask-${SHOWED}.stills`;
+const SHOWED_SET = '/api/review/files/manna/ftb-motion-2026-10-21-approve/ship';
 const SCREENSHOTS = 'adf28c17753';
 const SCREENSHOTS_WAIT = `${import.meta.dir}/fixtures/ask-${SCREENSHOTS}.txt`;
 
@@ -81,6 +89,17 @@ const savedAt = Effect.fn('test/savedAt')(function* (app: string, ask: string) {
 
 /** An ask saved beside the committed record. */
 const saved = (ask: string) => savedAt(APP, ask);
+
+/** The ask saved beside the committed record, copied to `root`'s. */
+const copySaved = (root: string, ask: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    for (const file of Object.values(savedAsk(ask))) {
+      yield* fs.makeDirectory(path.dirname(`${root}/${file}`), { recursive: true });
+      yield* fs.copyFile(`${APP}/${file}`, `${root}/${file}`);
+    }
+  });
 
 const RecordJson = Schema.fromJsonString(Approved, { space: 2 });
 
@@ -144,10 +163,12 @@ const valueOf = (answer: AskAnswers[string]) =>
 const srcOf = (name: string) => `/api/review/files/test/${name}`;
 
 /**
- * An ask the lab holds, at `tag`, with `answers` (each given on one step at
- * `AT`), showing an image block for each `src` of `shows` over two steps, a
- * video, an image block with no file, a block of another kind for each `src`
- * of `others` (none a file it shows as an image), and its choice.
+ * An ask the lab holds, at `tag`, with `answers` (each given on its choice's
+ * step at `AT`, the step before it answered too), showing an image block for
+ * each `src` of `shows` over those two steps, a video, an image block with
+ * no file, a block of another kind for each `src` of `others` (none a file
+ * it shows as an image), its choice, and an image block for each `src` of
+ * `unreached` on a step his answers do not reach. It holds no receipt.
  */
 const held = (
   answers: AskAnswers,
@@ -155,11 +176,15 @@ const held = (
   tag: LabAsk['state']['_tag'] = 'Answered',
   id = ASK,
   others: ReadonlyArray<string> = [],
+  unreached: ReadonlyArray<string> = [],
 ): LabAsk => {
   const values = Object.entries(answers).flatMap(([question, answer]) =>
     valueOf(answer).map((value) => [question, value] as const),
   );
-  const steps = [{ step: 'approve', values: Object.fromEntries(values), at: AT }];
+  const steps = [
+    { step: 'look', values: {}, at: AT },
+    { step: 'approve', values: Object.fromEntries(values), at: AT },
+  ];
   const images = shows.map((src) => ({ kind: 'image', image: { src } }));
   const half = Math.ceil(images.length / 2);
   const look = [{ kind: 'video' }, { kind: 'image', image: {} }, ...images.slice(0, half)];
@@ -168,23 +193,46 @@ const held = (
     ...images.slice(half),
     { kind: 'choose' },
   ];
+  const branch = unreached.map((src) => ({ kind: 'image', image: { src } }));
   return {
     id,
-    ask: { steps: { look: { blocks: look }, approve: { blocks: approve }, end: {} } },
+    ask: {
+      steps: {
+        look: { blocks: look },
+        approve: { blocks: approve },
+        revise: { blocks: branch },
+        end: {},
+      },
+    },
     state: { _tag: tag, answers },
     answered: steps.filter(() => Object.keys(answers).length > 0),
   };
 };
 
-/** What the stand-in lab holds: its asks, each read and as it gives it, and the SHA-256 of each file it serves, by `src`. */
-interface Holding {
-  readonly asks: ReadonlyArray<AskRead>;
-  readonly files: Readonly<Record<string, string>>;
-}
+/** The `src` of each image block of `ask`, on any step, once each. */
+const imageSrcs = (ask: LabAsk) => [
+  ...new Set(
+    Object.values(ask.ask.steps).flatMap(({ blocks = [] }) =>
+      blocks
+        .filter(({ kind }) => kind === 'image')
+        .flatMap(({ image }) =>
+          Option.toArray(
+            Option.flatMap(Option.fromUndefinedOr(image), ({ src }) => Option.fromUndefinedOr(src)),
+          ),
+        ),
+    ),
+  ),
+];
 
-class Held extends Context.Service<Held, Ref.Ref<Holding>>()('test/HeldAsks') {}
+/** `ask` with the lab's receipt: the hash `files` gives of each file its image blocks show, as the lab made it; a `src` `files` lacks has none. */
+const withReceipt = (ask: LabAsk, files: Readonly<Record<string, string>>): LabAsk => ({
+  ...ask,
+  shown: Object.fromEntries(Object.entries(files).filter(([src]) => imageSrcs(ask).includes(src))),
+});
 
-/** A lab at `LAB` that holds the asks and serves the files `Held` gives. */
+class Held extends Context.Service<Held, Ref.Ref<ReadonlyArray<AskRead>>>()('test/HeldAsks') {}
+
+/** A lab at `LAB` that holds the asks `Held` gives. */
 const layerHeld = Layer.effect(
   LabAsks,
   Effect.gen(function* () {
@@ -193,32 +241,27 @@ const layerHeld = Layer.effect(
       url: LAB,
       read: (ask) =>
         Ref.get(holding).pipe(
-          Effect.flatMap(({ asks }) =>
+          Effect.flatMap((asks) =>
             Effect.fromOption(Option.fromUndefinedOr(asks.find(({ record }) => record.id === ask))),
           ),
           Effect.mapError(() => AskUnknown.make({ ask })),
         ),
-      shownHash: (src) =>
-        Ref.get(holding).pipe(
-          Effect.flatMap(({ files }) => Effect.fromOption(Option.fromUndefinedOr(files[src]))),
-          Effect.mapError(() => LabUnread.make({ url: LAB, reason: `${src}: status 404` })),
-        ),
     });
   }),
-).pipe(Layer.provideMerge(Layer.effect(Held, Ref.make<Holding>({ asks: [], files: {} }))));
+).pipe(Layer.provideMerge(Layer.effect(Held, Ref.make<ReadonlyArray<AskRead>>([]))));
 
-/** The stand-in lab made to hold `asks`, each read and as it gives it, and serve `files`. */
-const holdingReads = (asks: ReadonlyArray<AskRead>, files: Readonly<Record<string, string>> = {}) =>
+/** The stand-in lab made to hold `asks`, each read and as it gives it. */
+const holdingReads = (asks: ReadonlyArray<AskRead>) =>
   Effect.gen(function* () {
-    yield* Ref.set(yield* Held, { asks, files });
+    yield* Ref.set(yield* Held, asks);
   });
 
 /** An ask the lab gives as it reads it. */
 const asRead = (record: LabAsk): AskRead => ({ record, body: record });
 
-/** The stand-in lab made to hold `asks`, each given as it is read, and serve `files`. */
+/** The stand-in lab made to hold `asks`, each given as it is read, with its receipt of `files`. */
 const holding = (asks: ReadonlyArray<LabAsk>, files: Readonly<Record<string, string>> = {}) =>
-  holdingReads(asks.map(asRead), files);
+  holdingReads(asks.map((ask) => asRead(withReceipt(ask, files))));
 
 /** The files that show `stills` byte for byte, one per still, by `src`. */
 const showing = (stills: Approved['stills']) =>
@@ -283,6 +326,43 @@ const draws = (seed: number) => {
 
 const test = it.effect.layer(Layer.mergeAll(BunServices.layer, layerHeld));
 
+/** The stills `approve` names as not shown, when it refuses with `StillsNotShown`. */
+const notShownBy = (root: string, ask: string) =>
+  approve(root, ask).pipe(
+    Effect.flip,
+    Effect.map((error) =>
+      Option.map(Option.liftPredicate(error, Schema.is(StillsNotShown)), (found) => found.stills),
+    ),
+  );
+
+/** What a check gives: `ApprovalUnsound`'s ask and why, another refusal's tag, or `passes`. */
+const verdictOf = <A, E extends { readonly _tag: string }, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.match({
+      onFailure: (error) =>
+        Option.match(Option.liftPredicate(error, Schema.is(ApprovalUnsound)), {
+          onNone: () => error._tag,
+          onSome: ({ ask, why }) => `${ask} ${why}`,
+        }),
+      onSuccess: () => 'passes',
+    }),
+  );
+
+const LabAskJson = Schema.fromJsonString(LabAsk, { space: 2 });
+
+/** The lab's record of `ask` saved at `root`, rewritten as `change` gives it. */
+const resave = (root: string, ask: string, change: (record: LabAsk) => LabAsk) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const { read } = yield* savedAt(root, ask);
+    const file = `${root}/${savedAsk(ask).record}`;
+    yield* fs.writeFileString(file, yield* Schema.encodeEffect(LabAskJson)(change(read.record)));
+  });
+
+/** The record at `root`, rewritten as `change` gives it. */
+const rerecord = (root: string, change: (record: Approved) => Approved) =>
+  Effect.flatMap(readRecord(root), (record) => recordAt(root, change(record)));
+
 describe('kit:approve', () => {
   test("approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes", () =>
     Effect.gen(function* () {
@@ -305,40 +385,56 @@ describe('kit:approve', () => {
       });
     }).pipe(Effect.scoped));
 
-  test("approves on the owner's real answer to ask ab47076e90b over the stills it showed byte for byte, as kept with its saved record", () =>
+  test("refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const real = yield* saved(SHOWED);
-      expect(imagesShown(real.read.record).toSorted()).toEqual(Object.keys(real.shown).toSorted());
+      const kept = (yield* fs.readDirectory(SHOWED_STILLS, { recursive: true }))
+        .filter((entry) => /\.(jpg|png|webp)$/.test(entry))
+        .toSorted();
+      expect(kept).toHaveLength(9);
+      for (const still of kept) {
+        const hash = sha256(yield* fs.readFile(`${SHOWED_STILLS}/${still}`));
+        expect([still, hash]).toEqual([
+          still,
+          real.shown[`${SHOWED_SET}/${path.basename(still)}`] ?? 'none',
+        ]);
+      }
       const root = yield* freshApp;
-      const kept = (yield* fs.readDirectory(SHOWED_STILLS, { recursive: true })).filter((entry) =>
-        /\.(jpg|png|webp)$/.test(entry),
-      );
       yield* Effect.forEach(kept, (still) =>
         Effect.flatMap(fs.readFile(`${SHOWED_STILLS}/${still}`), (bytes) =>
           fs.writeFile(`${root}/${still}`, bytes),
         ),
       );
-      const { stills } = yield* pinOn(root, SHOWED);
-      expect(Object.keys(stills).toSorted()).toEqual(kept.toSorted());
-      yield* holdingReads([real.read], real.shown);
-      expect(yield* approvedOn(root, SHOWED)).toEqual(['approved', false]);
-      expect(yield* readRecord(root)).toEqual({
-        approval: {
-          status: 'approved',
-          ask: SHOWED,
-          lab: LAB,
-          answered: SHOWED_AT,
-          answer: 'Approve them',
-          answers: { [STILLS_QUESTION]: { kind: 'choose', value: APPROVE, label: 'Approve them' } },
-          shown: real.shown,
-        },
-        earlier: [],
-        stills,
-      });
+      yield* holdingReads([real.read]);
+      expect((yield* pin(root, SHOWED).pipe(Effect.flip))._tag).toBe('AskUnreceipted');
+      yield* rerecord(root, (record) => ({
+        ...record,
+        approval: { status: 'pending', ask: SHOWED },
+      }));
+      expect(yield* approvedOn(root, SHOWED)).toEqual(['AskUnreceipted', true]);
+      const given: Given = {
+        status: 'approved',
+        ask: SHOWED,
+        lab: LAB,
+        answered: SHOWED_AT,
+        answer: 'Approve them',
+        answers: { [STILLS_QUESTION]: { kind: 'choose', value: APPROVE, label: 'Approve them' } },
+        shown: real.shown,
+      };
+      yield* copySaved(root, SHOWED);
+      yield* rerecord(root, (record) => ({ ...record, approval: given }));
+      const { stills, earlier } = yield* pinOn(root, ASK);
+      expect(Object.keys(stills).toSorted()).toEqual(kept);
+      expect(earlier).toEqual([given]);
+      yield* holding([held(APPROVED, [], 'Answered', ASK)]);
+      expect(yield* approvedOn(root, ASK)).toEqual(['approved', false]);
+      const record = yield* readRecord(root);
+      expect([record.approval, record.earlier]).toMatchObject([{ ask: ASK, shown: {} }, [given]]);
     }).pipe(Effect.scoped));
 
-  test("refuses the owner's real answer to ask adf28c17753, whose image blocks showed screenshots of the page, not the stills, naming each still", () =>
+  test("refuses the owner's real answer to ask adf28c17753 as it holds no receipt, and with its saved hashes as one, as its image blocks showed screenshots of the page, not the stills, naming each still", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const real = yield* saved(SCREENSHOTS);
@@ -349,54 +445,56 @@ describe('kit:approve', () => {
         real.read.record.state.answers,
       );
       const { root, stills } = yield* pinnedOn(SCREENSHOTS);
-      yield* holdingReads([real.read], real.shown);
-      const refusal = yield* approve(root, SCREENSHOTS).pipe(
-        Effect.flip,
-        Effect.map((error) => Option.liftPredicate(error, Schema.is(StillsNotShown))),
-      );
-      expect(Option.map(refusal, (found) => found.stills)).toEqual(
+      yield* holdingReads([real.read]);
+      expect(yield* approvedOn(root, SCREENSHOTS)).toEqual(['AskUnreceipted', true]);
+      yield* holdingReads([{ ...real.read, record: { ...real.read.record, shown: real.shown } }]);
+      expect(yield* notShownBy(root, SCREENSHOTS)).toEqual(
         Option.some(Object.keys(stills).toSorted()),
       );
       expect((yield* readRecord(root)).approval.status).toBe('pending');
     }).pipe(Effect.scoped));
 
-  test('the committed record is pinned on an ask saved beside it, and with the approved asks it keeps, each saved and answered approve, every still was shown byte for byte', () =>
+  test('the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte', () =>
     Effect.gen(function* () {
       const { approval, earlier, stills } = yield* readRecord(APP);
-      const asks = [approval, ...earlier];
-      const reads = yield* Effect.forEach(asks, (given) =>
-        Effect.map(saved(given.ask), (real) => ({ given, real })),
+      const given = [approval].filter(Schema.is(Given));
+      yield* checkKept(APP, approval.ask, given, earlier);
+      const pending = yield* Effect.forEach(
+        [approval].filter(({ status }) => status === 'pending'),
+        ({ ask }) => saved(ask),
       );
-      for (const { given, real } of reads) {
-        expect(real.read.record.id).toBe(given.ask);
-        expect(imagesShown(real.read.record).toSorted()).toEqual(
-          Object.keys(real.shown).toSorted(),
-        );
-        if (given.status === 'pending') continue;
-        expect(given.shown).toEqual(real.shown);
-        expect(real.read.record.state._tag).not.toBe('Asking');
-        expect(real.read.record.state.answers[STILLS_QUESTION]).toMatchObject({ value: APPROVE });
+      for (const real of pending) {
+        expect(real.read.record.id).toBe(approval.ask);
+        expect(imageSrcs(real.read.record).toSorted()).toEqual(Object.keys(real.shown).toSorted());
       }
       expect(earlier.every(({ status }) => status === 'approved')).toBe(true);
-      expect(stillsNotShown(stills, ...reads.map(({ real }) => real.shown))).toEqual([]);
+      const hashes = new Set(
+        [...given, ...earlier, ...pending].flatMap(({ shown }) => Object.values(shown)),
+      );
+      expect(Object.keys(stills).filter((still) => !hashes.has(stills[still] ?? ''))).toEqual([]);
     }));
 
-  test('pin saves the ask as the lab gives it with the hash of each file it shows, and approve saves it again as answered', () =>
+  test('pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached', () =>
     Effect.gen(function* () {
       const root = yield* freshApp;
       const { stills } = yield* readRecord(root);
       const files = showing(stills);
-      const asking = held({}, Object.keys(files), 'Asking');
-      const answered = held(APPROVED, Object.keys(files));
+      const branch = srcOf('revised.png');
+      const all = { ...files, [branch]: sha256(Uint8Array.from([3])) };
+      const asking = withReceipt(held({}, Object.keys(files), 'Asking', ASK, [], [branch]), all);
+      const answered = withReceipt(
+        held(APPROVED, Object.keys(files), 'Answered', ASK, [], [branch]),
+        all,
+      );
       const asked = { ...asking, served: 'as the lab gave it' };
-      yield* holdingReads([{ record: asking, body: asked }], files);
+      yield* holdingReads([{ record: asking, body: asked }]);
       yield* pin(root, ASK);
       expect(yield* savedAt(root, ASK)).toEqual({
         read: { record: asking, body: asked },
-        shown: files,
+        shown: all,
       });
       const given = { ...answered, served: 'answered' };
-      yield* holdingReads([{ record: answered, body: given }], files);
+      yield* holdingReads([{ record: answered, body: given }]);
       expect(yield* approvedOn(root, ASK)).toEqual(['approved', false]);
       expect(yield* savedAt(root, ASK)).toEqual({
         read: { record: answered, body: given },
@@ -416,11 +514,7 @@ describe('kit:approve', () => {
       yield* holding([held(APPROVED, [srcOf('decoy.png')], 'Answered', OTHER)], {
         [srcOf('decoy.png')]: sha256(Uint8Array.from([7])),
       });
-      const refusal = yield* approve(root, OTHER).pipe(
-        Effect.flip,
-        Effect.map((error) => Option.liftPredicate(error, Schema.is(StillsNotShown))),
-      );
-      expect(Option.map(refusal, (found) => found.stills)).toEqual(Option.some([changed]));
+      expect(yield* notShownBy(root, OTHER)).toEqual(Option.some([changed]));
       const second = yield* approvedShowing(root, OTHER, showing(only(repinned.stills, [changed])));
       expect(second.earlier).toEqual([first.approval]);
       const THIRD = 'e1e2e3e4e5e';
@@ -431,11 +525,7 @@ describe('kit:approve', () => {
         [held(APPROVED, Object.keys(showing(only(third.stills, rest))), 'Answered', THIRD)],
         showing(only(third.stills, rest)),
       );
-      const unshown = yield* approve(root, THIRD).pipe(
-        Effect.flip,
-        Effect.map((error) => Option.liftPredicate(error, Schema.is(StillsNotShown))),
-      );
-      expect(Option.map(unshown, (found) => found.stills)).toEqual(Option.some([after]));
+      expect(yield* notShownBy(root, THIRD)).toEqual(Option.some([after]));
       expect((yield* readRecord(root)).approval).toEqual({ status: 'pending', ask: THIRD });
     }).pipe(Effect.scoped));
 
@@ -453,34 +543,37 @@ describe('kit:approve', () => {
       expect((yield* pinOn(root, THIRD)).earlier).toEqual([]);
     }).pipe(Effect.scoped));
 
-  test('refuses each pinned still no image block showed byte for byte, naming each: one shown as a crop, one in a block of another kind', () =>
+  test('refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach', () =>
     Effect.gen(function* () {
       const { root, stills } = yield* pinnedOn(ASK);
-      const [first = '', second = '', ...rest] = Object.keys(stills).toSorted();
+      const [first = '', second = '', third = '', ...rest] = Object.keys(stills).toSorted();
       const files = {
-        ...showing(Object.fromEntries(rest.map((still) => [still, stills[still] ?? '']))),
+        ...showing(only(stills, rest)),
         [srcOf(`crop-of-${first}`)]: sha256(new TextEncoder().encode(first)),
       };
       const board = srcOf(`board-of-${second}`);
-      yield* holding([held(APPROVED, Object.keys(files), 'Answered', ASK, [board])], {
+      const branch = srcOf(third);
+      yield* holding([held(APPROVED, Object.keys(files), 'Answered', ASK, [board], [branch])], {
         ...files,
         [board]: stills[second] ?? '',
+        [branch]: stills[third] ?? '',
       });
-      const refusal = yield* approve(root, ASK).pipe(
-        Effect.flip,
-        Effect.map((error) => Option.liftPredicate(error, Schema.is(StillsNotShown))),
-      );
-      expect(Option.map(refusal, (found) => found.stills)).toEqual(Option.some([first, second]));
+      expect(yield* notShownBy(root, ASK)).toEqual(Option.some([first, second, third]));
       expect((yield* readRecord(root)).approval.status).toBe('pending');
     }).pipe(Effect.scoped));
 
-  test('refuses an ask the lab does not hold, and a shown file the lab does not serve', () =>
+  test('refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing', () =>
     Effect.gen(function* () {
       const { root, stills } = yield* pinnedOn(ASK);
-      yield* holding([], showing(stills));
+      const [first = ''] = Object.keys(stills).toSorted();
+      yield* holding([]);
       expect(yield* approvedOn(root, ASK)).toEqual(['AskUnknown', true]);
-      yield* holding([held(APPROVED, Object.keys(showing(stills)))], {});
-      expect(yield* approvedOn(root, ASK)).toEqual(['LabUnread', true]);
+      yield* holdingReads([asRead(held(APPROVED, Object.keys(showing(stills))))]);
+      expect(yield* approvedOn(root, ASK)).toEqual(['AskUnreceipted', true]);
+      expect((yield* pin(root, ASK).pipe(Effect.flip))._tag).toBe('AskUnreceipted');
+      const { [srcOf(first)]: _, ...unreceipted } = showing(stills);
+      yield* holding([held(APPROVED, Object.keys(showing(stills)))], unreceipted);
+      expect(yield* notShownBy(root, ASK)).toEqual(Option.some([first]));
     }).pipe(Effect.scoped));
 
   test('refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice', () =>
@@ -538,11 +631,121 @@ describe('kit:approve', () => {
       expect(refusal._tag).toBe('AskUnknown');
     }).pipe(Effect.scoped));
 
+  test('approve and shippable refuse each kept approval its saved ask does not hold: no saved ask, one of another ask, not answered approve, other files than it saved, its receipt or the steps he reached, a repeat of the current ask', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const EARLY = 'e0e0e0e0e0e';
+      const { root, stills } = yield* pinnedOn(EARLY);
+      const first = yield* approvedShowing(root, EARLY, showing(stills));
+      yield* pinOn(root, ASK);
+      const [src = ''] = Object.keys(first.approval.shown);
+      const other = sha256(Uint8Array.from([9]));
+      const kase = <E, R>(ask: string, why: string, change: Effect.Effect<unknown, E, R>) =>
+        [`${ask} ${why}`, change] as const;
+      const cases = [
+        kase(EARLY, 'has no saved ask', fs.remove(`${root}/${savedAsk(EARLY).record}`)),
+        kase(
+          EARLY,
+          'has no saved ask',
+          resave(root, EARLY, (record) => ({ ...record, id: OTHER })),
+        ),
+        kase(
+          EARLY,
+          'is not answered approve in its saved ask',
+          resave(root, EARLY, (record) => ({
+            ...record,
+            state: { ...record.state, _tag: 'Asking' },
+          })),
+        ),
+        kase(
+          EARLY,
+          'is not answered approve in its saved ask',
+          resave(root, EARLY, (record) => ({
+            ...record,
+            state: {
+              ...record.state,
+              answers: { [STILLS_QUESTION]: { kind: 'choose', value: 'revise', label: 'Revise' } },
+            },
+          })),
+        ),
+        kase(
+          EARLY,
+          'shows other files than its saved ask',
+          Effect.flatMap(
+            Schema.encodeEffect(Shown)({ ...first.approval.shown, [src]: other }),
+            (text) => fs.writeFileString(`${root}/${savedAsk(EARLY).shown}`, text),
+          ),
+        ),
+        kase(
+          EARLY,
+          'shows other files than its saved ask',
+          resave(root, EARLY, (record) => ({
+            ...record,
+            shown: { ...record.shown, [src]: other },
+          })),
+        ),
+        kase(
+          EARLY,
+          'shows other files than its saved ask',
+          resave(root, EARLY, (record) => ({
+            ...record,
+            answered: record.answered.filter(({ step }) => step !== 'look'),
+          })),
+        ),
+        kase(
+          ASK,
+          'repeats the current ask',
+          rerecord(root, (record) => ({
+            ...record,
+            earlier: [...record.earlier, { ...first.approval, ask: ASK }],
+          })),
+        ),
+      ];
+      const files = [RECORD, ...Object.values(savedAsk(EARLY)), ...Object.values(savedAsk(ASK))];
+      /** `check`'s verdict after each change of `changes`, each undone after it. */
+      const verdicts = <E extends { readonly _tag: string }, R>(
+        check: Effect.Effect<unknown, E, R>,
+        changes: ReadonlyArray<readonly [string, Effect.Effect<unknown, unknown, R>]>,
+      ) =>
+        Effect.gen(function* () {
+          const found: Array<string> = [];
+          for (const [, change] of changes) {
+            const before = yield* Effect.forEach(files, (file) =>
+              Effect.option(fs.readFileString(`${root}/${file}`)),
+            );
+            yield* change;
+            found.push(yield* verdictOf(check));
+            yield* Effect.forEach(files, (file, i) =>
+              Option.match(before[i] ?? Option.none(), {
+                onNone: () => Effect.void,
+                onSome: (text) => fs.writeFileString(`${root}/${file}`, text),
+              }),
+            );
+          }
+          return found;
+        });
+      yield* holding([held(APPROVED, [], 'Answered', ASK)]);
+      expect(yield* verdicts(approve(root, ASK), cases)).toEqual(cases.map(([why]) => why));
+      expect(yield* verdictOf(approve(root, ASK))).toBe('passes');
+      const record = yield* readRecord(root);
+      expect([record.approval, record.earlier]).toMatchObject([
+        { status: 'approved', ask: ASK, shown: {} },
+        [first.approval],
+      ]);
+      const owns = kase(ASK, 'has no saved ask', fs.remove(`${root}/${savedAsk(ASK).record}`));
+      const kept = Effect.flatMap(readRecord(root), ({ approval, earlier }) =>
+        checkKept(root, approval.ask, [approval].filter(Schema.is(Given)), earlier),
+      );
+      expect(yield* verdicts(shippable(root), [...cases, owns])).toEqual(
+        [...cases, owns].map(([why]) => why),
+      );
+      expect(yield* verdictOf(kept)).toBe('passes');
+    }).pipe(Effect.scoped));
+
   test('over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown', () =>
     Effect.gen(function* () {
       const root = yield* freshApp;
       const next = draws(54);
-      const given: Array<Approved['earlier'][number]> = [];
       const real = yield* saved(SHOWED);
       const ANSWERS: ReadonlyArray<readonly [string, (answers: AskAnswers) => LabAsk['state']]> = [
         ['approve', (answers) => ({ _tag: 'Answered', answers })],
@@ -584,6 +787,29 @@ describe('kit:approve', () => {
         ],
         ['unanswered', ({ [STILLS_QUESTION]: _, ...answers }) => ({ _tag: 'Answered', answers })],
       ];
+      // The test's own model of the record: the approval it holds once given,
+      // and the earlier approvals it keeps, each given by an approve the test
+      // saw succeed, kept and dropped by the rule, not by the code under test.
+      let given = Option.none<Given>();
+      let kept: ReadonlyArray<Given> = [];
+      const pinModel = (ask: string, stills: Approved['stills']) => {
+        const pinned = new Set(Object.values(stills));
+        kept = [...Option.toArray(given), ...kept].filter(
+          (approval) =>
+            approval.ask !== ask && Object.values(approval.shown).some((hash) => pinned.has(hash)),
+        );
+        given = Option.none();
+      };
+      /** The pinned stills (sorted) whose bytes no file of `files` and no kept approval showed. */
+      const unshownOf = (stills: Approved['stills'], files: Readonly<Record<string, string>>) => {
+        const hashes = new Set([
+          ...Object.values(files),
+          ...kept.flatMap((approval) => Object.values(approval.shown)),
+        ]);
+        return Object.keys(stills)
+          .filter((still) => !hashes.has(stills[still] ?? ''))
+          .toSorted();
+      };
       const expectedOf = (answer: string, notShown: ReadonlyArray<string>) => {
         if (answer === 'approve, still asking' || answer === 'unanswered') return 'AskUnanswered';
         if (!answer.startsWith('approve')) return 'AskNotApproval';
@@ -597,14 +823,11 @@ describe('kit:approve', () => {
         const scrambled = Object.keys(before).filter(() => next() < 0.3);
         for (const still of scrambled) yield* scramble(root, still, next);
         const { stills, earlier } = yield* pinOn(root, ask);
-        const pinned = new Set(Object.values(stills));
-        for (const kept of earlier) {
-          expect(given).toContainEqual(kept);
-          expect(Object.values(kept.shown).some((hash) => pinned.has(hash))).toBe(true);
-        }
+        pinModel(ask, stills);
+        expect([i, earlier]).toEqual([i, kept]);
         const shownStills = Object.keys(stills).filter(() => next() < 0.85);
         const files = {
-          ...showing(Object.fromEntries(shownStills.map((still) => [still, stills[still] ?? '']))),
+          ...showing(only(stills, shownStills)),
           ...Object.fromEntries(
             scrambled.map((still) => [srcOf(`old/${still}`), before[still] ?? '']),
           ),
@@ -616,15 +839,15 @@ describe('kit:approve', () => {
         );
         if (Option.isNone(drawn)) return yield* Effect.die(new Error('no answer drawn'));
         const [answer, stateOf] = drawn.value;
-        const ofAsk = {
-          ...held(APPROVED, Object.keys(files), 'Answered', ask),
-          state: stateOf(APPROVED),
-        };
-        yield* holdingReads([asRead(ofAsk), real.read], { ...files, ...real.shown });
-        const hashes = new Set(Object.values(files));
-        const notShown = stillsNotShown(stills, files, ...earlier.map(({ shown }) => shown));
+        const ofAsk = withReceipt(
+          { ...held(APPROVED, Object.keys(files), 'Answered', ask), state: stateOf(APPROVED) },
+          files,
+        );
+        yield* holdingReads([asRead(ofAsk), real.read]);
+        const notShown = unshownOf(stills, files);
         const expected = expectedOf(answer, notShown);
         seen.add(expected);
+        const hashes = new Set(Object.values(files));
         if (expected === 'approved' && Object.values(stills).some((hash) => !hashes.has(hash)))
           seen.add('approved by an earlier approval');
         expect([i, answer, yield* approvedOn(root, SHOWED)]).toEqual([
@@ -637,20 +860,23 @@ describe('kit:approve', () => {
           answer,
           [expected, expected !== 'approved'],
         ]);
-        if (expected === 'StillsNotShown') {
-          const refusal = yield* approve(root, ask).pipe(
-            Effect.flip,
-            Effect.map((error) => Option.liftPredicate(error, Schema.is(StillsNotShown))),
-          );
-          expect(Option.map(refusal, (found) => found.stills)).toEqual(Option.some(notShown));
-        }
+        if (expected === 'StillsNotShown')
+          expect(yield* notShownBy(root, ask)).toEqual(Option.some(notShown));
         if (expected !== 'approved') continue;
-        const { approval } = yield* readRecord(root);
-        if (approval.status === 'approved') given.push(approval);
+        const record = yield* readRecord(root);
+        expect(record.approval).toMatchObject({ status: 'approved', ask, shown: files });
+        given = Option.liftPredicate(record.approval, Schema.is(Given));
+        const unseen = new Set(Object.values(stills).filter((hash) => !hashes.has(hash)));
+        kept = kept.filter((approval) =>
+          Object.values(approval.shown).some((hash) => unseen.has(hash)),
+        );
+        expect([i, record.earlier]).toEqual([i, kept]);
         if (next() < 0.5) continue;
         const moved = Object.keys(stills)[Math.floor(next() * Object.keys(stills).length)] ?? '';
         yield* scramble(root, moved, next);
-        yield* pin(root, ask);
+        const repinned = yield* pin(root, ask);
+        pinModel(ask, repinned.stills);
+        expect([i, repinned.earlier]).toEqual([i, kept]);
         expect([i, 'a re-pin after the answer', yield* approvedOn(root, ask)]).toEqual([
           i,
           'a re-pin after the answer',

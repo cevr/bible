@@ -1,7 +1,7 @@
 /**
  * `shippable`, the prod deploy's gate: it refuses a pending record and an
  * approval whose shown files, with its earlier approvals', do not hold every
- * still before it builds; then
+ * still before it builds, each approval's ask saved beside the record; then
  * it builds the site and refuses each built image, found by its bytes, that
  * no approved still and no image outside the rule holds. One real build of a
  * copy of the app carries the forms the source reader missed (a template
@@ -17,8 +17,17 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { parseSync } from 'vite';
 
-import { Approved, RECORD, ShipUnapproved, readRecord, shippable } from './approval.ts';
+import {
+  Approved,
+  Given,
+  RECORD,
+  ShipUnapproved,
+  readRecord,
+  savedAsk,
+  shippable,
+} from './approval.ts';
 import { builtImages } from './build-walk.ts';
+import { LabAsk } from './lab-asks.ts';
 import { scratchApp } from './scratch-app.ts';
 import { OUTSIDE } from './served.ts';
 import { prodGate } from './shippable.ts';
@@ -39,7 +48,36 @@ const COPIED = [
   'vite.config.ts',
 ];
 
-/** The record at `root` with its stills, the approval `of` gives for them, and the earlier approvals `before` gives. */
+const LabAskJson = Schema.fromJsonString(LabAsk, { space: 2 });
+const ShownJson = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
+
+/** `given`'s ask saved at `root` (`savedAsk`), as the lab gives it answered approve: one step whose image blocks show its files, with their receipt. */
+const savedFor = (root: string, given: Given) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const { record, shown } = savedAsk(given.ask);
+    const ask: LabAsk = {
+      id: given.ask,
+      ask: {
+        steps: {
+          ask: {
+            blocks: Object.keys(given.shown).map((src) => ({ kind: 'image', image: { src } })),
+          },
+        },
+      },
+      shown: given.shown,
+      state: { _tag: 'Answered', answers: given.answers },
+      answered: [{ step: 'ask', values: { stills: 'approve' }, at: given.answered }],
+    };
+    yield* fs.makeDirectory(`${root}/kit/fixtures`, { recursive: true });
+    yield* fs.writeFileString(`${root}/${record}`, yield* Schema.encodeEffect(LabAskJson)(ask));
+    yield* fs.writeFileString(
+      `${root}/${shown}`,
+      yield* Schema.encodeEffect(ShownJson)(given.shown),
+    );
+  });
+
+/** The record at `root` with its stills, the approval `of` gives for them, and the earlier approvals `before` gives, each approval's ask saved beside it. */
 const recordWith = (
   root: string,
   of: (stills: Approved['stills']) => Approved['approval'],
@@ -51,6 +89,8 @@ const recordWith = (
     const record: Approved = { approval: of(stills), earlier: before(stills), stills };
     const json = yield* Schema.encodeEffect(Schema.fromJsonString(Approved, { space: 2 }))(record);
     yield* fs.writeFileString(`${root}/${RECORD}`, `${json}\n`);
+    const given = [record.approval, ...record.earlier].filter(Schema.is(Given));
+    yield* Effect.forEach(given, (approval) => savedFor(root, approval));
   });
 
 /** The record at `root` pending on `ASK`, whatever the committed record's approval is. */

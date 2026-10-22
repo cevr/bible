@@ -1,15 +1,15 @@
 /**
  * The film lab's asks, read: the record of an ask (its steps' blocks, its
- * state, the owner's answers by question, and when he answered each step) as
- * the lab answers `GET /api/asks/<id>`, with the lab's JSON of it whole (the
- * approval saves it, `./approval.ts`), and the SHA-256 of a file an image
- * block shows, from the bytes the lab serves at the block's `src`. The live
- * layer asks the lab at `FILM_LAB_URL` (the always-on lab,
- * http://127.0.0.1:8229/, unless set), and only reads; the tests give a
- * stand-in.
+ * receipt, its state, the owner's answers by question, and when he answered
+ * each step) as the lab answers `GET /api/asks/<id>`, with the lab's JSON of
+ * it whole (the approval saves it, `./approval.ts`). The receipt is the
+ * SHA-256 of each image block's file, which the lab records when it makes
+ * the ask (`AskRecord.shown`, `packages/film/src/core/ask.ts`), so the bytes
+ * an approval binds are the ones the owner was shown before he answered,
+ * never the bytes the lab serves at the block's `src` later. The live layer
+ * asks the lab at `FILM_LAB_URL` (the always-on lab, http://127.0.0.1:8229/,
+ * unless set), and only reads; the tests give a stand-in.
  */
-import { createHash } from 'node:crypto';
-
 import { Config, Context, Effect, Layer, Schema } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
 
@@ -37,9 +37,11 @@ export const AskBlock = Schema.Struct({
 export type AskBlock = typeof AskBlock.Type;
 
 /**
- * An ask as the lab keeps it: its steps (each with the blocks it shows),
- * where it is (asking, answered at its end, or closed by an agent), his
- * answers, and each step he answered with when.
+ * An ask as the lab keeps it: its steps (each with the blocks it shows), the
+ * receipt of its image blocks' files (`src` to SHA-256, as the lab made the
+ * ask; none on an ask made before the lab kept receipts), where it is
+ * (asking, answered at its end, or closed by an agent), his answers, and
+ * each step he answered with when.
  */
 export const LabAsk = Schema.Struct({
   id: Schema.String,
@@ -49,6 +51,7 @@ export const LabAsk = Schema.Struct({
       Schema.Struct({ blocks: Schema.optionalKey(Schema.Array(AskBlock)) }),
     ),
   }),
+  shown: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   state: Schema.Struct({
     _tag: Schema.Literals(['Asking', 'Answered', 'Closed']),
     answers: AskAnswers,
@@ -72,13 +75,13 @@ export class AskUnknown extends Schema.TaggedError<AskUnknown>()('AskUnknown', {
   }
 }
 
-/** No lab answered, or it answered with no ask or shown file this checkout reads. */
+/** No lab answered, or it answered with no ask this checkout reads. */
 export class LabUnread extends Schema.TaggedError<LabUnread>()('LabUnread', {
   url: Schema.String,
   reason: Schema.String,
 }) {
   override get message() {
-    return `the lab at ${this.url} gave no ask or shown file this checkout reads (${this.reason}): start it (from apps/animations: bun run lab) or point FILM_LAB_URL at the one that holds the ask`;
+    return `the lab at ${this.url} gave no ask this checkout reads (${this.reason}): start it (from apps/animations: bun run lab) or point FILM_LAB_URL at the one that holds the ask`;
   }
 }
 
@@ -92,8 +95,6 @@ export interface LabAsksService {
   /** The lab read, as `FILM_LAB_URL` names it. */
   readonly url: string;
   readonly read: (ask: string) => Effect.Effect<AskRead, AskUnknown | LabUnread>;
-  /** The SHA-256 (hex) of the bytes the lab serves at an image block's `src`. */
-  readonly shownHash: (src: string) => Effect.Effect<string, LabUnread>;
 }
 
 export class LabAsks extends Context.Service<LabAsks, LabAsksService>()('firsttheblade/LabAsks') {}
@@ -103,7 +104,7 @@ const labUrl = Config.String('FILM_LAB_URL').pipe(Config.withDefault('http://127
 
 const readAsk = Schema.decodeUnknownEffect(LabAsk);
 
-/** The asks of the lab at `FILM_LAB_URL`, and the files they show, read over HTTP. */
+/** The asks of the lab at `FILM_LAB_URL`, read over HTTP. */
 export const layerLab = Layer.effect(
   LabAsks,
   Effect.gen(function* () {
@@ -120,17 +121,6 @@ export const layerLab = Layer.effect(
       const record = yield* readAsk(body).pipe(Effect.mapError((error) => unread(error.message)));
       return { record, body };
     });
-    const shownHash = Effect.fn('LabAsks.shownHash')(function* (src: string) {
-      const unread = (reason: string) => LabUnread.make({ url, reason: `${src}: ${reason}` });
-      const response = yield* client
-        .get(new URL(src, url))
-        .pipe(Effect.mapError((error) => unread(error.message)));
-      if (response.status !== 200) return yield* unread(`status ${response.status}`);
-      const bytes = yield* response.arrayBuffer.pipe(
-        Effect.mapError((error) => unread(error.message)),
-      );
-      return createHash('sha256').update(new Uint8Array(bytes)).digest('hex');
-    });
-    return LabAsks.of({ url, read, shownHash });
+    return LabAsks.of({ url, read });
   }),
 ).pipe(Layer.provide(FetchHttpClient.layer));
