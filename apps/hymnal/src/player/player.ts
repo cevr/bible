@@ -784,6 +784,17 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
               // the recording go keeps the place it reached.
               yield* lastLook;
               yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
+              // A read that saw the device playing with no place proved opens a pair: the read
+              // that finishes it, before the device is let go, sets the place the reader last
+              // heard (P7), for Stopped and the next Resume.
+              const opened = Option.exists(
+                held.proof.last,
+                (last) => last.status.state === 'playing' && Option.isNone(held.proof.place),
+              );
+              if (opened) {
+                yield* lastLook;
+                yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
+              }
               yield* cut;
               yield* device.stop.pipe(Effect.catchTag('PlaybackError', logged), Effect.asVoid);
               return;

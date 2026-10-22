@@ -1254,6 +1254,40 @@ describe('the player by the world: the part 7 sweep (rw r3 part 8)', () => {
   seed('an end read with no length before a lock-screen seek landed', 'web', 228);
 });
 
+// A sound pair the page finishes after it lets go sets the reader's place, for Stopped and the
+// next Resume (orchestrator, round 2 review: web 360; P7).
+describe('a pair finished after the let-go sets the place (rw r3 web 360)', () => {
+  /** The lags as drawn: 50 ms, then those `after` gives once the pause is pressed. */
+  const lags = (after: number[]) => () => after.shift() ?? 50;
+  const after = new Array<number>();
+  fixed(
+    'a load that sounds unseen in a hold, a follow and a pause told after it: Stopped and the Resume keep the place the reader heard',
+    'web',
+    { loadFor: () => 8000, lag: lags(after) },
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(1000);
+        w.hold(12_000);
+        yield* w.run(500);
+        w.press('follow');
+        yield* w.run(11_000);
+        after.push(300, 150);
+        w.press('pause');
+        expect(yield* w.until(() => tag(w) === 'Stopped' && w.stops > 0, 3000)).toBe(true);
+        const heard = Option.getOrElse(w.readerPlace, () => 0);
+        expect(heard).toBeGreaterThan(5000);
+        const at = Option.getOrElse(atOf(w.state()), () => 0) * 1000;
+        expect(Math.abs(at - heard)).toBeLessThanOrEqual(1000);
+        yield* w.run(2000);
+        w.send(Command.Resume());
+        yield* w.run(100);
+        const from = w.plays.at(-1)?.from ?? 0;
+        expect(Math.abs(from - heard)).toBeLessThanOrEqual(1000);
+      }),
+  );
+});
+
 // O2 judges the page's give-up by what the page was told (orchestrator, after r3 part 6): a
 // phone's press restarts the offline run at its tell, in the order told, never at the press.
 describe('O2 by the acts the page was told (rw r3 part 7)', () => {
