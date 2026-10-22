@@ -357,18 +357,21 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           )),
         ];
         if (absent.length > 0) return yield* AskInvalid.make({ problems: absent });
+        // The receipt of the bytes its images show, read as it is made.
+        const shown = yield* materials.shown(ask);
         return yield* making.withPermit(
           Effect.gen(function* () {
             const page = yield* pageFor(draft.by, Option.fromUndefinedOr(draft.page));
-            return yield* kept(draft, ask, deadline, page);
+            return yield* kept(draft, ask, shown, deadline, page);
           }),
         );
       });
 
-      /** `draft` kept as a new ask, its machine `ask` (its images found), on `page` (none: its own). */
+      /** `draft` kept as a new ask, its machine `ask` (its images found) and their receipt `shown`, on `page` (none: its own). */
       const kept = (
         draft: AskDraft,
         ask: Ask,
+        shown: Readonly<Record<string, string>>,
         deadline: Option.Option<Option.Option<string>>,
         page: Option.Option<AskName>,
       ) =>
@@ -406,6 +409,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
               onSome: (at) => ({ deadline: at }),
             }),
             ask,
+            shown,
             state: askStart(ask),
             answered: [],
           };

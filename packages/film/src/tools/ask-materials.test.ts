@@ -5,18 +5,23 @@
 // by the studio's own read of the beat's attempts (the one named, else the
 // take the timings name: one kept, or a staging take; a beat the film does
 // not have is refused before a file is read). Each refusal names what is
-// missing.
+// missing. A kept ask holds the receipt of its images: the SHA-256 of each
+// file an image route serves, read as it is made, which a later rewrite of
+// the file does not move; a frame of a video, and a path no route serves,
+// have none.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Boolean as Bool, Effect, Layer, Match, Option, Path, Schema } from 'effect';
 import { type Ask, AskBlock, oneQuestion } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
+import { REVIEW_FILES, labUrls } from '../core/api.ts';
 import { ReviewFileUnknown } from '../core/refusals.ts';
 import type { ReviewIndex } from '../core/review.ts';
 import { TimingsJson } from '../core/schema.ts';
 import { stagingVoice } from '../core/staging-voice.ts';
 import type { ReadBeat, StudioReading } from '../core/studio.ts';
 import { AskStore } from './ask-store.ts';
+import { sha256Hex } from './digest.ts';
 import { FilmFolder } from './film-repo.ts';
 import { Review } from './review.ts';
 import { SeriesDrafts } from './series-drafts.ts';
@@ -70,7 +75,10 @@ const index: ReviewIndex = {
   ],
 };
 
-const refs = index.folders.flatMap((f) => [...f.docs, ...f.videos].map((d) => d.ref));
+/** A still the set holds, served under the review's files route. */
+const STILL = 'p5/rbf/still.png';
+
+const refs = [...index.folders.flatMap((f) => [...f.docs, ...f.videos].map((d) => d.ref)), STILL];
 
 /** The review over that index: a ref it lists is its file; any other is unknown. */
 const review = Layer.effect(
@@ -160,11 +168,15 @@ const seeded = (timed: Timed) =>
     ['/films/f/narration/attempts/cold/attempts.json', ledger([attempt])],
     ['/films/g/narration/attempts/cold/attempts.json', ledger([attempt])],
     ['/series/talks/scripts/01-grace.md', text(TALK)],
+    [`/out/${STILL}`, text('the still as the ask is made')],
   ]);
 
-/** The asks over the lab in memory, their material read through the review above, the studio's real reads and the draft. */
-const run = <A, E>(self: Effect.Effect<A, E, AskStore>, timed: Timed = 'attempt') => {
-  const files = seeded(timed);
+/** The asks over the lab in memory (its files `files`), their material read through the review above, the studio's real reads and the draft. */
+const run = <A, E>(
+  self: Effect.Effect<A, E, AskStore>,
+  timed: Timed = 'attempt',
+  files = seeded(timed),
+) => {
   const drafts = SeriesDrafts.layer(Option.some('/series')).pipe(
     Layer.provide([storeLayer(files), memoryFileSystem(files), Path.layer]),
   );
@@ -296,5 +308,40 @@ describe('the material an ask shows', () => {
       }),
       'none',
     ),
+  );
+
+  it.effect(
+    "keeps the SHA-256 of each image file as the ask is made, which a later rewrite does not move; a video's frame has none",
+    () => {
+      const files = seeded('attempt');
+      const made = new Uint8Array(files.get(`/out/${STILL}`) ?? new Uint8Array());
+      const frame = labUrls.review.frame({ query: { ref: 'p5/rbf/cut.mp4' } });
+      const still = `${REVIEW_FILES}${STILL}`;
+      const blocks = Schema.decodeSync(Schema.Array(AskBlock))([
+        { kind: 'image', image: { src: still } },
+        { kind: 'image', image: { src: frame } },
+        {
+          kind: 'choose',
+          id: 'keep',
+          label: 'Keep it?',
+          options: [
+            { value: 'yes', label: 'Yes', recommended: true, image: { src: still } },
+            { value: 'no', label: 'No' },
+          ],
+        },
+      ]);
+      return run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const record = yield* asks.make(asked(oneQuestion(blocks)));
+          const receipt = { [still]: sha256Hex(made) };
+          expect(record.shown).toEqual(receipt);
+          files.set(`/out/${STILL}`, text('the still rewritten after'));
+          expect((yield* asks.read(record.id)).shown).toEqual(receipt);
+        }),
+        'attempt',
+        files,
+      );
+    },
   );
 });

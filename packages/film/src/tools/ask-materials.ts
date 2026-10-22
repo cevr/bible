@@ -14,7 +14,9 @@
 // file found by the read that route makes (a set's file by `Review.resolve`,
 // a board's by `BoardStore.image`, a note's still by `NotesStore.still`, a
 // video's frame by the review's index); a path no image route takes would
-// 404 on the page, so it is refused, named.
+// 404 on the page, so it is refused, named. The same read gives the ask's
+// receipt (`shown`): the SHA-256 of each file an image route serves, as the
+// ask is made, so an answer binds the bytes it was shown.
 
 import {
   Boolean as Bool,
@@ -22,6 +24,7 @@ import {
   Effect,
   FileSystem,
   Layer,
+  Match,
   Option,
   Path,
   Predicate,
@@ -43,6 +46,7 @@ import { type ReviewIndex, docAt, videoAt } from '../core/review.ts';
 import { Segment } from '../core/segment.ts';
 import { decodeComponent } from '@bible/url-state';
 import { BoardStore } from './board-store.ts';
+import { sha256OfFile } from './digest.ts';
 import type { ContentStore } from './content-store.ts';
 import type { FilmFolder } from './film-repo.ts';
 import { filmNamed } from './film-repo.ts';
@@ -70,6 +74,13 @@ interface AskMaterialsService {
   /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
   readonly problems: (ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
   /**
+   * The receipt of what `ask`'s images show (`AskRecord.shown`): each
+   * image `src` whose route serves a file, with the SHA-256 of that file's
+   * bytes now. A video's frame, and a `src` the lab serves nothing at,
+   * have none.
+   */
+  readonly shown: (ask: Ask) => Effect.Effect<Readonly<Record<string, string>>>;
+  /**
    * Why `ask`, aimed at `aimed`, may not be made as it recommends: on a
    * production, an ask that shows scenes or figures types each option's
    * outcome and each keep's subject (`untypedKeeps`), and a keep on its
@@ -81,6 +92,16 @@ interface AskMaterialsService {
    */
   readonly evidence: (aimed: Aimed, ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
 }
+
+/** What an image route serves: a file, a frame drawn from a video, or nothing. */
+type Served =
+  | { readonly _tag: 'File'; readonly file: string }
+  | { readonly _tag: 'Frame' }
+  | { readonly _tag: 'None' };
+
+const NOT_SERVED: Served = { _tag: 'None' };
+const FRAME_SERVED: Served = { _tag: 'Frame' };
+const fileServed = (file: string): Served => ({ _tag: 'File', file });
 
 /** `problem` when `wrong` holds, else nothing. */
 const problemIf = (wrong: boolean, problem: string): ReadonlyArray<string> =>
@@ -244,10 +265,12 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
       };
 
       /**
-       * Whether the lab serves an image at `src`: the read its route makes
-       * finds a file. A path no image route takes is none.
+       * What the lab serves at `src`, by the read its route makes: the file
+       * a set's, a board's or a note's image route serves (`File`), a frame
+       * the review draws from a video it lists (`Frame`), or nothing (a path
+       * no image route takes, or one whose read finds no file).
        */
-      const served = (src: string): Effect.Effect<boolean> => {
+      const servedAt = (src: string): Effect.Effect<Served> => {
         const url = new URL(src, 'http://lab.invalid');
         const filmImage = Option.flatMap(Option.fromNullishOr(FILM_IMAGE.exec(url.pathname)), (m) =>
           Option.all([
@@ -256,12 +279,18 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
             Option.flatMap(Option.fromUndefinedOr(m[3]), decoded),
           ]),
         );
-        const reads: ReadonlyArray<Option.Option<Effect.Effect<boolean, unknown>>> = [
-          Option.map(refFromUrl(src, REVIEW_FILES), (ref) => Effect.as(review.resolve(ref), true)),
+        const reads: ReadonlyArray<Option.Option<Effect.Effect<Served, unknown>>> = [
+          Option.map(refFromUrl(src, REVIEW_FILES), (ref) =>
+            Effect.map(review.resolve(ref), fileServed),
+          ),
           Option.map(filmImage, ([name, route, file]) =>
             Effect.flatMap(Effect.provideContext(filmNamed(name), films), (named) =>
               Bool.match(route === 'stills', {
-                onTrue: () => Effect.map(notes.still(named, file), Option.isSome),
+                onTrue: () =>
+                  Effect.map(
+                    notes.still(named, file),
+                    Option.match({ onNone: () => NOT_SERVED, onSome: fileServed }),
+                  ),
                 onFalse: () =>
                   Effect.flatMap(
                     Effect.fromOption(
@@ -272,7 +301,10 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
                       }),
                     ),
                     (folder) =>
-                      Effect.as(boards.image(named, file, Option.getOrUndefined(folder)), true),
+                      Effect.map(
+                        boards.image(named, file, Option.getOrUndefined(folder)),
+                        fileServed,
+                      ),
                   ),
               }),
             ),
@@ -285,28 +317,52 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
             (ref) =>
               Effect.map(
                 indexed((index) => videoAt(index, ref)),
-                Option.isSome,
+                Option.match({ onNone: (): Served => NOT_SERVED, onSome: () => FRAME_SERVED }),
               ),
           ),
         ];
         return Option.match(Option.firstSomeOf(reads), {
-          onNone: () => Effect.succeed(false),
-          onSome: (read) => Effect.orElseSucceed(read, () => false),
+          onNone: () => Effect.succeed(NOT_SERVED),
+          onSome: (read) => Effect.orElseSucceed(read, () => NOT_SERVED),
         });
       };
+
+      /** Each image `src` of `ask`, once each, in the order shown. */
+      const srcsOf = (ask: Ask) => [
+        ...new Set(
+          imagesIn(ask).flatMap((image) => Option.toArray(Option.fromUndefinedOr(image.src))),
+        ),
+      ];
+
+      /** The receipt of `src`: its file's SHA-256 when its route serves a file that reads, else none. */
+      const receiptOf = (src: string): Effect.Effect<ReadonlyArray<readonly [string, string]>> =>
+        Effect.flatMap(servedAt(src), (at) =>
+          Match.value(at).pipe(
+            Match.tag('File', ({ file }) =>
+              sha256OfFile(fs, file).pipe(
+                Effect.map((hash) => [[src, hash] as const]),
+                Effect.orElseSucceed(() => []),
+              ),
+            ),
+            Match.orElse(() => Effect.succeed([])),
+          ),
+        );
+
+      const shown = (ask: Ask) =>
+        Effect.map(Effect.forEach(srcsOf(ask), receiptOf), (each) =>
+          Object.fromEntries(each.flat()),
+        );
 
       /** Every image `ask` shows by its `src` that the lab does not serve, named. */
       const images = (ask: Ask) =>
         Effect.map(
-          Effect.forEach(
-            imagesIn(ask).flatMap((image) => Option.toArray(Option.fromUndefinedOr(image.src))),
-            (src) =>
-              Effect.map(served(src), (is) =>
-                problemIf(
-                  !is,
-                  `image ${src}: the lab serves no image there (a set's file is at the link \`set\` and \`publish_set\` answer for it, under ${REVIEW_FILES}; a board try, {board: {film, panel, try}})`,
-                ),
+          Effect.forEach(srcsOf(ask), (src) =>
+            Effect.map(servedAt(src), (at) =>
+              problemIf(
+                at._tag === 'None',
+                `image ${src}: the lab serves no image there (a set's file is at the link \`set\` and \`publish_set\` answer for it, under ${REVIEW_FILES}; a board try, {board: {film, panel, try}})`,
               ),
+            ),
           ),
           (each) => each.flat(),
         );
@@ -398,7 +454,7 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
             }),
         });
 
-      return AskMaterials.of({ problems, evidence });
+      return AskMaterials.of({ problems, shown, evidence });
     }),
   );
 }

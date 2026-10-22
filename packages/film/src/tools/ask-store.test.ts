@@ -1,6 +1,7 @@
 // The asks on disk: an ask that may not render is never kept (its problems
 // said, a board try not on its board named), a board try is found for its
-// picture; the owner answers the proof (try 7, so why, then done), a retry
+// picture, and the SHA-256 of each image file it shows is kept as it is made
+// (its receipt); the owner answers the proof (try 7, so why, then done), a retry
 // of the same answer is answered as it was and a different one refused; an
 // optional field left empty is answered skipped, and sent blank again is the
 // same answer; an ask past its deadline takes no answer; a close keeps what
@@ -47,6 +48,7 @@ import { type OwnerWord, decisionsOf } from '../core/production.ts';
 import { Segment } from '../core/segment.ts';
 import { type Laid, whyUnbacked } from '../style/override.ts';
 import { AskStore, type PicksFound, fillPicks } from './ask-store.ts';
+import { sha256Hex } from './digest.ts';
 import type { ContentStore } from './content-store.ts';
 import { ProductionStore } from './production-store.ts';
 import { labInMemory, NOTES_LAB, text } from './testing.ts';
@@ -213,6 +215,24 @@ describe('the asks on disk', () => {
         expect((yield* Effect.flip(asks.read('a9999999999')))._tag).toBe('AskUnknown');
       }),
     ),
+  );
+
+  it.effect(
+    "keeps the receipt of its images as it makes the ask: each file's SHA-256 by its src, none for a try with no file",
+    () => {
+      const seven = text('try 7 as drawn');
+      return Effect.gen(function* () {
+        const asks = yield* AskStore;
+        const made = yield* asks.make(draft(proof([1, 7])));
+        const receipt = { '/api/films/f/board/files/word.church.7.png': sha256Hex(seven) };
+        expect(made.shown).toEqual(receipt);
+        expect((yield* asks.read(made.id)).shown).toEqual(receipt);
+      }).pipe(
+        Effect.provide(
+          labInMemory(new Map([...files(), ['/films/f/board/word.church.7.png', seven]])),
+        ),
+      );
+    },
   );
 
   it.effect('keeps no ask whose choice names no set, by the rule a word is aimed by', () =>

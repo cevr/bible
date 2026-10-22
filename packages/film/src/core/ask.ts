@@ -1196,6 +1196,15 @@ export const AskRecord = Schema.Struct({
   /** ISO time after which it takes no answer. */
   deadline: Schema.optionalKey(Schema.String),
   ask: Ask,
+  /**
+   * The receipt of what its images show: each image block's `src` whose
+   * route serves a file, with the SHA-256 of that file's bytes as the ask
+   * was made (`AskMaterials.shown`), so a reader binds an answer to the
+   * bytes the owner was shown, not to what the route serves later. A
+   * video's frame is drawn from the video, so it has none. An ask kept
+   * before receipts has no `shown`.
+   */
+  shown: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   state: AskState,
   answered: Schema.Array(AskStepAnswer),
 });
