@@ -371,9 +371,9 @@ describe('the hymn page’s recording control', () => {
       });
       expect(page.device.sought).toEqual([75_000]);
       // The device still plays at the old place while its seek goes: the page
-      // waits on the seek's place.
+      // stays Playing, at the seek's place.
       page.device.now = { ...page.device.now, positionMs: 10_500 };
-      yield* page.until((player) => Player.$is('Buffering')(player) && player.at === 75);
+      yield* page.until((player) => Player.$is('Playing')(player) && player.at === 75);
       expect(bar.getAttribute('aria-valuetext')).toBe('1:15 of 2:31');
 
       // The seek lands, and the bar follows the player again.

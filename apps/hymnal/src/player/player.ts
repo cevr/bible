@@ -312,16 +312,30 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
         const failed = (track: Track) =>
           Player.Failed({ track, offline: offline(), at: placeOf(held.proof) });
         /**
+         * Whether a Playing page may keep Playing at `at`: no act came since its sound pair, or
+         * the sound that pair proved is less than the stand before `at`. No pair spans an act,
+         * so past it the page shows Buffering, as if the stand of silence ran from that sound.
+         */
+        const heardWithin = (at: number) =>
+          Option.exists(
+            held.proof.heard,
+            (it) => !it.acted || at - it.at < Duration.toMillis(stand),
+          );
+        /**
          * An act the page knows now, moving the device to `target` ms if it
-         * names one. No pair spans it, so a page that showed Playing shows
-         * Buffering until a pair after it proves sound again. It starts the
-         * wait again, so a Retry beside Buffering goes until the new wait runs out.
+         * names one. No pair spans it. A page that showed Playing keeps it
+         * while the sound proved before the act is within the stand
+         * (`heardWithin`): a seek asks for no sound, so it shows no Loading
+         * (P1). It starts the wait again, so a Retry beside Buffering goes
+         * until the new wait runs out.
          */
         const act = (target: Option.Option<number>) =>
           Effect.flatMap(now, (at) => {
             held.proof = Proof.acted(held.proof, at, target);
             const was = get.registry.get(state);
-            if (!Player.$is('Playing')(was) && !Player.$is('Buffering')(was)) return Effect.void;
+            const kept = Player.$is('Playing')(was) && heardWithin(at);
+            if (kept || (!Player.$is('Playing')(was) && !Player.$is('Buffering')(was)))
+              return Effect.void;
             return show(
               Player.Buffering({ track: was.track, at: was.at, length: was.length, retry: false }),
             );
@@ -496,6 +510,23 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             ),
           );
           const quiet = Proof.silentFor(held.proof, read);
+          /**
+           * Whether a page that showed Playing still does after `it`, which proved no sound. With
+           * no act since the sound pair, the stall rule alone turns it. While an act is pending,
+           * a place that moves on keeps it, else the stand from the sound before the act. After
+           * the landing the stall rule turns it, from the landing; but where the device showed
+           * no sound before the landing (`quiet`), the first pair after it that proves none turns
+           * it once the stand from the sound before the act has run.
+           */
+          const keptAcross = (it: Proof.Read, by: Proof.Seen) => {
+            if (!Option.exists(held.proof.heard, (heard) => heard.acted)) return true;
+            if (by === 'ahead') return true;
+            if (Option.isSome(held.proof.pending) || it.asked < held.proof.landed)
+              return heardWithin(it.asked);
+            const quietBefore = Option.exists(held.proof.heard, (heard) => heard.quiet);
+            const none = by === 'silence' || by === 'nothing';
+            return !(quietBefore && none) || heardWithin(it.asked);
+          };
           const buffering = (retry: boolean) =>
             Match.value(held.proof.sounded).pipe(
               Match.when(true, () => Player.Buffering({ track, at, length, retry })),
@@ -506,9 +537,12 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           if (quiet >= Duration.toMillis(stand))
             return buffering(quiet >= Duration.toMillis(giveUpAfter) && !offline());
           return Player.$match(was, {
-            // An act turned Playing to Buffering when the page learnt of it: a page still
-            // Playing has seen no act since its sound pair.
-            Playing: () => Player.Playing({ track, at, length }),
+            // A seek while Playing keeps Playing (P1) until `keptAcross` or the stand turns it.
+            Playing: () =>
+              Match.value(keptAcross(read, seen)).pipe(
+                Match.when(true, () => Player.Playing({ track, at, length })),
+                Match.orElse(() => buffering(false)),
+              ),
             // Under the stand the wait is under 15 s: no Retry.
             Buffering: () => buffering(false),
             Loading: () => Player.Loading({ track }),

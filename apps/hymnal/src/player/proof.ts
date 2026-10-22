@@ -37,7 +37,7 @@
  * count of reads proves anything.
  */
 
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 
 import type { Status } from './player';
 
@@ -74,12 +74,34 @@ export interface Proof {
   readonly quietFrom: Option.Option<number>;
   /** Whether this load (the latest `play`) has sounded. */
   readonly sounded: boolean;
+  /** The sound the latest sound pair of this load proved. */
+  readonly heard: Option.Option<Heard>;
   /** The reader's place, in ms: where a read with no act pending last saw the device once this load sounded, or the latest seek since. */
   readonly place: Option.Option<number>;
 }
 
-/** What a read proved: stale, its act still pending, or the pair it closed. */
-export type Seen = 'stale' | 'pending' | 'opened' | 'silence' | 'sound' | 'nothing';
+/**
+ * The sound a pair proved: `at`, an instant the device sounded at or after (the pair's first
+ * ask plus the sound the place moved by), the place it left the device at, and whether an act
+ * came since the pair.
+ */
+interface Heard {
+  readonly at: number;
+  /** The place the pair ended at, in ms. */
+  readonly place: number;
+  readonly acted: boolean;
+  /**
+   * Whether the device showed no sound since the pair and before the latest act landed: a
+   * silence run, or a read not playing at the place the sound left it (`stopped`).
+   */
+  readonly quiet: boolean;
+}
+
+/**
+ * What a read proved: stale, its act still pending (`ahead` when its place moved on from the
+ * read before it since the act: the device sounded or landed), or the pair it closed.
+ */
+export type Seen = 'stale' | 'pending' | 'ahead' | 'opened' | 'silence' | 'sound' | 'nothing';
 
 /** The proof after a read, and what the read proved. */
 export interface Proved {
@@ -97,6 +119,7 @@ export const none: Proof = {
   last: Option.none(),
   quietFrom: Option.none(),
   sounded: false,
+  heard: Option.none(),
   place: Option.none(),
 };
 
@@ -114,6 +137,11 @@ export const acted = (proof: Proof, now: number, target: Option.Option<number>):
   last: Option.none(),
   quietFrom: Option.none(),
   short: Option.none(),
+  heard: Option.map(proof.heard, (it) => ({
+    ...it,
+    acted: true,
+    quiet: it.quiet || Option.isSome(proof.quietFrom),
+  })),
   pending: Option.match(target, {
     onNone: () => Option.map(proof.pending, (it) => ({ ...it, after: Option.none<Read>() })),
     onSome: (at) => Option.some({ target: at, known: now, after: Option.none<Read>() }),
@@ -149,6 +177,15 @@ export const pairOf = (a: Read, b: Read): 'silence' | 'sound' | 'nothing' => {
   return 'nothing';
 };
 
+/**
+ * The sound a pair `a`, `b` proved: an instant the device sounded at or after (`a`'s ask plus the
+ * sound), and the place it ended at.
+ */
+const heardOf = (a: Read, b: Read) => ({
+  at: a.asked + b.status.positionMs - a.status.positionMs,
+  place: b.status.positionMs,
+});
+
 /** The pair `last`, `read` closed, and the proof after it. */
 const paired = (proof: Proof, read: Read): Proved =>
   Option.match(proof.last, {
@@ -170,6 +207,7 @@ const paired = (proof: Proof, read: Read): Proved =>
             ...next,
             quietFrom: Option.none(),
             sounded: true,
+            heard: Option.some({ ...heardOf(last, read), acted: false, quiet: false }),
             place: Option.some(read.status.positionMs),
           },
           seen: pair,
@@ -234,6 +272,45 @@ const beforeLanding = (pending: Pending, read: Read) => {
  * latest act's place, so the act may still land after an `ended` read.
  */
 export const readOf = (proof: Proof, read: Read, landable: boolean): Proved => {
+  const after = proved(proof, read, landable);
+  if (after.seen === 'stale' || !stopped(proof, read)) return after;
+  return {
+    ...after,
+    proof: {
+      ...after.proof,
+      heard: Option.map(after.proof.heard, (it) => ({ ...it, quiet: true })),
+    },
+  };
+};
+
+/**
+ * Whether `read` shows the device stopped before the latest act landed: not playing, with no
+ * act since its sound, or asked before the landing at the place the sound left it and not at the
+ * act's. A read while the act is pending may show the landing, so it tells nothing.
+ */
+const stopped = (proof: Proof, read: Read) =>
+  read.status.state !== 'playing' &&
+  read.status.state !== 'ended' &&
+  Option.match(proof.pending, {
+    onNone: () =>
+      Option.exists(
+        proof.heard,
+        (it) =>
+          !it.acted ||
+          (read.asked < proof.landed &&
+            near(read, it.place, it.at) &&
+            !Option.exists(proof.place, (place) => near(read, place, proof.known))),
+      ),
+    onSome: () => false,
+  });
+
+/** Whether `read` shows the device at `place` or past it by no more than sound since `since`. */
+const near = (read: Read, place: number, since: number) =>
+  read.status.positionMs >= place - slack &&
+  read.status.positionMs <= place + slack + (read.answered - since);
+
+/** The proof after `read`, before what `stopped` adds. */
+const proved = (proof: Proof, read: Read, landable: boolean): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
   if (read.status.state === 'ended') {
     // A second `ended` read as soon after the act shows the device before the landing too. With
@@ -275,9 +352,26 @@ export const readOf = (proof: Proof, read: Read, landable: boolean): Proved => {
     // have moved the place. Sound is never proved across it: a forward landing looks like sound.
     onSome: (pending) => {
       const quiet = Option.exists(pending.after, (after) => pairOf(after, read) === 'silence');
+      const ahead = Option.exists(
+        pending.after,
+        (after) => read.status.positionMs - after.status.positionMs > slack,
+      );
+      // A move on that no landing explains is sound: a landing puts the device at the act's place,
+      // so only a move from short of it to it or past it may be the landing.
+      const heard = Option.filter(
+        pending.after,
+        (after) =>
+          pairOf(after, read) === 'sound' &&
+          (read.status.positionMs < pending.target - slack ||
+            after.status.positionMs >= pending.target - slack),
+      );
       return {
         proof: {
           ...proof,
+          heard: Option.match(heard, {
+            onNone: () => proof.heard,
+            onSome: (after) => Option.some({ ...heardOf(after, read), acted: true, quiet: false }),
+          }),
           pending: Option.some({ ...pending, after: Option.some(read) }),
           quietFrom: Option.match(pending.after, {
             onNone: () => proof.quietFrom,
@@ -288,7 +382,10 @@ export const readOf = (proof: Proof, read: Read, landable: boolean): Proved => {
               ),
           }),
         },
-        seen: 'pending',
+        seen: Match.value(ahead).pipe(
+          Match.when(true, (): Seen => 'ahead'),
+          Match.orElse((): Seen => 'pending'),
+        ),
       };
     },
   });
@@ -330,6 +427,10 @@ export const answered = (proof: Proof, answer: Read, target: number): Answered =
     proof: {
       ...proof,
       landed: answer.answered,
+      heard: Option.map(proof.heard, (it) => ({
+        ...it,
+        quiet: it.quiet || Option.isSome(proof.quietFrom),
+      })),
       pending: Option.none(),
       last: Option.liftPredicate(answer, () => fresh),
       quietFrom: Option.none(),
