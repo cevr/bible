@@ -1,9 +1,10 @@
 /**
  * `bun run kit:pin --ask <id>`: writes the record of the approved stills
  * (`kit/approved-stills.json`, `./approval.ts`) pending on that ask, from the
- * stills as they stand: run when the ask shows them to the owner, so the
- * record pins the bytes he looks at. It refuses an ask the lab does not hold
- * (`./lab-asks.ts`).
+ * stills as they stand. It refuses an ask the lab does not hold
+ * (`./lab-asks.ts`). Pinning binds nothing: `kit:approve` approves only the
+ * stills whose bytes an image block of that ask showed, so a pin to bytes
+ * the ask did not show is refused there, whenever it was made.
  *
  * Only the coordinator runs it. The kit never writes the record.
  */
@@ -26,7 +27,9 @@ const command = Command.make(
   'kit-pin',
   {
     ask: Flag.String('ask').pipe(
-      Flag.withDescription('The lab ask that shows the owner the stills'),
+      Flag.withDescription(
+        'The lab ask whose image blocks show the owner each still byte for byte',
+      ),
     ),
   },
   pinned,

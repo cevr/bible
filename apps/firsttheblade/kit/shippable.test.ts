@@ -1,0 +1,199 @@
+/**
+ * `shippable`, the prod deploy's gate: it refuses a pending record and an
+ * approval whose shown files do not hold every still before it builds; then
+ * it builds the site and refuses each built image, found by its bytes, that
+ * no approved still and no image outside the rule holds. One real build of a
+ * copy of the app carries the forms the source reader missed (a template
+ * `new URL`, an `import.meta.glob`, a `.jfif` import, a `.jxl` under
+ * `public/`), each with bytes the owner never saw: exactly those are
+ * refused, and every other image of the build passes. On stage `prod` it
+ * runs first in the stack, so every prod deploy and plan runs it; any other
+ * stage skips it.
+ */
+import { BunServices } from '@effect/platform-bun';
+import { Stage } from 'alchemy/Stage';
+import { describe, expect, it } from 'effect-bun-test';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { parseSync } from 'vite';
+
+import { Approved, RECORD, ShipUnapproved, readRecord, shippable } from './approval.ts';
+import { builtImages } from './build-walk.ts';
+import { scratchApp } from './scratch-app.ts';
+import { OUTSIDE } from './served.ts';
+import { prodGate } from './shippable.ts';
+
+const APP = `${import.meta.dir}/..`;
+const ASK = 'a1b2c3d4e5f';
+
+/** What a copy of the app needs to build, beside its record, a link to the app's `node_modules` and the repo's `tsconfig.json` its own extends. */
+const COPIED = [
+  'src',
+  'public',
+  'scripts',
+  'package.json',
+  'tsconfig.json',
+  'turbo.json',
+  'vite.config.ts',
+];
+
+/** The record at `root` turned approved on `ASK`, its shown files those `shows` gives for its stills. */
+const approvedWith = (
+  root: string,
+  shows: (stills: Approved['stills']) => Record<string, string>,
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const { stills } = yield* readRecord(root);
+    const record: Approved = {
+      approval: {
+        status: 'approved',
+        ask: ASK,
+        lab: 'http://lab.test/',
+        answered: '2026-10-22T09:00:00.000Z',
+        answer: 'Approve them',
+        answers: { stills: { kind: 'choose', value: 'approve', label: 'Approve them' } },
+        shown: shows(stills),
+      },
+      stills,
+    };
+    const json = yield* Schema.encodeEffect(Schema.fromJsonString(Approved, { space: 2 }))(record);
+    yield* fs.writeFileString(`${root}/${RECORD}`, `${json}\n`);
+  });
+
+const shownAll = (stills: Approved['stills']) =>
+  Object.fromEntries(Object.entries(stills).map(([still, hash]) => [`/files/${still}`, hash]));
+
+const tagOf = <A, E extends { readonly _tag: string }, R>(effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(Effect.match({ onFailure: (error) => error._tag, onSuccess: () => 'shippable' }));
+
+/** A seeded draw in [0, 1). */
+const draws = (seed: number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+};
+
+const tail = (next: () => number) => Array.from({ length: 96 }, () => Math.floor(next() * 256));
+const ascii = (text: string) => Array.from(text, (character) => character.charCodeAt(0));
+
+const Scripts = Schema.fromJsonString(
+  Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) }),
+);
+
+const test = it.effect.layer(BunServices.layer);
+
+describe('kit:shippable', () => {
+  test('refuses a pending record, and an approval whose shown files lack a still, before it builds', () =>
+    Effect.gen(function* () {
+      const root = yield* scratchApp(APP);
+      expect(yield* tagOf(shippable(root))).toBe('ShipPending');
+      yield* approvedWith(root, (stills) => {
+        const { 'src/art/field-768.webp': _, ...rest } = stills;
+        return shownAll(rest);
+      });
+      expect(yield* tagOf(shippable(root))).toBe('StillsNotShown');
+    }).pipe(Effect.scoped));
+
+  test('runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const root = yield* scratchApp(APP);
+      const skipped = yield* prodGate(root).pipe(Effect.provideService(Stage, 'agent-motion'));
+      expect(skipped).toEqual(Option.none());
+      expect(yield* tagOf(prodGate(root).pipe(Effect.provideService(Stage, 'prod')))).toBe(
+        'ShipPending',
+      );
+      const stack = yield* fs.readFileString(`${APP}/alchemy.run.ts`);
+      const { program } = parseSync('alchemy.run.ts', stack);
+      const first = program.body.flatMap((statement) => {
+        if (statement.type !== 'ExportDefaultDeclaration') return [];
+        const call = statement.declaration;
+        if (call.type !== 'CallExpression') return [];
+        const gen = call.arguments[2];
+        if (gen?.type !== 'CallExpression') return [];
+        const body = gen.arguments[0];
+        if (body?.type !== 'FunctionExpression') return [];
+        return Option.toArray(Option.fromNullOr(body.body)).flatMap(({ body: statements }) =>
+          statements.slice(0, 1).map((node) => stack.slice(node.start, node.end)),
+        );
+      });
+      expect(first).toEqual(['yield* prodGate(import.meta.dir).pipe(Effect.orDie);']);
+      const { scripts } = yield* Schema.decodeEffect(Scripts)(
+        yield* fs.readFileString(`${APP}/package.json`),
+      );
+      expect(scripts['deploy']).toBe('alchemy deploy alchemy.run.ts --stage prod');
+      expect(scripts['plan']).toBe('alchemy plan alchemy.run.ts --stage prod');
+    }).pipe(Effect.scoped));
+
+  test('builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const repo = yield* fs.makeTempDirectoryScoped({ prefix: 'ftb-ship-' });
+      const root = path.join(repo, 'apps', 'firsttheblade');
+      yield* fs.makeDirectory(root, { recursive: true });
+      yield* fs.copyFile(
+        path.join(APP, '..', '..', 'tsconfig.json'),
+        path.join(repo, 'tsconfig.json'),
+      );
+      yield* Effect.forEach(
+        COPIED,
+        (entry) => fs.copy(path.join(APP, entry), path.join(root, entry)),
+        { concurrency: COPIED.length },
+      );
+      yield* fs.symlink(path.join(APP, 'node_modules'), path.join(root, 'node_modules'));
+      yield* fs.makeDirectory(path.join(root, 'kit'));
+      yield* fs.copyFile(path.join(APP, RECORD), path.join(root, RECORD));
+      yield* approvedWith(root, shownAll);
+      const next = draws(59);
+      const webp = Uint8Array.from([
+        ...ascii('RIFF'),
+        100,
+        0,
+        0,
+        0,
+        ...ascii('WEBPVP8 '),
+        ...tail(next),
+      ]);
+      const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, ...tail(next)]);
+      const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, ...tail(next)]);
+      const jxl = Uint8Array.from([0xff, 0x0a, ...tail(next)]);
+      yield* fs.makeDirectory(path.join(root, 'assets', 'glob'), { recursive: true });
+      yield* fs.writeFile(path.join(root, 'assets', 'sky-template.webp'), webp);
+      yield* fs.writeFile(path.join(root, 'assets', 'glob', 'sky-glob.webp'), png);
+      yield* fs.writeFile(path.join(root, 'src', 'art', 'sky-768.jfif'), jpeg);
+      yield* fs.writeFile(path.join(root, 'public', 'field-hero.jxl'), jxl);
+      const scene = path.join(root, 'src', 'motion', 'scene.ts');
+      yield* fs.writeFileString(
+        scene,
+        [
+          yield* fs.readFileString(scene),
+          'export const skyTemplate = new URL(`../../assets/sky-template.webp`, import.meta.url);',
+          "export const skyGlob = import.meta.glob('../../assets/glob/*.webp', { eager: true, query: '?url', import: 'default' });",
+          "import skyJfif from '../art/sky-768.jfif';",
+          'export { skyJfif };',
+          '',
+        ].join('\n'),
+      );
+      const refusal = yield* shippable(root).pipe(
+        Effect.flip,
+        Effect.map((error) => Option.liftPredicate(error, Schema.is(ShipUnapproved))),
+      );
+      const images = Option.map(refusal, (found) =>
+        found.images.map(({ image, format }) => `${image.replace(/-[\w-]{8}\./, '-#.')} ${format}`),
+      );
+      expect(images).toEqual(
+        Option.some([
+          'assets/sky-768-#.jfif jpeg',
+          'assets/sky-glob-#.webp png',
+          'assets/sky-template-#.webp webp',
+          'field-hero.jxl jpeg xl',
+        ]),
+      );
+      const { stills } = yield* readRecord(root);
+      const built = yield* builtImages(path.join(root, 'dist'));
+      expect(built.length).toBe(Object.keys(stills).length + OUTSIDE.length + 4);
+    }).pipe(Effect.scoped));
+});

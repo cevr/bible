@@ -4,7 +4,7 @@ import { Effect, FileSystem } from 'effect';
 import { it } from 'effect-bun-test';
 import sharp from 'sharp';
 
-import { sha256 } from './approval.ts';
+import { sha256 } from './build-walk.ts';
 import {
   HILL_STREAKS,
   type Pixels,

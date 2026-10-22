@@ -1,0 +1,143 @@
+{
+  "id": "ab47076e90b",
+  "title": "First the Blade: approve every still the site will ship",
+  "why": "The motion work also redrew the five link cards (the picture a shared link shows), and you have not seen them. Prod's cards still have the old top-left rays; the new ones take the light from the sun, like the hero you approved. The approval record will pin these exact files; nothing else can ship. The remedies card gets the healing leaf in the next unit, with its own ask.",
+  "by": "ftb-motion coordinator",
+  "created": "2026-10-22T01:52:26.078Z",
+  "ask": {
+    "start": "ask",
+    "steps": {
+      "ask": {
+        "blocks": [
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/home.jpg",
+              "caption": "Link card, new: home"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/prod/home.jpg",
+              "caption": "Link card, prod now: home (old rays at top left)"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/path.jpg",
+              "caption": "Link card, new: The Path of the Just"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/land.jpg",
+              "caption": "Link card, new: Dwell in the Land"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/taught.jpg",
+              "caption": "Link card, new: Taught of the Lord"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/remedies.jpg",
+              "caption": "Link card, new: The True Remedies (old emblem; the leaf comes next unit)"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/field-3072.webp",
+              "caption": "Hero field 3072 (the one you approved in the last ask)"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/field-1536.webp",
+              "caption": "Hero field 1536"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/field-768.webp",
+              "caption": "Hero field 768"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-approve/ship/field-wind.png",
+              "caption": "The wind map: a data texture the shader reads, never shown as a picture"
+            }
+          },
+          {
+            "kind": "choose",
+            "id": "stills",
+            "label": "Ship these stills?",
+            "options": [
+              {
+                "value": "approve",
+                "label": "Approve them",
+                "recommended": true,
+                "why": "The cards are stills of the field you approved, with the light from the sun."
+              },
+              {
+                "value": "keep_prod_cards",
+                "label": "Keep prod's link cards; approve the field only"
+              },
+              {
+                "value": "revise",
+                "label": "Revise"
+              }
+            ]
+          },
+          {
+            "kind": "free_text",
+            "id": "stills_note",
+            "label": "What to change"
+          }
+        ],
+        "next": [
+          {
+            "to": "done"
+          }
+        ]
+      },
+      "done": {
+        "end": true
+      }
+    }
+  },
+  "state": {
+    "_tag": "Answered",
+    "step": "done",
+    "answers": {
+      "stills": {
+        "kind": "choose",
+        "value": "approve",
+        "label": "Approve them"
+      },
+      "stills_note": {
+        "kind": "skipped"
+      }
+    }
+  },
+  "answered": [
+    {
+      "step": "ask",
+      "values": {
+        "stills": "approve"
+      },
+      "at": "2026-10-22T01:56:06.332Z"
+    }
+  ]
+}
