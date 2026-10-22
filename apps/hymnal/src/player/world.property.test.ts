@@ -1720,3 +1720,276 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         }),
     );
 });
+
+// Each oracle change of round 3 that narrows a duty leaves a wrong page red (rewrite/r3/
+// attacks.md): the test body asks the seam as a wrong page would, or keeps the page from a tell
+// or a read it needs, in a world the change judges.
+describe('a wrong page the oracle changes could excuse stays red (rw r3 attacks)', () => {
+  const rules = (w: World) => w.breaches.map((it) => it.rule);
+  const resumed = 'O6 a Resume played from another place';
+  /** A play from `from` ms, asked as a wrong page would. */
+  const wrongPlay = (w: World, from: number) =>
+    Effect.gen(function* () {
+      yield* Effect.forkChild(Effect.ignore(w.playback.play('wrong', from)));
+      yield* w.run(1000);
+    });
+  /** A Resume, its play asked first from `from` ms as a wrong page would. */
+  const wrongResume = (w: World, from: number) =>
+    Effect.gen(function* () {
+      w.send(Command.Resume());
+      yield* wrongPlay(w, from);
+    });
+  /** Pause, a Resume from Paused (which asks no play), `between`, then a wrong page's play. */
+  const pausedThenWrong = (w: World, from: number, between: Effect.Effect<void> = Effect.void) =>
+    Effect.gen(function* () {
+      w.send(Command.Pause());
+      yield* w.run(1000);
+      const plays = w.plays.length;
+      w.send(Command.Resume());
+      yield* w.run(1000);
+      yield* between;
+      expect(w.plays.length).toBe(plays);
+      expect(rules(w)).toEqual([]);
+      yield* wrongPlay(w, from);
+    });
+
+  // a982803c9 (r2 M1): the excuse for sound unseen in a hold lasts to its time bound, with no
+  // pair to end it. Past the bound, the place before that sound is no place to play from.
+  fixed(
+    'a982803c9: sound unseen in a hold, past its time bound: a play from the place before it breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playing(w);
+        yield* w.run(5000);
+        w.hold(3000);
+        yield* w.run(step);
+        const before = Option.getOrThrow(w.unseenFrom);
+        yield* w.run(3000 + 3 * cadence);
+        expect(w.unseenFrom).toEqual(Option.none());
+        yield* pausedThenWrong(w, before);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 4b66e1b55 (r2 m4): O5 judges a Retry early only once a read saw the new silence. A dry spell
+  // every read samples from its start still holds a page that offers Retry before 15 s: under
+  // mutant `retry-early` (Retry at 12 s) this world breaks O5.
+  fixed(
+    '4b66e1b55: a dry spell online that the reads sample from its start: Retry, and none early',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        w.stall(40_000);
+        expect(yield* w.until(() => retry(w), 30_000)).toBe(true);
+      }),
+  );
+
+  // 3c2765a9e (r2 M6): a seek after the end keeps the end from resetting the place. A seek before
+  // the end does not: after the end a read heard, the place is 0:00, and a play from the end
+  // breaks O6.
+  fixed(
+    '3c2765a9e: a seek to 3:50, then the end a read heard: a play from the end breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 230);
+        expect(yield* w.until(() => tag(w) === 'Ended', 15_000)).toBe(true);
+        yield* w.run(1000);
+        yield* wrongResume(w, 240_000);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 74aaad4de: a seek's answer that says `ended` samples the end, as a read's does. With no read
+  // after the seek, that answer alone tells the end: the seek past the end is no place to play
+  // from after it; the end's 0:00 is.
+  fixed(
+    '74aaad4de: a page seek past the end answered ended, no read after it: a play from the end breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        Object.assign(w.audio, { getPlaybackStatus: () => Effect.runPromise(Effect.never) });
+        w.send(Command.Seek({ seconds: 250 }));
+        expect(yield* w.until(() => w.phase === 'ended', 5000)).toBe(true);
+        yield* w.run(1000);
+        yield* wrongResume(w, 240_000);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 42eddb106: a failed device never ends. A device that failed, played again and ran to its
+  // end still owes Ended: here the page reads nothing after the replay sounds.
+  fixed(
+    '42eddb106: a failure, a Resume, then the end with no read: Ended owed',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 200);
+        w.fail();
+        expect(yield* w.until(() => tag(w) === 'Failed', 5000)).toBe(true);
+        w.send(Command.Resume());
+        expect(yield* w.until(() => tag(w) === 'Playing', 10_000)).toBe(true);
+        Object.assign(w.audio, { getPlaybackStatus: () => Effect.runPromise(Effect.never) });
+        expect(yield* w.until(() => w.phase === 'ended', 60_000)).toBe(true);
+        yield* w.run(2 * cadence);
+        expect(rules(w)).toContain('O8 Ended owed');
+      }),
+    { judged: false },
+  );
+
+  // 42eddb106: presses order by act counts. A page Seek sent after a press's tell is the
+  // reader's latest word: a play from the press's place breaks O6.
+  fixed(
+    "42eddb106: a lock-screen seek told, then a page Seek: a play from the press's place breaks O6",
+    'android',
+    { tellAfter: () => 300 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        w.press('seek', 120_000);
+        yield* w.run(1000);
+        w.send(Command.Seek({ seconds: 30 }));
+        yield* w.run(2000);
+        yield* pausedThenWrong(w, 120_000);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 42eddb106: a seek after a Resume, before its play, is a place the play may go to. A place
+  // neither the Resume nor the seek asked is not.
+  fixed(
+    '42eddb106: a Resume, then a page Seek: a play from a third place breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        yield* pausedThenWrong(
+          w,
+          50_000,
+          Effect.gen(function* () {
+            w.send(Command.Seek({ seconds: 100 }));
+            yield* w.run(1000);
+          }),
+        );
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 42eddb106: an end resets the place only for a seek at or before it. A seek after the end is
+  // the reader's place: a play from 0:00 breaks O6.
+  fixed(
+    '42eddb106: the end a read heard, then a page Seek to 1:40: a play from 0:00 breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 230);
+        expect(yield* w.until(() => tag(w) === 'Ended', 15_000)).toBe(true);
+        yield* w.run(1000);
+        w.send(Command.Seek({ seconds: 100 }));
+        yield* w.run(2000);
+        yield* wrongResume(w, 0);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 42eddb106: a play from 0:00 is the reader's only for a place at the length. Short of it,
+  // a play from 0:00 breaks O6.
+  fixed(
+    '42eddb106: paused 4 s before the end: a play from 0:00 breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 234);
+        yield* pausedThenWrong(w, 0);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // bafd83ab0: an end counts only when the page asked its answer after its last stop. A stop of
+  // an earlier load keeps nothing: after the end a read heard, the place is 0:00, and a play from
+  // the end breaks O6.
+  fixed(
+    'bafd83ab0: a stop, a new load, a seek to 3:50 and the end: a play from the end breaks O6',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(200);
+        w.send(Command.Pause());
+        expect(yield* w.until(() => tag(w) === 'Stopped' && w.stops > 0, 3000)).toBe(true);
+        w.send(Command.Resume());
+        expect(yield* w.until(() => tag(w) === 'Playing', 10_000)).toBe(true);
+        w.send(Command.Seek({ seconds: 230 }));
+        expect(yield* w.until(() => tag(w) === 'Ended', 15_000)).toBe(true);
+        yield* w.run(1000);
+        yield* wrongResume(w, 240_000);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+
+  // 56566c03d (ios 949): a seek's own answer that says `ended` is the device's word until the
+  // next act. A lock-screen play after it, which the page never hears, ends it: Ended shown on
+  // breaks O8.
+  fixed(
+    '56566c03d: a seek past the end answered ended, then a lock-screen play the page misses: Ended breaks O8',
+    'ios',
+    {},
+    (w) =>
+      Effect.gen(function* () {
+        yield* playingAt(w, 60);
+        w.send(Command.Seek({ seconds: 250 }));
+        expect(yield* w.until(() => tag(w) === 'Ended', 5000)).toBe(true);
+        yield* w.run(1000);
+        const listeners = w.remoteListeners.splice(0);
+        w.press('play');
+        yield* w.run(3000);
+        w.remoteListeners.push(...listeners);
+        expect(tag(w)).toBe('Ended');
+        expect(rules(w)).toContain('O8 Ended, not ended');
+      }),
+    { judged: false },
+  );
+
+  // 56566c03d (android 1449): before a press is told, the place before sound unseen in a hold is
+  // one the page may keep. Once told, the press's place is the reader's: a play from the place
+  // before the unseen sound breaks O6.
+  fixed(
+    '56566c03d: sound unseen in a hold, a lock-screen seek told after it: a play from the place before the sound breaks O6',
+    'android',
+    { tellAfter: () => 3000 },
+    (w) =>
+      Effect.gen(function* () {
+        yield* playing(w);
+        yield* w.run(5000);
+        w.hold(3000);
+        yield* w.run(step);
+        const before = Option.getOrThrow(w.unseenFrom);
+        yield* w.run(1000);
+        w.press('seek', 100_000);
+        yield* w.run(5000);
+        yield* pausedThenWrong(w, before);
+        expect(rules(w)).toContain(resumed);
+      }),
+    { judged: false },
+  );
+});

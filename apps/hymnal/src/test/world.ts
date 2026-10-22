@@ -126,6 +126,8 @@ interface Read {
   readonly sampleAt: number;
   readonly dueAt: number;
   seen: Option.Option<Status>;
+  /** The end the device had when this read sampled `ended`: the engine dates an end at its step's close. */
+  endSeen: number;
   readonly answer: (status: Status) => void;
 }
 
@@ -565,9 +567,10 @@ export const makeWorld = (
       w.seekAsk = Option.none();
       const status = said();
       const at = w.t;
+      const endSeen = w.endedAt;
       const answer = (ask: typeof it) => () => {
         if (status.state === 'ended') {
-          w.endedSampled = Math.max(w.endedSampled, at);
+          w.endedSampled = Math.max(w.endedSampled, at, endSeen);
           w.endedAsked = ask.asked;
           // A seek's answer is the device's word, as a read's is (Decided 12).
           if (ask.acts === w.acts) w.endedSaid = true;
@@ -692,6 +695,7 @@ export const makeWorld = (
           sampleAt: w.t + Math.floor((lag * knobs.sample()) / step) * step,
           dueAt: w.t + lag,
           seen: Option.none(),
+          endSeen: Number.NEGATIVE_INFINITY,
           answer: resolve,
         });
         count('D7 read');
@@ -1285,7 +1289,7 @@ export const makeWorld = (
       if (seen.state === 'ended' && current) w.endedSaid = true;
       // The page knows an end once it has the read.
       if (seen.state === 'ended') {
-        w.endedSampled = Math.max(w.endedSampled, read.sampleAt);
+        w.endedSampled = Math.max(w.endedSampled, read.sampleAt, read.endSeen);
         w.endedAsked = read.asked;
       }
       if (seen.state === 'ended' && settled() && current) w.endedSeen = true;
@@ -1537,6 +1541,7 @@ export const makeWorld = (
         read.seen = Option.some(said());
         w.lastSampleAt = w.t;
         if (said().state !== 'ended') continue;
+        read.endSeen = w.endedAt;
         // A read of `ended` lands every act (Terms): a seek asked before this sample is done,
         // when the device ended after it. O7 still owes a seek asked of a device already ended.
         Option.map(w.target, (it) => {
