@@ -351,7 +351,9 @@ export const wordlessLine = (line: string) =>
  *   printing a word otherwise than the row (an Amen the row leaves out): the
  *   row keeps its words and layout and waits on the owner, the hymn
  *   `unsettled` (a ruling that settles shape lines only, with no site). It
- *   may rest on one judge: the owner decides it;
+ *   may rest on one judge: the owner decides it, and his `answer` names
+ *   which the row keeps (the source's, and the ruling still settles its
+ *   lines; or the page's, and it settles none);
  * - `unreadable`: the crop does not show the words clearly enough to say;
  * - `owner`: words a judge saw the crop print but would not transcribe
  *   (copyright), copied by the owner from his own book at that place: read
@@ -427,8 +429,30 @@ const Ruling = Schema.Struct({
    * that changes after the ruling leaves it naming other mutations (stale).
    */
   layout: Schema.optionalKey(Schema.String),
+  /**
+   * The owner's answer to a `disputed` ruling: which of the two the row
+   * keeps. `source`: the row keeps its words and layout, and the ruling
+   * still settles its lines. `page`: the row follows the page (its printed
+   * source redivided), the ruling settles no line, and it stays as the
+   * record of the place, its crops and its judge. Either way the hymn takes
+   * the state its words give.
+   */
+  answer: Schema.optionalKey(
+    Schema.Struct({
+      by: Schema.Literal('owner'),
+      on: Schema.String,
+      keeps: Schema.Literals(['page', 'source']),
+      quote: Schema.String,
+    }),
+  ),
 });
 export type Ruling = typeof Ruling.Type;
+
+/** Whether a ruling is a dispute the owner has not answered: its hymn waits on him. */
+const awaitsOwner = (ruling: Ruling) => ruling.kind === 'disputed' && ruling.answer === undefined;
+
+/** Whether the owner answered a ruling's dispute for the page: the row follows the page there. */
+const keepsPage = (ruling: Ruling) => ruling.kind === 'disputed' && ruling.answer?.keeps === 'page';
 
 const RulingsFile = Schema.Struct({ number: Schema.Int, rulings: Schema.Array(Ruling) });
 const decodeRulings = Schema.decodeEffect(Schema.fromJsonString(RulingsFile));
@@ -2543,7 +2567,7 @@ const photoProblems = (photos: ReadonlyMap<string, Uint8Array>): string[] =>
 /** What the rulings make of a hymn: its state, and the row its rulings give. */
 export interface Derived {
   readonly row: Entry['row'];
-  /** The state its words alone give: `row`, but for a `disputed` ruling, which leaves the words as they are. */
+  /** The state its words alone give: `row`, but for an unanswered `disputed` ruling, which leaves the words as they are. */
   readonly words: Entry['row'];
   readonly units: ReadonlyArray<readonly string[]>;
   readonly changes: number;
@@ -2557,7 +2581,8 @@ const on1985 = (ruling: Ruling) =>
 /**
  * A hymn's state from its rulings alone: `unsettled` when a ruling could not
  * read its crops, a ruling that changes words rests on an engraving's crop,
- * or a judge found the page lays the row out otherwise (`disputed`),
+ * or a judge found the page lays the row out otherwise (`disputed`) and the
+ * owner has not answered it (`answer`),
  * `fixed` when rulings on crops of the 1985 book change words,
  * else `matches`. Its words are the base row's, or with every ruling applied
  * when they are `fixed` (a `disputed` ruling changes no word). Only rulings that apply
@@ -2581,7 +2606,7 @@ export const derive = (
         ? 'fixed'
         : 'matches';
   return {
-    row: rulings.some((ruling) => ruling.kind === 'disputed') ? 'unsettled' : words,
+    row: rulings.some(awaitsOwner) ? 'unsettled' : words,
     words,
     units: words === 'fixed' ? applied.units : base.map((unit) => [...unit]),
     changes: rulings.filter(changes).length,
@@ -2659,7 +2684,13 @@ const kindProblems = (what: string, ruling: Ruling): string[] => {
     ...(kept !== undefined && !same(wordsOf(ruling.sung), wordsOf(ruling.row))
       ? [`${what} is ${kept} but changes the row`]
       : []),
-    ...(ruling.kind === 'disputed' && !settles ? [`${what} is disputed but settles no line`] : []),
+    ...(ruling.answer !== undefined && ruling.kind !== 'disputed'
+      ? [`${what} answers no dispute`]
+      : []),
+    ...(keepsPage(ruling) && settles ? [`${what} is answered page but settles a line`] : []),
+    ...(ruling.kind === 'disputed' && !keepsPage(ruling) && !settles
+      ? [`${what} is disputed but settles no line`]
+      : []),
     ...(ruling.kind === 'assumption' && (!settles || ruling.sites.length > 0)
       ? [`${what} is an assumption but settles no line or has a site`]
       : []),
@@ -2693,7 +2724,10 @@ const rulingProblems = (
       ...named
         .filter((image) => !crops.has(`${pad(n)}/${image}`))
         .map((image) => `${what} reads ${image}, which is no committed crop`),
-      ...(ruling.sites.length === 0 && held.length === 0 ? [`${what} has no site`] : []),
+      // A dispute answered for the page holds its place in no line: the row now follows the page.
+      ...(ruling.sites.length === 0 && held.length === 0 && !keepsPage(ruling)
+        ? [`${what} has no site`]
+        : []),
       ...(ruling.readings.length === 0 ? [`${what} names no reading`] : []),
       ...(ruling.judge === '' ? [`${what} names no judge`] : []),
       ...kindProblems(what, ruling),
@@ -2734,10 +2768,11 @@ const stateProblems = (
 /**
  * An entry's fix file: it sings what the row sings, unit by unit and variant
  * by variant. A census fix keeps its base row as `replaces`, belongs to a
- * `fixed` entry (or to a `matches` entry whose page prints a refrain that
- * varies by stanza: it changes no word, only writes the refrain as varying)
- * and names in every line's `from` a deciding image of the
- * hymn, a system and a row; origin/main's prior fixes carry none.
+ * `fixed` entry (or to a `matches` entry that sings its row's words and
+ * either writes a refrain the page varies by stanza or, under a dispute the
+ * owner answered for the page (`keepsPage`), divides the lines as the page
+ * does: it changes no word) and names in every line's `from` a deciding
+ * image of the hymn, a system and a row; origin/main's prior fixes carry none.
  */
 const fixFileProblems = (
   entry: Entry,
@@ -2745,6 +2780,7 @@ const fixFileProblems = (
   fix: Fix | undefined,
   row: Verses,
   words: Entry['row'],
+  paged: boolean,
 ): string[] => {
   const n = entry.number;
   // A row whose words are fixed and whose layout waits on the owner (`disputed`) keeps its fix file.
@@ -2759,7 +2795,7 @@ const fixFileProblems = (
     return PRIOR_FIXES.has(n) ? own : [...own, `${n} fix file carries no replaces`];
   return [
     ...own,
-    ...(fixed || (entry.row === 'matches' && fixVaries(fix) && sings === undefined)
+    ...(fixed || (entry.row === 'matches' && (fixVaries(fix) || paged) && sings === undefined)
       ? []
       : [`${n} has a fix file of its own but says ${entry.row}`]),
     ...fixLines(fix)
@@ -2842,7 +2878,7 @@ const entryProblems = (entry: Entry, deciding: Deciding, sources: Sources): stri
     ...(entry.stanzas === stanzas && entry.refrain === refrain
       ? []
       : [`${n} claims ${entry.stanzas} stanzas, refrain ${entry.refrain}`]),
-    ...fixFileProblems(entry, deciding, fix, row, derived.words),
+    ...fixFileProblems(entry, deciding, fix, row, derived.words, rulings.some(keepsPage)),
     ...(fix?.replaces === undefined ? [] : spanProblems(n, fix, rulings, derived.spans)),
     ...outlineEntryProblems(entry, deciding, sources),
   ];
