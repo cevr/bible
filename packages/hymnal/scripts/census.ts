@@ -336,8 +336,14 @@ export const wordlessLine = (line: string) =>
  *   miscounted, missed a capital or placed a row elsewhere (a ruling that
  *   settles shape lines only, with no site); a reader who read the page
  *   right is no slip: where the row divides its lines otherwise, the ruling
- *   is `layout`, and where the check's own assumption fails (a metre the
- *   header names and the music does not keep), its `why` says which;
+ *   is `layout`, and where the check's own reading of the page fails, it is
+ *   `assumption`;
+ * - `assumption`: the page prints there what the row sings, the shape reader
+ *   read it right, and the check's own rule misreads the page: a capital on
+ *   a name, title or pronoun of God, or on a quote's first word, that opens
+ *   no poem line; a metre the header names and the music does not keep. Its
+ *   `why` names which. It settles shape lines only, with no site, and keeps
+ *   the row;
  * - `disputed`: the page lays the row's words out otherwise than the row, in
  *   no way a row's own convention explains (a poem line opened at another
  *   word, in no whole split or join of the row's lines; a block sung where
@@ -362,6 +368,7 @@ const Kind = Schema.Literals([
   'shared',
   'layout',
   'slip',
+  'assumption',
   'disputed',
   'unreadable',
   'owner',
@@ -2632,6 +2639,33 @@ const cropProblems = (
   ];
 };
 
+/** The kinds whose ruling keeps the row's words, each as a problem line names it. */
+const KEEPS_ROW: Partial<Record<Ruling['kind'], string>> = {
+  echo: 'an echo',
+  layout: 'a layout',
+  assumption: 'an assumption',
+  disputed: 'a disputed',
+};
+
+/** A ruling against what its kind asks of it: the words it sings, the row it keeps, the lines it settles. */
+const kindProblems = (what: string, ruling: Ruling): string[] => {
+  const kept = KEEPS_ROW[ruling.kind];
+  const settles = (ruling.settles ?? []).length > 0;
+  return [
+    ...((ruling.kind === 'words' || ruling.kind === 'owner') &&
+    !same(wordsOf(ruling.sung), wordsOf(ruling.printed))
+      ? [`${what} sings "${ruling.sung}", not the words it prints`]
+      : []),
+    ...(kept !== undefined && !same(wordsOf(ruling.sung), wordsOf(ruling.row))
+      ? [`${what} is ${kept} but changes the row`]
+      : []),
+    ...(ruling.kind === 'disputed' && !settles ? [`${what} is disputed but settles no line`] : []),
+    ...(ruling.kind === 'assumption' && (!settles || ruling.sites.length > 0)
+      ? [`${what} is an assumption but settles no line or has a site`]
+      : []),
+  ];
+};
+
 /**
  * One hymn's rulings against its deciding page, its crops and its base row.
  * Every word a ruling decides lies on a crop it names: its crops' words, in
@@ -2662,19 +2696,7 @@ const rulingProblems = (
       ...(ruling.sites.length === 0 && held.length === 0 ? [`${what} has no site`] : []),
       ...(ruling.readings.length === 0 ? [`${what} names no reading`] : []),
       ...(ruling.judge === '' ? [`${what} names no judge`] : []),
-      ...((ruling.kind === 'words' || ruling.kind === 'owner') &&
-      !same(wordsOf(ruling.sung), wordsOf(ruling.printed))
-        ? [`${what} sings "${ruling.sung}", not the words it prints`]
-        : []),
-      ...((ruling.kind === 'echo' || ruling.kind === 'layout' || ruling.kind === 'disputed') &&
-      !same(wordsOf(ruling.sung), wordsOf(ruling.row))
-        ? [
-            `${what} is ${ruling.kind === 'echo' ? 'an echo' : `a ${ruling.kind}`} but changes the row`,
-          ]
-        : []),
-      ...(ruling.kind === 'disputed' && (ruling.settles ?? []).length === 0
-        ? [`${what} is disputed but settles no line`]
-        : []),
+      ...kindProblems(what, ruling),
       ...applyRulings(base, [ruling]).misplaced.map((one) => `${what} ${lineOfConflict(one)}`),
     ];
   });

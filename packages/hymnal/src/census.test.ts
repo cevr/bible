@@ -579,6 +579,26 @@ describe('census', () => {
     );
 
     it.effect(
+      'keeps a hymn whose assumption ruling settles a line, and flags one with no line or a site',
+      () =>
+        Effect.gen(function* () {
+          const { census, sources } = yield* read;
+          // 30's ruling 0: 'Holy' capitalised as a name of God, which opens no poem line.
+          const all = sources.rulings.get(30) ?? [];
+          expect(all[0]?.kind).toBe('assumption');
+          expect(about(census, sources, 30)).toEqual([]);
+          const bare: Ruling = { ...all[0]!, settles: [] };
+          expect(about(census, withRulings(sources, 30, [bare, ...all.slice(1)]), 30)).toContain(
+            '30 ruling 1 is an assumption but settles no line or has a site',
+          );
+          const sited: Ruling = { ...all[0]!, sites: [{ unit: 1, at: 0 }] };
+          expect(about(census, withRulings(sources, 30, [sited, ...all.slice(1)]), 30)).toContain(
+            '30 ruling 1 is an assumption but settles no line or has a site',
+          );
+        }),
+    );
+
+    it.effect(
       'makes a hymn with a disputed ruling unsettled, its words as they are, and flags one that settles nothing',
       () =>
         Effect.gen(function* () {

@@ -84,7 +84,7 @@
       "readings": ["shape2-06 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
-      "kind": "layout",
+      "kind": "assumption",
       "crops": [
         {
           "image": "054.jpg",

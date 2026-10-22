@@ -343,7 +343,7 @@
       "readings": ["shape2-16 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
-      "kind": "layout",
+      "kind": "assumption",
       "crops": [
         {
           "image": "p137.jpg",

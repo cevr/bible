@@ -235,7 +235,7 @@ split alone (`for ever` against `forever`) is no run. A fresh judge (an
 Opus subagent at max effort that never saw a reading whole) rules each run
 on 1:1 crops of the page, one for each system the run lies on, and writes
 what each crop prints there. A ruling is `words`, `misprint`, `echo`,
-`repeat`, `shared`, `layout`, `slip`, `disputed`, `owner` or `unreadable`; a place no crop holds
+`repeat`, `shared`, `layout`, `slip`, `assumption`, `disputed`, `owner` or `unreadable`; a place no crop holds
 is `unreadable`. An `owner` ruling holds words a judge saw the crop print and
 would not transcribe, copied by the owner from his own book (584's stanzas 6
 and 7, printed as text below the music). Applying every ruling to the base row gives the row. Two
@@ -352,8 +352,12 @@ tell, and 10 in 18, 32 and 319 (a one-word line put in within a row's
 slack, a line put in at a stanza's end, a word moved over a line's end); 62 of them are 220's, which waits on the owner.
 
 Each difference the check prints goes to a fresh judge on crops: a ruling
-that finds the source right there (`slip`, `layout`, `echo`, `repeat`)
-`settles` the difference's line (it needs no site); a ruling that finds the
+that finds the source right there (`slip`, `layout`, `assumption`, `echo`, `repeat`)
+`settles` the difference's line (it needs no site). `assumption` is the
+check's own rule misreading the page where the reader read it right: a
+capital on a name, title or pronoun of God or on a quote's first word that
+opens no poem line, or a metre the header names and the music does not
+keep. A ruling that finds the
 page lays the row out otherwise (`disputed`) settles it too, and leaves the
 hymn `unsettled` for the owner; a ruling that settles a line the census no
 longer prints is a problem.
