@@ -51,5 +51,10 @@
     "effect-bun-test": "catalog:",
     "rolldown": "1.2.13",
     "vite": "8.3.4"
+  },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
   }
 }

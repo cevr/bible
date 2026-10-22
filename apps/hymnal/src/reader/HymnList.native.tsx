@@ -3,7 +3,11 @@
  * link to the hymn at `hrefOf(number)`, or saying `empty` when it has none.
  *
  * With `byTopic`, a row names each run of hymns in one topic (`rowsOf`), and
- * the list pins it at its top while that run's hymns scroll under it.
+ * a copy of it stays pinned at the list's top while that run's hymns scroll
+ * under it (`PinnedTopic`). The pin follows the scroll offset on the UI
+ * thread from the topics' fixed places (`pin.ts`), not the list's sticky
+ * headers: those wait on the JS thread at each handoff, and a fast drag
+ * showed the row missing or out of place for a frame.
  * Every row is one line of one height, scaled with the reader's text size,
  * so the list knows each row's size before it draws it (`getFixedItemSize`)
  * and reuses a row's view for the next row it shows (`recycleItems`).
@@ -15,6 +19,12 @@
 import { AnimatedLegendList } from '@legendapp/list/reanimated';
 import { type Href, Link, useLinkTo } from 'one';
 import { useMemo } from 'react';
+import Animated, {
+  type SharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+} from 'react-native-reanimated';
 import {
   type ColorValue,
   Pressable,
@@ -29,6 +39,7 @@ import { color, useAccent } from '~/color';
 
 import type { HymnListProps } from './HymnList';
 import { dismissal } from './keyboard';
+import { pinnedAt, topicStarts } from './pin';
 import { type Row, rowsOf } from './rows';
 
 /** A hymn row's line of text, and the space above and below it, at the reader's usual text size. */
@@ -93,34 +104,104 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
     (): Look => ({ accent, hymnHeight, topicHeight, hrefOf }),
     [accent, hymnHeight, topicHeight, hrefOf],
   );
+  const header = pullDown?.height ?? 0;
+  const topics = useMemo(
+    () => ({
+      names: sticky.flatMap((i) => rows.slice(i, i + 1).flatMap((row) => names(row))),
+      starts: topicStarts(rows, header, (kind) => ({ topic: topicHeight, hymn: hymnHeight })[kind]),
+    }),
+    [rows, sticky, header, topicHeight, hymnHeight],
+  );
+  const own = useSharedValue(0);
+  const scroll = pullDown?.scroll ?? own;
   return (
-    <AnimatedLegendList
-      data={rows}
-      keyExtractor={(row) => row.key}
-      getItemType={(row) => row.kind}
-      getFixedItemSize={(_, __, kind) => {
-        if (kind === 'topic') return topicHeight;
-        return hymnHeight;
-      }}
-      estimatedItemSize={hymnHeight}
-      recycleItems
-      stickyHeaderIndices={[...sticky]}
-      ListHeaderComponent={pullDown?.node}
-      estimatedHeaderSize={pullDown?.height}
-      // The list opens with the search field tucked under the title, and a
-      // drag let go between there and the top settles at one or the other;
-      // past the field it scrolls freely.
-      initialScrollOffset={pullDown?.rest}
-      snapToOffsets={pullDown && [0, pullDown.rest]}
-      snapToEnd={false}
-      sharedValues={{ scrollOffset: pullDown?.scroll }}
-      contentInsetAdjustmentBehavior="never"
-      keyboardShouldPersistTaps="handled"
-      {...dismissal}
-      ListEmptyComponent={<Text style={styles.empty}>{empty}</Text>}
-      extraData={look}
-      renderItem={drawRow}
-    />
+    <View style={styles.fill}>
+      <AnimatedLegendList
+        data={rows}
+        keyExtractor={(row) => row.key}
+        getItemType={(row) => row.kind}
+        getFixedItemSize={(_, __, kind) => {
+          if (kind === 'topic') return topicHeight;
+          return hymnHeight;
+        }}
+        estimatedItemSize={hymnHeight}
+        recycleItems
+        ListHeaderComponent={pullDown?.node}
+        estimatedHeaderSize={pullDown?.height}
+        // The list opens with the search field tucked under the title, and a
+        // drag let go between there and the top settles at one or the other;
+        // past the field it scrolls freely.
+        initialScrollOffset={pullDown?.rest}
+        snapToOffsets={pullDown && [0, pullDown.rest]}
+        snapToEnd={false}
+        sharedValues={{ scrollOffset: scroll }}
+        contentInsetAdjustmentBehavior="never"
+        keyboardShouldPersistTaps="handled"
+        {...dismissal}
+        ListEmptyComponent={<Text style={styles.empty}>{empty}</Text>}
+        extraData={look}
+        renderItem={drawRow}
+      />
+      {topics.names.length > 0 && (
+        <PinnedTopic
+          names={topics.names}
+          starts={topics.starts}
+          height={topicHeight}
+          scroll={scroll}
+        />
+      )}
+    </View>
+  );
+}
+
+const names = (row: Row<HymnText>): ReadonlyArray<string> => {
+  if (row.kind === 'topic') return [row.name];
+  return [];
+};
+
+/**
+ * The topic row pinned at the list's top: every topic's row stacked in a
+ * strip one row tall, moved on the UI thread so the topic whose hymns pass
+ * under the top shows, pushed up as the next topic's row meets it. Screen
+ * readers read the list's own topic rows, so the copy is hidden from them,
+ * and touches pass through it to the list.
+ */
+function PinnedTopic({
+  names: topics,
+  starts,
+  height,
+  scroll,
+}: {
+  readonly names: ReadonlyArray<string>;
+  readonly starts: ReadonlyArray<number>;
+  readonly height: number;
+  readonly scroll: SharedValue<number>;
+}) {
+  const pinned = useDerivedValue(() => pinnedAt(starts, scroll.value, height));
+  const place = useAnimatedStyle(() => ({
+    opacity: Math.min(1, pinned.value.index + 1),
+    transform: [{ translateY: pinned.value.y }],
+  }));
+  const strip = useAnimatedStyle(() => ({
+    transform: [{ translateY: -Math.max(0, pinned.value.index) * height }],
+  }));
+  return (
+    <View
+      pointerEvents="none"
+      aria-hidden
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.pin, { height }]}
+    >
+      <Animated.View style={[{ height }, styles.clip, place]}>
+        <Animated.View style={strip}>
+          {topics.map((name, i) => (
+            // A topic that comes back has the same name: its place is its key.
+            <Topic key={i} name={name} height={height} />
+          ))}
+        </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -166,6 +247,9 @@ function HymnRow({
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  pin: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
+  clip: { overflow: 'hidden' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
