@@ -3104,6 +3104,16 @@ The form of an entry, each field on its own line:
 - **Cause:** `respond` set the headers only on the answers it reached. It now reads a request's path after a placeholder origin (`requestUrl` in `assets.ts`), so `//` stays a path, and answers any defect as an empty 500 through `finish`, logged by its kind. The property draws a `//` path and a file whose read dies.
 - **Guard:** code: `apps/firsttheblade/src/worker/respond.test.ts` `answers a path that starts with two slashes as a path, and a file the host fails to read as an empty 500, each with the security headers`, `apps/firsttheblade/src/worker/respond.test.ts` `every response, of each kind the Worker sends over random paths and methods, carries a content policy that lets no picture in from anywhere but this origin, so a data URL never paints`.
 
+### leaf-move-on-the-page-holds-scale-and-inner-shapes
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the page-space hold passes a leaf that grows 2x about its foot, and a blade whose shapes turn 30deg"
+- **Source:** ftb-approval-receipts/rewrite-round-2-findings.md F1
+- **Wrong:** On hover, the drawing grown 2x about the stem's foot (`width: 200%` with margins that keep the foot still) and `svg > g > * { rotate: 30deg }` each passed `bun run computed`, though each moves the leaf on the page.
+- **Cause:** The move from rest was tested for a fixed foot, its angle and a skew, and a uniform scale is neither a skew nor a turn; only the blade's group and the stem's path were read, not the shapes inside the group. The check now refuses a move from rest that is not 1x, and holds each element inside a part to its rest `rotate`, `translate`, `scale`, `transform` and `animation-name` (none at rest), as it holds each element from the drawing up to its card.
+- **Guard:** code: `apps/firsttheblade/scripts/computed.ts` `the healing leaf, as Chrome computes it at the edges of every width band the built stylesheets’ media queries make, stands as its card turns it and turns 5deg on the page about its stem’s foot on hover and on keyboard focus, on the root’s motion tokens, nothing from its drawing up to its card moving, and stays at rest for less motion and under a coarse pointer`.
+
 ### missing-image-refused-by-the-receipt-rule
 
 - **Date:** 2026-10-22

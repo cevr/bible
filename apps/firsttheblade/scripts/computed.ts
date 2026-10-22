@@ -139,6 +139,8 @@ interface Leaf {
   readonly parts: ReadonlyArray<Part>;
   /** The drawing, each element it sits in, and its card, in that order. */
   readonly chain: ReadonlyArray<Link>;
+  /** Every element inside each part, in document order. */
+  readonly inner: ReadonlyArray<Link>;
   /** The degrees the card and every element it sits in turn it by on the page. */
   readonly cardTurn: number;
 }
@@ -156,6 +158,7 @@ const readLeaf = (selector: string): Leaf => {
     easing: '',
     parts: [],
     chain: [],
+    inner: [],
     cardTurn: 0,
   };
   const svg = document.querySelector(selector);
@@ -179,6 +182,17 @@ const readLeaf = (selector: string): Leaf => {
     const screen = part.getScreenCTM() || new DOMMatrix([0, 0, 0, 0, 0, 0]);
     const { a, b, c, d, e, f } = new DOMMatrix().translate(scrollX, scrollY).multiply(screen);
     return [a, b, c, d, e, f];
+  };
+  const linkOf = (at: Element, name: string) => {
+    const style = getComputedStyle(at);
+    return {
+      name,
+      rotate: style.rotate,
+      translate: style.translate,
+      scale: style.scale,
+      transform: style.transform,
+      animation: style.animationName,
+    };
   };
   const parts = [...svg.children].flatMap((part) => {
     if (!(part instanceof SVGGraphicsElement)) return [];
@@ -205,17 +219,14 @@ const readLeaf = (selector: string): Leaf => {
     .filter((each) => each.contains(svg))
     .toReversed();
   const cardAt = above.indexOf(card);
-  const chain = above.slice(0, cardAt + 1).map((at) => {
-    const style = getComputedStyle(at);
-    return {
-      name: [at.tagName.toLowerCase(), ...at.classList].join('.'),
-      rotate: style.rotate,
-      translate: style.translate,
-      scale: style.scale,
-      transform: style.transform,
-      animation: style.animationName,
-    };
-  });
+  const chain = above
+    .slice(0, cardAt + 1)
+    .map((at) => linkOf(at, [at.tagName.toLowerCase(), ...at.classList].join('.')));
+  const inner = [...svg.children].flatMap((part, p) =>
+    [...part.querySelectorAll('*')].map((at, i) =>
+      linkOf(at, `${part.tagName} ${p + 1}, its ${at.tagName} ${i + 1}`),
+    ),
+  );
   // The card's own turn and each turn above it: a 2D turn adds, whatever its origin.
   let cardTurn = 0;
   for (const at of above.slice(cardAt)) {
@@ -228,7 +239,7 @@ const readLeaf = (selector: string): Leaf => {
     if (turn) cardTurn += Number(turn[1]);
     else if (style.rotate !== 'none') cardTurn = Number.NaN;
   }
-  return { found: true, foot: [start.x, start.y], duration, easing, parts, chain, cardTurn };
+  return { found: true, foot: [start.x, start.y], duration, easing, parts, chain, inner, cardTurn };
 };
 
 /** A computed `rotate` in degrees about the screen's axis: `none` is 0, a turn about another axis NaN. */
@@ -325,6 +336,9 @@ const partProblems = (
       `${at}: on the page it turns ${angleOf(moved).toFixed(3)}deg from its rest, not ${turned}deg in magnitude`,
     );
   problems.push(...skewOf(at, 'its move on the page', moved));
+  const grown = Math.hypot(moved[0], moved[1]);
+  if (!near(grown, 1))
+    problems.push(`${at}: on the page it grows ${grown.toFixed(3)}x from its rest, not 1x`);
   if (part.property !== 'rotate')
     problems.push(`${at}: its transition moves ${part.property}, not rotate`);
   if (part.delay !== '0s') problems.push(`${at}: its transition waits ${part.delay}`);
@@ -337,13 +351,13 @@ const partProblems = (
 
 /**
  * What is wrong with the leaf at rest as a page first shows it: each
- * element from the drawing up to the card, the card left out, moves it by
- * nothing of its own, and each part stands on the page turned only as its
- * card turns it.
+ * element from the drawing up to the card, the card left out, and each
+ * element inside a part, moves it by nothing of its own, and each part
+ * stands on the page turned only as its card turns it.
  */
 const restProblems = (state: string, leaf: Leaf) => {
   const problems: Array<string> = [];
-  for (const link of leaf.chain.slice(0, -1))
+  for (const link of [...leaf.chain.slice(0, -1), ...leaf.inner])
     for (const [name, value] of Object.entries(link))
       if (name !== 'name' && value !== 'none')
         problems.push(`${state}: ${link.name} has ${name} ${value} of its own, not none`);
@@ -362,7 +376,8 @@ const restProblems = (state: string, leaf: Leaf) => {
  * same page: `turned` is how far it is held to turn there (0 at rest, `SWAY`
  * in magnitude stirred). `timed` holds the transition to the root's tokens
  * (less motion shortens every transition, so it is not held there). Each
- * element from the drawing up to the card holds what it had at rest.
+ * element from the drawing up to the card, and each inside a part, holds
+ * what it had at rest.
  */
 const leafProblems = (state: string, rest: Leaf, leaf: Leaf, turned: number, timed: boolean) => {
   if (!leaf.found || !rest.found)
@@ -378,8 +393,13 @@ const leafProblems = (state: string, rest: Leaf, leaf: Leaf, turned: number, tim
   const turns = leaf.parts.map(({ rotate }) => degreesOf(rotate));
   if (new Set(turns).size > 1)
     problems.push(`${state}: the parts turn apart (${turns.join(', ')})`);
-  for (const [i, link] of leaf.chain.entries()) {
-    const resting = rest.chain[i];
+  if (leaf.inner.length !== rest.inner.length)
+    problems.push(
+      `${state}: the parts hold ${leaf.inner.length} elements, not the ${rest.inner.length} at rest`,
+    );
+  const restLinks = [...rest.chain, ...rest.inner];
+  for (const [i, link] of [...leaf.chain, ...leaf.inner].entries()) {
+    const resting = restLinks[i];
     for (const [name, value] of Object.entries(link)) {
       const was = Reflect.get(resting ?? {}, name);
       if (value !== was)
