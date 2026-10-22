@@ -1,6 +1,7 @@
 /**
  * The hymn route's screen, pushed over the home screen from its list or its
- * search. The native header names the hymn.
+ * search. The native header names the hymn and holds its buttons
+ * (`HeaderButtons`) at its top right.
  */
 
 import { Option } from 'effect';
@@ -14,6 +15,7 @@ import type { Track } from '~/player/player';
 import { pushedOptions } from '~/stack';
 import { settings } from '~/store';
 
+import { ChordsButton, HeaderButtons } from './HeaderButtons';
 import { type ChordReader, HymnPage, NoHymn } from './HymnPage';
 
 /** The page's chords: the stored switch and moves, and every hymn's chords, each decoded on first view. */
@@ -22,6 +24,13 @@ const reader: ChordReader = {
   move: settings.move,
   book: chordBook(bundled),
 };
+
+/** The header's buttons on every hymn's page. */
+const headerRight = () => (
+  <HeaderButtons>
+    <ChordsButton chords={reader.chords} />
+  </HeaderButtons>
+);
 
 /** Every hymn's page is rendered when the web is built. */
 export const hymnParams = () => hymns.map((hymn) => ({ number: String(hymn.number) }));
@@ -38,7 +47,7 @@ export function HymnScreen() {
     ),
     onSome: (hymn) => (
       <>
-        <Stack.Screen options={{ ...pushedOptions, title: hymn.title }} />
+        <Stack.Screen options={{ ...pushedOptions, title: hymn.title, headerRight }} />
         <Shown hymn={hymn} />
         <HymnPage hymn={hymn} reader={reader} />
       </>

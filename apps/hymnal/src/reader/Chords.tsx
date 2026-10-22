@@ -1,7 +1,8 @@
 /**
- * The chords on a hymn page: the `Chords` switch under the title, the key
- * controls beside it while chords are on (a transpose and a capo, kept for
- * the hymn), and each section drawn under its chords.
+ * The chords on a hymn page: the key controls at the page's top while chords
+ * are on (a transpose and a capo, kept for the hymn; chords are turned on and
+ * off by the header's `ChordsButton`), and each section drawn under its
+ * chords.
  *
  * A syllable-level line is a row of words that wraps between words; a word
  * is a row of syllable boxes that stays together; a box is its chords over
@@ -21,7 +22,6 @@ import {
   Pressable,
   type StyleProp,
   StyleSheet,
-  Switch,
   Text,
   type TextStyle,
   useWindowDimensions,
@@ -47,44 +47,31 @@ const PlayedKey = createContext<Chord.Key>({ tonic: 'C', minor: false });
 
 export const PlayedKeyProvider = PlayedKey.Provider;
 
-/** The switch, and the key controls while chords are on and the hymn has some. */
+/**
+ * While chords are on: the key controls when the hymn has chords, else a
+ * notice that it has none yet. Nothing while chords are off.
+ */
 export function ChordControls({
   on,
-  onChange,
   printed,
   move,
   onMove,
 }: {
   readonly on: boolean;
-  readonly onChange: (on: boolean) => void;
   /** The hymn's printed key; none while chords are off or the hymn has none. */
   readonly printed: Chord.Key | 'none';
   readonly move: Move;
   readonly onMove: (move: Move) => void;
 }) {
-  const accent = useAccent();
-  return (
-    <View style={styles.controls}>
-      <View style={styles.switchRow}>
-        <Text style={styles.switchLabel} dynamicTypeRamp="body" aria-hidden>
-          Chords
-        </Text>
-        <Switch
-          aria-label="Chords"
-          accessibilityLabel="Chords"
-          value={on}
-          onValueChange={onChange}
-          trackColor={{ true: accent }}
-        />
-      </View>
-      {on && printed === 'none' && (
-        <Text style={styles.notice} dynamicTypeRamp="footnote">
-          No chords for this hymn yet.
-        </Text>
-      )}
-      {on && printed !== 'none' && <KeyControls printed={printed} move={move} onMove={onMove} />}
-    </View>
-  );
+  if (!on) return <></>;
+  if (printed === 'none') {
+    return (
+      <Text style={styles.notice} dynamicTypeRamp="footnote">
+        No chords for this hymn yet.
+      </Text>
+    );
+  }
+  return <KeyControls printed={printed} move={move} onMove={onMove} />;
 }
 
 /** Transpose, then capo: each a step down, its reading, a step up. */
@@ -319,9 +306,6 @@ function ChordText({
 }
 
 const styles = StyleSheet.create({
-  controls: { gap: 10 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  switchLabel: { fontSize: 17, color: color.ink },
   notice: { fontSize: 13, color: color.muted },
   keys: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, rowGap: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },

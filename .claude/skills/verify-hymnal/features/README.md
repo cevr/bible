@@ -14,7 +14,7 @@ recipe.
   "→" is its observable result: the JSON line's `ok`, and what the
   snapshot or screenshot shows.
 - The app has no seed: its 695 hymns are compiled in, and its stored
-  choices are the appearance setting, the chords switch and each hymn's
+  choices are the appearance setting, the `Chords` choice and each hymn's
   transpose and capo. A drive that changes one puts it back at the end
   (`System`; chords off, no transpose, no capo).
 

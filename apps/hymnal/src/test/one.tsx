@@ -5,10 +5,12 @@
  * listener in `opening`), and keeps the browser from following it; a click
  * with a modifier key, or not the main button, is left to the browser. A
  * screen's options configure the native header, which a web render has none
- * of.
+ * of, except its right items, which a test finds in `header` as a reader
+ * finds them in the header.
  */
 
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
+import { View } from 'react-native';
 
 /** The hrefs opened inside the app, oldest first. */
 export const opened: Array<string> = [];
@@ -49,7 +51,11 @@ export const params: Record<string, string> = {};
 /** One's `useParams`: the params a test set. */
 export const useParams = <T,>() => params as T;
 
-export const Stack = { Screen: (_: { readonly options: object }) => <></> };
+export const Stack = {
+  Screen: ({ options }: { readonly options: { readonly headerRight?: () => ReactNode } }) => (
+    <View testID="header">{options.headerRight?.()}</View>
+  ),
+};
 
 /** One's device modules, which no test reaches: the player's tests hand in their own (`playbackOn`). */
 export const One = {};

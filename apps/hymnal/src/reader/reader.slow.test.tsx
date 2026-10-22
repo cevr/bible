@@ -14,6 +14,7 @@ import { StyleSheet, View } from 'react-native';
 import { hymnAt, hymns } from '~/hymns/hymns';
 
 import { readerOn } from '../test/reader';
+import { ChordsButton } from './HeaderButtons';
 import { HymnList } from './HymnList';
 import { HymnPage } from './HymnPage';
 import { hymnsOffset } from './place';
@@ -178,16 +179,80 @@ const sectionTexts = (host: HTMLElement) =>
 const chordsOn = () => new Map([['chords', 'true']]);
 
 describe('a hymn page with chords off', () => {
-  it('shows the words alone, with the switch off and no key control, and decodes no chords', () => {
+  it('shows the words alone, with no chords control in its body and no key control, and decodes no chords', () => {
     const reader = readerOn();
     const html = renderToStaticMarkup(<HymnPage hymn={hymn(100)} reader={reader} />);
     expect(html).not.toContain('data-testid="chord-');
     expect(html).not.toContain('Transpose');
     expect(html).not.toContain('Capo');
-    expect(html).toContain('role="switch"');
-    expect(html).not.toContain('checked=""');
-    expect(html).toContain('aria-label="Chords"');
+    expect(html).not.toContain('role="switch"');
+    expect(html).not.toContain('aria-label="Chords"');
     expect(reader.book.decodes()).toBe(0);
+  });
+});
+
+/** The header's `Chords` button over `n`'s page, both over `reader`. */
+const withButton = (n: number, reader: ReturnType<typeof readerOn>) => (
+  <>
+    <ChordsButton chords={reader.chords} />
+    <HymnPage hymn={hymn(n)} reader={reader} />
+  </>
+);
+
+/** The `Chords` button: a button, and whether it is selected. */
+const chordsButton = (host: HTMLElement) =>
+  Option.map(Option.fromNullishOr(host.querySelector('[aria-label="Chords"]')), (button) => ({
+    role: button.getAttribute('role'),
+    selected: button.getAttribute('aria-selected'),
+  }));
+
+const chordRows = (host: HTMLElement) => host.querySelectorAll('[data-testid^="chord-"]').length;
+
+describe('the header’s Chords button', () => {
+  it('turns chords on for every hymn: hymn 3 and hymn 5 both show their chord rows', () => {
+    const device = new Map<string, string>();
+    {
+      using app = mount(withButton(3, readerOn(device)));
+      expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+      expect(chordRows(app.host)).toBe(0);
+      press(app.host, 'Chords');
+      expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+      expect(chordRows(app.host)).toBeGreaterThan(0);
+    }
+    using app = mount(withButton(5, readerOn(device)));
+    expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+    expect(chordRows(app.host)).toBeGreaterThan(0);
+  });
+
+  it('puts the key controls at the page’s top while chords are on, with no tap, and takes them away when off', () => {
+    using app = mount(withButton(3, readerOn()));
+    const text = () => textOf(app.host.innerHTML);
+    expect(text()).not.toContain('Transpose');
+    press(app.host, 'Chords');
+    for (const label of ['Transpose down', 'Transpose up', 'Capo down', 'Capo up']) {
+      const shown = Option.isSome(
+        Option.fromNullishOr(app.host.querySelector(`[aria-label="${label}"]`)),
+      );
+      expect({ label, shown }).toEqual({ label, shown: true });
+    }
+    // The controls come before the first section's words.
+    const controls = Option.getOrThrow(
+      Option.fromNullishOr(app.host.querySelector('[aria-label="Transpose up"]')),
+    );
+    const first = Option.getOrThrow(Option.fromNullishOr(app.host.querySelector('[role="group"]')));
+    expect(controls.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    press(app.host, 'Chords');
+    expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+    expect(text()).not.toContain('Transpose');
+    expect(text()).not.toContain('Capo');
+    expect(chordRows(app.host)).toBe(0);
+  });
+
+  it('opens selected, chords shown, over a store that kept chords on', () => {
+    using app = mount(withButton(3, readerOn(chordsOn())));
+    expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+    expect(chordRows(app.host)).toBeGreaterThan(0);
   });
 });
 
@@ -212,16 +277,16 @@ describe('a hymn page with chords on', () => {
     expect(reader.book.decodes()).toBe(1);
   });
 
-  it('shows the words alone again once the switch is turned off', () => {
+  it('shows the words alone again once chords are turned off', () => {
     const words = (() => {
       using app = mount(<HymnPage hymn={hymn(100)} reader={readerOn()} />);
       return sectionTexts(app.host);
     })();
-    using app = mount(<HymnPage hymn={hymn(100)} reader={readerOn(chordsOn())} />);
+    using app = mount(withButton(100, readerOn(chordsOn())));
     const { host } = app;
-    expect(host.querySelector<HTMLInputElement>('[role="switch"]')?.checked).toBe(true);
+    expect(chordsButton(host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
     press(host, 'Chords');
-    expect(host.querySelector<HTMLInputElement>('[role="switch"]')?.checked).toBe(false);
+    expect(chordsButton(host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
     expect(host.querySelector('[data-testid^="chord-"]')).toBeNull();
     expect(textOf(host.innerHTML)).not.toContain('Transpose');
     expect(sectionTexts(host)).toEqual(words);

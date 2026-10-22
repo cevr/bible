@@ -1,7 +1,8 @@
 /**
  * A hymn's words in the order it is sung: its topic as a quiet line, its
- * number and title in one row (the number first), the `Chords` switch, then each stanza under its number and the refrain,
- * marked, each time it is sung. The theme's ink on its ground, scaled with
+ * number and title in one row (the number first), the key controls while
+ * chords are on, then each stanza under its number and the refrain, marked,
+ * each time it is sung. The theme's ink on its ground, scaled with
  * the reader's text size.
  *
  * With chords off the page is the words alone and the hymn's chords are not
@@ -9,7 +10,7 @@
  * (`Chords.tsx`) in the key the hymn's own move reaches.
  */
 
-import { useAtom } from '@effect/atom-react';
+import { useAtom, useAtomValue } from '@effect/atom-react';
 import { Option } from 'effect';
 import type * as Atom from 'effect/reactivity/Atom';
 import { memo, type ReactNode, useMemo } from 'react';
@@ -29,7 +30,7 @@ import { color, useAccent } from '~/color';
 
 import { ChordControls, ChordLines, PlayedKeyProvider } from './Chords';
 
-/** What the page reads its chords from: the stored switch, each hymn's move, the bundled chords. */
+/** What the page reads its chords from: the stored choice, each hymn's move, the bundled chords. */
 export interface ChordReader {
   readonly chords: Atom.Writable<boolean>;
   readonly move: (number: number) => Atom.Writable<Move>;
@@ -45,7 +46,7 @@ export function HymnPage({
   readonly reader: ChordReader;
 }) {
   const accent = useAccent();
-  const [on, setOn] = useAtom(reader.chords);
+  const on = useAtomValue(reader.chords);
   const [move, setMove] = useAtom(reader.move(hymn.number));
   const chords = useMemo(
     () =>
@@ -76,7 +77,7 @@ export function HymnPage({
           </Text>
         </View>
       </View>
-      <ChordControls on={on} onChange={setOn} printed={printed} move={move} onMove={setMove} />
+      <ChordControls on={on} printed={printed} move={move} onMove={setMove} />
       <PlayedKeyProvider value={played}>
         <Sections hymn={hymn} chords={chords} />
       </PlayedKeyProvider>

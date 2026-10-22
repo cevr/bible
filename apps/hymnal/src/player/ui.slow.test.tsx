@@ -732,6 +732,23 @@ describe('the hymn page with the bottom bar', () => {
       }),
   );
 
+  it.live('holds Chords in the header, as a button, and not in the page’s body', () =>
+    Effect.sync(() => {
+      using page = mount(route(3));
+      const header = Option.getOrThrow(page.find('[data-testid="header"]'));
+      const chords = [
+        ...page
+          .find('[data-testid="page"]')
+          .pipe(Option.getOrThrow)
+          .querySelectorAll('[aria-label="Chords"]'),
+      ];
+      expect(chords).toHaveLength(1);
+      expect(chords.every((button) => header.contains(button))).toBe(true);
+      expect(chords.map((button) => button.getAttribute('role'))).toEqual(['button']);
+      expect(Option.isNone(page.find('[role="switch"]'))).toBe(true);
+    }),
+  );
+
   it.live('opens the full player from the bar’s body', () =>
     Effect.sync(() => {
       using page = mount(route(3));
