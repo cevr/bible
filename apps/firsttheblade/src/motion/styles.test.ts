@@ -546,28 +546,95 @@ const stirredAt = (css: string, stir: number) =>
     ),
   );
 
-/** Whether a rule names the healing leaf's emblem, in its own selectors or its parents'. */
-const onLeaf = (rule: Rule) =>
-  rule.chain.some((list) =>
-    list.some((selector) =>
-      selector.some(
-        (component) => component.type === 'class' && component.name === 'emblem-remedies',
-      ),
+/** The healing leaf's two parts, the children of its drawing's root: the blade's group and the stem's path. */
+const LEAF_PARTS = ['g', 'path'] as const;
+type LeafPart = (typeof LEAF_PARTS)[number];
+
+/** A selector's compounds, last (its subject) first, each with the combinator that joins it to the one before it. */
+const compoundsOf = (selector: Selector) => {
+  const found: Array<{ compound: Array<SelectorComponent>; joined: string }> = [
+    { compound: [], joined: '' },
+  ];
+  for (const component of selector) {
+    if (component.type === 'combinator') found.push({ compound: [], joined: component.value });
+    else found.at(-1)?.compound.push(component);
+  }
+  return found.toReversed();
+};
+
+/** Whether a selector requires, outside any `:not()` or `:is()`, a class of an emblem other than the leaf's. */
+const namesOther = (others: ReadonlySet<string>) => (selector: Selector) =>
+  selector.some((component) => component.type === 'class' && others.has(component.name));
+
+/**
+ * Whether a rule's selector can match the leaf's `part`: its subject names no
+ * type but `part` or `*`, no class, id or pseudo-element (the parts hold
+ * none), and an `&` in it only a parent rule that can match the part too;
+ * a compound it names as the part's parent (`… > part`) fits the drawing's
+ * root, an `svg` with no class or id; and no selector of it or its parents
+ * requires another emblem. An attribute or a pseudo-class may match, so it
+ * counts.
+ */
+const reaches =
+  (others: ReadonlySet<string>, part: LeafPart) =>
+  (chain: ReadonlyArray<SelectorList>): boolean => {
+    const parents = chain.slice(0, -1);
+    const free = (selector: Selector) => !namesOther(others)(selector);
+    const fits = (element: string, nested: () => boolean) => (component: SelectorComponent) => {
+      if (component.type === 'type') return component.name.toLowerCase() === element;
+      if (component.type === 'nesting') return parents.length > 0 && nested();
+      return !['class', 'id', 'pseudo-element'].includes(component.type);
+    };
+    const matches = (selector: Selector) => {
+      const [subject, parent] = compoundsOf(selector);
+      return (
+        (subject?.compound ?? []).every(fits(part, () => reaches(others, part)(parents))) &&
+        (subject?.joined !== 'child' || (parent?.compound ?? []).every(fits('svg', () => true)))
+      );
+    };
+    return (
+      (chain.at(-1) ?? []).some((selector) => free(selector) && matches(selector)) &&
+      parents.every((list) => list.some(free))
+    );
+  };
+
+/** Whether a rule holds only where a reader asks for less motion, where each card's stir is held at 0. */
+const lessMotion = (rule: Rule) =>
+  rule.media.some((queries) =>
+    queries.every(
+      (query) =>
+        query.qualifier !== 'not' &&
+        Option.exists(Option.fromNullishOr(query.condition), (condition) =>
+          requires(condition, 'prefers-reduced-motion', 'reduce'),
+        ),
     ),
   );
 
-/** The page's stylesheet as text, and the healing leaf's stem foot as a `transform-origin` (`<x>px <y>px`), read from its drawing. */
+/** Whether a rule can match either part of the leaf. */
+const reachesLeaf = (others: ReadonlySet<string>) => (rule: Rule) =>
+  LEAF_PARTS.some((part) => reaches(others, part)(rule.chain));
+
+/**
+ * The page's stylesheet as text, the healing leaf's stem foot as a
+ * `transform-origin` (`<x>px <y>px`), read from its drawing, and the class
+ * of each other emblem the art folder holds (`emblem-<name>.svg`).
+ */
 const leafSheet = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const css = yield* fs.readFileString(path.join(import.meta.dir, '..', 'styles.css'));
-  const drawing = yield* fs.readFileString(
-    path.join(import.meta.dir, '..', 'art', 'emblem-remedies.svg'),
-  );
+  const art = path.join(import.meta.dir, '..', 'art');
+  const drawing = yield* fs.readFileString(path.join(art, 'emblem-remedies.svg'));
   // The drawing is the blade's group, then its stem and veins as one path from the stem's foot.
   const foot = /<\/g>\s*<path d="M(\d+) (\d+)L/.exec(drawing);
   expect(foot).not.toBeNull();
-  return { css, foot: `${foot?.[1]}px ${foot?.[2]}px` };
+  const others = new Set(
+    (yield* fs.readDirectory(art))
+      .flatMap((file) => Option.toArray(Option.fromNullishOr(/^(emblem-.+)\.svg$/.exec(file)?.[1])))
+      .filter((name) => name !== 'emblem-remedies'),
+  );
+  expect([...others].toSorted()).toEqual(['emblem-land', 'emblem-path', 'emblem-taught']);
+  return { css, foot: `${foot?.[1]}px ${foot?.[2]}px`, others };
 });
 
 /** A turn about an axis, as the parser gives it at run time (flat) and as its types write it (under `xyz`). */
@@ -580,7 +647,7 @@ const Turn = Schema.Struct({
 const flatTurn = Schema.decodeUnknownOption(Turn);
 const typedTurn = Schema.decodeUnknownOption(Schema.Struct({ xyz: Turn }));
 
-/** How far a `rotate` turns a part about the screen's axis, in degrees either way (`none` is 0); NaN for a turn about another axis or in another unit. */
+/** How far a `rotate` turns a part about the screen's axis, in degrees, clockwise positive (`none` is 0); NaN for a turn about another axis or in another unit. */
 const degreesAbout = (rotate: Rotate) => {
   if (rotate === 'none') return 0;
   const turn = Option.orElse(flatTurn(rotate), () =>
@@ -591,19 +658,25 @@ const degreesAbout = (rotate: Rotate) => {
       turn,
       ({ x, y, z, angle }) => x === 0 && y === 0 && z === 1 && angle.type === 'deg',
     ),
-    { onNone: () => Number.NaN, onSome: ({ angle }) => Math.abs(angle.value) },
+    { onNone: () => Number.NaN, onSome: ({ angle }) => angle.value },
   );
 };
 
 /**
  * What keeps the healing leaf from swaying as the owner approved it, by rule
- * and property: every rule that names its emblem (its parts, the blade's
- * group and the stem's path, sit only under it) turns them about the stem's
- * foot (`foot`), by `rotate` alone, to 0deg at `--stir: 0` and 5deg either
- * way at `--stir: 1`, with the transition `rotate var(--motion-emblem)
- * var(--motion-ease)`, the tree's tokens.
+ * and property: every rule that can match its parts, the blade's group and
+ * the stem's path (`reaches`, with any selector, its emblem named or not),
+ * turns them about the stem's foot (`foot`), by `rotate` alone, to 0deg at
+ * `--stir: 0` and 5deg at `--stir: 1`, each part turned and both the same
+ * way, with the transition `rotate var(--motion-emblem) var(--motion-ease)`,
+ * the tree's tokens. Under less motion the leaf stays at rest (the test of
+ * each emblem's stir), so a rule there may shorten its transition.
  */
-const leafProblems = (css: string, foot: string): ReadonlyArray<string> => {
+const leafProblems = (
+  css: string,
+  foot: string,
+  others: ReadonlySet<string>,
+): ReadonlyArray<string> => {
   const parts = '.emblem-remedies svg > *';
   const want = (property: string, value: string) =>
     expected(`${parts} { ${property}: ${value} }`, parts, property).map(
@@ -627,14 +700,35 @@ const leafProblems = (css: string, foot: string): ReadonlyArray<string> => {
       )
       .filter(
         (declaration) =>
-          declaration.property !== 'rotate' || degreesAbout(declaration.value) !== 5 * stir,
+          declaration.property !== 'rotate' ||
+          Math.abs(degreesAbout(declaration.value)) !== 5 * stir,
       )
       .map((declaration) => `${rule.header}: ${nameOf(declaration)} at --stir ${stir}`);
+  const stirred = stirredAt(css, 1);
+  const turns = LEAF_PARTS.map((part) => {
+    const degrees = stirred
+      .filter((rule) => reaches(others, part)(rule.chain))
+      .flatMap((rule) => rule.declarations)
+      .map(({ declaration }) => declaration)
+      .filter(
+        (declaration): declaration is Extract<Declaration, { property: 'rotate' }> =>
+          declaration.property === 'rotate',
+      )
+      .map((declaration) => degreesAbout(declaration.value));
+    return [part, degrees] as const;
+  });
+  const ways = new Set(turns.flatMap(([, degrees]) => degrees.map(Math.sign)));
   return [
+    ...rules(css).filter(reachesLeaf(others)).flatMap(origin),
     ...rules(css)
-      .filter(onLeaf)
-      .flatMap((rule) => [...origin(rule), ...transition(rule)]),
-    ...[0, 1].flatMap((stir) => stirredAt(css, stir).filter(onLeaf).flatMap(turned(stir))),
+      .filter(reachesLeaf(others))
+      .filter((rule) => !lessMotion(rule))
+      .flatMap(transition),
+    ...[0, 1].flatMap((stir) =>
+      stirredAt(css, stir).filter(reachesLeaf(others)).flatMap(turned(stir)),
+    ),
+    ...turns.filter(([, degrees]) => degrees.length === 0).map(([part]) => `${part}: not turned`),
+    ...['the parts turn opposite ways'].filter(() => ways.size > 1),
   ];
 };
 
@@ -769,17 +863,17 @@ describe('the motion in the stylesheet', () => {
 
   test('the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them', () =>
     Effect.gen(function* () {
-      const { css, foot } = yield* leafSheet;
+      const { css, foot, others } = yield* leafSheet;
       const parts = '.emblem-remedies svg > *';
       expect(given(rules(css), parts, 'transform-origin')).toEqual(
         expected(`${parts} { transform-origin: ${foot} }`, parts, 'transform-origin'),
       );
-      expect(leafProblems(css, foot)).toEqual([]);
+      expect(leafProblems(css, foot, others)).toEqual([]);
     }));
 
-  test('the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, and a part turned about another point', () =>
+  test('the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, and passes rules no part of it can match', () =>
     Effect.gen(function* () {
-      const { css, foot } = yield* leafSheet;
+      const { css, foot, others } = yield* leafSheet;
       const leaf = '  rotate: calc(5deg * var(--stir));';
       expect(css).toContain(leaf);
       const mutants: ReadonlyArray<readonly [string, string]> = [
@@ -796,11 +890,26 @@ describe('the motion in the stylesheet', () => {
           'a part turned about another point',
           `${css}\n.emblem-remedies svg > g { transform-origin: 0 0 }\n`,
         ],
+        [
+          'a pivot set by a rule that names no emblem',
+          `${css}\nsvg > g { transform-origin: 0 0 !important; }\n`,
+        ],
+        [
+          'a stem turned against its blade',
+          `${css}\n.emblem-remedies svg > path { rotate: calc(-5deg * var(--stir)) }\n`,
+        ],
+        ['a stem moved by a rule that names only its type', `${css}\npath { translate: 0 1px }\n`],
+        [
+          'a blade left still while its stem turns',
+          css.replace('.emblem-remedies svg > * {', '.emblem-remedies svg > path {'),
+        ],
       ];
       for (const [name, mutant] of mutants) {
         expect([name, mutant === css]).toEqual([name, false]);
-        expect([name, leafProblems(mutant, foot).length > 0]).toEqual([name, true]);
+        expect([name, leafProblems(mutant, foot, others).length > 0]).toEqual([name, true]);
       }
+      const another = `${css}\n.emblem-land svg > g { transform-origin: 0 0; rotate: calc(-9deg * var(--stir)) }\n.leaf-free g::before { rotate: 9deg }\n.x > path, svg > .y { rotate: 9deg }\n@media ${LESS_MOTION} { * { transition-duration: 0.01ms !important } }\n`;
+      expect(leafProblems(another, foot, others)).toEqual([]);
     }));
 
   test('a card rests unstirred, and a focused or pressed card stirs as a pointed one does', () =>

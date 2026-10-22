@@ -2992,7 +2992,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/round-1-findings.md F2
 - **Wrong:** The stylesheet tests passed with the sway at `500deg`, a `20s linear` transition, `rotate: calc(5deg + 0deg * var(--stir))`, and an added `.emblem-remedies svg > g { transform-origin: 0 0 }`.
 - **Cause:** The stir reader checked only that `var(--stir)` occurs, and the leaf test read the pivot of one selector and the names of the moved properties, not their values or the other rules on the parts.
-- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`, `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, and a part turned about another point`.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`, `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, and passes rules no part of it can match`.
 
 ### each-commit-runs-the-ledger
 
@@ -3023,3 +3023,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** A `public/rogue.js` holding `data:image/png` passed every build-walk test, a `src/x.js` passed the lint, which read only `src/**/*.{ts,tsx}`, an import `./a.png?inline=1` passed the lint's `?inline` pattern though Vite inlines it, and no test held `assetsInlineLimit: 0`, without which Vite inlines each imported image under 4 KiB.
 - **Cause:** The guards read the sources, which cannot list what the build emits, and the source scan skipped every script as linted while the lint read only the TypeScript of `src/`.
 - **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and each file that holds a data URL, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `inlines no imported asset, so each image the build emits is a file of its own`, `apps/firsttheblade/kit/build-walk.test.ts` `no served file the linter does not read, a stylesheet or a drawing, holds a data URL, so each image the site serves is a file the walk reads`, `packages/film/lint/config.test.ts` `refuses an inlined import (Vite's own test of it) and a data URL in every module the First the Blade site serves, scripts too, and passes a URL import and prose`.
+
+### leaf-hold-reads-every-rule-on-its-parts
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the leaf test reads only rules that name `.emblem-remedies`"
+- **Source:** ftb-approval-receipts/round-1-findings.md F4
+- **Wrong:** All 15 stylesheet cases passed with `svg > g { transform-origin: 0 0 !important; }`, which moves the blade's pivot off the stem's foot, and with `.emblem-remedies svg > path { rotate: calc(-5deg * var(--stir)) }`, which turns the stem against the blade.
+- **Cause:** The hold picked the rules on the leaf by the emblem's class, not by what can match its parts, and read each turn's size, not its way.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, and passes rules no part of it can match`, `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`.
