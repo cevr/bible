@@ -832,9 +832,8 @@ Web/desktop **UI parity** and web/desktop/CLI **domain parity** are tracked
 separately: a milestone may add no UI at all and still owe full three-client
 domain parity.
 
-The gate is `bun run gate` — first the checks, `oxlint`, `oxfmt` and `turbo run
-gate` (per-package `typecheck`, `build`) in parallel, then each package's `test`
-alone, one after another. The CLI's performance budgets
+The gate is `bun run gate`: the deterministic lint and each package's unit
+tests. The typecheck, builds and slow tests run by hand in `bun run test:slow`. The CLI's performance budgets
 run locally with `bun run test:perf` (they read `packages/core/data/bible.db`).
 
 Every milestone runs the six acceptance rules from the compatibility contract:

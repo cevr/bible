@@ -4502,5 +4502,6 @@ Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
-bun run gate   # repo root, as CI: lint, format check, every package's typecheck, build and tests
+bun run gate        # repo root, as CI: the deterministic lint and every workspace's unit tests
+bun run test:slow   # repo root, by hand and before a deploy: typecheck, builds, slow tests, full lint, format check
 ```

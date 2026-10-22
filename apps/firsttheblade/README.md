@@ -199,9 +199,9 @@ bun run promise    # builds, then: every sentence a reader gets that speaks of e
 bun run promise:census  # the promise check, red on each way the promise was lost before and on each source it refuses, each injected and built
 ```
 
-The app's `gate` is `bun scripts/promise.ts && bun run promise:census`:
-`bun run gate` runs it with the checks, after turbo's build, so the check
-reads that build, cached or not. The build writes a stamp last
+The app's `test:slow` starts with `bun scripts/promise.ts && bun run
+promise:census`: `bun run test:slow` runs it after turbo's build, so the
+check reads that build, cached or not; the gate does not run it. The build writes a stamp last
 (`scripts/built.ts`, into `.prerender/`, so it is not served: the hash of
 its sources, turbo's `build` inputs in `turbo.json`, and of each file it
 wrote), and the check refuses a `dist/` that
@@ -253,7 +253,7 @@ a3e589137f5, 2026-10-21), so a review reads for each:
 - Bidi controls are folded away: a word written backwards between U+202E and U+202C, or under `unicode-bidi: bidi-override`, reads as no word, though a reader sees it (`email-promise-bidi-controls`).
 - The browser's scripts are not read: words only `src/ui/phone-menu.tsx` or `src/confirm.ts` draw reach a reader through `dist/assets/client.js` or `confirm.js` alone, which the check skips (`email-promise-browser-script-prose`).
 - Runs are joined in the page's order: a positioned box or a reordered flex item that a stylesheet lays beside other words is not read joined with them (`email-promise-joins-in-document-order`).
-- The stamp hashes turbo's `build` inputs only: a run of `bun scripts/promise.ts` after an edit of the root tsconfig, the lock or `@bible/ui` reads the old `dist/`; the gate builds through turbo, whose hash holds them (`email-promise-stamp-inputs`).
+- The stamp hashes turbo's `build` inputs only: a run of `bun scripts/promise.ts` after an edit of the root tsconfig, the lock or `@bible/ui` reads the old `dist/`; `bun run test:slow` builds through turbo, whose hash holds them (`email-promise-stamp-inputs`).
 
 ## The art and the fonts
 

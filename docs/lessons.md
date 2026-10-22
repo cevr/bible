@@ -3206,3 +3206,43 @@ The form of an entry, each field on its own line:
 - **Wrong:** The silence check held −45 LUFS for 1.0 s with no measurement behind the numbers, so a soft passage could fail a hymn, or a dropout pass, unseen.
 - **Cause:** The numbers came from the spec, and no step measured the pilot's hymns against them.
 - **Guard:** skill: a threshold is calibrated by a measurement an agent runs before changing it, not by a test of the code. Carried by `packages/hymnal/README.md`: "Measure the six again before changing the silence check or the sound."
+
+### test-reads-a-file-its-task-does-not-hash
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the test cache replays a stale pass when a document that a unit test reads changes"
+- **Source:** gate-fast/round-1-findings.md F1
+- **Wrong:** The film's and the animations' unit tests read pages of `.claude/skills/film` (the delivery page, the director's vision, CRAFT.md, the character design page) and the root `package.json`, which no `test` task hashed: a heading renamed there left the gate green from the cache, though both tests failed when run.
+- **Cause:** A `test` task hashes its workspace's files and its dependencies' `transit` inputs, and a file a test reads anywhere else is hashed only when its `turbo.json` names it; the lists were written by hand from what a reader of the tests saw. `bun run test:reads` now runs every workspace's unit tests under a preload that records each path they read, and fails on any file their task does not hash.
+- **Guard:** code: `packages/scripts/src/test-reads/unhashed.test.ts` `names each read under the root that no input holds, once, and leaves out node_modules, .git and other roots`, `packages/scripts/src/test-slow.sh` `bun run test:reads`
+
+### lint-key-holds-the-plugins-imports
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the lint cache keeps a stale pass when a module that a JS rule imports changes"
+- **Source:** gate-fast/round-1-findings.md F2
+- **Wrong:** The gate's lint kept each file the JS plugins passed under a key of the film plugin's folder, so an edit to `camera.ts`'s `UNMOVED` or `scene-source.ts`'s parser, which the film rules import, kept every scene's pass.
+- **Cause:** The key named the plugin's files by folder, not by what the plugin runs. It now hashes each plugin's import closure, followed as Bun resolves each import (`lint-gate/closure.ts`).
+- **Guard:** code: `packages/scripts/src/lint-gate/closure.test.ts` `hold the modules the film plugin's rules import from the film's sources`
+
+### gate-docs-name-what-the-gate-runs
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "six doc lines say the gate runs checks it no longer runs"
+- **Source:** gate-fast/round-1-findings.md F3
+- **Wrong:** After the gate became the lint and the unit tests, the film README, the film skill, the architecture loop skill, firsttheblade's README and the wiki design still said it ran the typecheck, the builds and the format check, and that a stale rig stamp fails it.
+- **Cause:** The lines named `bun run gate`, which did not change, so no name in them changed with the claim. Each now says what the gate runs and what `bun run test:slow` runs.
+- **Guard:** skill: a sentence about what a command runs reads true or false only against the command, and the same words name the gate and the typecheck in true lines too. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it; use the list to find the lines a change may have made untrue."
+
+### precommit-typechecks-both-sides-of-a-move
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the pre-commit typecheck skips the source workspace of a moved file"
+- **Source:** gate-fast/round-1-findings.md F4
+- **Wrong:** A file moved from one workspace to another was named at its new path only, so the workspace it left, whose importers may break, was not typechecked before the commit.
+- **Cause:** `git diff --cached --name-only` detects renames by default. The staged files are now named with `--no-renames` (`precommit-typecheck/workspaces.ts` `STAGED_FILES`).
+- **Guard:** code: `packages/scripts/src/precommit-typecheck/staged.test.ts` `name a file moved across workspaces at both paths, so both are typechecked`
