@@ -1286,6 +1286,34 @@ describe('the player by the world: the part 8 sweep (rw r3 part 9)', () => {
   seed('a refused page seek overtaken by an end', 'ios', 66);
 });
 
+// A seek on a Playing page is no act that asks for sound (P1): the page stays Playing while the
+// device sounds on at the new place, and shows Loading only by the stand (rw r3 verify D1).
+describe('a seek while Playing keeps the page Playing (rw r3 verify D1)', () => {
+  for (const platform of ['ios', 'android', 'web'] as const)
+    for (const landAfter of [0, 300])
+      fixed(
+        `${platform}: page seeks forward and back, and a lock-screen seek, landing ${landAfter} ms after the ask`,
+        platform,
+        { landAfter: () => landAfter },
+        (w) =>
+          Effect.gen(function* () {
+            yield* playingAt(w, 20);
+            const from = w.t;
+            w.send(Command.Seek({ seconds: 60 }));
+            yield* w.run(3000);
+            w.send(Command.Seek({ seconds: 30 }));
+            yield* w.run(3000);
+            w.press('seek', 120_000);
+            yield* w.run(3000);
+            w.send(Command.Seek({ seconds: 200 }));
+            yield* w.run(3000);
+            expect(w.place).toBeGreaterThan(200_000);
+            expect(w.shownSince(from).filter((it) => it !== 'Playing')).toEqual([]);
+            expect(tag(w)).toBe('Playing');
+          }),
+      );
+});
+
 // A sound pair the page finishes after it lets go sets the reader's place, for Stopped and the
 // next Resume (orchestrator, round 2 review: web 360; P7).
 describe('a pair finished after the let-go sets the place (rw r3 web 360)', () => {
