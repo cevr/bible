@@ -1804,6 +1804,86 @@ The form of an entry, each field on its own line:
 - **Cause:** The copy was written to sound like the series' voice rules, phrase by phrase, and nothing read it back as plain speech.
 - **Guard:** code: `apps/firsttheblade/src/copy.test.ts` `the site's words hold no stock phrase, no not-X-but-Y turn and no em-dash`
 
+### light-from-the-sun
+
+- **Date:** 2026-10-21
+- **Kind:** owner
+- **Said:** "Also, it's kind of weird to have light shimmering here and the sun here."
+- **Source:** the owner's notes on the First the Blade hero, 2026-10-21 (unit ftb-motion brief, note 1); he circled the light rays at the top left and the sun at the right
+- **Wrong:** The hero's painted field threw its light rays down from the top-left corner while its sun sat low on the right horizon, so the light came from no sun.
+- **Cause:** The field was painted as one picture, its rays and its sun each drawn for themselves, and nothing held the light to its source.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/src/motion/sun.test.ts` `never grows brighter as it goes out of the sun, in any direction`. They hold the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name." The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+
+### field-old-rays-on-left-hills
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "faint traces of the old top-left rays remain on the far-left hills"
+- **Source:** ftb-motion/self-findings.md F1
+- **Wrong:** The repainted field keeps faint diagonal streaks of the old top-left rays on its far-left hills, clear at 2x and faint at 1:1.
+- **Cause:** The kit paints the left of the sky again from its clear middle columns, and the hills are land, which it leaves as painted; the still's guard reads the sky's light alone (`skyLight`), so it does not see them. A streamline inversion to lift them failed.
+- **Guard:** code: `apps/firsttheblade/kit/field-paint.test.ts` `takes a streak’s step off its hill, so no edge is left across it`, `apps/firsttheblade/kit/field-paint.test.ts` `each has its step on the master, and the shipped still has none across it`. The owner chose to lift the streaks from the painting (ask a714e0e2d89); how faint a trace may stay is his eye on the stills.
+
+### taught-card-stir-looks-like-rest
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the Taught of the Lord card at full stir looks like its rest"
+- **Source:** ftb-motion/self-findings.md F2
+- **Wrong:** The Taught of the Lord card's leaf turns from scaleX 1 to -1, so the hovered card's end state is the mirror of its rest and a still of it shows almost no change.
+- **Cause:** The stir is the leaf's turn itself, and only the turn moves.
+- **Guard:** none: declined; the turn is the brief's "the book turns a leaf", and whether its end state should differ is a design call the owner makes on the video.
+
+### field-canvas-without-mipmaps
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the field's canvas samples its still without mipmaps"
+- **Source:** ftb-motion/self-findings.md F3
+- **Wrong:** The field's canvas draws its still with linear filtering and no mipmaps, so its edges differ faintly from the browser's own downsizing at strong magnification (56.3 dB PSNR in the field band).
+- **Cause:** The srcset picks a still within 2x of the canvas, where mipmaps add blur.
+- **Guard:** none: declined; the measured takeover is below sight, and mipmaps would blur the field against its still.
+
+### field-light-guard-reads-the-still
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the light guard never reads the shipped still, so a still with the old top-left rays passes the gate"
+- **Source:** ftb-motion/round-1-findings.md F1
+- **Wrong:** `lightFromTheSun` checked only the procedural `sunLight` the kit lays on, never a still's pixels, so the base's stills with the old top-left rays passed every test when swapped back in.
+- **Cause:** The guard was written against the light the kit computes, not the picture it ships.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. They hold the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name." The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+
+### night-smoothstep-edges-in-order
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "three smoothstep calls in the night shader pass their edges high first, which GLSL ES 3.00 leaves undefined"
+- **Source:** ftb-motion/round-1-findings.md F2
+- **Wrong:** `NIGHT_FRAGMENT` wrote its falls as `smoothstep(0.47, 0.4, …)`, `smoothstep(0.09, 0.0, …)` and `smoothstep(0.3, 0.16, …)`; GLSL ES 3.00 leaves the result undefined when the first edge is not below the second, so a driver may draw no sky, no stars or no dark.
+- **Cause:** A fall was written by swapping the edges, which the drivers it was looked at on happen to draw as meant.
+- **Guard:** code: `apps/firsttheblade/src/motion/shaders.test.ts` `write each smoothstep with its lower edge first`
+
+### motion-texture-per-unit
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "each picture load makes a new texture and leaks the one before it, and the context is never released"
+- **Source:** ftb-motion/round-1-findings.md F3
+- **Wrong:** The scene made a new texture each time its picture loaded a larger file and never deleted the one before, and an ended scene left its WebGL2 context for the collector.
+- **Cause:** The texture was made where it was filled, so filling it again made another; the context was not a resource of the scene's scope.
+- **Guard:** none: the leak is bounded by the srcset's three files and freed with the canvas; the repair is in the structure: one texture per unit filled again on load, and the context acquired with a release that calls `loseContext()` (`apps/firsttheblade/src/motion/scene.ts`).
+
+### tests-state-behaviour-not-the-code
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "some new tests restate the code or its formatting instead of a behaviour"
+- **Source:** ftb-motion/round-1-findings.md F4
+- **Wrong:** `emblems.test.ts` imported `LEAF`, exported only for it, and expected the drawing to contain it, so a corrupted leaf stayed green; `styles.test.ts` matched exact stylesheet text, so a reformat turned it red with nothing changed.
+- **Cause:** The expected values were taken from the module and the file's text instead of written from what the reader sees.
+- **Guard:** skill: whether an expected value restates its module is a reading of the test, not a property code can check. Carried by `apps/firsttheblade/README.md`: "A test writes its expected value itself and never imports it from the module under test; a style test asserts parsed rules under their media queries, not formatted stylesheet text."
+
 ### lead-hands-off-cuffs
 
 - **Date:** 2026-10-20
@@ -2563,3 +2643,63 @@ The form of an entry, each field on its own line:
 - **Wrong:** The build's stamp hashes turbo's `build` inputs for the app only (`apps/firsttheblade/scripts/built.ts` `buildInputs`), so `bun scripts/promise.ts` run by hand after an edit of the root tsconfig, the lock or `@bible/ui` reads the old `dist/` as current.
 - **Cause:** The stamp reads the app's own inputs from `apps/firsttheblade/turbo.json`; the rest of what a build reads, turbo hashes for itself.
 - **Guard:** none: the gate builds through turbo, whose hash covers them, and `bun run promise` builds first; `apps/firsttheblade/README.md` "Known limits of `bun run promise`" names the inputs the stamp reads.
+
+### field-light-guard-reads-the-master
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "repeat of r1 F1: the light guard still passes stills whose rays come from the top left"
+- **Source:** ftb-motion/round-2-findings.md F1
+- **Wrong:** `skyLight` read a still's light against the still's own sky and row colours, in luma, with a rise of 0.07 allowed; head mixed 0.3 or 0.4 toward the old stills, gold or white beams from the top left, and the kit's repaint cut short to 0.2 or 0.3 of the width or laid at 0.5 or 0.7 all passed, and so did 34 of 40 seeded top-left rays beyond the WebP noise.
+- **Cause:** The guard held a still against itself, so what the still held moved its own reference, and its tolerance came from no measured noise.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`. They hold the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name." The record is `apps/firsttheblade/kit/approved-stills.json`; whether a still's light comes from the sun is the owner's look, given through a lab ask with 1:1 crops.
+
+### hero-sway-seen-at-a-glance
+
+- **Date:** 2026-10-21
+- **Kind:** owner
+- **Said:** "a bit more swaying - the movements are too unnoticble"
+- **Source:** the owner's answer to ask a714e0e2d89, 2026-10-21 (unit ftb-motion, round 3 brief, answer 5)
+- **Wrong:** The hero's wheat swayed by 0.0045 of the painting's width at a gust's full push, so a plant's tip moved about 1 px between frames 3 s apart at 1280 wide, and the field read as still.
+- **Cause:** The sway was set by eye to stay calm, and nothing held it to a size a viewer sees.
+- **Guard:** code: `apps/firsttheblade/src/motion/shaders.test.ts` `sway the hero’s plants at least as far as the owner asked`, `apps/firsttheblade/src/motion/shaders.test.ts` `a sway below the floor is refused`. They hold the field shader's sway at or above 0.012 of the width, the floor of this revise.
+
+### emblem-stirs-calm
+
+- **Date:** 2026-10-21
+- **Kind:** owner
+- **Said:** chose: "Make it calm like the others"
+- **Source:** the owner's answer to ask a714e0e2d89, 2026-10-21 (unit ftb-motion, round 3 brief, answer 3)
+- **Wrong:** The tree card's stir swung on a spring, `cubic-bezier(0.34, 1.56, 0.64, 1)` over 900 ms, past its lean and back, while the other cards' stirs eased in 600 ms with no overshoot.
+- **Cause:** The tree was given a livelier easing of its own, and nothing held the emblems' stirs to one family.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `each emblem stirs calmly, its easing never overshooting or springing back`, `apps/firsttheblade/src/motion/styles.test.ts` `find an emblem eased with a spring`.
+
+### styles-test-reads-every-hover
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the styles test passes an ungated hover stir written another way"
+- **Source:** ftb-motion/round-2-findings.md F2
+- **Wrong:** The styles test's rule reader read a nested `&:hover` block as a property and split `:is(:hover, :focus-within)` at its inner comma, and the hover case held only the literal `.card:hover`, so `.card { &:hover { --stir: 1; } }`, `.card:is(:hover, :focus-within) { --stir: 1 }` and `.cards .card:hover { --stir: 1 }` each stirred a card with no fine-pointer gate and stayed green.
+- **Cause:** The reader was written for the stylesheet as it stood, and the case named one spelling of a hover instead of every rule a hover stirs.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `nests no block in a rule, so every rule is read`, `apps/firsttheblade/src/motion/styles.test.ts` `pointing stirs a card only where a fine pointer hovers, so a tap leaves no card stirred`, `apps/firsttheblade/src/motion/styles.test.ts` `find each hover stir outside the fine-pointer query, however it is written`, `apps/firsttheblade/src/motion/styles.test.ts` `split a selector list at its own commas, not inside :is()`.
+
+### field-light-is-the-owners-look
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "repeat of r2 F1; thin lines and faint rays from the top left pass the light guard, and the property test cannot generate them"
+- **Source:** ftb-motion/round-3-findings.md F1
+- **Wrong:** Three rounds of a measured light guard (`skyLight` against the master's clear sky, `lightFromTheSun` with a 0.02 rise) each passed lights from the top left: a 1 px white or gold line, counsel's faint ray, and the kit's repaint at 0.95 of its reach.
+- **Cause:** The rule was a measure of the painting's sky, and the painting's own texture reads 2 to 4 times the WebP noise against any clear-sky reference, so no tolerance both passes the shipped stills and refuses a faint line; whether light comes from the sun is the owner's look.
+- **Guard:** code: `apps/firsttheblade/kit/field-still.test.ts` `are each the still the owner approved, byte for byte, under the ask that showed him them`, `apps/firsttheblade/kit/field-still.test.ts` `refuse any change to a served still until the owner approves it`, `apps/firsttheblade/kit/field-still.test.ts` `refuse a still the record does not name, and a record entry with no file`, `apps/firsttheblade/kit/field-still.test.ts` `refuse every light the earlier light guards let through`. The rewrite (ftb-motion rewrite-spec.md) holds the rule: "Every shipped field still, at every srcset size, is byte-identical to one the owner approved by name."
+
+### field-still-approved-in-a-lab-ask
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "a repainted or re-encoded still goes to the owner as a lab ask with 1:1 crops before its hashes are approved"
+- **Source:** ftb-motion/round-3-findings.md F1 (the rewrite's approval step)
+- **Wrong:** A changed master, kit step or encode could ship a still the owner never saw.
+- **Cause:** The kit wrote the stills, and the gate judged them by a measure, not by his approval.
+- **Guard:** skill: whether a repainted still's light is right is the owner's eye at 1:1, and the record is written only after he answers. Carried by `.claude/skills/verify-firsttheblade/features/motion.md`: "A repainted or re-encoded still goes to the owner as a lab ask with 1:1"

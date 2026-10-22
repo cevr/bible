@@ -138,6 +138,8 @@ bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to 
 bun run verify:drive confirm --root <dir> --port <p> --evidence <dir>   # drive the site as a visitor (verify:launch, :doctor, :outbox, :stop, :stage too)
 ```
 
+A test writes its expected value itself and never imports it from the module under test; a style test asserts parsed rules under their media queries, not formatted stylesheet text.
+
 How to run and drive the site to check a change, with the proof it keeps,
 is the `verify-firsttheblade` skill (`.claude/skills/verify-firsttheblade`).
 
@@ -188,6 +190,8 @@ of the field at 3072 px, and the dusk band blends in oklab.
 ```bash
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
+bun run kit:field  # the field's still (its rays from the sun) and its wind map into src/art/ from kit/art/field.webp; then bun run kit
+bun run kit:approve --ask <id> [--answer <his words>]  # the coordinator only: records the field stills as they stand in kit/approved-stills.json, under the lab ask that showed the owner them
 bun run promise    # builds, then: every sentence a reader gets that speaks of email, of what we send or of how often is the list's promise, or held
 bun run promise:census  # the promise check, red on each way the promise was lost before and on each source it refuses, each injected and built
 ```
@@ -255,6 +259,29 @@ size) are round 4's paintings. The series emblems are round 3's, in the same
 colours. The thumbnails' paintings (`kit/art/robe.webp`, `kit/art/court.webp`)
 are from Righteousness by Faith. `bun run kit` draws the YouTube banner and the
 link cards in `public/og/` from the site's field, and the icons from the mark.
+
+The field's master is `kit/art/field.webp`. `bun run kit:field` (`kit/field.ts`)
+paints its sky's top-left rays out, lays the sun's own light over the sky
+(`src/motion/sun.ts`), and writes the three stills and the wind map,
+`src/art/field-wind.png`, which says how far each pixel of the wheat sways.
+It holds one rule: every shipped field still, at every srcset size, is
+byte-identical to one the owner approved by name. Whether a still's light
+comes from the sun is his look, so the code does not measure it. The record,
+`kit/approved-stills.json` (`kit/approval.ts`), holds his approval (the lab
+ask that showed him the stills at 1:1, pending until he answers, then his
+answer verbatim) and the SHA-256 of each still the site serves from the
+field: the three srcset sizes, the wind map and the link cards.
+`kit/field-still.test.ts` refuses every served still whose bytes differ from
+the record, each the record does not name and each it names with no file. It
+also refuses each still with one byte changed, re-encoded, one pixel one level off,
+swapped or dropped, and the lights the earlier light guards let through.
+`bun run kit` and `bun run kit:field` print each still that differs from the
+record and never write it. A repainted or re-encoded still goes to the owner
+as a lab ask with 1:1 crops, and then `bun run kit:approve` records it. The field and the night move in the browser
+(`src/motion/scene.ts`): a WebGL2 canvas over each still, loaded only for a
+reader who has not asked for less motion, drawing only while it is on the
+screen. The series cards' emblems are laid in the page as drawings
+(`src/ui/emblems.ts`) so the stylesheet can stir their parts.
 
 Newsreader (`src/fonts/`) is under the SIL Open Font License 1.1, subset to
 Latin and Latin Extended and served from this site.

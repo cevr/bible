@@ -8,7 +8,7 @@ import type { JSX } from '@solidjs/web';
 
 import { MARK_4_27, type Series, UNITS, type Verse } from '../content.ts';
 import { CHANNEL, PROFILES } from '../site.ts';
-import { EMBLEMS, FIELD, MARK, NIGHT } from './art.ts';
+import { EMBLEM_DRAWINGS, FIELD, MARK, NIGHT } from './art.ts';
 import { PRIVACY_PATH } from '../pages.ts';
 import { SignUp } from './mail.tsx';
 import { FOOTER_NAV_ID, NAV, SUBSCRIBE } from './nav.ts';
@@ -95,7 +95,7 @@ export const SeriesCard = (props: SeriesCardProps) => {
   const s = props.series;
   return (
     <li class="card">
-      <img src={EMBLEMS[s.id]} alt="" width="92" height="92" loading="lazy" />
+      <span class={`emblem emblem-${s.id}`} aria-hidden="true" innerHTML={EMBLEM_DRAWINGS[s.id]} />
       <div>
         <p class="label">
           <span class="nowrap">{s.subject}</span> · <span class="nowrap">{s.form}</span>

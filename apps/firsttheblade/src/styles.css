@@ -188,6 +188,8 @@
   --motion-fast: 150ms;
   --motion-popup: 220ms;
   --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --motion-emblem: 600ms;
+  --motion-leaf: 700ms;
 
   /* The content column: the desktop board's 1328 px between its gutters. */
   --layout-width: min(100% - 2 * var(--space-gutter), 83rem);
@@ -763,10 +765,73 @@ a {
     gap: var(--space-6);
   }
 }
-.card img {
+.emblem {
+  display: block;
   width: var(--size-emblem);
   height: var(--size-emblem);
   flex: none;
+}
+.emblem svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * A card pointed at, pressed or focused stirs its emblem (`./ui/emblems.ts`):
+ * the suns rise from their horizons and their rays reach out, the tree sways
+ * and the book turns a leaf, each eased with no spring past its pose. `--stir`
+ * is 0 at rest and 1 stirred; pointing stirs only where a pointer hovers, so
+ * a tap does not leave a card stirred.
+ */
+.card {
+  --stir: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    --stir: 1;
+  }
+}
+.card:active,
+.card:has(h3 a:focus-visible) {
+  --stir: 1;
+}
+.emblem-path svg > g:nth-of-type(1),
+.emblem-remedies svg > g:nth-of-type(1) {
+  scale: calc(1 + 0.12 * var(--stir));
+  transition: scale var(--motion-emblem) var(--motion-ease);
+}
+.emblem-path svg > g:nth-of-type(2),
+.emblem-remedies svg > g:nth-of-type(3) {
+  scale: calc(1 + 0.22 * var(--stir));
+  opacity: calc(1 - 0.15 * var(--stir));
+  transition:
+    scale var(--motion-emblem) var(--motion-ease),
+    opacity var(--motion-emblem) var(--motion-ease);
+}
+.emblem-path svg > g:nth-of-type(1),
+.emblem-path svg > g:nth-of-type(2) {
+  transform-origin: 70px 50px;
+}
+.emblem-remedies svg > g:nth-of-type(1),
+.emblem-remedies svg > g:nth-of-type(3) {
+  transform-origin: 50px 56px;
+}
+.emblem-land svg > g:nth-of-type(5),
+.emblem-land svg > g:nth-of-type(6) {
+  transform-origin: 24px 64px;
+  rotate: calc(-5deg * var(--stir));
+  transition: rotate var(--motion-emblem) var(--motion-ease);
+}
+.emblem-taught .leaf {
+  transform-origin: 50px 50px;
+  scale: calc(1 - 2 * var(--stir)) 1;
+  transition: scale var(--motion-leaf) ease-in-out;
+}
+/* The leaf's shade is on its front: it goes as the leaf passes edge-on. */
+.emblem-taught .leaf-shade {
+  opacity: calc(1 - var(--stir));
+  transition: opacity 0s linear calc(var(--motion-leaf) / 2);
 }
 .card h3 {
   margin: var(--space-1) 0 var(--space-2);
@@ -888,6 +953,23 @@ a {
   object-fit: cover;
   object-position: 55% 0%;
 }
+/*
+ * The field and the night in motion (`./motion/scene.ts`): a canvas laid on
+ * the still, drawing the same painting where the still is, shown once its
+ * first frame is drawn, so the page does not move or change as it takes over.
+ */
+.motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.motion-on {
+  opacity: 1;
+}
+
 /* The night field fades into the night under the words. */
 .night-veil {
   position: absolute;
@@ -1147,6 +1229,13 @@ button.button-night {
   }
   .confirm-arrived img {
     animation: none;
+  }
+  /* The stills stay still and the emblems stay at rest. */
+  .motion {
+    display: none;
+  }
+  .card {
+    --stir: 0 !important;
   }
 }
 

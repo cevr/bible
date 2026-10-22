@@ -14,7 +14,9 @@
  * (`src/art/field-3072.webp`), so the banner and a shared link look like the
  * page they lead to. The mark and the thumbnails' paintings are in `kit/art/`
  * at full size; the emblems are from `src/art/`. The colours are
- * `src/palette.ts`.
+ * `src/palette.ts`. The link cards are stills of the field the owner
+ * approves by name, so each run ends by naming those that differ from his
+ * approval (`./approval.ts`); it never writes the record.
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { chromium, type Browser } from '@playwright/test';
@@ -22,6 +24,7 @@ import { Data, Effect, FileSystem, Path } from 'effect';
 
 import { SERIES, type Series, type SeriesId } from '../src/content.ts';
 import { PALETTE } from '../src/palette.ts';
+import { reportAgainstRecord } from './approval.ts';
 
 const KIT = import.meta.dir;
 const APP = `${KIT}/..`;
@@ -365,6 +368,7 @@ const kit = Effect.gen(function* () {
   yield* Effect.logInfo('kit.drew').pipe(
     Effect.annotateLogs({ file: 'public/favicon.ico', sizes: '16,32,48', bytes: favicon.length }),
   );
+  yield* reportAgainstRecord(APP);
 }).pipe(Effect.scoped);
 
 if (import.meta.main) {

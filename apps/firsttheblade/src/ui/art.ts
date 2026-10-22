@@ -9,6 +9,10 @@ import emblemLand from '../art/emblem-land.svg';
 import emblemPath from '../art/emblem-path.svg';
 import emblemRemedies from '../art/emblem-remedies.svg';
 import emblemTaught from '../art/emblem-taught.svg';
+import drawnLand from '../art/emblem-land.svg?raw';
+import drawnPath from '../art/emblem-path.svg?raw';
+import drawnRemedies from '../art/emblem-remedies.svg?raw';
+import drawnTaught from '../art/emblem-taught.svg?raw';
 import field768 from '../art/field-768.webp';
 import field1536 from '../art/field-1536.webp';
 import field3072 from '../art/field-3072.webp';
@@ -17,6 +21,7 @@ import mark320 from '../art/mark-320.webp';
 import night768 from '../art/night-768.webp';
 import night1536 from '../art/night-1536.webp';
 import type { SeriesId } from '../content.ts';
+import { withLeaf } from './emblems.ts';
 
 /** A painting at the widths a page may fetch; each file is 3:2. */
 export interface Painting {
@@ -48,4 +53,12 @@ export const EMBLEMS: Record<SeriesId, string> = {
   land: emblemLand,
   taught: emblemTaught,
   remedies: emblemRemedies,
+};
+
+/** Each series' emblem as its drawing's markup, laid in a card so its parts can move (`./emblems.ts`). */
+export const EMBLEM_DRAWINGS: Record<SeriesId, string> = {
+  path: drawnPath,
+  land: drawnLand,
+  taught: withLeaf(drawnTaught),
+  remedies: drawnRemedies,
 };

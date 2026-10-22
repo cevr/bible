@@ -59,3 +59,5 @@ exactly these H2s in order:
 - [Not found and redirects](not-found-and-redirects.md): the 404 page, the
   methods refused, the mail routes' 303s and the hosts' redirects.
 - [The outbox](outbox.md): the letters the preview writes instead of sending.
+- [Motion](motion.md): the field's wind and shimmer, the night's stars, the
+  series cards' hover, and the stills kept still for less motion.

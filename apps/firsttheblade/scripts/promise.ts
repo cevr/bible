@@ -980,12 +980,16 @@ const WORDLESS = new Set([
   ...['dist/assets/field-768.webp', 'dist/assets/field-1536.webp', 'dist/assets/field-3072.webp'],
   ...['dist/assets/night-768.webp', 'dist/assets/night-1536.webp'],
   ...['dist/assets/mark-112.webp', 'dist/assets/mark-320.webp'],
+  // The field's wind, a map of how far each pixel sways, read by the motion's shader (`kit/field.ts`).
+  'dist/assets/field-wind.png',
   // The font's glyphs.
   ...['dist/assets/Newsreader-normal-latin.woff2', 'dist/assets/Newsreader-normal-latin-ext.woff2'],
   ...['dist/assets/Newsreader-italic-latin.woff2', 'dist/assets/Newsreader-italic-latin-ext.woff2'],
   // The browser's scripts: the phone menu, whose links the served pages print, the confirm
-  // page's button, and the library (`email-promise-browser-script`).
-  ...['dist/assets/client.js', 'dist/assets/confirm.js', 'dist/assets/Effect.js'],
+  // page's button, the stills' motion, which adds no words (`src/motion/scene.ts`), and the
+  // library and a piece of it two scripts share (`email-promise-browser-script`).
+  ...['dist/assets/client.js', 'dist/assets/confirm.js', 'dist/assets/scene.js'],
+  ...['dist/assets/Effect.js', 'dist/assets/Data.js'],
 ]);
 
 /** A built file's kind: its path, the build's content hash taken off, so a kind outlives a change of its bytes. */
