@@ -2944,6 +2944,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The walk's pattern read only a literal data URL, and the residual was written from the lint's reach, not the walk's. The pattern now reads the scheme at a string's end and a colon written as an HTML character reference, a key or a name `data` aside; a URL put together from smaller pieces is named as outside the walk.
 - **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `refuses a script that joins a type to the scheme at run time and a page whose colon is a character reference, each as a data URL, and passes a key or a name data`.
 
+### leaf-hold-refuses-a-reset-and-a-stir-off-a-card
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the leaf hold lets through an `all:` reset and a `--stir` set on a part"
+- **Source:** ftb-approval-receipts/round-2-findings.md F4
+- **Wrong:** `svg > g { all: initial !important }` and `svg > g { --stir: 100 !important }` each passed every case of the leaf's hold, though the first undoes the sway and the second turns the leaf 500deg.
+- **Cause:** The hold read only `transform-origin`, `transition`, the moving properties and `animation`, and it put the stir into `var(--stir)` with no cascade, so a stir set between the card and a part was never read. It now refuses `all` on a rule that reaches a part, and `--stir` on any rule whose subject is not a card.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, a part reset by all, a stir set anywhere but on a card, and passes rules no part of it can match`.
+
 ### random-approval-draws-the-rules-domain
 
 - **Date:** 2026-10-22
@@ -3012,7 +3022,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/round-1-findings.md F2
 - **Wrong:** The stylesheet tests passed with the sway at `500deg`, a `20s linear` transition, `rotate: calc(5deg + 0deg * var(--stir))`, and an added `.emblem-remedies svg > g { transform-origin: 0 0 }`.
 - **Cause:** The stir reader checked only that `var(--stir)` occurs, and the leaf test read the pivot of one selector and the names of the moved properties, not their values or the other rules on the parts.
-- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`, `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, and passes rules no part of it can match`.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`, `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, a part reset by all, a stir set anywhere but on a card, and passes rules no part of it can match`.
 
 ### each-commit-runs-the-ledger
 
@@ -3052,4 +3062,4 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-approval-receipts/round-1-findings.md F4
 - **Wrong:** All 15 stylesheet cases passed with `svg > g { transform-origin: 0 0 !important; }`, which moves the blade's pivot off the stem's foot, and with `.emblem-remedies svg > path { rotate: calc(-5deg * var(--stir)) }`, which turns the stem against the blade.
 - **Cause:** The hold picked the rules on the leaf by the emblem's class, not by what can match its parts, and read each turn's size, not its way.
-- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, and passes rules no part of it can match`, `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, a part reset by all, a stir set anywhere but on a card, and passes rules no part of it can match`, `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`.

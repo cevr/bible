@@ -663,14 +663,34 @@ const degreesAbout = (rotate: Rotate) => {
 };
 
 /**
+ * Whether a rule's every selector has a card as its subject, or an `&` there
+ * that stands for a parent rule whose subject is a card: only a card sets
+ * `--stir`, so its emblem's parts read the card's stir.
+ */
+const onCard = (chain: ReadonlyArray<SelectorList>): boolean =>
+  (chain.at(-1) ?? []).every((selector) => {
+    const [subject] = compoundsOf(selector);
+    const compound = subject?.compound ?? [];
+    return (
+      compound.some((component) => component.type === 'class' && component.name === 'card') ||
+      (compound.some((component) => component.type === 'nesting') &&
+        chain.length > 1 &&
+        onCard(chain.slice(0, -1)))
+    );
+  });
+
+/**
  * What keeps the healing leaf from swaying as the owner approved it, by rule
  * and property: every rule that can match its parts, the blade's group and
  * the stem's path (`reaches`, with any selector, its emblem named or not),
  * turns them about the stem's foot (`foot`), by `rotate` alone, to 0deg at
  * `--stir: 0` and 5deg at `--stir: 1`, each part turned and both the same
  * way, with the transition `rotate var(--motion-emblem) var(--motion-ease)`,
- * the tree's tokens. Under less motion the leaf stays at rest (the test of
- * each emblem's stir), so a rule there may shorten its transition.
+ * the tree's tokens. No rule that reaches a part resets it (`all`), and
+ * only a card sets `--stir` (`onCard`): a stir set on a part or between the
+ * card and it would turn the leaf past the card's. Under less motion the leaf
+ * stays at rest (the test of each emblem's stir), so a rule there may shorten
+ * its transition.
  */
 const leafProblems = (
   css: string,
@@ -718,7 +738,17 @@ const leafProblems = (
     return [part, degrees] as const;
   });
   const ways = new Set(turns.flatMap(([, degrees]) => degrees.map(Math.sign)));
+  const resets = (rule: Rule) =>
+    rule.declarations
+      .filter(({ declaration }) => nameOf(declaration) === 'all')
+      .map(() => `${rule.header}: all is set on a part`);
+  const stirs = rules(css)
+    .filter((rule) => rule.declarations.some(({ declaration }) => nameOf(declaration) === '--stir'))
+    .filter((rule) => !onCard(rule.chain))
+    .map((rule) => `${rule.header}: --stir is set off a card`);
   return [
+    ...rules(css).filter(reachesLeaf(others)).flatMap(resets),
+    ...stirs,
     ...rules(css).filter(reachesLeaf(others)).flatMap(origin),
     ...rules(css)
       .filter(reachesLeaf(others))
@@ -871,7 +901,7 @@ describe('the motion in the stylesheet', () => {
       expect(leafProblems(css, foot, others)).toEqual([]);
     }));
 
-  test('the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, and passes rules no part of it can match', () =>
+  test('the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, a part turned about another point, a pivot set by a rule that names no emblem, a stem turned against its blade or moved by a rule naming only its type, a blade left still, a part reset by all, a stir set anywhere but on a card, and passes rules no part of it can match', () =>
     Effect.gen(function* () {
       const { css, foot, others } = yield* leafSheet;
       const leaf = '  rotate: calc(5deg * var(--stir));';
@@ -903,12 +933,16 @@ describe('the motion in the stylesheet', () => {
           'a blade left still while its stem turns',
           css.replace('.emblem-remedies svg > * {', '.emblem-remedies svg > path {'),
         ],
+        ['a part reset by all', `${css}\nsvg > g { all: initial !important }\n`],
+        ['a stir set on a part', `${css}\nsvg > g { --stir: 100 !important }\n`],
+        ['a stir set on the drawing', `${css}\n.emblem-remedies svg { --stir: 100 }\n`],
+        ['a stir set inside a card', `${css}\n.card { & svg { --stir: 100 } }\n`],
       ];
       for (const [name, mutant] of mutants) {
         expect([name, mutant === css]).toEqual([name, false]);
         expect([name, leafProblems(mutant, foot, others).length > 0]).toEqual([name, true]);
       }
-      const another = `${css}\n.emblem-land svg > g { transform-origin: 0 0; rotate: calc(-9deg * var(--stir)) }\n.leaf-free g::before { rotate: 9deg }\n.x > path, svg > .y { rotate: 9deg }\n@media ${LESS_MOTION} { * { transition-duration: 0.01ms !important } }\n`;
+      const another = `${css}\n.emblem-land svg > g { transform-origin: 0 0; rotate: calc(-9deg * var(--stir)) }\n.leaf-free g::before { rotate: 9deg }\n.x > path, svg > .y { rotate: 9deg }\n@media ${LESS_MOTION} { * { transition-duration: 0.01ms !important } }\n.card { &:focus-within { --stir: 1 } }\n.cards .card:hover { --stir: 1 }\n`;
       expect(leafProblems(another, foot, others)).toEqual([]);
     }));
 
