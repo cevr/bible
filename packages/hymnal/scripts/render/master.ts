@@ -26,7 +26,7 @@ import {
   FF_ENCODER_LIBMP3LAME,
   FF_ENCODER_PCM_F32LE,
 } from 'node-av/constants';
-import { Dictionary, Log } from 'node-av/lib';
+import { Dictionary, Log, type Frame, type Packet } from 'node-av/lib';
 import { RenderFailed } from './proc.js';
 import type { Style } from './style.js';
 
@@ -119,9 +119,49 @@ const filterFile = async (
   });
   const index = mux.addStream(encoder);
   const frames = filter.frames(decoder.frames(demux.packets(stream.index)));
-  for await (using packet of encoder.packets(frames))
-    if (packet) await mux.writePacket(packet, index);
+  await encodeAll(encoder, frames, (packet) => mux.writePacket(packet, index));
 };
+
+/**
+ * `frames` encoded, each packet written. NodeAV's encoder chunks audio into
+ * the codec's frame size through a FIFO whose flush keeps only whole frames,
+ * so a short last frame would be dropped (the MP3 one frame short). The MP3
+ * graph hands over frames of exactly that size (`asetnsamples`), so the FIFO
+ * stays empty, and the short last frame goes to the codec context directly,
+ * as FFmpeg's own CLI sends it (LAME takes a small last frame).
+ */
+const encodeAll = async (
+  encoder: Encoder,
+  frames: AsyncIterable<Frame | null>,
+  write: (packet: Packet) => Promise<void>,
+) => {
+  const drain = async () => {
+    for (let packet = await encoder.receive(); packet; packet = await encoder.receive())
+      await write(packet);
+  };
+  let held: Frame | undefined;
+  for await (const frame of frames) {
+    if (!frame) continue;
+    if (held !== undefined) {
+      await encoder.encode(held);
+      held.free();
+      await drain();
+    }
+    held = frame;
+  }
+  if (held !== undefined) {
+    const context = encoder.isEncoderInitialized ? encoder.getCodecContext() : null;
+    if (context && context.frameSize > 0 && held.nbSamples < context.frameSize)
+      await context.sendFrame(held);
+    else await encoder.encode(held);
+    held.free();
+    await drain();
+  }
+  for await (const packet of encoder.flushPackets()) await write(packet);
+};
+
+/** Samples in one MPEG-1 Layer III frame. */
+const MP3_FRAME = 1152;
 
 const floatWav = () => Encoder.create(FF_ENCODER_PCM_F32LE, { threadCount: 1 });
 
@@ -168,7 +208,7 @@ const master = async (job: MasterInput): Promise<Mastered> => {
   for (let pass = 1; ; pass++) {
     const chain =
       `volume=${gain.toFixed(3)}dB,alimiter=limit=${limit}:${m.limiter},` +
-      'aformat=sample_fmts=fltp:channel_layouts=stereo';
+      `aformat=sample_fmts=fltp:channel_layouts=stereo,asetnsamples=n=${MP3_FRAME}:p=0`;
     await filterFile(job.pre, chain, job.out, mp3(m.bitrate), 'mp3', job.comment);
     const measured = await measureFile(job.out, style.rate);
     const miss = m.targetLufs - measured.lufs;
