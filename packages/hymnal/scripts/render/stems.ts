@@ -2,12 +2,14 @@
  * Each stem as a MIDI file for the sampler: the hymn file's own tempo,
  * meter and key events at their own ticks, and the stem's notes at their
  * original ticks. Only velocities are set (per part, humanised by a ±5 drawn
- * from a PRNG seeded by the hymn and the stem) and a part may be transposed.
+ * as the listening pilot drew it, by Python's `random` seeded by the hymn and
+ * the stem) and a part may be transposed.
  * No onset moves, so the recording keeps the MIDI's clock.
  */
 
 import type { Midi } from '../../src/midi.js';
 import type { Voices } from '../../src/voices.js';
+import { pythonRandom } from './random.js';
 import type { Part, Stem } from './style.js';
 
 /** A note the stem plays: ticks, key and velocity. */
@@ -17,24 +19,6 @@ export interface StemNote {
   readonly key: number;
   readonly velocity: number;
 }
-
-/** FNV-1a over a string's UTF-16 code units, unsigned. */
-const fnv1a = (text: string) => {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return h >>> 0;
-};
-
-/** Mulberry32 seeded by the FNV-1a hash of `seed`: floats in [0, 1), the same sequence on every run. */
-export const seeded = (seed: string) => {
-  let a = fnv1a(seed);
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-};
 
 const PARTS: ReadonlyArray<Part> = ['S', 'A', 'T', 'B'];
 
@@ -52,13 +36,13 @@ export const stemNotes = (
   seed: string,
   humanise: number,
 ): StemNote[] => {
-  const draw = seeded(seed);
+  const { randint } = pythonRandom(seed);
   const notes: StemNote[] = [];
   for (const part of PARTS) {
     const velocity = stem.parts[part];
     if (velocity === undefined) continue;
     for (const note of voices[part]) {
-      const moved = Math.floor(draw() * (2 * humanise + 1)) - humanise;
+      const moved = randint(-humanise, humanise);
       notes.push({
         start: note.start,
         end: note.end,

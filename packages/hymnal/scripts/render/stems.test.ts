@@ -3,7 +3,7 @@ import { describe, expect, it } from 'effect-bun-test';
 
 import * as Midi from '../../src/midi.js';
 import type { Voices } from '../../src/voices.js';
-import { seeded, stemMidi, stemNotes } from './stems.js';
+import { stemMidi, stemNotes } from './stems.js';
 import type { Stem } from './style.js';
 
 const note = (start: number, end: number, key: number): Midi.Note => ({
@@ -40,18 +40,6 @@ const HYMN: Midi.Midi = {
   ],
   lastTick: 768,
 };
-
-describe('seeded', () => {
-  it.effect('draws the same sequence from the same seed, and another from another', () =>
-    Effect.sync(() => {
-      const draws = (draw: () => number) => Array.from({ length: 5 }, draw);
-      const first = draws(seeded('663-C-piano'));
-      expect(draws(seeded('663-C-piano'))).toEqual(first);
-      expect(draws(seeded('663-C-violas'))).not.toEqual(first);
-      expect(first.every((x) => x >= 0 && x < 1)).toBe(true);
-    }),
-  );
-});
 
 describe('stemNotes', () => {
   it.effect('plays only its parts, transposed, each velocity within the humanise of its part', () =>

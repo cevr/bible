@@ -228,7 +228,9 @@ export const renderHymn = (setup: Setup, hymn: number) =>
     // The stems' MIDI files, then the samplers: the piano beside the strings, one string at a time.
     const stems: StemJob[] = [];
     for (const stem of style.stems) {
-      const notes = stemNotes(parts, stem, `${hymn}-${style.name}-${stem.name}`, style.humanise);
+      // The pilot's seed, the hymn padded as its file is named: the same velocities the owner heard.
+      const seed = `${padded(hymn)}-${style.name}-${stem.name}`;
+      const notes = stemNotes(parts, stem, seed, style.humanise);
       const mid = path.join(work, `${stem.name}.mid`);
       yield* fs.writeFile(mid, stemMidi(midi, notes));
       const sfz = yield* ramSfz(path.join(setup.cache, 'instruments'), stem.sfz);

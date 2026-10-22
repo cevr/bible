@@ -207,8 +207,10 @@ the listening pilot. The code is `scripts/render/`; its numbers are data in
 - Each stem (piano; violas, cellos, contrabass and melody violins) is its own
   MIDI file on the hymn file's own clock: every tempo, meter and key event at
   its tick, the notes at their ticks, only the velocities humanised by a
-  seeded ±5 (`scripts/render/stems.ts`). One key sounds once at a time. No
-  onset moves, so the words stay synced to the MIDI.
+  seeded ±5 (`scripts/render/stems.ts`), drawn as the listening pilot drew
+  them (Python's `random`, `scripts/render/random.ts`), so each stem plays the
+  velocities the owner heard. One key sounds once at a time. No onset moves,
+  so the words stay synced to the MIDI.
 - The sampler is sfizz_render 1.2.3, built from its tarball (pinned by sha256)
   with `sfizz-render-float.patch`, which writes float WAV. Each instrument is
   loaded whole before the first note (a `hint_ram_based` wrapper): streamed,
