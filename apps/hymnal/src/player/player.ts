@@ -370,10 +370,16 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             (read.status.state === 'ended' || read.asked >= held.proof.endedAt),
           () => readDevice,
         );
+        /**
+         * Whether the device is still asked the place a seek or a play from a place asks: an ask
+         * refused or answered off its place is asked again only while the device holds the
+         * recording, so after an `ended` read only an ask in flight may still land.
+         */
+        const landable = () => Option.exists(held.seeking, (it) => it.asking);
         /** One read, taken into the proof and shown nowhere; a refused read changes nothing. */
         const lastLook = readFresh.pipe(
           Effect.tap((read) =>
-            Effect.sync(() => (held.proof = Proof.readOf(held.proof, read).proof)),
+            Effect.sync(() => (held.proof = Proof.readOf(held.proof, read, landable()).proof)),
           ),
           Effect.option,
         );
@@ -547,7 +553,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           Effect.gen(function* () {
             const read = yield* readFresh;
             const status = read.status;
-            const next = Proof.readOf(held.proof, read);
+            const next = Proof.readOf(held.proof, read, landable());
             held.proof = next.proof;
             const answer = yield* Effect.when(Deferred.await(answered), Deferred.isDone(answered));
             if (Option.contains(answer, false)) {

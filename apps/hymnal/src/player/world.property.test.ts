@@ -1281,6 +1281,9 @@ describe('the player by the world: the part 8 sweep (rw r3 part 9)', () => {
   seed('a lock-screen seek while a Pause while Loading still reads', 'ios', 717);
   seed('a lock-screen seek near the end while a Pause while Loading still reads', 'ios', 1067);
   seed('a lock-screen seek past the end while a Pause while Loading still reads', 'ios', 1276);
+  // A page seek the device refused, then an end an earlier press's landing made: with no ask of
+  // the seek's place left, the end wins, so the Resume from Ended plays from 0:00 (P8).
+  seed('a refused page seek overtaken by an end', 'ios', 66);
 });
 
 // A sound pair the page finishes after it lets go sets the reader's place, for Stopped and the

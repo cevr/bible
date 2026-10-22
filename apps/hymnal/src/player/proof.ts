@@ -229,14 +229,18 @@ const beforeLanding = (pending: Pending, read: Read) => {
   return length - pending.target > read.answered - pending.known + slack;
 };
 
-/** The proof after `read`, and what it proved. */
-export const readOf = (proof: Proof, read: Read): Proved => {
+/**
+ * The proof after `read`, and what it proved. `landable`: whether the device is still asked the
+ * latest act's place, so the act may still land after an `ended` read.
+ */
+export const readOf = (proof: Proof, read: Read, landable: boolean): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
   if (read.status.state === 'ended') {
-    // A second `ended` read as soon after the act shows the device before the landing too.
+    // A second `ended` read as soon after the act shows the device before the landing too. With
+    // no ask of the act's place left, nothing lands it after the end: the end wins (P8).
     const short = Option.filter(
       Option.orElse(proof.pending, () => proof.short),
-      (it) => beforeLanding(it, read),
+      (it) => landable && beforeLanding(it, read),
     );
     return {
       proof: { ...ended(proof), short, place: Option.map(short, (it) => it.target) },
