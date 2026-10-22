@@ -2,10 +2,8 @@
  * The field's light, and where it comes from: the sun low on the right
  * horizon. The field's still bakes this light in (`kit/field.ts`) and the
  * hero's shimmer plays along the same rays (`./shaders.ts`), so the moving
- * light and the still one fan out from one place: the owner's revise of
- * 2026-10-21 was the painted rays coming from the top left while the sun sat
- * at the right. The stills that ship are the ones he approved by name
- * (`kit/approved-stills.json`).
+ * light and the still one fan out from one place. The stills that ship are
+ * the ones the owner approved by name (`kit/approved-stills.json`).
  *
  * Positions are the painting's, `u` across its width and `v` down its height
  * (both 0 to 1); distances are in widths, so a circle is round on the 3:2
