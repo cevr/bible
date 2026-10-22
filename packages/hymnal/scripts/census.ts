@@ -251,7 +251,67 @@ export const runsBetween = (
   return runs;
 };
 
+/**
+ * Words as a census line names them: their count and the first 8 hex digits
+ * of the sha256 of the words joined by spaces (`[3 words #1a2b3c4d]`),
+ * never the words. No hymn text enters a log line; the line's own places
+ * (hymn, unit, stanza, word) say where the words stand.
+ */
+export const wordTag = (words: readonly string[]) =>
+  words.length === 0
+    ? '[0 words]'
+    : `[${words.length} word${words.length === 1 ? '' : 's'} #${createHash('sha256').update(words.join(' ')).digest('hex').slice(0, 8)}]`;
+
+/**
+ * Words inside a problem: quoted, as the rulings that settle a problem hold
+ * its line. A census line prints them through `wordlessLine`, never as they stand.
+ */
 const quoted = (words: readonly string[]) => `"${words.join(' ')}"`;
+
+/** Words English prose shares with any text: a run of 3 with two of them is no quotation ("the end of"). */
+const FUNCTION_WORDS: ReadonlySet<string> = new Set(
+  'a an the of in on at to by for from with and or but as is be it its this that so no not'.split(
+    ' ',
+  ),
+);
+
+/**
+ * The words a census line may not print: every run of 3 words (`wordsOf`) of
+ * every row, joined by spaces, but a run with two or more `FUNCTION_WORDS`.
+ */
+export const hymnRunsOf = (rows: ReadonlyMap<number, Verses>): ReadonlySet<string> => {
+  const runs = new Set<string>();
+  for (const row of rows.values())
+    for (const verse of row) {
+      const words = wordsOf(verse.text);
+      for (let i = 0; i + 3 <= words.length; i++) {
+        const run = words.slice(i, i + 3);
+        if (run.filter((word) => FUNCTION_WORDS.has(word)).length < 2) runs.add(run.join(' '));
+      }
+    }
+  return runs;
+};
+
+/**
+ * Where `lines` print a run of `runs` (`hymnRunsOf`): `line <k> word <i>`
+ * for the first run of each such line, by place only, so a failing test
+ * prints no hymn text either.
+ */
+export const linesQuoting = (lines: readonly string[], runs: ReadonlySet<string>): string[] =>
+  lines.flatMap((line, k) => {
+    const words = wordsOf(line);
+    for (let i = 0; i + 3 <= words.length; i++)
+      if (runs.has(words.slice(i, i + 3).join(' '))) return [`line ${k + 1} word ${i + 1}`];
+    return [];
+  });
+
+/**
+ * A problem or a note as a census line prints it: each quoted span (straight
+ * or curly double quotes) given as the `wordTag` of its words (`wordsOf`),
+ * so a line that quotes a page or a row prints no hymn text.
+ */
+export const wordlessLine = (line: string) =>
+  line.replace(/["“]([^"”]*)["”]/gu, (_whole, inner: string) => wordTag(wordsOf(inner)));
 
 // ----------------------------------------------------------------------------
 // The rulings
@@ -2865,9 +2925,7 @@ export const outlineEntryProblems = (
     ...found.filter((line) => !settled.has(line)),
     ...[...settled]
       .filter((line) => !found.includes(line))
-      .map(
-        (line) => `${n} a ruling settles "${line}", a shape difference the census does not find`,
-      ),
+      .map((line) => `${n} a ruling settles a shape difference the census does not find: ${line}`),
   ];
 };
 
@@ -3315,6 +3373,10 @@ const readingsRun = (census: Census, sources: Sources, root: string) =>
     ];
   });
 
+/** A witness hunk as the witness run prints it: its hymn, unit and the `wordTag` of each side. */
+export const hunkLine = (n: number, [unit, mine, other]: Hunk) =>
+  `hunk ${n} ${unit} row=${wordTag(mine)} witness=${wordTag(other)}`;
+
 /** Each entry's witness digest against the hunks between its row and the witness under `root`, each hunk printed. */
 const witnessRun = (census: Census, sources: Sources, root: string) =>
   Effect.gen(function* () {
@@ -3328,8 +3390,7 @@ const witnessRun = (census: Census, sources: Sources, root: string) =>
       if (found !== undefined) {
         hymns += 1;
         hunks += found.length;
-        for (const [unit, mine, other] of found)
-          console.log(`hunk ${entry.number} ${unit} row=${quoted(mine)} witness=${quoted(other)}`);
+        for (const hunk of found) console.log(hunkLine(entry.number, hunk));
       }
       const fresh =
         found === undefined ? 'absent' : { hunks: found.length, digest: digestOf(found) };
@@ -3371,17 +3432,29 @@ const run = (flags: {
       );
     if (flags.witness !== undefined)
       problems.push(...(yield* witnessRun(census, sources, path.resolve(flags.witness))));
-    for (const problem of problems) console.log(`problem ${problem}`);
-    for (const entry of census.hymns)
-      if (entry.row === 'unsettled' || entry.row === 'nopage')
-        console.log(`${entry.row} ${entry.number} ${entry.note ?? ''}`);
-    const count = (row: Entry['row']) => census.hymns.filter((entry) => entry.row === row).length;
-    const rulings = [...sources.rulings.values()].reduce((sum, all) => sum + all.length, 0);
-    console.log(
-      `census hymns=${LAST - FIRST + 1} entries=${census.hymns.length} problems=${problems.length} matches=${count('matches')} fixed=${count('fixed')} unsettled=${count('unsettled')} nopage=${count('nopage')} rulings=${rulings}`,
-    );
+    for (const line of censusLines(census, sources, problems)) console.log(line);
     if (problems.length > 0) process.exitCode = 1;
   });
+
+/**
+ * The lines a census run prints after its witness hunks: each problem, each
+ * unsettled or nopage entry with its note (`wordlessLine`), and the summary.
+ */
+export const censusLines = (
+  census: Census,
+  sources: Sources,
+  problems: readonly string[],
+): string[] => {
+  const count = (row: Entry['row']) => census.hymns.filter((entry) => entry.row === row).length;
+  const rulings = [...sources.rulings.values()].reduce((sum, all) => sum + all.length, 0);
+  return [
+    ...problems.map((problem) => `problem ${wordlessLine(problem)}`),
+    ...census.hymns
+      .filter((entry) => entry.row === 'unsettled' || entry.row === 'nopage')
+      .map((entry) => `${entry.row} ${entry.number} ${wordlessLine(entry.note ?? '')}`),
+    `census hymns=${LAST - FIRST + 1} entries=${census.hymns.length} problems=${problems.length} matches=${count('matches')} fixed=${count('fixed')} unsettled=${count('unsettled')} nopage=${count('nopage')} rulings=${rulings}`,
+  ];
+};
 
 /** The hymnal over the committed hymnal.db, and Bun's services: what `loadSources` reads through. */
 export const censusLayer = Layer.merge(

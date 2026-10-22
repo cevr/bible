@@ -24,7 +24,11 @@ import {
   decidingOf,
   type Entry,
   type Fix,
+  hunkLine,
   hunksOf,
+  hymnRunsOf,
+  linesQuoting,
+  censusLines,
   type Inventory,
   inventoryProblems,
   lentReadings,
@@ -44,11 +48,15 @@ import {
   unitsOf,
   type Verses,
   wordsOf,
+  wordTag,
 } from '../scripts/census.js';
 
 /** The census and its sources, read once for every test file, as this file loads: no case's time limit holds the read. */
 // oxlint-disable-next-line effect/noAsyncFunction -- built once as the file loads, so no case's time limit holds its cost
 const read = Effect.succeed(await Effect.runPromise(readCensusOnce));
+
+/** The `wordTag` a census line names the words of `text` by. */
+const tag = (text: string) => wordTag(text.split(' ').filter((word) => word !== ''));
 
 const withEntry = (census: Census, n: number, change: (entry: Entry) => Entry): Census => ({
   ...census,
@@ -1325,6 +1333,48 @@ describe('census', () => {
         expect(hunksOf(row, same)).toEqual([]);
         const later = { ...same, refrains: ['the refrain', 'the other refrain'] };
         expect(hunksOf(row, later)).toEqual([[-2, [], ['other']]]);
+      }),
+    );
+
+    it.effect(
+      'prints each hunk by its places and word tags, no word of the row or the witness',
+      () =>
+        Effect.sync(() => {
+          const row: Verses = [
+            { id: 0, text: 'quorum vellum ardent' },
+            { id: 1, text: 'tessel marrow quill' },
+          ];
+          const witness = {
+            stanzas: ['quorum wicket ardent', 'tessel marrow plinth'],
+            refrains: [],
+          };
+          const lines = hunksOf(row, witness).map((hunk) => hunkLine(17, hunk));
+          expect(lines).toEqual([
+            `hunk 17 1 row=${tag('vellum')} witness=${tag('wicket')}`,
+            `hunk 17 2 row=${tag('quill')} witness=${tag('plinth')}`,
+          ]);
+          const words = new Set(
+            [...row, ...witness.stanzas.map((text) => ({ id: 0, text }))].flatMap((verse) =>
+              wordsOf(verse.text),
+            ),
+          );
+          expect(lines.flatMap(wordsOf).filter((word) => words.has(word))).toEqual([]);
+        }),
+    );
+  });
+
+  describe('the logs (no hymn text)', () => {
+    it.effect('a census run prints no run of 3 words of any hymn', () =>
+      Effect.gen(function* () {
+        const { census, sources } = yield* read;
+        const runs = hymnRunsOf(sources.rows);
+        // The guard sees a run: three words of a row, printed bare, are found.
+        const [first = ''] = runs;
+        expect(linesQuoting([`problem 1 ${first}`], runs)).toEqual(['line 1 word 3']);
+        // A note that quotes the page (220's engraving) prints its tag.
+        expect(
+          linesQuoting(censusLines(census, sources, problemsOf(census, sources)), runs),
+        ).toEqual([]);
       }),
     );
   });

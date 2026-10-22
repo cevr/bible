@@ -32,6 +32,9 @@ import {
   readText,
   type Sources,
   type Verses,
+  hymnRunsOf,
+  linesQuoting,
+  wordlessLine,
 } from '../scripts/census.js';
 import {
   applyRecipe,
@@ -54,6 +57,8 @@ const escapes = fixtures.filter((one) => one.from === 'census2 r1 F1');
 const { census, sources } = await Effect.runPromise(readCensusOnce);
 // The generated property over the book, built once: its cases read it.
 const domain = domainOf(sources);
+// Every run of 3 words of every row: a census line prints none of them.
+const runs = hymnRunsOf(sources.rows);
 
 /** Hymn `n`'s row and base row both `row`, its fix dropped. */
 const withBase = (base: Sources, n: number, row: Verses): Sources => ({
@@ -171,12 +176,12 @@ describe('layout', () => {
           expect(Result.isFailure(mutant) ? mutant.failure : 'applies').toBe('applies');
           if (Result.isFailure(mutant)) return;
           // Caught: the mutant prints a layout line the hymn as committed does not.
+          const lines = layoutLines(withBase(sources, n, rowOfSource(mutant.success)), n);
           expect(
-            newLines(
-              layoutLines(withBase(sources, n, rowOfSource(source)), n),
-              layoutLines(withBase(sources, n, rowOfSource(mutant.success)), n),
-            ),
+            newLines(layoutLines(withBase(sources, n, rowOfSource(source)), n), lines),
           ).not.toEqual([]);
+          // As the census prints them, by places and word tags: no line prints a hymn's text.
+          expect(linesQuoting(lines.map(wordlessLine), runs)).toEqual([]);
         }),
       );
 
