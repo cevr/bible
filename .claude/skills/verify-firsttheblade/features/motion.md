@@ -82,14 +82,19 @@ emblems at rest.
 - Reading a WebGL canvas into a screenshot stalls the GPU, and Chrome logs a
   "GPU stall due to ReadPixels" warning: it is the drive's, not the site's.
 - The field's still is the kit's (`bun run --cwd apps/firsttheblade kit:field`).
-  Its rule: every shipped field still, at every srcset size, is
-  byte-identical to one the owner approved by name. The record is
-  `apps/firsttheblade/kit/approved-stills.json`, and
-  `apps/firsttheblade/kit/field-still.test.ts` refuses each served still
-  that differs from it. Whether a still's light comes from the sun is the
+  Its rules: every shipped field still, at every srcset size, is
+  byte-identical to one the owner approved by name; and every image the site
+  serves is in the approval record or in a named list of images outside the
+  rule, each with its reason (`apps/firsttheblade/kit/served.ts` `OUTSIDE`).
+  The record is `apps/firsttheblade/kit/approved-stills.json`, and
+  `apps/firsttheblade/kit/field-still.test.ts` refuses each served image the
+  record does not hold. Whether a still's light comes from the sun is the
   owner's look, not a measure: on the stage, hash each served still against
   the record, and judge the light by eye at 1:1.
 - A repainted or re-encoded still goes to the owner as a lab ask with 1:1
-  crops before its hashes are approved
-  (`bun run --cwd apps/firsttheblade kit:approve --ask <id>`, by
-  the coordinator, once he has answered).
+  crops before its hashes are approved. The coordinator pins the stills on
+  the ask (`bun run --cwd apps/firsttheblade kit:pin --ask <id>`), and once
+  the owner has answered, approves them
+  (`bun run --cwd apps/firsttheblade kit:approve --ask <id>`), which reads
+  his answer from the lab and refuses any still changed since the pin. The
+  prod deploy refuses a pending record (`kit:shippable`).
