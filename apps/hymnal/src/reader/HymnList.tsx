@@ -15,7 +15,7 @@ import { RegistryContext } from '@effect/atom-react';
 import { Option } from 'effect';
 import type * as Atom from 'effect/reactivity/Atom';
 import { type Href, Link, useLinkTo } from 'one';
-import { useContext, useLayoutEffect, useRef, useState } from 'react';
+import { type ReactElement, useContext, useLayoutEffect, useRef, useState } from 'react';
 import {
   type ColorValue,
   FlatList,
@@ -25,6 +25,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
 
 import type { HymnText } from '~/hymns/hymns';
 import { color, useAccent } from '~/color';
@@ -39,17 +40,31 @@ const padding = 11;
 /** A row's height at the reader's text size (`fontScale`): one line and its padding, 44 at 1. */
 const rowHeight = (fontScale: number) => Math.ceil(line * fontScale) + 2 * padding;
 
-export function HymnList({
-  hymns,
-  hrefOf,
-  offset,
-  empty,
-}: {
+export interface HymnListProps {
   readonly hymns: ReadonlyArray<HymnText>;
   readonly hrefOf: (number: number) => Href;
   readonly offset: Atom.Writable<number>;
   readonly empty?: string;
-}) {
+  /** Phones only: a row per topic over its hymns, pinned while they scroll. The web draws none. */
+  readonly byTopic?: boolean;
+  /** Phones only: what the list holds above its rows, and where it rests (`PullDown`). */
+  readonly pullDown?: PullDown;
+}
+
+/**
+ * The home list's top on a phone: `node`, `height` points tall, above the
+ * rows; the list opens scrolled by `rest` (the search field tucked under the
+ * title), settles at 0 or `rest` when let go between them, and writes its
+ * scroll offset to `scroll` on the UI thread, which moves the title.
+ */
+export interface PullDown {
+  readonly node: ReactElement;
+  readonly height: number;
+  readonly rest: number;
+  readonly scroll: SharedValue<number>;
+}
+
+export function HymnList({ hymns, hrefOf, offset, empty }: HymnListProps) {
   const accent = useAccent();
   const screen = useWindowDimensions();
   const height = rowHeight(screen.fontScale);

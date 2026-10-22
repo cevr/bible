@@ -23,6 +23,7 @@
   "dependencies": {
     "@bible/hymnal": "workspace:*",
     "@effect/atom-react": "catalog:",
+    "@legendapp/list": "3.6.0",
     "@react-navigation/native": "8.0.0-alpha.51",
     "effect": "catalog:",
     "one": "2.9.0",
