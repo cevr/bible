@@ -16,6 +16,7 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import Search from '../../app/(hymnal)/index';
 import { opened } from '../test/one';
+import { readerOn } from '../test/reader';
 import { hymnAt, hymns } from '~/hymns/hymns';
 
 import { HymnList } from './HymnList';
@@ -105,7 +106,9 @@ describe('moving between screens on the web', () => {
     expect(left[0]).toBe('55, Jesus Tender Shepherd Hear Me');
 
     // The hymn shows in the search's place, then Back shows the search again.
-    act(() => root.render(inApp(<HymnPage hymn={Option.getOrThrow(hymnAt('545'))} />)));
+    act(() =>
+      root.render(inApp(<HymnPage hymn={Option.getOrThrow(hymnAt('545'))} reader={readerOn()} />)),
+    );
     act(() => root.render(inApp(<Search />)));
 
     expect(host.querySelector('input')?.value).toBe('shepherd');

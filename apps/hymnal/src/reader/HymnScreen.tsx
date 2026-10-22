@@ -5,12 +5,22 @@
 
 import { Option } from 'effect';
 import { Stack, useParams } from 'one';
+import bundled from 'virtual:hymnal-chords';
 
+import { chordBook } from '~/hymns/chords';
 import { hymnAt, hymns } from '~/hymns/hymns';
 import { PlayerControl } from '~/player/PlayerControl';
 import { pushedOptions } from '~/stack';
+import { settings } from '~/store';
 
-import { HymnPage, NoHymn } from './HymnPage';
+import { type ChordReader, HymnPage, NoHymn } from './HymnPage';
+
+/** The page's chords: the stored switch and moves, and every hymn's chords, each decoded on first view. */
+const reader: ChordReader = {
+  chords: settings.chords,
+  move: settings.move,
+  book: chordBook(bundled),
+};
 
 /** Every hymn's page is rendered when the web is built. */
 export const hymnParams = () => hymns.map((hymn) => ({ number: String(hymn.number) }));
@@ -28,7 +38,7 @@ export function HymnScreen() {
     onSome: (hymn) => (
       <>
         <Stack.Screen options={{ ...pushedOptions, title: hymn.title }} />
-        <HymnPage hymn={hymn}>
+        <HymnPage hymn={hymn} reader={reader}>
           <PlayerControl track={hymn} />
         </HymnPage>
       </>

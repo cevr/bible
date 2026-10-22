@@ -4,11 +4,15 @@
  */
 
 import { describe, expect, it } from 'bun:test';
+import { RegistryProvider } from '@effect/atom-react';
 import { Option } from 'effect';
+import { act, type ReactNode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { hymnAt, hymns } from '~/hymns/hymns';
 
+import { readerOn } from '../test/reader';
 import { HymnList } from './HymnList';
 import { HymnPage } from './HymnPage';
 import { hymnsOffset } from './place';
@@ -29,8 +33,9 @@ const sectionsOf = (html: string) =>
     ([tag]) => /aria-label="([^"]+)"/.exec(tag)?.[1],
   );
 
-const page = (n: number) =>
-  renderToStaticMarkup(<HymnPage hymn={Option.getOrThrow(hymnAt(String(n)))} />);
+const hymn = (n: number) => Option.getOrThrow(hymnAt(String(n)));
+
+const page = (n: number) => renderToStaticMarkup(<HymnPage hymn={hymn(n)} reader={readerOn()} />);
 
 describe('the hymn list', () => {
   it('holds every hymn of the 1985 hymnal, 1 to 695 in order', () => {
@@ -106,5 +111,113 @@ describe('a hymn page', () => {
       'Refrain',
       'Stanza 3',
     ]);
+  });
+});
+
+/** `node` mounted in the document, as a phone or the web shows it; it unmounts when the `using` ends. */
+const mount = (node: ReactNode) => {
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  act(() => root.render(<RegistryProvider>{node}</RegistryProvider>));
+  return {
+    host,
+    [Symbol.dispose]: () => {
+      act(() => root.unmount());
+      host.remove();
+    },
+  };
+};
+
+const press = (host: HTMLElement, label: string) =>
+  act(() => {
+    const target = Option.getOrThrow(
+      Option.fromNullishOr(host.querySelector<HTMLElement>(`[aria-label="${label}"]`)),
+    );
+    target.click();
+  });
+
+/** The text of the box with test id `id`, or none where the page has no such box. */
+const chordAt = (host: HTMLElement, id: string) =>
+  Option.map(
+    Option.fromNullishOr(host.querySelector(`[data-testid="${id}"]`)),
+    (box) => box.textContent,
+  );
+
+/** Each section's text, in page order. */
+const sectionTexts = (host: HTMLElement) =>
+  [...host.querySelectorAll('[role="group"]')].map((group) => textOf(group.innerHTML));
+
+/** A reader who has turned chords on. */
+const chordsOn = () => new Map([['chords', 'true']]);
+
+describe('a hymn page with chords off', () => {
+  it('shows the words alone, with the switch off and no key control, and decodes no chords', () => {
+    const reader = readerOn();
+    const html = renderToStaticMarkup(<HymnPage hymn={hymn(100)} reader={reader} />);
+    expect(html).not.toContain('data-testid="chord-');
+    expect(html).not.toContain('Transpose');
+    expect(html).not.toContain('Capo');
+    expect(html).toContain('role="switch"');
+    expect(html).not.toContain('checked=""');
+    expect(html).toContain('aria-label="Chords"');
+    expect(reader.book.decodes()).toBe(0);
+  });
+});
+
+describe('a hymn page with chords on', () => {
+  it('puts the chords over their syllables in the printed key, and follows the transpose and capo', () => {
+    const reader = readerOn(chordsOn());
+    using app = mount(<HymnPage hymn={hymn(100)} reader={reader} />);
+    const { host } = app;
+    expect(chordAt(host, 'chord-1-1-1')).toEqual(Option.some('Db'));
+    expect(textOf(host.innerHTML)).toContain('Key Db');
+    expect(textOf(host.innerHTML)).toContain('No capo');
+
+    press(host, 'Transpose up');
+    expect(chordAt(host, 'chord-1-1-1')).toEqual(Option.some('D'));
+    press(host, 'Capo up');
+    press(host, 'Capo up');
+    expect(textOf(host.innerHTML)).toContain('Capo 2, C shapes');
+    expect(chordAt(host, 'chord-1-1-1')).toEqual(Option.some('C'));
+    press(host, 'Transpose up');
+    expect(textOf(host.innerHTML)).toContain('Key Eb');
+    expect(chordAt(host, 'chord-1-1-1')).toEqual(Option.some('Db'));
+    expect(reader.book.decodes()).toBe(1);
+  });
+
+  it('shows the words alone again once the switch is turned off', () => {
+    const words = (() => {
+      using app = mount(<HymnPage hymn={hymn(100)} reader={readerOn()} />);
+      return sectionTexts(app.host);
+    })();
+    using app = mount(<HymnPage hymn={hymn(100)} reader={readerOn(chordsOn())} />);
+    const { host } = app;
+    expect(host.querySelector<HTMLInputElement>('[role="switch"]')?.checked).toBe(true);
+    press(host, 'Chords');
+    expect(host.querySelector<HTMLInputElement>('[role="switch"]')?.checked).toBe(false);
+    expect(host.querySelector('[data-testid^="chord-"]')).toBeNull();
+    expect(textOf(host.innerHTML)).not.toContain('Transpose');
+    expect(sectionTexts(host)).toEqual(words);
+  });
+
+  it('shows each hymn with no chords as its words and a notice, with no key control', () => {
+    const chordless = [
+      126, 181, 212, 220, 225, 262, 292, 305, 403, 453, 481, 580, 663, 664, 687, 693,
+    ];
+    for (const n of chordless) {
+      const words = (() => {
+        using app = mount(<HymnPage hymn={hymn(n)} reader={readerOn()} />);
+        return sectionTexts(app.host);
+      })();
+      using app = mount(<HymnPage hymn={hymn(n)} reader={readerOn(chordsOn())} />);
+      const text = textOf(app.host.innerHTML);
+      expect({ n, notice: text.includes('No chords for this hymn yet.') }).toEqual({
+        n,
+        notice: true,
+      });
+      expect({ n, keys: text.includes('Transpose') }).toEqual({ n, keys: false });
+      expect({ n, words: sectionTexts(app.host) }).toEqual({ n, words });
+    }
   });
 });

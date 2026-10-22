@@ -5,7 +5,8 @@
  * compiled package's own `sung`; this module only groups its lines.
  *
  * It is derived from the compiled set when the app is bundled
- * (`vite/hymnal.ts`), so the app carries the words alone, never the chords.
+ * (`vite/hymnal.ts`): the words alone, never the chords, which come in a
+ * module of their own (`virtual:hymnal-chords`, `chords.ts`).
  */
 
 import { type Hymn, sung } from '@bible/hymnal/hymn';
