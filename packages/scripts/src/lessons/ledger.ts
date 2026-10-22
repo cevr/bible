@@ -19,7 +19,8 @@
 // A reviewer's finding is routed by its entry: `merge-audit --review`
 // refuses a unit whose review names a finding (`### F<n> …`) that no entry's
 // Source cites (`<unit>/<review file> F<n>`), or one that leaves out its
-// guard class or its cheapest guard.
+// guard class or its cheapest guard. A finding its review classes `none`
+// needs no entry: it is declined, and the review passes.
 
 import { JSONC } from 'bun';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
@@ -220,22 +221,33 @@ export const ledgerProblems = Effect.fn('lessons.ledgerProblems')(function* (roo
   return { entries: entries.length, problems: problems.flat() };
 });
 
-/** One finding of a review: its number, and whether it names its guard class and its cheapest guard. */
+/**
+ * One finding of a review: its number, whether it names its guard class and
+ * its cheapest guard, and whether that class is `none` (no guard, so no
+ * entry needed).
+ */
 interface Finding {
   readonly id: string;
   readonly classed: boolean;
   readonly guarded: boolean;
+  readonly declined: boolean;
 }
 
 /** The findings of a review's text: each `### F<n> …` heading and the block under it. */
 const findingsOf = (review: string): ReadonlyArray<Finding> =>
   review.split(/^(?=### F\d+\b)/m).flatMap((block) =>
     Option.toArray(
-      Option.map(Option.fromNullishOr(/^### (F\d+)\b/.exec(block)), (m) => ({
-        id: m[1] ?? '',
-        classed: /^(?:- )?\*{0,2}Guard class:\*{0,2} *(lint|judged|skill|code|none)\b/m.test(block),
-        guarded: /^(?:- )?\*{0,2}Cheapest guard:\*{0,2} *\S/m.test(block),
-      })),
+      Option.map(Option.fromNullishOr(/^### (F\d+)\b/.exec(block)), (m) => {
+        const guardClass = Option.fromNullishOr(
+          /^(?:- )?\*{0,2}Guard class:\*{0,2} *(lint|judged|skill|code|none)\b/m.exec(block),
+        );
+        return {
+          id: m[1] ?? '',
+          classed: Option.isSome(guardClass),
+          guarded: /^(?:- )?\*{0,2}Cheapest guard:\*{0,2} *\S/m.test(block),
+          declined: Option.exists(guardClass, (c) => c[1] === 'none'),
+        };
+      }),
     ),
   );
 

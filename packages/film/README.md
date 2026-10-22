@@ -3888,11 +3888,14 @@ history takes on its face: a loop pass by number, a batch id, a ledger id and
 a commit hash, each outside a quoted literal and a URL. History told in words
 (what the code used to do, which pass changed it) is a review finding
 (`CLAUDE.md`, **Comments**), since no pattern can read it.
-**A mistake found once** becomes a check, so the gate (`bun run gate`, the
-feedback cycle) finds it the next time: a mistake a syntax tree shows is a
-deterministic rule; one only a reader can see is a judged rule with its
-labelled corpus; one of taste or process that no item shows is a line in a
-skill. For example, a review found a `describe.skip` and a test's timeout
+**A mistake found once** becomes a check when the check is cheap, so the
+gate (`bun run gate`: oxlint's deterministic rules and the unit tests) finds
+it the next time: a mistake a syntax tree shows is a deterministic rule; one
+a small fast test shows is a unit test; one only a reader can see is a
+judged rule with its labelled corpus, run by `bun run test:slow`; one of
+taste or process that no item shows is a line in a skill. A mistake with no
+cheap check gets none: its review finding is classed `none`, and the ledger
+needs no entry for it. For example, a review found a `describe.skip` and a test's timeout
 raised to 120 s, which a tree shows, so `film/tests-keep-their-strength` is
 a rule of the house plugin (`lint/tests-keep-their-strength.ts`, its cases in
 `lint/fixtures/` held by `lint/plugin.slow.test.ts`, on in `.oxlintrc.json`). The
@@ -3926,7 +3929,8 @@ in `.oxlintrc.json` (at `warn`), add its id to `RULE_IDS` in
 `packages/scripts/lint/judged.ts` (the plugin defines each rule by name, and
 `packages/scripts/src/judged/config.test.ts` holds the two lists equal, an entry at `off` too), write its labelled
 corpus in `packages/scripts/src/judged/fixtures/`, and measure it. `bun run
-lint` (and so the gate) runs the runner (`packages/scripts/src/lint-judged.ts`,
+lint` (and so `bun run test:slow`; the gate's lint leaves the judged rules
+out) runs the runner (`packages/scripts/src/lint-judged.ts`,
 `bun run lint:judged`) first and oxlint after it. The runner reads every item
 of every rule in the working tree, tracked or new (git's ignored files and
 the config's `ignorePatterns` aside; a series script's Markdown in its tables
@@ -3937,7 +3941,7 @@ one question (TypeSafe holds a question to 32,768; each rule's
 `charsPerToken` is what Jev counted over its items), a part the model still
 refuses as too long asked again in halves. The store (`settings.judged.store`, in
 git's common dir, which every checkout and worktree of the repo shares, a
-merge audit's scratch worktrees too) is keyed by content: a hash of the words the
+`redfirst` scratch worktree too) is keyed by content: a hash of the words the
 model reads for the rule (subject, instructions, criteria), the model, and
 the item's key: what of it a formatter does not change, code by its parsed
 form (each node's type and fields, not where it stands or how a number or

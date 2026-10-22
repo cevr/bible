@@ -35,15 +35,22 @@ This project uses **Bun** as its package manager and runtime.
 bun install                    # Install dependencies
 bun run typecheck              # Type check all packages
 bun run fmt                    # Format code with oxfmt
-bun run gate                   # The feedback cycle: lint (deterministic and judged rules), format check, typecheck, build, tests
+bun run gate                   # The feedback cycle: oxlint (deterministic rules) + every workspace's unit tests, turbo-cached
+bun run test:slow              # Typecheck, builds, slow tests, browser and built-page checks, full lint, e2e; by hand and before deploys
 bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
-bun run test:budget [<ws>…]    # Each workspace's tests alone under 10 s, no total (local only)
-bun run --filter @bible/selah gate  # Native Swift gate on macOS
+bun run test:budget [<ws>…]    # Each workspace's unit tests alone under 1 s, no total (local only)
+bun run --filter @bible/selah gate  # Native Swift gate on macOS (also in test:slow)
 ```
 
 ## The gate is the feedback cycle
 
-The local gate verifies a change; CI does not (owner, 2026-10-19: "CI is not a verification tool for us"). Agents never check or wait on CI, and never fix a test only CI sees red; this overrides the global "CI red: fix til green". A mistake found once becomes a guard the gate runs: a deterministic one an oxlint rule in `.oxlintrc.json`, an indeterministic one a judged rule there (TypeSafe Jev, fail-open) or a skill line. Each one is an entry of the lessons ledger, `docs/lessons.md`, which names its guard; its test holds each guard to what its file holds. A reviewer gives each finding its guard class and its cheapest guard, and `bun run merge-audit --review <file>` refuses a unit whose folded findings no entry routes. How to add each: `packages/film/README.md`, **A mistake found once** and **Judged rules**. The film e2e stays a tool a unit runs by hand, not a check of the gate.
+The local gate verifies a change; CI does not (owner, 2026-10-19: "CI is not a verification tool for us"). Agents never check or wait on CI, and never fix a test only CI sees red; this overrides the global "CI red: fix til green".
+
+- **`bun run gate`** asks one thing: did the change break something plain? It runs oxlint's deterministic rules and every workspace's unit tests (`*.test.*`, not `*.slow.test.*`), turbo-cached on each workspace's inputs, and prints its wall time. Warm, it takes about a second. Each workspace's unit tests stay under 1 s alone (`bun run test:budget`). Run it between units and once at a unit's merge.
+- **Pre-commit** (`lefthook.yml`) runs `oxlint --fix` and `oxfmt` on the staged files, then an incremental typecheck of the workspaces the staged files lie in.
+- **`bun run test:slow`** runs the rest: every typecheck and build, each workspace's `*.slow.test.*` files, browser and built-page checks, Selah's native gate, the full lint with the judged rules, the format check and the dead exports. Run it by hand, and before a deploy: each workspace's deploy runs its own `test:slow` first.
+
+A mistake found once becomes a guard only when the guard is cheap: an oxlint rule in `.oxlintrc.json` or a unit test, else a skill line. The lessons ledger, `docs/lessons.md`, records each guard, and its test holds each guard to what its file holds. A reviewer gives each finding its guard class and its cheapest guard; a finding with no cheap guard is classed `none` and needs no entry. `bun run merge-audit --review <file>` is an optional check of a unit's reviews against the ledger. How to add a guard: `packages/film/README.md`, **A mistake found once** and **Judged rules**. The film e2e is a tool a unit runs by hand, not a check of the gate.
 
 ## Workspaces
 
@@ -52,10 +59,10 @@ The local gate verifies a change; CI does not (owner, 2026-10-19: "CI is not a v
   - On the workbox, the warm source is `/workspaces/bible-tools`. Run `workrift create <branch>` inside it. Run `workrift deps` when `bun.lock` changed. After the merge, run `workrift remove <path>`. `workrift prune --dry-run` lists stale ones; run it before any `git status` inside a rift, which marks the rift recent.
   - On the laptop, run `rift create --name <name> --copy-all ~/Developer/personal/bible-tools`.
 - **The film e2e** (`bun run test:e2e`) is heavy, and two at once on one machine time each other out. Check a change with `bun run test:e2e:check --base <log>`, unwrapped: it takes the host's e2e lock itself (`flock /tmp/bible-tools-e2e.lock` on the workbox, `lockf -k` on the laptop), so parallel workspaces queue, waits for the load to fall to the core count, reruns every failure alone three times, and writes `<log>.verdict.md`, each failure classed unit-caused, unresolved, green-alone or base; base only when the base's own check saw it red alone too (`packages/film/README.md`). A bare `bun run test:e2e` takes no lock.
-- **Red first:** `bun run redfirst <base>` runs the test files a branch added or changed against the base's product sources, in a scratch worktree of the base, and names every new or changed case that passes there (`redfirst green on base: <file>:<line> <name>`): a test its defect cannot fail. A unit's review request carries its output, each green case with why. It installs and runs twice, so it is never a hook.
+- **Red first** (optional tool): `bun run redfirst <base>` runs the test files a branch added or changed against the base's product sources, in a scratch worktree of the base, and names every new or changed case that passes there (`redfirst green on base: <file>:<line> <name>`): a test its defect cannot fail. Use it when a test's value is in doubt. It installs and runs twice, so it is never a hook.
 - **Comments:** A comment says what the code does now and why; history told in words (what it used to do, which pass changed it) is a finding.
-- **Doc lines:** `bun run doc-lines <base>` prints every line of the docs the docs test reads that names a file `<base>...HEAD` changed (`doc-lines <doc>:<line> <file>: <the line>`), read by the docs test's own anchor reader. A sentence's claim goes stale with no name in it changing, so the docs test cannot see it: a unit's review request carries this list, and the reviewer reads those lines.
-- **Each commit green:** before a unit's fast-forward, `bun run merge-audit --each <base>` in the merge worktree runs `bun run guard` on every commit of `<base>..HEAD` in a scratch worktree, oldest first, and prints `merge-audit <sha> guard ok` (or `guard red` and the run's last lines) for each; it exits non-zero on a red one. The merge log carries its lines.
+- **Doc lines** (optional tool): `bun run doc-lines <base>` prints every line of the docs the docs test reads that names a file `<base>...HEAD` changed (`doc-lines <doc>:<line> <file>: <the line>`), read by the docs test's own anchor reader. A sentence's claim goes stale with no name in it changing, so the docs test cannot see it; use the list to find the lines a change may have made untrue.
+- **One gate at merge:** before a unit's fast-forward, run `bun run gate` once at its head in the merge worktree. The merge log carries its last line. Each commit's own pre-commit typecheck covers the workspaces it touched.
 - **Renders:** a workspace's renders are found through `out/<film>/catalogue.json`. Moving render files without their catalogue records loses them.
 
 ## Runtime observability

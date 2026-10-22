@@ -61,138 +61,9 @@ const run = Effect.gen(function* () {
   return { inner, outer, lines: out.split('\n') };
 }).pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
-// `--each`: a unit whose second commit is red on its own and whose third
-// fixes it; the tip is green, so only a run per commit sees the second
-// (deps r1 m1: the oxfmt bump commit red on `fmt:check` by itself).
-const runEach = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' });
-  const { sh, git } = fixture(dir);
-  const write = (file: string, text: string) => fs.writeFileString(path.join(dir, file), text);
-  const commitAll = (message: string) =>
-    Effect.andThen(git('add', '-A'), git('commit', '-q', '-m', message));
-  yield* git('init', '-q', '-b', 'main');
-  yield* write('package.json', '{ "scripts": { "guard": "test ! -f red" } }\n');
-  yield* commitAll('base');
-  const base = yield* git('rev-parse', 'HEAD');
-  yield* write('a.txt', 'a\n');
-  yield* commitAll('green');
-  yield* write('red', 'red\n');
-  yield* commitAll('red on its own');
-  yield* fs.remove(path.join(dir, 'red'));
-  yield* commitAll('the fix');
-  const commits = (yield* git('rev-list', '--reverse', `${base}..HEAD`)).split('\n');
-  const out = yield* sh('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--each', base]);
-  return { commits, lines: out.split('\n').filter((line) => line.startsWith('merge-audit ')) };
-}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
-
-// `--each` where a checkout fails: the guard leaves an untracked file that the
-// next commit tracks, so git refuses to check that commit out over it.
-const runEachCheckoutFails = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' });
-  const { git } = fixture(dir);
-  const write = (file: string, text: string) => fs.writeFileString(path.join(dir, file), text);
-  const commitAll = (message: string) =>
-    Effect.andThen(git('add', '-A'), git('commit', '-q', '-m', message));
-  yield* git('init', '-q', '-b', 'main');
-  yield* write('package.json', '{ "scripts": { "guard": "echo left > left.txt" } }\n');
-  yield* commitAll('base');
-  const base = yield* git('rev-parse', 'HEAD');
-  yield* write('a.txt', 'a\n');
-  yield* commitAll('green');
-  yield* write('left.txt', 'tracked\n');
-  yield* commitAll('tracks the file the guard leaves');
-  const blocked = yield* git('rev-parse', 'HEAD');
-  const spawner = yield* ChildProcessSpawner;
-  const child = yield* spawner.spawn(
-    ChildProcess.make('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--each', base], {
-      cwd: dir,
-      forceKillAfter: '5 seconds',
-    }),
-  );
-  const [out, code] = yield* Effect.all(
-    [Stream.mkString(Stream.decodeText(child.all)), child.exitCode],
-    { concurrency: 2 },
-  );
-  return { blocked, out, code: Number(code) };
-}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
-
-// `--each` where git cannot list the commits: HEAD is a branch with no commit
-// yet (`checkout --orphan`), so `rev-list <base>..HEAD` fails, though the base
-// is a commit the worktree can be made at.
-const runEachListFails = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'merge-audit-each-' });
-  const { git } = fixture(dir);
-  yield* git('init', '-q', '-b', 'main');
-  yield* fs.writeFileString(path.join(dir, 'package.json'), '{ "scripts": { "guard": "true" } }\n');
-  yield* git('add', '-A');
-  yield* git('commit', '-q', '-m', 'base');
-  const base = yield* git('rev-parse', 'HEAD');
-  yield* git('checkout', '-q', '--orphan', 'unborn');
-  const spawner = yield* ChildProcessSpawner;
-  const child = yield* spawner.spawn(
-    ChildProcess.make('bun', [path.join(import.meta.dir, 'merge-audit.ts'), '--each', base], {
-      cwd: dir,
-      forceKillAfter: '5 seconds',
-    }),
-  );
-  const [out, code] = yield* Effect.all(
-    [Stream.mkString(Stream.decodeText(child.all)), child.exitCode],
-    { concurrency: 2 },
-  );
-  return { out, code: Number(code) };
-}).pipe(Effect.scoped, Effect.provide(BunServices.layer));
-
-describe('merge audit, each commit', () => {
-  test(
-    'names the commit red on its own though the tip is green',
-    () =>
-      Effect.runPromise(
-        Effect.map(runEach, ({ commits, lines }) =>
-          expect(lines.slice(0, 3)).toEqual(
-            commits.map((commit, i) =>
-              [`merge-audit ${commit.slice(0, 8)} guard`, ['ok', 'red', 'ok'][i]].join(' '),
-            ),
-          ),
-        ),
-      ),
-    30_000,
-  );
-
-  test(
-    'fails when a commit cannot be checked out, and never reports the tree before it as that commit',
-    () =>
-      Effect.runPromise(
-        Effect.map(runEachCheckoutFails, ({ blocked, out, code }) => {
-          expect(code).not.toBe(0);
-          expect(out).not.toContain(`merge-audit ${blocked.slice(0, 8)} guard ok`);
-          expect(out).toContain(blocked.slice(0, 8));
-        }),
-      ),
-    30_000,
-  );
-
-  test(
-    'fails when git cannot list the commits, and never reports an empty run as green',
-    () =>
-      Effect.runPromise(
-        Effect.map(runEachListFails, ({ out, code }) => {
-          expect(code).not.toBe(0);
-          expect(out).not.toContain('guard ok');
-          expect(out).toContain('git rev-list');
-        }),
-      ),
-    30_000,
-  );
-});
-
-// `--review` over a repository whose ledger cites one of a review's two
-// findings: the cited one is routed, the other is not, and the run fails.
+// `--review` over a repository whose ledger cites one of a review's three
+// findings: the cited one is routed, the one classed `none` is declined, the
+// third is unrouted, and the run fails on it alone.
 const runReview = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -227,6 +98,9 @@ const runReview = Effect.gen(function* () {
       '### F2 Low: a name',
       'Guard class: none',
       'Cheapest guard: none',
+      '### F3 Medium: a check reads the wrong file',
+      'Guard class: code',
+      'Cheapest guard: a test',
       '',
     ].join('\n'),
   );
@@ -246,14 +120,15 @@ const runReview = Effect.gen(function* () {
 
 describe('merge audit, review', () => {
   test(
-    'routes each finding to the ledger entry citing it, and fails on one no entry cites',
+    'routes each finding to the ledger entry citing it, declines one classed none, and fails on one no entry cites',
     () =>
       Effect.runPromise(
         Effect.map(runReview, ({ lines, code }) => {
           expect(lines).toEqual([
             'merge-audit review p6-x/review-1.md F1 routed routed-one',
-            'merge-audit review p6-x/review-1.md F2 unrouted',
-            'merge-audit review 2 finding(s), 1 ledger entries: 1 problem(s)',
+            'merge-audit review p6-x/review-1.md F2 declined',
+            'merge-audit review p6-x/review-1.md F3 unrouted',
+            'merge-audit review 3 finding(s), 1 ledger entries: 1 problem(s)',
           ]);
           expect(code).not.toBe(0);
         }),

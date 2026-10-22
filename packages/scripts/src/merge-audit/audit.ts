@@ -127,21 +127,3 @@ export const conflictedPaths = (mergeTreeOut: string): ReadonlyArray<string> => 
   }
   return [...paths];
 };
-
-/** How many of a red guard's last lines its report keeps: the failing check's own. */
-const GUARD_TAIL = 20;
-
-/**
- * One commit's `bun run guard`, as `--each` prints it: `guard ok`, or `guard
- * red` and the run's last lines, indented, so the commit's own failure reads
- * without the log.
- */
-export const guardLines = (commit: string, ok: boolean, output: string): ReadonlyArray<string> => {
-  const head = `merge-audit ${commit.slice(0, 8)} guard`;
-  if (ok) return [`${head} ok`];
-  const tail = output
-    .split('\n')
-    .filter((line) => line.trim() !== '')
-    .slice(-GUARD_TAIL);
-  return [`${head} red`, ...tail.map((line) => `  ${line}`)];
-};

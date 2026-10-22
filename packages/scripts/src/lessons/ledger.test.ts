@@ -166,6 +166,9 @@ describe('the lessons ledger', () => {
               'Guard class: skill',
               '### F21 Medium: no guard named',
               'Cheapest guard: none',
+              '### F3 Low: a name reads oddly',
+              'Guard class: none',
+              'Cheapest guard: none',
             ].join('\n'),
           );
           const routes = yield* reviewRoutes(root, [review]);
@@ -175,11 +178,13 @@ describe('the lessons ledger', () => {
               Option.getOrElse(route.by, () => 'unrouted'),
               route.classed,
               route.guarded,
+              route.declined,
             ]),
           ).toEqual([
-            ['p6-x/review-1.md F1', 'folded', true, true],
-            ['p6-x/review-1.md F2', 'unrouted', true, false],
-            ['p6-x/review-1.md F21', 'declined', false, true],
+            ['p6-x/review-1.md F1', 'folded', true, true, false],
+            ['p6-x/review-1.md F2', 'unrouted', true, false, false],
+            ['p6-x/review-1.md F21', 'declined', false, true, false],
+            ['p6-x/review-1.md F3', 'unrouted', true, true, true],
           ]);
         }),
       ),

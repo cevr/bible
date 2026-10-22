@@ -6,7 +6,9 @@ declined, and an agent's claim taken back. Each entry gives the day, the
 words as they were said, where they are kept, what was wrong, why it went
 wrong when the record says, and its guard.
 
-A guard is the cheapest thing that catches the mistake, by class:
+A guard is the cheapest thing that catches the mistake, and a mistake gets
+one only when it is cheap: an oxlint rule or a unit test the gate runs, else
+a skill line. By class:
 
 - `lint:<rule>, proof `file` `name``: a deterministic rule, an oxlint rule on
   at error in `.oxlintrc.json` (a JSON rule, or the `film` plugin's), and the
@@ -27,12 +29,13 @@ lints, just for the skill guidance is enough"). Their guards here are visual
 and process checks, and skill lines.
 
 **After any owner revise, add his entry here, and its guard, before
-redrawing** (`.claude/skills/film/SKILL.md`, "The lessons ledger"). **Every
-finding a review folds or declines gets an entry**, its Source citing the
-finding as `<unit>/<review file> F<n>`; a review states each finding as
-`### F<n> <severity>: <what>` with a `Guard class:` line (lint, judged,
-skill, code or none) and a `Cheapest guard:` line, and `bun run merge-audit
---review <file>` refuses a unit whose findings are not all cited here.
+redrawing** (`.claude/skills/film/SKILL.md`, "The lessons ledger"). A
+review states each finding as `### F<n> <severity>: <what>` with a `Guard
+class:` line (lint, judged, skill, code or none) and a `Cheapest guard:`
+line. A finding given a guard gets an entry, its Source citing the finding
+as `<unit>/<review file> F<n>`; a finding classed `none` needs no entry.
+`bun run merge-audit --review <file>`, an optional check, prints each
+finding `routed`, `declined` or `unrouted`, and fails on an unrouted one.
 `packages/scripts/src/lessons/ledger.slow.test.ts` holds every entry to its fields
 and every guard to what its file holds.
 
@@ -1492,7 +1495,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-testspeed/findings.md F7
 - **Wrong:** The film README said twenty-five of the plugin's rules have an asserted message after the unit's two rules made twenty-seven.
 - **Cause:** A count in words changes with no name in its sentence changing.
-- **Guard:** skill: a count in a sentence is a claim only a reader holds to the code. Carried by `CLAUDE.md`: "a unit's review request carries this list, and the reviewer reads those lines"
+- **Guard:** skill: a count in a sentence is a claim only a reader holds to the code. Carried by `CLAUDE.md`: "use the list to find the lines a change may have made untrue"
 
 ### series-script-place-true
 
@@ -1642,7 +1645,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-mail/review-4.md F1
 - **Wrong:** The rebase of ftb-mail onto origin/main kept both sides of each append to `docs/lessons.md` but left diff3's base line, `||||||| parent of …`, in three commits.
 - **Cause:** The resolver read only the two-way conflict form, and git rerere replayed its resolution on the second try.
-- **Guard:** code: `packages/scripts/src/merge-audit.ts` `each: Flag.String('each')`
+- **Guard:** none: the per-commit audit that ran each commit's gate is dropped (owner, ask abe573de390: "drop the per-commit audit"); the gate runs once, at the unit's head.
 
 ### contact-rule-waits-for-verified-inbox
 
@@ -2082,7 +2085,7 @@ The form of an entry, each field on its own line:
 - **Source:** p6-casttools/review-1.md F9
 - **Wrong:** The measure's check table and the underlay's header still held every figure to the anchor and the canon after smaller figures had their own sizes.
 - **Cause:** A sentence's claim goes stale while no name in it changes, so the docs test cannot see it.
-- **Guard:** skill: the claim is in words, which no check reads. Carried by `CLAUDE.md`: "a unit's review request carries this list, and the reviewer reads those lines"
+- **Guard:** skill: the claim is in words, which no check reads. Carried by `CLAUDE.md`: "use the list to find the lines a change may have made untrue"
 
 ### baby-heads-cite-the-owner
 
