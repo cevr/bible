@@ -23,8 +23,13 @@ export const LIMITS = {
   /** The first 10 ms window over `onsetDb` dBFS falls within this of the first note-on, in ms. */
   lag: 30,
   onsetDb: -50,
-  /** Peak resident memory, bytes: the piano's sampler, any other sampler, the render's own process. */
-  memory: { piano: 3.0e9, sampler: 0.5e9, render: 1.0e9 },
+  /**
+   * Peak resident memory, bytes: the piano's sampler, any other sampler, the
+   * render's own process. The render's cap is the owner's (2026-10-22): its
+   * peak moves with when the collector runs, up to 1.17 GB with four runs at
+   * once, over a mean of 0.36 GB.
+   */
+  memory: { piano: 3.0e9, sampler: 0.5e9, render: 1.5e9 },
 } as const;
 
 /** One check: whether it passed, what was measured and what it was held to. */

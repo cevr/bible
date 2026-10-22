@@ -30,9 +30,9 @@ export const keyOf = (config: string, midiSha256: string) =>
  * Configs whose recordings are byte for byte those of a later config: a
  * hymn rendered under `config` stands while today's config is `sounds`.
  * Each pair holds only for that later config, so any change to what shapes
- * the sound ends it. A pair is proved once, by the same audio sources and
- * by MP3s rendered under `sounds` whose sha256 equals the records' under
- * `config` (`tmp/orchestrate/hymnapp/render/round-2-request.md`).
+ * the sound ends it. A pair is proved once, before it is added: the audio
+ * sources under both are the same files, and hymns rendered again under
+ * `sounds` give MP3s with the sha256 their records hold under `config`.
  *
  * - `681f4a71…`: the config of `e41d01667`, under which `warm-1` was
  *   rendered; its key hashed every file in `scripts/render/`.

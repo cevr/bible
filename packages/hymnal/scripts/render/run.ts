@@ -8,9 +8,10 @@
  *   with its record's verdict written anew when that changed, and rendered
  *   again only when it fails, since only a render measures it afresh.
  * - **Guards.** Before a hymn renders, the run waits while swap use is over
- *   8 GB or the 1-minute load is over 12 (one line when it starts waiting;
- *   the wait is left out of the hymn's times), and stops when the output's
- *   disk has under 3 GB free.
+ *   8 GB or the 1-minute load is over its ceiling, 12 unless `--load` names
+ *   another (one line when it starts waiting; the wait is left out of the
+ *   hymn's times), and stops when the output's disk has under 3 GB free.
+ *   Neither changes a hymn's sound, so neither is in its key.
  * - **Memory.** Each sampler's peak comes from `time -l`, and the render's
  *   own is sampled every 250 ms over the mix and the master; the record
  *   keeps each, and the memory check holds them.
@@ -42,6 +43,8 @@ import type { Style } from './style.js';
 
 /** Everything a hymn's render reads besides its MIDI file. */
 export interface Setup extends AudioSetup {
+  /** The 1-minute load over which a hymn waits to render (`GUARDS.load` unless the CLI names another). */
+  readonly load: number;
   readonly set: string;
   readonly out: string;
   readonly work: string;
@@ -130,8 +133,8 @@ export const GUARDS = {
   poll: '20 seconds',
 } as const;
 
-/** Waits while the machine is over its swap or load ceiling; fails when the disk is nearly full. Answers the seconds waited. */
-export const guard = (out: string) =>
+/** Waits while the machine is over its swap or `load` ceiling; fails when the disk is nearly full. Answers the seconds waited. */
+export const guard = (out: string, load: number) =>
   Effect.gen(function* () {
     if ((yield* freeBytes(out)) < GUARDS.disk)
       return yield* RenderFailed.make({
@@ -142,11 +145,11 @@ export const guard = (out: string) =>
     let said = false;
     for (;;) {
       const now = yield* machine;
-      if (now.swap <= GUARDS.swap && now.load <= GUARDS.load) break;
+      if (now.swap <= GUARDS.swap && now.load <= load) break;
       if (!said)
         yield* Effect.sync(() =>
           console.log(
-            `  waiting: swap ${(now.swap / 2 ** 30).toFixed(2)} GB (ceiling 8), load ${now.load.toFixed(1)} (ceiling 12)`,
+            `  waiting: swap ${(now.swap / 2 ** 30).toFixed(2)} GB (ceiling ${GUARDS.swap / 2 ** 30}), load ${now.load.toFixed(1)} (ceiling ${load})`,
           ),
         );
       said = true;
@@ -284,7 +287,7 @@ export const renderHymn = (setup: Setup, hymn: number) =>
       } satisfies Outcome;
     }
 
-    const waited = yield* guard(setup.out);
+    const waited = yield* guard(setup.out, setup.load);
     const started = performance.now();
     const { midi, expected } = source;
     const parts = voices(midi);

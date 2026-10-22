@@ -6,6 +6,7 @@
  *   bun run render --hymns 1,46          # those hymns (unpadded numbers)
  *   bun run render --all                 # every hymn, 1 to 695
  *   bun run render --hymns 663 --out DIR --work DIR
+ *   bun run render --all --load 16         # wait while the 1-minute load is over 16, not 12
  *   bun run render --lock                # make instruments.lock.json from GitHub's trees
  *
  * The cache is `$HYMN_RENDER_CACHE` (default `~/.cache/manna-hymn-render`):
@@ -27,7 +28,7 @@ import { creditText, RECORDING_SET } from '../../src/recordings.js';
 import { chosenOf } from './hymns.js';
 import { fetchInstruments, lockInstruments, readLock } from './instruments.js';
 import { RenderFailed } from './proc.js';
-import { configOf, renderHymn, roomOf, writeManifest } from './run.js';
+import { configOf, GUARDS, renderHymn, roomOf, writeManifest } from './run.js';
 import { sfizzBinary } from './sfizz.js';
 import { STYLE } from './style.js';
 
@@ -64,6 +65,10 @@ const render = Command.make('render', {
   all: Flag.Boolean('all').pipe(Flag.withDefault(false), Flag.withDescription('Every hymn')),
   out: Flag.String('out').pipe(Flag.optional, Flag.withDescription('The set folder')),
   work: Flag.String('work').pipe(Flag.optional, Flag.withDescription('The scratch folder')),
+  load: Flag.Finite('load').pipe(
+    Flag.withDefault(GUARDS.load),
+    Flag.withDescription('The 1-minute load over which a hymn waits to render'),
+  ),
   lock: Flag.Boolean('lock').pipe(
     Flag.withDefault(false),
     Flag.withDescription("Make instruments.lock.json from the repositories' trees"),
@@ -114,6 +119,7 @@ const render = Command.make('render', {
         sampler: sfizz.binary,
         ir: roomOf(STYLE),
         comment,
+        load: flags.load,
         set: RECORDING_SET,
         out,
         work,

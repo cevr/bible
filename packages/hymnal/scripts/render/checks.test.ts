@@ -50,7 +50,7 @@ const FAILS: ReadonlyArray<readonly [keyof ReturnType<typeof checksOf>, Partial<
   ['stems', { stems: [{ lufs: -30, frames: 10, needed: 11 }] }],
   ['memory', { rss: { piano: 3.1e9, sampler: 0, render: 0 } }],
   ['memory', { rss: { piano: 0, sampler: 0.6e9, render: 0 } }],
-  ['memory', { rss: { piano: 0, sampler: 0, render: 1.1e9 } }],
+  ['memory', { rss: { piano: 0, sampler: 0, render: 1.6e9 } }],
 ];
 
 describe('checksOf', () => {

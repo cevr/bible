@@ -26,6 +26,7 @@ const setOf = (config: string) =>
       sampler: path.join(out, 'no-sampler'),
       ir: path.join(out, 'no-room.wav'),
       comment: 'test',
+      load: 12,
       set: 'test',
       out,
       work: path.join(out, 'work'),
@@ -52,7 +53,7 @@ const midiSha = (hymn: number) =>
 const put = (
   setup: Setup,
   config: string,
-  change: { readonly sha256?: string; readonly render?: number } = {},
+  change: { readonly sha256?: string; readonly render?: number; readonly limit?: number } = {},
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -63,6 +64,12 @@ const put = (
       sha256: change.sha256 ?? sha256Hex(MP3),
       rss: { ...RECORD_168.rss, render: change.render ?? RECORD_168.rss.render },
     };
+    // The memory check as a run under another cap recorded it.
+    if (change.limit !== undefined)
+      record.checks = {
+        ...record.checks,
+        memory: { ok: record.rss.render <= change.limit, value: 0, limit: 1 },
+      };
     yield* fs.writeFile(path.join(setup.out, '168.mp3'), MP3);
     yield* fs.writeFileString(path.join(setup.out, '168.json'), JSON.stringify(record));
     yield* fs.writeFileString(path.join(setup.out, '168.png'), 'sheet');
@@ -119,8 +126,17 @@ describe('a hymn whose record stands', () => {
   test('fails when a check that measured its run fails: the memory', () =>
     Effect.gen(function* () {
       const setup = yield* setOf('c');
-      yield* put(setup, 'c', { render: 1.17e9 });
+      yield* put(setup, 'c', { render: 1.6e9 });
       expect((yield* standingOf(setup, 168, yield* sourceOf(STYLE, 168))).kind).toBe('fails');
+    }));
+
+  test("is kept with no render when its render's recorded peak failed a lower cap and is under today's", () =>
+    Effect.gen(function* () {
+      const setup = yield* setOf('c');
+      yield* put(setup, 'c', { render: 1.17e9, limit: 1.0e9 });
+      expect((yield* renderHymn(setup, 168)).line).toBe('168 kept: checked again, passed');
+      const after = yield* readBack(setup);
+      expect([after.typed.passed, after.typed.checks.memory.ok]).toEqual([true, true]);
     }));
 
   test('does not stand under another config, or when its MP3 is not the recorded one', () =>
