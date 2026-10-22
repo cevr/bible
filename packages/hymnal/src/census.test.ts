@@ -35,7 +35,6 @@ import {
   lentReadings,
   photoProblem,
   printedOf,
-  entryProblemsOf,
   problemsOf,
   readCensusOnce,
   readingProblems,
@@ -204,6 +203,10 @@ const reading = (
 /** The problems a mutated census or source prints about hymn `n`. */
 const about = (census: Census, sources: Sources, n: number) =>
   problemsOf(census, sources).filter((p) => p.startsWith(`${n} `));
+
+/** What `about` prints for hymn `n`, read with every other entry out of the census (the rest of the book is not read again). */
+const aboutOnly = (census: Census, sources: Sources, n: number) =>
+  about({ ...census, hymns: census.hymns.filter((entry) => entry.number === n) }, sources, n);
 
 /** The smallest JPEG the photo check reads: an EXIF orientation (when given) and a frame. */
 const jpeg = (width: number, height: number, orientation?: number) => {
@@ -679,9 +682,9 @@ describe('census', () => {
             const { sources, all, one, matches } = yield* hymn58;
             const answered: Ruling = { ...one, answer: answer('source') };
             const rulings = all.map((ruling) => (ruling === one ? answered : ruling));
-            expect(entryProblemsOf(matches, withRulings(sources, 58, rulings), 58)).toEqual([]);
+            expect(aboutOnly(matches, withRulings(sources, 58, rulings), 58)).toEqual([]);
             const bare: Ruling = { ...answered, settles: [] };
-            const lines = entryProblemsOf(
+            const lines = aboutOnly(
               matches,
               withRulings(
                 sources,
@@ -700,7 +703,7 @@ describe('census', () => {
         () =>
           Effect.gen(function* () {
             const { census, sources, n, all, ruled } = yield* pageAnswered;
-            const lines = entryProblemsOf(
+            const lines = aboutOnly(
               census,
               withRulings(sources, n, [...all.slice(1), ruled([])]),
               n,
@@ -710,7 +713,7 @@ describe('census', () => {
             expect(lines).not.toContain(
               `${n} ruling ${all.length} is disputed but settles no line`,
             );
-            const settling = entryProblemsOf(
+            const settling = aboutOnly(
               census,
               withRulings(sources, n, [...all.slice(1), ruled(['a line'])]),
               n,
@@ -725,9 +728,9 @@ describe('census', () => {
         Effect.gen(function* () {
           const { census, sources, n, all } = yield* pageAnswered;
           const words: Ruling = { ...all[0]!, answer: answer('source') };
-          expect(
-            entryProblemsOf(census, withRulings(sources, n, [...all.slice(1), words]), n),
-          ).toContain(`${n} ruling ${all.length} answers no dispute`);
+          expect(aboutOnly(census, withRulings(sources, n, [...all.slice(1), words]), n)).toContain(
+            `${n} ruling ${all.length} answers no dispute`,
+          );
         }),
       );
 
@@ -739,11 +742,11 @@ describe('census', () => {
             const units = unitsOf(sources.rows.get(n)!);
             // Each stanza one line: the base words, divided otherwise.
             const redivided = withFix(sources, n, units);
-            expect(entryProblemsOf(census, redivided, n)).toContain(
+            expect(aboutOnly(census, redivided, n)).toContain(
               `${n} has a fix file of its own but says matches`,
             );
             const answered = withRulings(redivided, n, [...all.slice(1), ruled([])]);
-            expect(entryProblemsOf(census, answered, n)).not.toContain(
+            expect(aboutOnly(census, answered, n)).not.toContain(
               `${n} has a fix file of its own but says matches`,
             );
             // The fix sings one word otherwise than its row.
@@ -753,7 +756,7 @@ describe('census', () => {
               ...fix,
               stanzas: [[{ ...line!, text: `unruled ${line!.text}` }], ...fix.stanzas.slice(1)],
             });
-            const lines = entryProblemsOf(census, changed, n);
+            const lines = aboutOnly(census, changed, n);
             expect(lines.some((p) => p.startsWith(`${n} fix file and row differ: `))).toBe(true);
             expect(lines).toContain(`${n} has a fix file of its own but says matches`);
           }),
