@@ -189,6 +189,7 @@ of the field at 3072 px, and the dusk band blends in oklab.
 
 ```bash
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
+bun run computed   # in Chrome, on the built home page: the healing leaf's turn, pivot and timing in each state, and a data-URL picture refused by the content policy (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 bun run kit:field  # the field's still (its rays from the sun) and its wind map into src/art/ from kit/art/field.webp; then bun run kit
 bun run kit:pin --ask <id>      # the coordinator only: pins the stills as they stand in kit/approved-stills.json, pending on the lab ask whose image blocks show them, and saves the ask in kit/fixtures/
@@ -237,10 +238,10 @@ hold none of them and pass (`email-promise-no-net-word`,
 `email-promise-what-we-send`). So, in anything a reader gets:
 **Say how often and what we email only in the promise's words.**
 
-The app's `gate:timed` is `bun run contrast`: `bun run gate` runs it after
-the build, with the tests, alone under the host's test lock, since its
-browser holds a 30 s limit on each shot; so does CI's gate job, in the
-runner's Google Chrome.
+The app's `gate:timed` is `bun run contrast && bun run computed`: `bun run
+gate` runs it after the build, with the tests, alone under the host's test
+lock, since each browser holds a limit on each step; so does CI's gate job,
+in the runner's Google Chrome.
 
 ### Known limits of `bun run promise`
 
