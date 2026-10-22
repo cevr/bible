@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json", "dist-native/**"]
+    },
+    "transit": {
+      "inputs": ["$TURBO_DEFAULT$", "dist-native/**"]
+    }
+  }
+}
