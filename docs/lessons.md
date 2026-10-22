@@ -2973,3 +2973,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The stylesheet tests passed with the sway at `500deg`, a `20s linear` transition, `rotate: calc(5deg + 0deg * var(--stir))`, and an added `.emblem-remedies svg > g { transform-origin: 0 0 }`.
 - **Cause:** The stir reader checked only that `var(--stir)` occurs, and the leaf test read the pivot of one selector and the names of the moved properties, not their values or the other rules on the parts.
 - **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`, `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, and a part turned about another point`.
+
+### each-commit-runs-the-ledger
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the per-commit guard does not hold the ledger test, so \"each commit green\" is not shown"
+- **Source:** ftb-motion/rewrite-round-3-findings.md F4
+- **Wrong:** The ledger test gave 5 failures on a commit of the unit that renamed the tests its entries cite, and `merge-audit --each` said every commit was green.
+- **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run `packages/scripts/src/lessons/ledger.test.ts`.
+- **Guard:** code: `./package.json` `bun test ./packages/scripts/src/lessons/ledger.test.ts`, the root `guard` script that `merge-audit --each` runs on each commit.

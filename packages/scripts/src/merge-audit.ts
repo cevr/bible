@@ -206,7 +206,7 @@ const step = (commit: string, command: string, args: ReadonlyArray<string>, cwd:
   });
 
 /**
- * `--each <base>`: `bun run guard` (lint, format, dead exports, the docs test) on each commit
+ * `--each <base>`: `bun run guard` (lint, format, dead exports, the docs test, the lessons ledger) on each commit
  * of `base..HEAD`, oldest first, in a scratch worktree, so a commit red on its
  * own shows before the fast-forward lands it. Dependencies are installed from
  * the first commit's lock, and again where a commit changes it. A checkout or
