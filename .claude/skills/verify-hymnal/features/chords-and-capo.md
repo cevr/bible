@@ -34,7 +34,7 @@ hymn. Turning chords off shows the plain hymn again.
 3. **Transpose.** `sim tap "label=Transpose up"`. → `Key D`; `chord-1-1-1` reads `D`.
 4. **Capo.** `sim tap "label=Capo up"` twice. → `Capo 2, C shapes`; `chord-1-1-1` reads `C`.
 5. **Capo and transpose together.** `sim tap "label=Transpose up"`. → `Key Eb`; `chord-1-1-1` reads `Db`, the printed chord (capo 2 plus transpose 2).
-6. **Kept per hymn, on for every hymn.** `sim back`, `sim open hymns/1 --expect "label=Stanza 1"`. → chords on with no tap, hymn 1's own key and `No capo`. `sim open hymns/100 --expect "label=Stanza 1"`. → `Key Eb`, `Capo 2, Db shapes`.
+6. **Kept per hymn, on for every hymn.** `sim open hymns/1 --expect "label=Stanza 1"` (no `sim back` here: on a hymn opened by deep link the header has no back button, and `back --in-app` taps `Chords`, its only button). → chords on with no tap, hymn 1's own key and `No capo`. `sim open hymns/100 --expect "label=Stanza 1"`. → `Key Eb`, `Capo 2, Db shapes`.
 7. **Relaunch.** `xcrun simctl terminate verify-hymnal im.cvr.hymnal`, then `sim open hymns/100 --expect "label=Stanza 1"`. → `Chords` selected, chords on, `Key Eb`, `Capo 2, Db shapes`.
 8. **Levels.** `sim open hymns/126 --expect "label=Stanza 1"`. → the words alone and "No chords for this hymn yet.", no key control. `sim open hymns/11 --expect "label=Stanza 1"`. → `id=chords-1-1` is a row of chords above the line (`sim shot`).
 9. **Off again, back to the default.** On hymn 100: `Transpose down` twice, `Capo down` twice (→ `Key Db`, `No capo`), then `sim tap label=Chords`. → the button not selected, the words alone, as in step 1.
