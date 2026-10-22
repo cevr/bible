@@ -171,7 +171,7 @@ export interface LayoutMutant {
 }
 
 /** The layout the census reads from a mutant's text (`readText`): each block it changed read again, each it left alone as read. */
-export const layoutOfMutant = (mutant: LayoutMutant): PrintedLayout => readText(mutant.text);
+const layoutOfMutant = (mutant: LayoutMutant): PrintedLayout => readText(mutant.text);
 
 const sameLine = (a: string, b: string) => wordsOf(a).join(' ') === wordsOf(b).join(' ');
 const sameBlock = (a: readonly string[], b: readonly string[]) => sameWords(a, b);

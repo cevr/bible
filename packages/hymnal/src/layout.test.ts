@@ -42,7 +42,6 @@ import {
   fingerprintOf,
   type LayoutMutant,
   layoutMutants,
-  layoutOfMutant,
   mutantsOf,
   printedSourceOf,
   rowOfSource,
@@ -265,8 +264,10 @@ describe('layout', () => {
       }),
     );
 
-    // A sample of each kind, the first three of it no ruling lists: the census
-    // itself prints a layout line for each that its control does not.
+    // A sample of each kind, the first three of it no ruling lists: the per-hymn
+    // shape check, with the committed rows' lexicon (`withBase`), prints a layout
+    // line for each that its control does not. Through the census's own entry
+    // point, with the lexicon of the mutated rows, some escape (r2 M1, a follow-up).
     const sample = ['join', 'movedown', 'moveup'].flatMap((kind) =>
       escapes
         .filter((one) => one.mode.startsWith(`${kind}:`) && !listedOf(one.number).has(one.mode))
@@ -279,8 +280,6 @@ describe('layout', () => {
           expect(fingerprintOf(text)).toBe(layout ?? '');
           const mutant = mutantsByName(n, text).get(mode);
           if (mutant === undefined) return expect(`${n} ${mode}`).toBe('generated');
-          // Read again from its own text: the reader, not the mutation, says where its lines open.
-          expect(readText(mutant.text)).toEqual(layoutOfMutant(mutant));
           expect(
             newLines(
               layoutLines(withBase(sources, n, rowOfText(text)), n),
