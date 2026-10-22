@@ -11,11 +11,15 @@ const choices: ReadonlyArray<{ readonly value: Appearance; readonly label: strin
   { value: 'dark', label: 'Dark' },
 ];
 
+/** Settings, a sheet over the home screen on a phone: it draws its own heading, the sheet no header. */
 export default function Settings() {
   const [appearance, setAppearance] = useAtom(settings.appearance);
   const accent = useAccent();
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.page}>
+    <ScrollView contentContainerStyle={styles.page}>
+      <Text role="heading" aria-level={1} style={styles.title}>
+        Settings
+      </Text>
       <Text role="heading" aria-level={2} style={styles.heading} dynamicTypeRamp="footnote">
         Appearance
       </Text>
@@ -46,7 +50,8 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 16, gap: 8 },
+  page: { padding: 16, paddingTop: 24, gap: 8 },
+  title: { marginBottom: 8, fontSize: 28, fontWeight: '700', color: color.ink },
   heading: {
     marginLeft: 16,
     fontSize: 13,

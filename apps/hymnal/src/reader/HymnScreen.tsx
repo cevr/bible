@@ -1,6 +1,6 @@
 /**
- * The hymn route's screen, shared by the Hymns and Search tabs so a hymn
- * opens in the tab it was found in. The native header names the hymn.
+ * The hymn route's screen, pushed over the home screen from its list or its
+ * search. The native header names the hymn.
  */
 
 import { Option } from 'effect';

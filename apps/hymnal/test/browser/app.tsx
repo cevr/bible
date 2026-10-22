@@ -1,10 +1,11 @@
 /* oxlint-disable effect/noTernary -- the browser test's app, a host boundary: a small router over the History API, which gives paths as plain strings. */
 
 /**
- * The web app as the browser test drives it: the real Hymns and Search
- * screens (`app/(tabs)/…/index.tsx`) under a tab bar, and a hymn opened from
- * a row in its list's place, under a header whose back link goes to the
- * list, as One's web stacks and `WebStackHeader` and `WebTabBar` show them.
+ * The web app as the browser test drives it: the real lists the web home
+ * screen shows (`src/home/Browse.tsx`, `src/home/Results.tsx`) under the
+ * test's own bar of links between them, and a hymn opened from a row in its
+ * list's place, under a header whose back link goes to the list, as One's
+ * web stack and `WebStackHeader` show it.
  * A route is a path:
  * - `/` the Hymns list, `/search` the Search list;
  * - `/hymns/<n>` and `/search/<n>` a hymn, opened from that list.
@@ -22,8 +23,8 @@ import { useLinkTo } from 'one';
 import { StrictMode, startTransition, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import Hymns from '../../app/(tabs)/(hymns)/index';
-import Search from '../../app/(tabs)/search/index';
+import { Browse as Hymns } from '../../src/home/Browse';
+import { Results } from '../../src/home/Results';
 import { opening } from '../../src/test/one';
 import { color } from '~/color';
 
@@ -47,7 +48,9 @@ function Screen({ path }: { readonly path: string }) {
         <Text role="heading" aria-level={1} style={styles.title}>
           {list.title}
         </Text>
-        <View style={styles.content}>{list === lists.hymns ? <Hymns /> : <Search />}</View>
+        <View style={styles.content}>
+          {list === lists.hymns ? <Hymns /> : <Results hrefOf={(n) => `/search/${n}`} />}
+        </View>
       </View>
     );
   }

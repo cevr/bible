@@ -5,9 +5,13 @@ plays their recordings, and where the recordings live and how they got there.
 
 ## The reader
 
-Three native tabs: Hymns (all 695, number and title), Search (number, title
-or first line, in the native header's search field) and Settings
-(appearance). A hymn shows its words in the order they are sung: each stanza
+One screen and a stack: the home screen lists all 695 hymns, number and
+title. On a phone the list falls under sticky rows that name the hymnal's
+topical sections (each hymn's topic is joined from the compiled
+`topics.json` through `topicOf` when the app is bundled), and a pull down
+shows a search field (number, title or first line) that opens a search
+over the list. A gear in the title row opens Settings (appearance) as a
+sheet. A hymn opens pushed over the home screen. A hymn shows its words in the order they are sung: each stanza
 under its number, and the refrain written out each time it is sung.
 
 - The words come from the compiled 1985 set (`@bible/hymnal`). The
@@ -21,8 +25,13 @@ under its number, and the refrain written out each time it is sung.
   (`src/color.native.ts`), on the web a CSS `light-dark()` property
   (`src/color.ts`). Android keeps the system's colours. `src/theme.test.ts`
   holds every text role to WCAG AA on what it sits on.
-- One's web navigators are headless, so `src/web/` draws a small tab bar,
-  header and search field on the web. A phone never renders them.
+- The phone's list is a Legend List (`src/reader/HymnList.native.tsx`):
+  each row of a kind has one height from the text size, the topic rows
+  stick under the status bar, and the search field sits above the first
+  row, the list opening scrolled past it (`src/home/Home.native.tsx`).
+- One's web navigators are headless, so `src/web/` draws a small header and
+  search field on the web, and the web's home screen shows the search field
+  above the list, with no topic rows. A phone never renders them.
 - On the web a screen is mounted anew when the reader comes back to it, so
   the search's query and each list's scroll offset live in the app's
   registry (`src/reader/place.ts`), not in the screen. A list keeps its
@@ -43,12 +52,13 @@ under its number, and the refrain written out each time it is sung.
   which run one after the other, and it fails when any of them fails.
   `HYMNAL_LIST_SEED` reaches the browser tests through turbo too (`bun run
   gate`, `bun run test:budget`).
-- `bun run test:browser` (`test/browser/`) renders the Hymns and Search
-  screens on a server, hydrates them in Playwright's Chromium, and drives
+- `bun run test:browser` (`test/browser/`) renders the home screen's list and
+  its search results on a server, hydrates them in Playwright's Chromium, and drives
   them: hydration keeps the server's list and a scroll made before it (the
   page hydrates once that scroll's own event has come, so the list must be
   told of it); Back,
-  the header's back link and a tab switch, at offsets across the whole list
+  the header's back link and a switch to the other list (the test's own
+  links between the list and the search), at offsets across the whole list
   and window heights from 320 to 1400 px, come back within one row with
   every row on screen drawn (a press at once whose list heard of the last
   scroll before it left is made again, up to three tries, and the run prints
@@ -65,7 +75,7 @@ A hymn page plays the hymn's 1985 recording from `audioUrl(n)`: a Play or
 Pause button in the accent (a `UIButton`'s title on iOS, an accent fill
 under the onAccent text on the web and Android), a bar to seek, and the time played and the
 length. The recording plays on when the reader leaves the hymn, and a bar
-above the tabs shows the hymn playing (its number, title and Play or Pause);
+docked at the foot of the screen shows the hymn playing (its number, title and Play or Pause);
 a press on it opens the hymn. Playing another hymn replaces the first.
 
 - `src/player/player.ts` holds the player: its states (idle, loading,
@@ -164,9 +174,9 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   `vite.config.ts` turns on
   `native.app.audio.background`, so the prebuild writes the `audio`
   background mode (iOS) and the media playback service (Android).
-- The bar above the tabs is the native tab bar's bottom accessory on iOS 26
-  and later; `src/web/WebTabBar.tsx` draws it on the web. Android and iOS
-  before 26 show no bar; the lock screen still controls the recording.
+- The bar is docked under the stack, above the home indicator, on every
+  platform while the player holds a hymn (`app/(hymnal)/_layout.tsx`); the
+  lock screen also controls the recording.
 - The seek bar is `One.iOS.Slider` on iOS (it seeks once the thumb rests for
   300 ms, as the slider reports no release), `One.Android.Slider` on Android
   and a range input on the web. On the web a press belongs to the pointer

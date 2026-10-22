@@ -1,6 +1,6 @@
 /**
- * The web's search field. On a phone the search field is the native header's
- * (`headerSearchBarOptions`), so `SearchField.native.tsx` draws nothing.
+ * The web's search field. On a phone the home screen draws its own
+ * (`src/home/Home.native.tsx`), so `SearchField.native.tsx` draws nothing.
  */
 
 import { StyleSheet, TextInput } from 'react-native';

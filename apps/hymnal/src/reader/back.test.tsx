@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import Search from '../../app/(tabs)/search/index';
+import Search from '../../app/(hymnal)/index';
 import { opened } from '../test/one';
 import { hymnAt, hymns } from '~/hymns/hymns';
 
