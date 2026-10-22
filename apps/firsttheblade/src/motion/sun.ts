@@ -57,8 +57,9 @@ export const TURN = { swing: 0.05, period: 60 } as const;
 /**
  * The rays' turn `seconds` into the motion, in radians added to each ray's
  * angle (a positive turn swings the fan clockwise on the screen), as the
- * field's shader writes it. Where the rays rest (`raysTurn`, `./query.ts`),
- * the shader multiplies it by 0.
+ * field's shader writes it. With a coarse pointer the shader multiplies it
+ * by 0 (`u_turning`, from `raysTurn` in `./query.ts`); under less motion no
+ * shader runs and the still shows.
  */
 export const turnAt = (seconds: number) =>
   TURN.swing * Math.sin((seconds * 2 * Math.PI) / TURN.period);
