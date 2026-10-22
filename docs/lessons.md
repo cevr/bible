@@ -3143,3 +3143,53 @@ The form of an entry, each field on its own line:
 - **Wrong:** An ask made from a kept ask's machine, whose images show that ask's copies (`/api/asks/<id>/shown/<sha256>.png`), was refused as serving no image, a message that sends an agent to ask again the same way.
 - **Cause:** The receipt rule read only the routes of the lab's material (set files, board tries, note stills), not an ask's copy. `receipted` now reads a copy's route through the earlier ask (`shownFile`): one its receipt names, whose bytes hold its hash, is shown again as the same copy under the new ask's route; any other is refused as `AskRefused`, naming the src.
 - **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `shows a kept ask's copy again in an ask made from its machine, as the same copy under its own route, and refuses the make, naming the src, once the copy no longer holds its hash or is no copy that ask holds`.
+
+### hymn-manifest-leaves-out-another-config
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the manifest takes every `<n>.json` in `--out` (`readKept`), with no check of `record.key` against today's key. It then stamps today's `configHash`"
+- **Source:** render/round-1-findings.md F2
+- **Wrong:** `writeManifest` listed every record in the set, so a partial run after a config change would have listed hymns rendered under the old config as current.
+- **Cause:** The manifest read the records without the resume's own test of each record's key.
+- **Guard:** code: `packages/hymnal/scripts/render/run.test.ts` `lists the records that stand, by their verdict today, and leaves out one of another config`.
+
+### hymn-render-key-hashes-named-sources
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "a recursive `readDirectory` hashes every file except `*.test.ts` and `.DS_Store`. A stray untracked file (for example an editor swap file) changes the resume key"
+- **Source:** render/round-1-findings.md F3
+- **Wrong:** The resume key hashed whatever files stood in `scripts/render/`, so a stray file, or a change to the checks, would have rendered every hymn again.
+- **Cause:** The key named a folder, not the files that shape the sound.
+- **Guard:** code: `packages/hymnal/scripts/render/sources.test.ts` `are every file the sound's module reaches at run time, and the room`, `packages/hymnal/scripts/render/sources.test.ts` `leave out the checks, the record, the resume and the run`.
+
+### hymn-check-fix-renders-nothing
+
+- **Date:** 2026-10-22
+- **Kind:** retraction
+- **Said:** "A change to the checks never re-renders a hymn whose audio inputs did not change."
+- **Source:** the orchestrator's round-2 brief for unit render (run hymnapp), after B1's stems failures
+- **Wrong:** A failed hymn was rendered again on every run, and the key covered the checks, so fixing a wrong check would have rendered the whole set again and still failed the hymns it had failed.
+- **Cause:** The record kept the verdict but the run never read its measurements back, so only a render could check a hymn.
+- **Guard:** code: `packages/hymnal/scripts/render/run.test.ts` `is kept with no render when it failed only a check that was wrong, its record passed and its sheet gone`, `packages/hymnal/scripts/render/run.test.ts` `stands under a config that sounds the same as the record's`.
+
+### hymn-stem-whole-through-its-release
+
+- **Date:** 2026-10-22
+- **Kind:** retraction
+- **Said:** "A stem shorter than the MIDI passes when the mix comes out at the hymn's full length and the stem's sound is all there."
+- **Source:** the orchestrator's round-2 brief for unit render (run hymnapp): hymns 6, 82, 110, 168 and 200 failed `stems` in B1
+- **Wrong:** The stems check held every stem to the hymn's MIDI length, so a stem whose parts end before the hymn's last event failed although its sound was whole: hymn 168's violas end 0.62 s short of the hymn and ring 3.2 s past their own last note.
+- **Cause:** The check took the hymn's length for each stem's; the sampler renders a stem's own MIDI file, which ends at its own last note-off, and then its release.
+- **Guard:** code: `packages/hymnal/scripts/render/record.test.ts` `passes a stem that ends at its own last note-off's release, short of the hymn`.
+
+### hymn-render-memory-cap-owner
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "And let's put the memory check to like 1.5 gigabytes"
+- **Source:** the owner to the orchestrator of run hymnapp, after B1's memory failures
+- **Wrong:** The render's own resident-size cap was 1.0 GB, so nine hymns of B1 (46, 158, 224, 253, 291, 337, 362, 423, 425) failed at 1.00 to 1.17 GB with sound that passed every other check.
+- **Cause:** The render's peak moves with when the collector runs and how many renders share the machine; the cap was set from one quiet run's peak.
+- **Guard:** code: `packages/hymnal/scripts/render/run.test.ts` `is kept with no render when its render's recorded peak failed a lower cap and is under today's`.
