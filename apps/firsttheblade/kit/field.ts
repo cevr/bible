@@ -12,7 +12,8 @@
  * Run `bun run kit` after, so the link cards are drawn from the new still.
  * Each run ends by naming the stills that differ from the owner's approval
  * (`./approval.ts`); it never writes the record. A changed still goes to him
- * as a lab ask with 1:1 crops before `bun run kit:approve` records it.
+ * as a lab ask that shows it byte for byte as an image block before
+ * `bun run kit:approve` records it.
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { chromium, type Page } from '@playwright/test';

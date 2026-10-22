@@ -347,7 +347,7 @@ export const reportAgainstRecord = Effect.fn('Approval.report')(function* (app: 
   yield* Effect.logWarning('kit.stills.ask').pipe(
     Effect.annotateLogs({
       unapproved: found.length,
-      next: 'show the owner the stills as a lab ask with 1:1 crops, then bun run kit:pin --ask <id>, and once he approves bun run kit:approve --ask <id>',
+      next: 'show the owner each still byte for byte as an image block of a lab ask, then bun run kit:pin --ask <id>, and once he approves bun run kit:approve --ask <id>',
     }),
   );
 });
