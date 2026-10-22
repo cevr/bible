@@ -4,9 +4,10 @@ import { FIELD_FRAGMENT, NIGHT_FRAGMENT } from './shaders.ts';
 
 /**
  * The least sway the hero's plants may have: a tip that moves enough to be
- * seen at a glance, as the owner asked ("the movements are too unnoticble").
+ * seen at a glance, as the owner asked ("the movements are too unnoticble",
+ * then "A bit more" than 0.012 on ask adf28c17753).
  */
-const SWAY_FLOOR = 0.012;
+const SWAY_FLOOR = 0.016;
 
 /** The share of the width a plant's tip is pushed by, as the field's shader writes it. */
 const pushIn = (source: string) =>
@@ -69,9 +70,9 @@ describe('the motion shaders', () => {
   test('a sway below the floor is refused', () => {
     const lowered = FIELD_FRAGMENT.replace(
       /\* sway \* [0-9.e-]+ \* u_ramp/,
-      '* sway * 0.0045 * u_ramp',
+      '* sway * 0.012 * u_ramp',
     );
-    expect(pushIn(lowered)).toEqual([0.0045]);
+    expect(pushIn(lowered)).toEqual([0.012]);
     expect(pushIn(lowered).every((push) => push >= SWAY_FLOOR)).toBe(false);
   });
 

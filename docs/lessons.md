@@ -2662,7 +2662,17 @@ The form of an entry, each field on its own line:
 - **Source:** the owner's answer to ask a714e0e2d89, 2026-10-21 (unit ftb-motion, round 3 brief, answer 5)
 - **Wrong:** The hero's wheat swayed by 0.0045 of the painting's width at a gust's full push, so a plant's tip moved about 1 px between frames 3 s apart at 1280 wide, and the field read as still.
 - **Cause:** The sway was set by eye to stay calm, and nothing held it to a size a viewer sees.
-- **Guard:** code: `apps/firsttheblade/src/motion/shaders.test.ts` `sway the hero’s plants at least as far as the owner asked`, `apps/firsttheblade/src/motion/shaders.test.ts` `a sway below the floor is refused`. They hold the field shader's sway at or above 0.012 of the width, the floor of this revise.
+- **Guard:** code: `apps/firsttheblade/src/motion/shaders.test.ts` `sway the hero’s plants at least as far as the owner asked`, `apps/firsttheblade/src/motion/shaders.test.ts` `a sway below the floor is refused`. They hold the field shader's sway at or above 0.016 of the width, the floor the owner set when he asked for "A bit more" than 0.012 on ask adf28c17753.
+
+### hero-sway-a-bit-more
+
+- **Date:** 2026-10-21
+- **Kind:** owner
+- **Said:** chose: "A bit more"
+- **Source:** the owner's answer to ask adf28c17753, 2026-10-22T01:18:28Z (unit ftb-motion, rewrite round 2; kept in `apps/firsttheblade/kit/fixtures/ask-adf28c17753.json`)
+- **Wrong:** At 0.012 of the painting's width the hero's wheat still swayed too little for him, after the before/after clips of round 3.
+- **Cause:** The step from 0.0045 was the least that moved the tips 2 css px on desktop, measured, and it stopped at what a measure called seen rather than at what he saw.
+- **Guard:** code: `apps/firsttheblade/src/motion/shaders.test.ts` `sway the hero’s plants at least as far as the owner asked`, `apps/firsttheblade/src/motion/shaders.test.ts` `a sway below the floor is refused`. They hold the field shader's sway at or above 0.016 of the width, and refuse 0.012.
 
 ### emblem-stirs-calm
 
