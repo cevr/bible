@@ -1,9 +1,9 @@
 /**
  * The master, in-process through NodeAV's FFmpeg (pinned by the lockfile):
  *
- * 1. The dry mix to −20 LUFS, the room (`afir` with the seeded impulse
- *    response, mixed at its wet level), a gentle compressor, and a fade over
- *    the tail's last 0.8 s, into a float WAV.
+ * 1. The dry mix to −20 LUFS, the room (`afir` with the listening pilot's
+ *    impulse response, mixed at its wet level), a gentle compressor, and a
+ *    fade over the tail's last 0.8 s, into a float WAV.
  * 2. That to −16 LUFS, limited at −2 dBFS by `alimiter` with its latency
  *    compensated (so no onset moves: the words are synced to the MIDI's
  *    clock), and encoded by LAME at 192 kb/s CBR, 44.1 kHz stereo,

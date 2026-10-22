@@ -24,7 +24,6 @@ import { creditText, recordingKey } from '../../src/recordings.js';
 import { ManifestJson, type RecordingManifest } from '../../src/recording-manifest.js';
 import { voices } from '../../src/voices.js';
 import { checksOf, firstSound, LIMITS, longestQuiet, passed, samplePeak } from './checks.js';
-import { impulse } from './impulse.js';
 import { masterHymn } from './master.js';
 import { addStem, emptyMix } from './mix.js';
 import { RenderFailed, runOk } from './proc.js';
@@ -428,13 +427,5 @@ export const writeManifest = (setup: Setup) =>
     return manifest;
   });
 
-/** The room's impulse response as a float WAV in the work folder. */
-export const writeImpulse = (style: Style, work: string) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    yield* fs.makeDirectory(work, { recursive: true });
-    const file = path.join(work, `ir-${style.name}-${style.reverb.seed}.wav`);
-    yield* fs.writeFile(file, writeWav(impulse(style.reverb, style.rate)));
-    return file;
-  });
+/** The room's impulse response, the float WAV beside the render's sources (`STYLE.reverb.ir`). */
+export const roomOf = (style: Style) => `${import.meta.dir}/${style.reverb.ir}`;

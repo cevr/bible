@@ -26,7 +26,7 @@ import { chosenOf } from './hymns.js';
 import { fetchInstruments, lockInstruments, readLock } from './instruments.js';
 import { RenderFailed } from './proc.js';
 import { hashOf } from './resume.js';
-import { renderHymn, sourcesOf, writeImpulse, writeManifest } from './run.js';
+import { renderHymn, roomOf, sourcesOf, writeManifest } from './run.js';
 import { sfizzBinary } from './sfizz.js';
 import { STYLE } from './style.js';
 
@@ -102,7 +102,7 @@ const render = Command.make('render', {
         ['node-av', nodeAv],
         ...(yield* sourcesOf),
       ]);
-      const ir = yield* writeImpulse(STYLE, work);
+      const ir = roomOf(STYLE);
       yield* Effect.sync(() =>
         console.log(
           `render set=${RECORDING_SET} hymns=${chosen.length} instruments-fetched=${fetched} config=${configHash.slice(0, 12)}`,

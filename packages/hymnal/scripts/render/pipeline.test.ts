@@ -1,12 +1,14 @@
+import { readFileSync } from 'node:fs';
+
 import { loudness, type Pcm } from '@bible/film/measure';
 import { Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import { ManifestJson } from '../../src/recording-manifest.js';
 import { chosenOf, hymnsOf } from './hymns.js';
-import { impulse } from './impulse.js';
 import { addStem, emptyMix, fitted, panGains } from './mix.js';
 import { hashOf, resumeOf } from './resume.js';
+import { roomOf } from './run.js';
 import { STYLE } from './style.js';
 import { readWav, writeWav } from './wav.js';
 
@@ -137,25 +139,19 @@ describe('the float WAV', () => {
 });
 
 describe('the room', () => {
-  it.effect('makes the same wide impulse response from the same seed, at unit energy', () =>
-    Effect.sync(() => {
-      const spec = { rt60: [0.2, 0.15, 0.1, 0.05] as const, predelay: 0.01, seed: 37 };
-      const a = impulse(spec, 8000);
-      expect(impulse(spec, 8000).channels).toEqual(a.channels);
-      expect(a.channels[0]).not.toEqual(a.channels[1]);
-      for (const plane of a.channels) {
-        expect(plane.subarray(0, 80).every((x) => x === 0)).toBe(true);
-        expect(plane.reduce((sum, x) => sum + x * x, 0)).toBeCloseTo(1, 4);
-      }
-      expect(impulse({ ...spec, seed: 38 }, 8000).channels[0]).not.toEqual(a.channels[0]);
-    }),
-  );
-
-  it.effect('lasts the longest RT60 and a tenth, after the predelay', () =>
-    Effect.sync(() => {
-      const spec = { ...STYLE.reverb, rt60: [0.3, 0.2, 0.1, 0.1] as const };
-      expect(impulse(spec, 8000).frames).toBe(Math.floor(8000 * (0.3 * 1.1 + 0.01)));
-    }),
+  it.effect(
+    "is the pilot's impulse response: wide, at unit energy, silent through the predelay",
+    () =>
+      Effect.sync(() => {
+        const room = readWav(new Uint8Array(readFileSync(roomOf(STYLE))));
+        expect([room.rate, room.channels.length]).toEqual([STYLE.rate, 2]);
+        expect(room.frames).toBe(Math.floor(STYLE.rate * (1.3 * 1.1 + 0.01)));
+        expect(room.channels[0]).not.toEqual(room.channels[1]);
+        for (const plane of room.channels) {
+          expect(plane.subarray(0, Math.floor(STYLE.rate * 0.01)).every((x) => x === 0)).toBe(true);
+          expect(plane.reduce((sum, x) => sum + x * x, 0)).toBeCloseTo(1, 4);
+        }
+      }),
   );
 });
 

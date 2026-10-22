@@ -220,9 +220,9 @@ the listening pilot. The code is `scripts/render/`; its numbers are data in
   raw URL, size and sha256.
 - The mix levels each stem by the film's meter (`@bible/film/measure`), pans
   it and sums it. The master runs in-process through NodeAV's FFmpeg: the
-  room (a seeded impulse response, `scripts/render/impulse.ts`), a compressor,
-  the fade, then −16 LUFS limited at −2 dBFS, LAME 192 kb/s bit-exact, the
-  credits as the one comment.
+  room (the listening pilot's impulse response, `scripts/render/room-C.wav`),
+  a compressor, the fade, then −16 LUFS limited at −2 dBFS, LAME 192 kb/s
+  bit-exact, the credits as the one comment.
 - Each hymn is checked on the MP3 as a player decodes it
   (`scripts/render/checks.ts`): length, true peak, loudness, clipping, silence
   while notes sound, onset lag, every stem sounding, and each process's peak

@@ -72,8 +72,16 @@ export const STYLE = {
   ] satisfies ReadonlyArray<Stem>,
   /** Velocities move by a whole number drawn from −humanise to +humanise. */
   humanise: 5,
-  /** The room: a seeded noise impulse response, RT60 per band (below 250 Hz, to 1 kHz, to 4 kHz, above). */
-  reverb: { rt60: [1.3, 1.1, 0.9, 0.6], predelay: 0.01, wet: 0.24, seed: 37 },
+  /**
+   * The room: the listening pilot's impulse response, a file beside this one
+   * (`ir`, 32-bit float stereo at 44.1 kHz), mixed in at `wet`. The pilot's
+   * `render.py` made it from seeded noise (numpy 2.3.4, seed 37): four bands
+   * split at 250 Hz, 1 kHz and 4 kHz, decaying by RT60 1.3, 1.1, 0.9 and
+   * 0.6 s, after a 10 ms predelay. The file holds those samples, because
+   * another draw of the same noise colours a held note by up to 3 dB in its
+   * band: the owner picked this room by ear.
+   */
+  reverb: { ir: 'room-C.wav', wet: 0.24 },
   /** Seconds after the MIDI's end: the room's ring, faded over the last `fade`. */
   tail: 2,
   fade: 0.8,
