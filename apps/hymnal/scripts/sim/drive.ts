@@ -538,7 +538,7 @@ const copyApp = Effect.fn('Sim.copyApp')(function* (given: string, out: string) 
 export interface InstallOptions {
   /** A built app to install instead of building this checkout. */
   readonly app: Option.Option<string>;
-  /** Run `one prebuild` before the build. */
+  /** Run `prebuild:native` (`one prebuild` and its SocketPort guard) before the build. */
   readonly prebuild: boolean;
   /** A target that shows once the app has drawn. */
   readonly expect: string;

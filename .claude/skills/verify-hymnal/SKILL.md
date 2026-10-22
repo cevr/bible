@@ -58,9 +58,10 @@ drive at a time per checkout, or give each its own `--state <dir>`.
    bun run --cwd apps/hymnal sim install --prebuild
    ```
 
-   It runs `one prebuild` (with `--prebuild`, or when the app's generated ios
-   folder is missing), adds the `hymnal` URL scheme to that folder's
-   Info.plist (git-ignored),
+   It runs `prebuild:native` (with `--prebuild`, or when the app's generated
+   ios folder is missing): `one prebuild`, then the SocketPort guard, which
+   exits 1 once One fixes onejs/one#991 and the guard has nothing to do. It adds the
+   `hymnal` URL scheme to that folder's Info.plist (git-ignored),
    builds Debug for the simulator (arm64 only), installs, launches, and
    waits for `label=Hymns`. The build log is `$EVIDENCE/build.log`. Leave
    `--prebuild` off while that folder is fresh: the build after the
