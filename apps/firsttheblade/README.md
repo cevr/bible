@@ -332,7 +332,11 @@ the master: `kit/field-paint.slow.test.ts` holds the master's SHA-256, so a new
 master refuses them until they are measured again. The field and the night move in the browser
 (`src/motion/scene.ts`): a WebGL2 canvas over each still, loaded only for a
 reader who has not asked for less motion, drawing only while it is on the
-screen. The series cards' emblems are laid in the page as drawings
+screen. Over the field's sky the sun's rays turn slowly, a few degrees each
+way and back over a minute (`TURN` in `src/motion/sun.ts`): the shader takes
+the light the still bakes in off the sky and lays it on again turned, so the
+still itself stays as approved. With a coarse pointer the rays rest at the
+still's angles while the wheat still sways. The series cards' emblems are laid in the page as drawings
 (`src/ui/emblems.ts`) so the stylesheet can stir their parts.
 
 Newsreader (`src/fonts/`) is under the SIL Open Font License 1.1, subset to

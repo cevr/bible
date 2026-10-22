@@ -14,6 +14,7 @@ import { Data, Effect } from 'effect';
 
 import fieldWind from '../art/field-wind.png';
 import { coverMap, positionOf } from './cover.ts';
+import { raysTurn } from './query.ts';
 import { FIELD_FRAGMENT, NIGHT_FRAGMENT, VERTEX } from './shaders.ts';
 
 /** How long the motion takes to grow in from the still, in seconds. */
@@ -156,6 +157,11 @@ const scene = Effect.fn('Motion.scene')(function* (picture: HTMLImageElement, ki
   const uMap = gl.getUniformLocation(made, 'u_map');
   const uTime = gl.getUniformLocation(made, 'u_time');
   const uRamp = gl.getUniformLocation(made, 'u_ramp');
+  // Read once, so the rays never jump from a swing back to rest mid-scene; a shader without the uniform ignores it.
+  gl.uniform1f(
+    gl.getUniformLocation(made, 'u_turning'),
+    Number(raysTurn((query) => matchMedia(query).matches)),
+  );
 
   const fit = () => {
     const box = picture.getBoundingClientRect();
