@@ -3,8 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { FIELD_FRAGMENT, NIGHT_FRAGMENT } from './shaders.ts';
 
 /**
- * The least sway the hero's plants may have: the owner's revise of 2026-10-21
- * found 0.0045 "too unnoticble", and round 3 raised it to this.
+ * The least sway the hero's plants may have: a tip that moves enough to be
+ * seen at a glance, as the owner asked ("the movements are too unnoticble").
  */
 const SWAY_FLOOR = 0.012;
 

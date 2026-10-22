@@ -2723,3 +2723,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The streak lift's fixture was painted where `HILL_STREAKS` says, so a streak moved in the constant moved the fixture too and the test stayed green, while the master's real edge stayed and a step was lifted onto the wrong hill.
 - **Cause:** No test read the master's streaks.
 - **Guard:** code: `apps/firsttheblade/kit/field-paint.test.ts` `were measured on this master, so a new one refuses them until they are measured again`, `apps/firsttheblade/kit/field-paint.test.ts` `each has its step on the master, and the shipped still has none across it`.
+
+### sway-comments-tell-history
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "two comments tell history"
+- **Source:** ftb-motion/round-3-findings.md F4
+- **Wrong:** The comments on `SWAY` and `SWAY_FLOOR` told the old value and the round that raised it ("raised it from 0.0045", "round 3 raised it to this").
+- **Cause:** The comments were written as the change's story, not as what the code does and why.
+- **Guard:** none: the repo's rule is `CLAUDE.md` "**Comments:**", read by every review; a lint pattern for `round \d` would also refuse the ledger's own Sources and the film rounds the comments name on purpose.
