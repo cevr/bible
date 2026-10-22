@@ -2832,7 +2832,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F2
 - **Wrong:** The source reader passed a template `new URL`, an `import.meta.glob`, a `.jfif` import and a `.jxl` under `public/`, each of which the build emits, and the generator drew only the forms the reader held.
 - **Cause:** The premise "reading the source can list every image the site serves" was false: each reader holds the forms its author thought of. The new premise: the served images are read from the build output. Rule: "Every image file in the built site (`dist/`, after `vite build`) is in the approval record or in the named `OUTSIDE` list, each with its reason." A file is an image by its bytes, not its name.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
 
 ### every-prod-deploy-walks-the-build
 
@@ -2953,3 +2953,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** A defect in `stillsNotShown` would change the result and the expectation together.
 - **Cause:** The test's expectation called the code it tested.
 - **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`.
+
+### build-walk-reads-every-svg-encoding
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "UTF-16 and non-UTF-8 SVG files escape the build walk"
+- **Source:** ftb-motion/rewrite-round-3-findings.md F3
+- **Wrong:** `formatOf` decoded a file as strict UTF-8 before it looked for the `svg` root, so an SVG in UTF-16 with a byte order mark, in ISO-8859-1, or gzipped UTF-16 was no image to the walk, and the SVG generator wrote only UTF-8.
+- **Cause:** The walk read one encoding of the many XML allows, and a file it could not read passed as no image, so a form it did not know failed open.
+- **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg in UTF-16 little or big end first, with its byte order mark or none, in ISO-8859-1, and each gzipped`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`.

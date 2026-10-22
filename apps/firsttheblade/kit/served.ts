@@ -20,8 +20,9 @@ import { Effect, FileSystem, Option, Path, Predicate, Schema } from 'effect';
 import { transform } from 'lightningcss';
 import { type ESTree, parseSync, Visitor } from 'vite';
 
-/** The extensions of an image file, in any case. */
-export const IMAGE = /\.(?:webp|png|jpe?g|avif|gif|svg|ico)$/i;
+/** The extensions of an image file a browser draws, in any case. */
+export const IMAGE =
+  /\.(?:webp|a?png|jpe?g|jfif|pjpeg|pjp|avifs?|gif|svgz?|ico|cur|bmp|jxl|tiff?|heic|heif|jp2)$/i;
 
 /** The folders whose files the site serves, from the app. */
 export const SERVED_FOLDERS = ['public', 'src'] as const;

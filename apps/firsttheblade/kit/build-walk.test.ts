@@ -2,10 +2,12 @@
  * The build walk reads an image by its bytes, whatever its name: each
  * format's first bytes are read as that format, a gzipped one by what it
  * unzips to, an SVG by its root element after any prolog; the site's other
- * files are no image. Over a `dist/` fixture made from a seed, every image of
- * every format under any name, extension (none, a wrong one, another
- * image's) and folder is refused, and the approved stills and the images
- * outside the rule, under any name, pass.
+ * files are no image. An SVG is drawn in each encoding XML allows a browser
+ * to draw. Over a `dist/` fixture made from a seed, every image of every
+ * format under any name, extension (none, a wrong one, another image's) and
+ * folder is refused, and each file named as an image whose bytes no
+ * signature reads is refused as `unknown`; the approved stills and the
+ * images outside the rule, under any name, pass.
  */
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -57,6 +59,39 @@ const svgText = (next: Draw) => {
   ].filter(() => next() < 0.4);
   const root = pick(next, ['<svg ', '<svg>', '<svg/>', '<svg:svg ', '<SVG ', '<svg\n']);
   return `${prolog.join('')}${root}xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><path d="M0 0h8v8z"/></svg>\n`;
+};
+
+/** The encodings XML allows an SVG in, each a browser draws. */
+const ENCODINGS = ['utf-8', 'utf-16le', 'utf-16be', 'iso-8859-1'] as const;
+type Encoding = (typeof ENCODINGS)[number];
+
+/** The code units of `text`, each as two bytes, its low byte first (little end) or last. */
+const utf16 = (text: string, end: 'little' | 'big') =>
+  Uint8Array.from(
+    Array.from({ length: text.length }, (_, i) => text.charCodeAt(i)).flatMap(
+      (unit) => ({ little: [unit & 255, unit >> 8], big: [unit >> 8, unit & 255] })[end],
+    ),
+  );
+
+/** An SVG's text in `encoding`, its byte order mark drawn for UTF-8 and UTF-16, and a declaration and an `é` for ISO-8859-1. */
+const svgIn = (encoding: Encoding, next: Draw): Uint8Array => {
+  const text = svgText(next).replace(/^\ufeff/, '');
+  const marked = `${'\ufeff'.repeat(Math.floor(next() * 2))}${text}`;
+  switch (encoding) {
+    case 'utf-8':
+      return new TextEncoder().encode(marked);
+    case 'utf-16le':
+      return utf16(marked, 'little');
+    case 'utf-16be':
+      return utf16(marked, 'big');
+    case 'iso-8859-1':
+      return Uint8Array.from(
+        Array.from(
+          `<?xml version="1.0" encoding="ISO-8859-1"?><!-- caf\u00e9 -->${text.replace(/^<\?xml[^>]*>/, '')}`,
+          (character) => character.charCodeAt(0),
+        ),
+      );
+  }
 };
 
 /** A file of `format`: its first bytes, then a body drawn from `next`. */
@@ -120,7 +155,9 @@ const imageOf = (format: Format, next: Draw): Uint8Array => {
         body,
       );
     case 'svg':
-      return new TextEncoder().encode(svgText(next));
+      return svgIn(pick(next, ENCODINGS), next);
+    case 'unknown':
+      return joined(ascii('?'), body);
   }
 };
 
@@ -136,6 +173,26 @@ const FORMATS: readonly [Format, ...ReadonlyArray<Format>] = [
   'tiff',
   'jpeg 2000',
   'svg',
+];
+
+/** The extensions of a file named as an image, in any case. */
+const IMAGE_EXTENSIONS: readonly [string, ...ReadonlyArray<string>] = [
+  '.webp',
+  '.png',
+  '.apng',
+  '.jpg',
+  '.JPEG',
+  '.jfif',
+  '.jxl',
+  '.avif',
+  '.gif',
+  '.svg',
+  '.svgz',
+  '.ico',
+  '.bmp',
+  '.tif',
+  '.heic',
+  '.jp2',
 ];
 
 /** Extensions a file may carry: none, wrong ones, every image's, in any case. */
@@ -165,12 +222,28 @@ const EXTENSIONS: readonly [string, ...ReadonlyArray<string>] = [
   '.Webp',
 ];
 
-/** A path under `dist/` drawn from `next`: up to three folders, a name, an extension. */
-const pathOf = (next: Draw, index: number) => {
+/** The extensions of the site's files that are no image. */
+const PLAIN_EXTENSIONS: readonly [string, ...ReadonlyArray<string>] = [
+  '',
+  '.js',
+  '.css',
+  '.txt',
+  '.html',
+  '.woff2',
+  '.json',
+  '.bin',
+];
+
+/** A path under `dist/` drawn from `next`: up to three folders, a name, an extension from `extensions`. */
+const pathOf = (
+  next: Draw,
+  index: number,
+  extensions: readonly [string, ...ReadonlyArray<string>] = EXTENSIONS,
+) => {
   const folders = Array.from({ length: Math.floor(next() * 4) }, () =>
     pick(next, ['assets', 'og', 'series', '.well-known', 'a b', 'x']),
   );
-  return [...folders, `f${index}-${Math.floor(next() * 1e6)}${pick(next, EXTENSIONS)}`].join('/');
+  return [...folders, `f${index}-${Math.floor(next() * 1e6)}${pick(next, extensions)}`].join('/');
 };
 
 const utf8 = (text: string) => new TextEncoder().encode(text);
@@ -217,13 +290,28 @@ describe('the build walk', () => {
       }
     }));
 
+  test('reads an svg in UTF-16 little or big end first, with its byte order mark or none, in ISO-8859-1, and each gzipped', () =>
+    Effect.sync(() => {
+      const next = draws(53);
+      for (let i = 0; i < 80; i += 1) {
+        const encoding = ENCODINGS[i % ENCODINGS.length] ?? 'utf-8';
+        const bytes = svgIn(encoding, next);
+        expect([encoding, i, formatOf(bytes)]).toEqual([encoding, i, Option.some('svg')]);
+        expect([encoding, i, formatOf(Bun.gzipSync(new Uint8Array(bytes)))]).toEqual([
+          encoding,
+          i,
+          Option.some('svg'),
+        ]);
+      }
+    }));
+
   test("reads none of the site's other files as an image", () =>
     Effect.sync(() => {
       for (const [name, given] of NOT_IMAGES)
         expect([name, formatOf(given)]).toEqual([name, Option.none()]);
     }));
 
-  test('refuses every image under any name, extension and folder, and passes the approved stills and the images outside the rule under any name', () =>
+  test('refuses every image under any name, extension and folder, and each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -247,7 +335,14 @@ describe('the build walk', () => {
       const held = [...Object.keys(stills), ...OUTSIDE.map(({ image }) => image)];
       for (const [i, source] of held.entries())
         yield* put(pathOf(next, 1000 + i), yield* fs.readFile(path.join(APP, source)));
-      for (const [i, [, given]] of NOT_IMAGES.entries()) yield* put(pathOf(next, 2000 + i), given);
+      for (const [i, [, given]] of NOT_IMAGES.entries())
+        yield* put(pathOf(next, 2000 + i, PLAIN_EXTENSIONS), given);
+      for (let i = 0; i < 40; i += 1) {
+        const file = pathOf(next, 3000 + i, IMAGE_EXTENSIONS);
+        const [, given] = NOT_IMAGES[i % NOT_IMAGES.length] ?? ['', new Uint8Array()];
+        yield* put(file, given);
+        expected.push({ image: file, format: 'unknown' });
+      }
       const refused = yield* unapprovedBuilt(APP, dist);
       expect(refused).toEqual(
         expected.toSorted(Order.mapInput(Order.String, ({ image }) => image)),

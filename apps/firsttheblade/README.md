@@ -274,8 +274,10 @@ answer is `approve`. Every image file of the built site (`dist/` after
 outside the rule, each with its reason (`OUTSIDE`, `kit/served.ts`: the
 night, the mark, the emblems and the icons). A file is an image by its bytes,
 not its name (`kit/build-walk.ts`: JPEG, PNG and APNG, GIF, WebP, AVIF and
-HEIF, JPEG XL, BMP, ICO and CUR, TIFF, JPEG 2000, SVG by its root element, a
-gzipped one by what it unzips to). The build walk is the guard. The source
+HEIF, JPEG XL, BMP, ICO and CUR, TIFF, JPEG 2000, SVG by its root element
+in UTF-8, UTF-16 or any encoding that keeps ASCII as its bytes, a gzipped one
+by what it unzips to), and a file named as an image (`IMAGE`) whose bytes no
+signature reads is one of format `unknown`. The build walk is the guard. The source
 reader (`kit/served.ts`: every image file under `public/` and `src/`, and
 every image a module under `src/` names, read by Vite's parser and
 lightningcss) is a fast check the tests run before a build. Whether a still's

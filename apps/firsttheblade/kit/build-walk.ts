@@ -4,10 +4,14 @@
  * first bytes are one (`formatOf`), whatever its name, its extension or its
  * folder: JPEG, PNG and APNG, GIF, WebP, AVIF and HEIF (any ISO media file,
  * by its `ftyp` box, so a video of that family counts too), JPEG XL, BMP,
- * ICO and CUR, TIFF, JPEG 2000, and SVG by its root element. A gzipped file
- * is read by what it unzips to. Reading the sources cannot list what the
- * build emits, as each reader holds only the forms its author thought of;
- * the bytes the build wrote are what the site serves.
+ * ICO and CUR, TIFF, JPEG 2000, and SVG by its root element in any encoding
+ * XML allows (UTF-16 either end first, and any other by its bytes, as its
+ * markup is ASCII). A gzipped file is read by what it
+ * unzips to. A file named as an image (`IMAGE`) that no signature reads is
+ * an image of format `unknown`, so a form the walk does not know is refused,
+ * not passed. Reading the sources cannot list what the build emits, as each
+ * reader holds only the forms its author thought of; the bytes the build
+ * wrote are what the site serves.
  */
 import { createHash } from 'node:crypto';
 
@@ -15,7 +19,9 @@ import { Effect, FileSystem, Option, Path, Schema, Stream } from 'effect';
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
-/** The image formats the walk reads, by their bytes. */
+import { IMAGE } from './served.ts';
+
+/** The image formats the walk reads, by their bytes; `unknown` is a file named as an image whose bytes no signature reads. */
 export const Format = Schema.Literals([
   'jpeg',
   'png',
@@ -28,6 +34,7 @@ export const Format = Schema.Literals([
   'tiff',
   'jpeg 2000',
   'svg',
+  'unknown',
 ]);
 export type Format = typeof Format.Type;
 
@@ -55,12 +62,27 @@ const PROLOG = /^(?:\s+|<\?[\s\S]*?\?>|<!--[\s\S]*?-->|<!DOCTYPE(?:[^[>]|\[[\s\S
 /** The root element of an SVG, with a namespace prefix or none. */
 const SVG_ROOT = /^<(?:[\w.-]+:)?svg[\s/>]/i;
 
-const utf8 = new TextDecoder('utf-8', { fatal: true });
-const decoded = Option.liftThrowable((bytes: Uint8Array) => utf8.decode(bytes));
+const UTF16LE = new TextDecoder('utf-16le');
+const UTF16BE = new TextDecoder('utf-16be');
+/** Each byte as one character: the markup the root test reads is ASCII, so any encoding XML allows that keeps ASCII as its bytes (UTF-8, ISO-8859-1 and the like) reads the same through it. */
+const BYTES = new TextDecoder('latin1');
 
-/** Whether the bytes are a text file whose root element is `svg`. */
+/**
+ * The readings of the bytes as XML text: UTF-16 little and big end first (a
+ * byte order mark dropped), and each byte as one character, past a UTF-8
+ * byte order mark. All three are read, a mark or none, so a file is an SVG
+ * when any reading of it opens with an `svg` root: the walk errs toward an
+ * image.
+ */
+const readings = (bytes: Uint8Array) => [
+  UTF16LE.decode(bytes),
+  UTF16BE.decode(bytes),
+  BYTES.decode(bytes.subarray(Number(holds(bytes, 0, [0xef, 0xbb, 0xbf])) * 3)),
+];
+
+/** Whether the bytes are a text file whose root element is `svg`, in any reading of them. */
 const isSvg = (bytes: Uint8Array) =>
-  Option.exists(decoded(bytes), (text) => SVG_ROOT.test(text.replace(/^﻿/, '').replace(PROLOG, '')));
+  readings(bytes).some((text) => SVG_ROOT.test(text.replace(/^\ufeff/, '').replace(PROLOG, '')));
 
 const SIGNATURES: ReadonlyArray<readonly [Format, (bytes: Uint8Array) => boolean]> = [
   ['jpeg', (bytes) => holds(bytes, 0, [0xff, 0xd8, 0xff])],
@@ -134,7 +156,10 @@ export const builtImages = Effect.fn('BuildWalk.images')(function* (dist: string
         if ((yield* fs.stat(full)).type !== 'File') return Option.none<BuiltImage>();
         const bytes = yield* fs.readFile(full);
         const file = entry.split(path.sep).join('/');
-        return Option.map(formatOf(bytes), (format) => ({ file, format, hash: sha256(bytes) }));
+        const format = Option.orElse(formatOf(bytes), () =>
+          Option.some<Format>('unknown').pipe(Option.filter(() => IMAGE.test(file))),
+        );
+        return Option.map(format, (format) => ({ file, format, hash: sha256(bytes) }));
       }),
     { concurrency: 16 },
   );
