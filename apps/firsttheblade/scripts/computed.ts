@@ -63,7 +63,7 @@ import { layerDirectory } from '../src/worker/assets.ts';
 import { respond } from '../src/worker/respond.ts';
 
 const LEAF_HOLD =
-  'on the home page (light scheme, 1x, script on), at heights 900 and 844 and the narrowest and widest px of each band the built stylesheets’ width media queries make, the healing leaf turns 5deg about its stem’s foot on the page when the Health and Cure card’s link is hovered or focused by Tab under a fine pointer, with no other move and no growth, on the root’s motion tokens, and rests for less motion and under a coarse pointer at rest, when pointed at and after a tap, by each part’s computed turn, pivot, transition and page matrix, with no element from its drawing to its card or inside its parts changing its rotate, translate, scale, transform or animation-name';
+  'on the home page (light scheme, 1x, script on), at heights 900 and 844 and the narrowest and widest px of each band the built stylesheets’ width media queries make, the healing leaf turns 5deg about its stem’s foot on the page when the Health and Cure card’s link is hovered or focused by Tab under a fine pointer, with no other move and no growth, on the root’s motion tokens, and rests for less motion at rest, when pointed at and focused by Tab, and under a coarse pointer at rest, when pointed at and after a tap, by each part’s computed turn, pivot, transition and page matrix, with no element from its drawing to its card or inside its parts changing its rotate, translate, scale, transform or animation-name';
 const IMAGE_HOLD =
   'a data URL in an img, a style and a stylesheet rule is refused by the content policy and paints nothing, where the same probe without the policy paints';
 
