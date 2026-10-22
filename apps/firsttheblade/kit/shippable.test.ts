@@ -36,29 +36,33 @@ const COPIED = [
   'vite.config.ts',
 ];
 
+/** The record at `root` with its stills and the approval `of` gives for them. */
+const recordWith = (root: string, of: (stills: Approved['stills']) => Approved['approval']) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const { stills } = yield* readRecord(root);
+    const record: Approved = { approval: of(stills), stills };
+    const json = yield* Schema.encodeEffect(Schema.fromJsonString(Approved, { space: 2 }))(record);
+    yield* fs.writeFileString(`${root}/${RECORD}`, `${json}\n`);
+  });
+
+/** The record at `root` pending on `ASK`, whatever the committed record's approval is. */
+const pendingAt = (root: string) => recordWith(root, () => ({ status: 'pending', ask: ASK }));
+
 /** The record at `root` turned approved on `ASK`, its shown files those `shows` gives for its stills. */
 const approvedWith = (
   root: string,
   shows: (stills: Approved['stills']) => Record<string, string>,
 ) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const { stills } = yield* readRecord(root);
-    const record: Approved = {
-      approval: {
-        status: 'approved',
-        ask: ASK,
-        lab: 'http://lab.test/',
-        answered: '2026-10-22T09:00:00.000Z',
-        answer: 'Approve them',
-        answers: { stills: { kind: 'choose', value: 'approve', label: 'Approve them' } },
-        shown: shows(stills),
-      },
-      stills,
-    };
-    const json = yield* Schema.encodeEffect(Schema.fromJsonString(Approved, { space: 2 }))(record);
-    yield* fs.writeFileString(`${root}/${RECORD}`, `${json}\n`);
-  });
+  recordWith(root, (stills) => ({
+    status: 'approved',
+    ask: ASK,
+    lab: 'http://lab.test/',
+    answered: '2026-10-22T09:00:00.000Z',
+    answer: 'Approve them',
+    answers: { stills: { kind: 'choose', value: 'approve', label: 'Approve them' } },
+    shown: shows(stills),
+  }));
 
 const shownAll = (stills: Approved['stills']) =>
   Object.fromEntries(Object.entries(stills).map(([still, hash]) => [`/files/${still}`, hash]));
@@ -88,6 +92,7 @@ describe('kit:shippable', () => {
   test('refuses a pending record, and an approval whose shown files lack a still, before it builds', () =>
     Effect.gen(function* () {
       const root = yield* scratchApp(APP);
+      yield* pendingAt(root);
       expect(yield* tagOf(shippable(root))).toBe('ShipPending');
       yield* approvedWith(root, (stills) => {
         const { 'src/art/field-768.webp': _, ...rest } = stills;
@@ -100,6 +105,7 @@ describe('kit:shippable', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const root = yield* scratchApp(APP);
+      yield* pendingAt(root);
       const skipped = yield* prodGate(root).pipe(Effect.provideService(Stage, 'agent-motion'));
       expect(skipped).toEqual(Option.none());
       expect(yield* tagOf(prodGate(root).pipe(Effect.provideService(Stage, 'prod')))).toBe(

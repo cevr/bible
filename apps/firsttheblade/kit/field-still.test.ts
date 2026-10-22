@@ -777,8 +777,8 @@ describe('the field stills the page serves', () => {
       const still = yield* fs.readFile(`${APP}/${stillAt(768)}`);
       const record = yield* fs.readFileString(`${APP}/${RECORD}`);
       const named = record.replace(
-        '"stills": {',
-        '"stills": {\n    "src/art/field-2048.webp": "0000000000000000000000000000000000000000000000000000000000000000",',
+        '\n  "stills": {',
+        '\n  "stills": {\n    "src/art/field-2048.webp": "0000000000000000000000000000000000000000000000000000000000000000",',
       );
       const found = yield* foundAfter(root, [
         written('a size the srcset does not name', 'src/art/field-1024.webp', still),
