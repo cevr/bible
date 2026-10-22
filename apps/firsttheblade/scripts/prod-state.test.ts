@@ -11,7 +11,8 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { AlchemyContext } from 'alchemy/AlchemyContext';
 import { Stage } from 'alchemy/Stage';
-import { Effect, FileSystem, Option, Path } from 'effect';
+import { Effect, FileSystem, Option, Path, Schema } from 'effect';
+import { type ESTree, parseSync } from 'vite';
 
 import { checkProdState, prodStateGate } from './prod-state.ts';
 
@@ -79,6 +80,49 @@ const answer = (app: string) =>
     Effect.match({ onSuccess: () => 'pass', onFailure: (error) => error.message }),
   );
 
+const Scripts = Schema.fromJsonString(
+  Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) }),
+);
+
+/** The names `program` imports from `source`, as the module binds them. */
+const importedFrom = (program: ESTree.Program, source: string) =>
+  program.body.flatMap((statement) => {
+    if (statement.type !== 'ImportDeclaration' || statement.source.value !== source) return [];
+    return statement.specifiers.map((specifier) => specifier.local.name);
+  });
+
+/** The name a call chain starts from: `gate` for `gate(…).pipe(…)`. */
+const rootName = (node: ESTree.Node): ReadonlyArray<string> => {
+  if (node.type === 'Identifier') return [node.name];
+  if (node.type === 'CallExpression') return rootName(node.callee);
+  if (node.type === 'MemberExpression') return rootName(node.object);
+  return [];
+};
+
+/**
+ * The first `count` statements of the stack's generator (the third argument
+ * of `export default Alchemy.Stack(…)`, an `Effect.gen`), each as the name
+ * the call of its `yield*` starts from; any other statement is `[]`.
+ */
+const firstCalls = (program: ESTree.Program, count: number) =>
+  program.body.flatMap((statement) => {
+    if (statement.type !== 'ExportDefaultDeclaration') return [];
+    const stack = statement.declaration;
+    if (stack.type !== 'CallExpression') return [];
+    const gen = stack.arguments[2];
+    if (gen?.type !== 'CallExpression') return [];
+    const body = gen.arguments[0];
+    if (body?.type !== 'FunctionExpression') return [];
+    return Option.toArray(Option.fromNullOr(body.body)).flatMap(({ body: statements }) =>
+      statements.slice(0, count).map((node) => {
+        if (node.type !== 'ExpressionStatement') return [];
+        const { expression } = node;
+        if (expression.type !== 'YieldExpression' || !expression.delegate) return [];
+        return Option.toArray(Option.fromNullOr(expression.argument)).flatMap(rootName);
+      }),
+    );
+  });
+
 const test = it.effect.layer(BunServices.layer);
 
 describe('the prod state check', () => {
@@ -128,7 +172,14 @@ describe('the prod state check', () => {
               ],
               replaced('firsttheblade-Mail-prod-vcjs7e535fd4wypd', name),
             ],
-            [[...rest, [file, resource(resourceType, '')] as const], replaced(`no ${field}`, name)],
+            [
+              [...rest, [file, resource(resourceType, '')] as const],
+              replaced(`no string ${field}`, name),
+            ],
+            [
+              [...rest, [file, resource(resourceType, `"${field}":42`)] as const],
+              replaced(`no string ${field}`, name),
+            ],
           ] as const;
           for (const [files, detail] of broken) {
             const line = yield* answer(yield* appWith(Option.some(files)));
@@ -165,16 +216,21 @@ describe('the prod state check', () => {
       }),
     ));
 
-  test('the stack runs the prod state gate first, before the stills gate and every resource', () =>
+  test("the stack's body starts with the prod state gate, then the stills gate", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const lines = (yield* fs.readFileString(path.join(import.meta.dir, '../alchemy.run.ts')))
-        .split('\n')
-        .map((line) => line.trim());
-      expect(lines).toContain("import { prodStateGate } from './scripts/prod-state.ts';");
-      expect(lines.find((line) => line.startsWith('yield* '))).toBe(
-        'yield* prodStateGate().pipe(Effect.orDie);',
+      const app = path.dirname(import.meta.dir);
+      const source = yield* fs.readFileString(path.join(app, 'alchemy.run.ts'));
+      const { program } = parseSync('alchemy.run.ts', source);
+      expect(firstCalls(program, 2)).toEqual([
+        importedFrom(program, './scripts/prod-state.ts'),
+        importedFrom(program, './kit/shippable.ts'),
+      ]);
+      const { scripts } = yield* Schema.decodeEffect(Scripts)(
+        yield* fs.readFileString(path.join(app, 'package.json')),
       );
+      expect(scripts['plan']).toBe('alchemy plan alchemy.run.ts --stage prod');
+      expect(scripts['deploy']).toEndWith('&& alchemy deploy alchemy.run.ts --stage prod');
     }));
 });

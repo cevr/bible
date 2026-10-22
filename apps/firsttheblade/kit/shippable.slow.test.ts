@@ -8,14 +8,13 @@
  * `new URL`, an `import.meta.glob`, a `.jfif` import, a `.jxl` under
  * `public/`), each with bytes the owner never saw: exactly those are
  * refused, and every other image of the build passes. On stage `prod` it
- * runs first in the stack, so every prod deploy and plan runs it; any other
- * stage skips it.
+ * runs; any other stage skips it. The stack runs it second, after the prod
+ * state check (`scripts/prod-state.test.ts` holds that order).
  */
 import { BunServices } from '@effect/platform-bun';
 import { Stage } from 'alchemy/Stage';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { parseSync } from 'vite';
 
 import {
   Approved,
@@ -144,10 +143,6 @@ const draws = (seed: number) => {
 const tail = (next: () => number) => Array.from({ length: 96 }, () => Math.floor(next() * 256));
 const ascii = (text: string) => Array.from(text, (character) => character.charCodeAt(0));
 
-const Scripts = Schema.fromJsonString(
-  Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) }),
-);
-
 const test = it.effect.layer(BunServices.layer);
 
 describe('kit:shippable', () => {
@@ -164,9 +159,8 @@ describe('kit:shippable', () => {
       expect(yield* tagOf(shippable(root))).toBe('StillsNotShown');
     }).pipe(Effect.scoped));
 
-  test('runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage', () =>
+  test('runs on stage prod, refusing a pending record, and on no other stage', () =>
     Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
       const root = yield* scratchApp(APP);
       yield* pendingAt(root);
       const skipped = yield* prodGate(root).pipe(Effect.provideService(Stage, 'agent-motion'));
@@ -174,28 +168,6 @@ describe('kit:shippable', () => {
       expect(yield* tagOf(prodGate(root).pipe(Effect.provideService(Stage, 'prod')))).toBe(
         'ShipPending',
       );
-      const stack = yield* fs.readFileString(`${APP}/alchemy.run.ts`);
-      const { program } = parseSync('alchemy.run.ts', stack);
-      const first = program.body.flatMap((statement) => {
-        if (statement.type !== 'ExportDefaultDeclaration') return [];
-        const call = statement.declaration;
-        if (call.type !== 'CallExpression') return [];
-        const gen = call.arguments[2];
-        if (gen?.type !== 'CallExpression') return [];
-        const body = gen.arguments[0];
-        if (body?.type !== 'FunctionExpression') return [];
-        return Option.toArray(Option.fromNullOr(body.body)).flatMap(({ body: statements }) =>
-          statements.slice(0, 1).map((node) => stack.slice(node.start, node.end)),
-        );
-      });
-      expect(first).toEqual(['yield* prodGate(import.meta.dir).pipe(Effect.orDie);']);
-      const { scripts } = yield* Schema.decodeEffect(Scripts)(
-        yield* fs.readFileString(`${APP}/package.json`),
-      );
-      expect(scripts['deploy']).toBe(
-        'turbo run test:slow --filter=@bible/firsttheblade && alchemy deploy alchemy.run.ts --stage prod',
-      );
-      expect(scripts['plan']).toBe('alchemy plan alchemy.run.ts --stage prod');
     }).pipe(Effect.scoped));
 
   test('builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval', () =>

@@ -153,7 +153,8 @@ Worker to a second D1 and queue, so on stage `prod` the stack first runs
 unless the state records the live Worker, the list's D1 and the film queue
 by their names. `bun run deploy` runs it before `test:slow` too, so a refusal
 comes at once. When one of the three is replaced on purpose, its refusal names
-the name the state records: change `LIVE` in `scripts/prod-state.ts` to it.
+what the state records, a type or a name: change that entry of `LIVE` in
+`scripts/prod-state.ts`.
 To deploy from
 a worktree, copy the main checkout's state folder and `.env` in, and read
 the plan first: on prod it updates resources or changes nothing, and a

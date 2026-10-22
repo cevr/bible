@@ -96,7 +96,7 @@ const lacking = Effect.fn('ProdState.lacking')(function* (dir: string, live: Liv
   }
   const name = Schema.decodeUnknownOption(Schema.String)(attr[live.field]);
   if (Option.contains(name, live.name)) return Option.none();
-  const found = Option.getOrElse(name, () => `no ${live.field}`);
+  const found = Option.getOrElse(name, () => `no string ${live.field}`);
   return Option.some(differs(live, found, live.name));
 });
 

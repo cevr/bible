@@ -7,9 +7,9 @@
  * `./build-walk.ts`) the record and `OUTSIDE` do not hold. It prints the lab
  * the approval was read from.
  *
- * `prodGate` runs it first in `alchemy.run.ts` on stage `prod`, so every
- * prod deploy and plan runs it, whatever command starts it; any other stage
- * skips it.
+ * `prodGate` runs it in `alchemy.run.ts` on stage `prod`, right after the
+ * prod state check, so every prod deploy and plan runs it, whatever command
+ * starts it; any other stage skips it.
  */
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Stage } from 'alchemy/Stage';
