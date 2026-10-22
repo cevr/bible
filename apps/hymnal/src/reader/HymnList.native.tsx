@@ -102,7 +102,7 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
 /** A topic's row: its name, quiet, on the ground, so the rows under it pass unseen while it is pinned. */
 function Topic({ name, height }: { readonly name: string; readonly height: number }) {
   return (
-    <View role="heading" style={[styles.topic, { height }]}>
+    <View accessible role="heading" aria-label={name} style={[styles.topic, { height }]}>
       <Text style={styles.topicName} numberOfLines={1}>
         {name}
       </Text>
