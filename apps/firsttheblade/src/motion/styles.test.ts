@@ -1,345 +1,606 @@
+/**
+ * The motion in the page's stylesheet, read with a CSS parser (lightningcss,
+ * the one Vite builds the sheet with): its rules as the parser gives them,
+ * nested ones and those under `@supports` or `@layer` too, so no way of
+ * writing a rule hides it. Expected values are written as CSS and read the
+ * same way, so a rule is compared by what it means, not by its text.
+ */
 import { BunServices } from '@effect/platform-bun';
 import { test as plain } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Option, Path } from 'effect';
+import { Effect, Equal, FileSystem, Option, Path } from 'effect';
+import {
+  transform,
+  type Declaration,
+  type EasingFunction,
+  type MediaCondition,
+  type MediaQuery,
+  type Rule as CssRule,
+  type Selector,
+  type SelectorComponent,
+  type SelectorList,
+  type TokenOrValue,
+} from 'lightningcss';
 
 import { LESS_MOTION } from './query.ts';
 
 const test = it.effect.layer(BunServices.layer);
 
-/** A style rule as the cascade reads it: the media queries it sits under, its selectors, and the value each property ends with in it. */
-interface Rule {
-  readonly media: ReadonlyArray<string>;
-  readonly selectors: ReadonlyArray<string>;
-  readonly declarations: ReadonlyMap<string, string>;
+/** A declaration of a rule, and whether it is `!important`. */
+interface Given {
+  readonly declaration: Declaration;
+  readonly important: boolean;
 }
-
-/** A stylesheet as rules, and the header of each rule with a block nested in it, which `rules` does not read. */
-interface Sheet {
-  readonly rules: ReadonlyArray<Rule>;
-  readonly nested: ReadonlyArray<string>;
-}
-
-/** The characters the reader splits a sheet at, and the stand-in each has inside a quoted string. */
-const HIDDEN: ReadonlyArray<readonly [string, string]> = [
-  ['{', '\uE000'],
-  ['}', '\uE001'],
-  [';', '\uE002'],
-  [':', '\uE003'],
-  [',', '\uE004'],
-  ['(', '\uE005'],
-  [')', '\uE006'],
-  ['/', '\uE007'],
-];
 
 /**
- * A stylesheet with its comments taken out and each character the reader
- * splits at hidden inside quoted strings (an escaped quote stays in its
- * string), so a brace in `content: "}"` neither ends its block nor a
- * comment-like run in a string its value.
+ * A style rule as the cascade reads it: the query list of each `@media` it
+ * sits under (outermost first), its own selectors and its parents', its
+ * declarations, and its header in the source. A nested rule's declarations
+ * after its children (`nested-declarations`) are a rule of their own with
+ * its parent's selectors and header.
  */
-const hidden = (css: string) => {
-  let out = '';
-  let quote = '';
-  for (let at = 0; at < css.length; at++) {
-    const char = css.charAt(at);
-    if (quote !== '' && char === '\\') {
-      out += char + css.charAt(at + 1);
-      at++;
-      continue;
-    }
-    if (quote !== '') {
-      out += Option.getOrElse(
-        Option.fromNullishOr(HIDDEN.find(([plain]) => plain === char)?.[1]),
-        () => char,
-      );
-      if (char === quote) quote = '';
-      continue;
-    }
-    if (css.startsWith('/*', at)) {
-      const close = css.indexOf('*/', at + 2);
-      at = close + 1;
-      if (close < 0) at = css.length;
-      continue;
-    }
-    if (char === '"' || char === "'") quote = char;
-    out += char;
-  }
-  return out;
+interface Rule {
+  readonly media: ReadonlyArray<ReadonlyArray<MediaQuery>>;
+  readonly chain: ReadonlyArray<SelectorList>;
+  readonly declarations: ReadonlyArray<Given>;
+  readonly header: string;
+}
+
+/** A stylesheet's rules as the parser reads them; a sheet it cannot read throws. */
+const parsed = (css: string) => {
+  const read: Array<CssRule> = [];
+  transform({
+    filename: 'styles.css',
+    code: new TextEncoder().encode(css),
+    visitor: {
+      StyleSheet(sheet) {
+        read.push(...sheet.rules);
+      },
+    },
+  });
+  return read;
 };
 
-/** A part of a hidden sheet with its quoted strings shown again. */
-const shown = (text: string) =>
-  HIDDEN.reduce((part, [plain, stand]) => part.replaceAll(stand, plain), text);
+/** The source from a rule's start (a 0-based line, a 1-based column) to its block, for naming it in a failure. */
+const headerAt = (css: string, line: number, column: number) => {
+  const lines = css.split('\n');
+  const start = lines.slice(0, line).reduce((at, text) => at + text.length + 1, 0) + column - 1;
+  return css.slice(start, css.indexOf('{', start)).trim().replace(/\s+/g, ' ');
+};
 
-/** A selector list split at its own commas, not at those inside `:is()`, `:where()` or `:has()`. */
-const selectorsOf = (header: string) => {
-  const found: Array<string> = [];
-  let depth = 0;
-  let selector = '';
-  for (const char of header) {
-    if (char === ',' && depth === 0) {
-      found.push(shown(selector.trim()));
-      selector = '';
-      continue;
+/** The rules an at-rule holds that apply wherever it sits (`@supports`, `@layer`, `@container`, `@scope`, `@starting-style`, `@-moz-document`); none for any other rule. */
+const opened = (rule: CssRule): ReadonlyArray<CssRule> => {
+  if (
+    rule.type === 'supports' ||
+    rule.type === 'layer-block' ||
+    rule.type === 'container' ||
+    rule.type === 'scope' ||
+    rule.type === 'starting-style' ||
+    rule.type === 'moz-document'
+  )
+    return rule.value.rules;
+  return [];
+};
+
+/** A rule's declarations, the `!important` ones marked. */
+const declared = (
+  block: {
+    readonly declarations?: Array<Declaration>;
+    readonly importantDeclarations?: Array<Declaration>;
+  } = {},
+): ReadonlyArray<Given> => [
+  ...(block.declarations ?? []).map((declaration) => ({ declaration, important: false })),
+  ...(block.importantDeclarations ?? []).map((declaration) => ({ declaration, important: true })),
+];
+
+/** Every style rule of a stylesheet, in source order, with the `@media` queries and the parent rules it sits in. */
+const rules = (css: string): ReadonlyArray<Rule> => {
+  const found: Array<Rule> = [];
+  const walk = (
+    list: ReadonlyArray<CssRule>,
+    media: ReadonlyArray<ReadonlyArray<MediaQuery>>,
+    chain: ReadonlyArray<SelectorList>,
+    parent: string,
+  ): void => {
+    for (const rule of list) {
+      if (rule.type === 'media')
+        walk(rule.value.rules, [...media, rule.value.query.mediaQueries], chain, parent);
+      walk(opened(rule), media, chain, parent);
+      if (rule.type === 'nested-declarations')
+        found.push({
+          media,
+          chain,
+          declarations: declared(rule.value.declarations),
+          header: parent,
+        });
+      if (rule.type === 'style') {
+        const own = [...chain, rule.value.selectors];
+        const header = headerAt(css, rule.value.loc.line, rule.value.loc.column);
+        found.push({ media, chain: own, declarations: declared(rule.value.declarations), header });
+        walk(rule.value.rules ?? [], media, own, header);
+      }
     }
-    if (char === '(') depth++;
-    if (char === ')') depth--;
-    selector += char;
-  }
-  found.push(shown(selector.trim()));
+  };
+  walk(parsed(css), [], [], '');
   return found;
 };
 
-/**
- * Every style rule of a stylesheet, in source order, with the at-rule blocks
- * it sits in (an `@media` by its query, any other by its whole header). A
- * rule with a block nested in it (`&:hover { … }`) is not read but named in
- * `nested`, so a test refuses what it cannot read. Braces, semicolons and
- * colons in quoted strings are read as part of their value (`hidden`).
- */
-const rules = (css: string): Sheet => {
-  const text = hidden(css);
-  const found: Array<Rule> = [];
-  const nested: Array<string> = [];
-  const within: Array<string> = [];
-  let start = 0;
-  for (let at = 0; at < text.length; at++) {
-    if (text[at] === '}') {
-      within.pop();
-      start = at + 1;
-    }
-    if (text[at] !== '{') continue;
-    const header = text.slice(start, at).trim().replace(/\s+/g, ' ');
-    start = at + 1;
-    if (header.startsWith('@')) {
-      within.push(shown(header.replace(/^@media /, '')));
-      continue;
-    }
-    const end = text.indexOf('}', at);
-    if (text.slice(at + 1, end).includes('{')) {
-      nested.push(shown(header));
-      at = end;
-      start = end + 1;
-      continue;
-    }
-    const declarations = new Map<string, string>();
-    for (const line of text.slice(at + 1, end).split(';')) {
-      const colon = line.indexOf(':');
-      if (colon > 0)
-        declarations.set(shown(line.slice(0, colon).trim()), shown(line.slice(colon + 1).trim()));
-    }
-    found.push({
-      media: [...within],
-      selectors: selectorsOf(header),
-      declarations,
-    });
-    at = end;
-    start = end + 1;
-  }
-  return { rules: found, nested };
-};
-
-/** The page's stylesheet, read whole. */
-const sheetOf = Effect.gen(function* () {
+/** The page's stylesheet, as rules. */
+const stylesheet = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   return rules(yield* fs.readFileString(path.join(import.meta.dir, '..', 'styles.css')));
 });
 
-/** The page's stylesheet, as rules. */
-const stylesheet = Effect.map(sheetOf, (sheet) => sheet.rules);
+/** The property a declaration sets, custom ones by their `--` name. */
+const nameOf = (declaration: Declaration) => {
+  if (declaration.property === 'custom') return declaration.value.name;
+  if (declaration.property === 'unparsed') return declaration.value.propertyId.property;
+  return declaration.property;
+};
+
+/** The selectors a selector component holds: those of `:not()`, `:is()`, `:where()`, `:has()`, `:nth-child(… of …)`, `::slotted()` and the like. */
+const inner = (component: SelectorComponent): ReadonlyArray<Selector> => {
+  if (component.type !== 'pseudo-class' && component.type !== 'pseudo-element') return [];
+  if (component.kind === 'host') return Option.toArray(Option.fromNullishOr(component.selectors));
+  if ('selectors' in component) return component.selectors;
+  if ('selector' in component) return [component.selector];
+  if ('of' in component) return component.of ?? [];
+  return [];
+};
+
+/** Whether a component is `:not()`, under which a match flips. */
+const negates = (component: SelectorComponent) =>
+  component.type === 'pseudo-class' && component.kind === 'not';
+
+/** Whether a selector holds `&`, anywhere in it. */
+const nests = (selector: Selector): boolean =>
+  selector.some((component) => component.type === 'nesting' || inner(component).some(nests));
+
+/**
+ * Whether a selector can match while a pointer hovers: a `:hover` it holds
+ * that no odd count of `:not()` negates, inside `:is()`, `:where()`,
+ * `:has()` or any other selector argument too; or an `&` (at that `&`'s
+ * polarity) when its parent rule can.
+ */
+const hoversIn = (selector: Selector, positive: boolean, parent: boolean): boolean =>
+  selector.some((component) => {
+    if (component.type === 'pseudo-class' && component.kind === 'hover') return positive;
+    if (component.type === 'nesting') return positive && parent;
+    return inner(component).some((held) => hoversIn(held, positive !== negates(component), parent));
+  });
+
+/**
+ * Whether a rule can match an element while a pointer hovers one: its own
+ * selector can, or a parent rule can and the rule names it by `&` or, with
+ * no `&`, sits under it.
+ */
+const hovers = (chain: ReadonlyArray<SelectorList>): boolean =>
+  chain.reduce<boolean>(
+    (parent, list, depth) =>
+      list.some(
+        (selector) => hoversIn(selector, true, parent) || (depth > 0 && !nests(selector) && parent),
+      ),
+    false,
+  );
+
+/** Whether a media condition holds only where `name` is `value`. */
+const requires = (condition: MediaCondition, name: string, value: string): boolean => {
+  if (condition.type === 'feature')
+    return (
+      condition.value.type === 'plain' &&
+      condition.value.name === name &&
+      condition.value.value.type === 'ident' &&
+      condition.value.value.value === value
+    );
+  if (condition.type !== 'operation') return false;
+  if (condition.operator === 'and')
+    return condition.conditions.some((part) => requires(part, name, value));
+  return condition.conditions.every((part) => requires(part, name, value));
+};
+
+/** Whether a media query list matches only a pointer that hovers and is fine: each of its queries requires both. */
+const finePointer = (queries: ReadonlyArray<MediaQuery>) =>
+  queries.every(
+    (query) =>
+      query.qualifier !== 'not' &&
+      Option.exists(
+        Option.fromNullishOr(query.condition),
+        (condition) =>
+          requires(condition, 'hover', 'hover') && requires(condition, 'pointer', 'fine'),
+      ),
+  );
 
 /** The only query a hover may stir a card under: a pointer that hovers and is fine. */
 const FINE_POINTER = '(hover: hover) and (pointer: fine)';
 
-/** Each rule that stirs a card on a hover outside the fine-pointer query, by its selectors. */
+/**
+ * Each rule that sets `--stir` and can match a card while a pointer hovers,
+ * with no `@media` above it that matches only a fine pointer that hovers, by
+ * its header in the source.
+ */
 const ungatedHovers = (sheet: ReadonlyArray<Rule>) =>
   sheet
     .filter(
       (rule) =>
-        rule.declarations.has('--stir') &&
-        rule.selectors.some((selector) => selector.includes(':hover')) &&
-        rule.media.join(' ') !== FINE_POINTER,
+        rule.declarations.some(({ declaration }) => nameOf(declaration) === '--stir') &&
+        hovers(rule.chain) &&
+        !rule.media.some(finePointer),
     )
-    .map((rule) => rule.selectors.join(', '));
+    .map((rule) => rule.header);
 
-/** A value with each `var(--x)` replaced by what `:root` gives `--x`. */
-const resolved = (sheet: ReadonlyArray<Rule>, value: string) =>
-  value.replace(/var\((--[\w-]+)\)/g, (whole, name: string) =>
-    Option.getOrElse(
-      Option.fromNullishOr(
-        sheet
-          .find((rule) => rule.selectors.includes(':root') && rule.declarations.has(name))
-          ?.declarations.get(name),
-      ),
-      () => whole,
-    ),
+/** Whether a selector holds a class starting `emblem-`, anywhere in it. */
+const namesEmblem = (selector: Selector): boolean =>
+  selector.some(
+    (component) =>
+      (component.type === 'class' && component.name.startsWith('emblem-')) ||
+      inner(component).some(namesEmblem),
   );
+
+/** Whether a rule names an emblem, in its own selectors or its parents'. */
+const isEmblem = (chain: ReadonlyArray<SelectorList>) =>
+  chain.some((list) => list.some(namesEmblem));
+
+/** The value `:root` gives each custom property, as tokens. */
+const rootValues = (sheet: ReadonlyArray<Rule>) => {
+  const root = rules(':root {}')[0]?.chain;
+  const values = new Map<string, ReadonlyArray<TokenOrValue>>();
+  for (const rule of sheet.filter(({ chain }) => Equal.equals(chain, root)))
+    for (const { declaration } of rule.declarations)
+      if (declaration.property === 'custom')
+        values.set(declaration.value.name, declaration.value.value);
+  return values;
+};
+
+/** Tokens with each `var(--x)` replaced by what `:root` gives `--x` (else its fallback), over and over. */
+const resolved = (
+  tokens: ReadonlyArray<TokenOrValue>,
+  root: ReadonlyMap<string, ReadonlyArray<TokenOrValue>>,
+  seen: ReadonlySet<string> = new Set(),
+): ReadonlyArray<TokenOrValue> =>
+  tokens.flatMap((token) => {
+    if (token.type !== 'var') return [token];
+    const name = token.value.name.ident;
+    const given = Option.fromUndefinedOr(root.get(name)).pipe(
+      Option.orElse(() => Option.fromNullishOr(token.value.fallback)),
+      Option.filter(() => !seen.has(name)),
+    );
+    return Option.match(given, {
+      onNone: () => [token],
+      onSome: (value) => resolved(value, root, new Set([...seen, name])),
+    });
+  });
+
+/** An easing: a `cubic-bezier()` by its four numbers, a `linear()` by its outputs. */
+interface Easing {
+  readonly kind: 'cubic-bezier' | 'linear';
+  readonly numbers: ReadonlyArray<number>;
+}
+
+/** Each easing written in tokens. */
+const tokenEasings = (tokens: ReadonlyArray<TokenOrValue>): ReadonlyArray<Easing> =>
+  tokens.flatMap((token) => {
+    if (token.type !== 'function') return [];
+    const numbers = token.value.arguments.flatMap((argument) => {
+      if (argument.type === 'token' && argument.value.type === 'number')
+        return [argument.value.value];
+      return [];
+    });
+    const kinds: ReadonlyArray<Easing['kind']> = ['cubic-bezier', 'linear'];
+    return kinds
+      .filter((kind) => kind === token.value.name)
+      .map((kind): Easing => ({ kind, numbers }));
+  });
+
+/** A typed easing, as an `Easing` when it can leave 0 to 1. */
+const typedEasing = (easing: EasingFunction): ReadonlyArray<Easing> => {
+  if (easing.type !== 'cubic-bezier') return [];
+  return [{ kind: 'cubic-bezier', numbers: [easing.x1, easing.y1, easing.x2, easing.y2] }];
+};
+
+/** Each easing a declaration eases a transition with, typed or in tokens. */
+const easings = (
+  declaration: Declaration,
+  root: ReadonlyMap<string, ReadonlyArray<TokenOrValue>>,
+): ReadonlyArray<Easing> => {
+  if (declaration.property === 'transition')
+    return declaration.value.flatMap(({ timingFunction }) => typedEasing(timingFunction));
+  if (declaration.property === 'transition-timing-function')
+    return declaration.value.flatMap(typedEasing);
+  if (
+    declaration.property === 'unparsed' &&
+    ['transition', 'transition-timing-function'].includes(declaration.value.propertyId.property)
+  )
+    return tokenEasings(resolved(declaration.value.value, root));
+  return [];
+};
+
+/** Whether an easing leaves 0 to 1: a `cubic-bezier` with a `y` outside it, or a `linear()` output outside it. */
+const springs = (easing: Easing) => {
+  const outside = (n: number) => n < 0 || n > 1;
+  if (easing.kind === 'cubic-bezier')
+    return [easing.numbers[1] ?? 0, easing.numbers[3] ?? 0].some(outside);
+  return easing.numbers.some(outside);
+};
+
+/** A curve's numbers rounded to four places, as written. */
+const written = (numbers: ReadonlyArray<number>) =>
+  numbers.map((n) => Math.round(n * 1e4) / 1e4).join(', ');
 
 /**
  * Each easing an emblem's stir is written with whose curve leaves 0 to 1
- * (overshoots or springs back): every `cubic-bezier(x1, y1, x2, y2)` of an
- * `.emblem-` rule's transition, with a `y` outside 0 to 1.
+ * (overshoots or springs back), named by its rule's header and the curve.
  */
-const springs = (sheet: ReadonlyArray<Rule>) =>
-  sheet
-    .filter((rule) => rule.selectors.some((selector) => selector.startsWith('.emblem-')))
+const sprung = (sheet: ReadonlyArray<Rule>) => {
+  const root = rootValues(sheet);
+  return sheet
+    .filter((rule) => isEmblem(rule.chain))
     .flatMap((rule) =>
-      Array.from(
-        resolved(sheet, rule.declarations.get('transition') ?? '').matchAll(
-          /cubic-bezier\(([^)]*)\)/g,
-        ),
-        (m) => ({ rule: rule.selectors.join(', '), curve: (m[1] ?? '').split(',').map(Number) }),
-      ),
-    )
-    .filter(({ curve: [, y1 = 0, , y2 = 0] }) => y1 < 0 || y1 > 1 || y2 < 0 || y2 > 1)
-    .map(({ rule, curve }) => `${rule}: cubic-bezier(${curve.join(', ')})`);
-
-/** Each value a property is given for a selector, with the media it is given under, in source order. */
-const given = (sheet: ReadonlyArray<Rule>, selector: string, property: string) =>
-  sheet
-    .filter((rule) => rule.selectors.includes(selector))
-    .flatMap((rule) =>
-      Option.match(Option.fromNullishOr(rule.declarations.get(property)), {
-        onNone: () => [],
-        onSome: (value) => [{ media: rule.media, value }],
-      }),
+      rule.declarations
+        .flatMap(({ declaration }) => easings(declaration, root))
+        .filter(springs)
+        .map(({ kind, numbers }) => `${rule.header}: ${kind}(${written(numbers)})`),
     );
+};
+
+/** Each value a property is given for a selector list (written as CSS), with the media it is given under, in source order. */
+const given = (sheet: ReadonlyArray<Rule>, selector: string, property: string) => {
+  const target = rules(`${selector} {}`)[0]?.chain;
+  return sheet
+    .filter((rule) => Equal.equals(rule.chain, target))
+    .flatMap((rule) =>
+      rule.declarations
+        .filter(({ declaration }) => nameOf(declaration) === property)
+        .map(({ declaration, important }) => ({ media: rule.media, declaration, important })),
+    );
+};
+
+/** What `given` reads from a sheet written as CSS: what a test expects, read as the sheet is. */
+const expected = (css: string, selector: string, property: string) =>
+  given(rules(css), selector, property);
+
+/** A list with at least one item. */
+type Some<A> = readonly [A, ...ReadonlyArray<A>];
+
+/** A seeded draw in [0, 1). */
+const draws = (seed: number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+};
+
+/** A sheet with one hover stir, written one way, and whether a fine-pointer query gates it. */
+interface Written {
+  readonly css: string;
+  readonly gated: boolean;
+}
+
+/** The queries that gate a hover stir, and the ones that look as if they do and do not. */
+const GATES: Some<string> = [
+  FINE_POINTER,
+  '(pointer: fine) and (hover: hover)',
+  'screen and (hover: hover) and (pointer: fine)',
+  '(hover: hover) and (pointer: fine) and (min-width: 48rem)',
+];
+const NEAR_GATES: Some<string> = [
+  '(hover: hover)',
+  '(pointer: fine)',
+  '(hover: hover) or (pointer: fine)',
+  'not all and (hover: hover) and (pointer: fine)',
+  `${FINE_POINTER}, print`,
+  '(any-hover: hover) and (any-pointer: fine)',
+];
+
+/** Ways a selector names a hovered card, each a rule `{}`-ready, or a nested pair. */
+const HOVERED: Some<(body: string) => string> = [
+  (body) => `.card:hover { ${body} }`,
+  (body) => `.cards .card:HOVER { ${body} }`,
+  (body) => `.cards > .card:hover { ${body} }`,
+  (body) => `.card:is(:hover, :focus-within) { ${body} }`,
+  (body) => `.card:where(.lit, :hover) { ${body} }`,
+  (body) => `.card:not(:not(:hover)) { ${body} }`,
+  (body) => `.card:has(h3 a:hover) { ${body} }`,
+  (body) => `.cards:hover .card { ${body} }`,
+  (body) => `.card, .other:hover { ${body} }`,
+  (body) => `.card { &:hover { ${body} } }`,
+  (body) => `.card { :is(&:hover) { ${body} } }`,
+  (body) => `.cards:hover { .card { ${body} } }`,
+  (body) => `.cards:hover { & > .card { ${body} } }`,
+];
+
+/** Ways a selector names a card that is not hovered, which may stir anywhere. */
+const UNHOVERED: Some<(body: string) => string> = [
+  (body) => `.card:not(:hover) { ${body} }`,
+  (body) => `.card:active { ${body} }`,
+  (body) => `.card:has(h3 a:focus-visible) { ${body} }`,
+  (body) => `.cards:hover { :not(&) .card { ${body} } }`,
+];
+
+/** Declarations that sit beside a stir, braces, semicolons and comment marks in strings and URLs among them. */
+const BESIDE: Some<string> = [
+  'content: "}";',
+  'content: "\\}";',
+  "content: '{;';",
+  'content: "/* } */";',
+  'background: url(x}y.png);',
+  "background: url('a;b}.png');",
+  'top: 0;',
+];
+
+/** Wrappers a rule may sit in that neither gate nor ungate it. */
+const WRAPS: Some<(rule: string) => string> = [
+  (rule) => rule,
+  (rule) => `@supports (display: grid) { ${rule} }`,
+  (rule) => `@layer motion { ${rule} }`,
+  (rule) => `@layer motion; ${rule}`,
+  (rule) => `/* .card:hover { } */ ${rule}`,
+  (rule) => `@media (min-width: 48rem) { ${rule} }`,
+];
+
+/** A sheet's hover stir placed under `query`, inside or outside the `outer` wrapper, or wrapped only, with no query. */
+const placed = (
+  rule: string,
+  query: Option.Option<string>,
+  wraps: { readonly inner: (rule: string) => string; readonly outer: (rule: string) => string },
+  outside: boolean,
+) =>
+  Option.match(query, {
+    onNone: () => wraps.outer(wraps.inner(rule)),
+    onSome: (gate) => {
+      if (outside) return `@media ${gate} { ${wraps.outer(wraps.inner(rule))} }`;
+      return wraps.outer(`@media ${gate} { ${wraps.inner(rule)} }`);
+    },
+  });
+
+/** One generated sheet: a hovered (or, in `unhovered`, an unhovered) stir, wrapped, under a gate, a near gate, or none. */
+const generated = (next: () => number, unhovered: boolean): Written => {
+  const pick = <A>(from: Some<A>): A => from[Math.floor(next() * from.length)] ?? from[0];
+  const beside = Array.from({ length: Math.floor(next() * 3) }, () => pick(BESIDE));
+  const body = [...beside.slice(0, 1), '--stir: 1;', ...beside.slice(1)].join(' ');
+  const rule = pick([HOVERED, UNHOVERED][Number(unhovered)] ?? HOVERED)(body);
+  const gate = next();
+  const gated = gate < 0.4;
+  const query = Option.liftPredicate(gate, (drawn) => drawn < 0.7).pipe(
+    Option.map(() => pick([NEAR_GATES, GATES][Number(gated)] ?? NEAR_GATES)),
+  );
+  const wraps = { inner: pick(WRAPS), outer: pick(WRAPS) };
+  const css = `.card { --stir: 0; } ${placed(rule, query, wraps, next() < 0.5)}`;
+  return { css, gated: gated || unhovered };
+};
 
 describe('the stylesheet as rules', () => {
-  plain('are read with their media and their last value for each property', () => {
-    expect(
-      rules(
-        '/* a */ .a { --x: 1; --x: 2 } @media (hover: hover) { .b, .c:hover { --y: 0 !important; } } .d { top: 0 }',
-      ).rules,
-    ).toEqual([
-      { media: [], selectors: ['.a'], declarations: new Map([['--x', '2']]) },
-      {
-        media: ['(hover: hover)'],
-        selectors: ['.b', '.c:hover'],
-        declarations: new Map([['--y', '0 !important']]),
-      },
-      { media: [], selectors: ['.d'], declarations: new Map([['top', '0']]) },
-    ]);
+  plain('are read with their media, their selectors and parents, and their declarations', () => {
+    const sheet = rules(
+      '/* a */ .a { --x: 1 } @media (hover: hover) { .b, .c:hover { --y: 0 !important; } } .d { top: 0; & .e { left: 0 } right: 0 }',
+    );
+    expect(sheet.map((rule) => rule.header)).toEqual(['.a', '.b, .c:hover', '.d', '& .e', '.d']);
+    expect(sheet.map((rule) => rule.chain.length)).toEqual([1, 1, 1, 2, 1]);
+    expect(sheet.map((rule) => rule.media.length)).toEqual([0, 1, 0, 0, 0]);
+    expect(sheet[1]?.declarations.map(({ important }) => important)).toEqual([true]);
   });
 
   plain(
     'read a brace, a semicolon, a colon or a comment in a quoted string as part of its value',
     () => {
+      const sheet = rules(
+        `.a { content: "}"; --x: 1 } .b[title='a, b'] { content: '{ /* a; b: c */ }' } .c { content: "\\}"; background: url(x}y.png) } .d { top: 0 }`,
+      );
+      expect(sheet.map((rule) => rule.header)).toEqual(['.a', ".b[title='a, b']", '.c', '.d']);
       expect(
-        rules(
-          `.a { content: "}"; --x: 1 } .b[title='a, b'] { content: '{ /* a; b: c */ }' } .c { top: 0 }`,
-        ).rules,
-      ).toEqual([
-        {
-          media: [],
-          selectors: ['.a'],
-          declarations: new Map([
-            ['content', '"}"'],
-            ['--x', '1'],
-          ]),
-        },
-        {
-          media: [],
-          selectors: [".b[title='a, b']"],
-          declarations: new Map([['content', "'{ /* a; b: c */ }'"]]),
-        },
-        { media: [], selectors: ['.c'], declarations: new Map([['top', '0']]) },
-      ]);
+        sheet.map((rule) => rule.declarations.map(({ declaration }) => nameOf(declaration))),
+      ).toEqual([['content', '--x'], ['content'], ['content', 'background'], ['top']]);
     },
   );
 
-  plain('name a rule with a block nested in it, which they do not read', () => {
-    expect(rules('.card { &:hover { --stir: 1; } } .d { top: 0 }')).toEqual({
-      rules: [{ media: [], selectors: ['.d'], declarations: new Map([['top', '0']]) }],
-      nested: ['.card'],
-    });
-  });
-
   plain('split a selector list at its own commas, not inside :is()', () => {
-    expect(rules('.card:is(:hover, :focus-within), .b { --stir: 1 }').rules[0]?.selectors).toEqual([
-      '.card:is(:hover, :focus-within)',
-      '.b',
-    ]);
+    const [rule] = rules('.card:is(:hover, :focus-within), .b { --stir: 1 }');
+    expect(rule?.chain[0]?.length).toBe(2);
+    expect(hovers(rules('.b, .card:is(:hover, :focus-within) { --stir: 1 }')[0]?.chain ?? [])).toBe(
+      true,
+    );
   });
 
   plain('find each hover stir outside the fine-pointer query, however it is written', () => {
-    const sheet = rules(
+    const cases: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
+      [`@media ${FINE_POINTER} { .card:hover { --stir: 1 } }`, []],
+      ['.card:hover { --stir: 1 }', ['.card:hover']],
+      ['.cards .card:HOVER { --stir: 1; }', ['.cards .card:HOVER']],
+      ['@layer motion;\n.cards .card:hover { --stir: 1; }', ['.cards .card:hover']],
+      ['.cards .card:hover { background: url(x}y.png); --stir: 1; }', ['.cards .card:hover']],
+      ['.cards .card:hover { content: "\\}"; --stir: 1; }', ['.cards .card:hover']],
+      ['.card { &:hover { --stir: 1; } }', ['&:hover']],
+      ['.card:is(:hover, :focus-within) { --stir: 1 }', ['.card:is(:hover, :focus-within)']],
+      ['.cards .card:hover { --stir: 1 }', ['.cards .card:hover']],
+      ['@supports (display: grid) { .card:hover { --stir: 1 } }', ['.card:hover']],
+      ['.cards .card:hover { content: "}"; --stir: 1; }', ['.cards .card:hover']],
       [
-        `@media ${FINE_POINTER} { .card:hover { --stir: 1 } }`,
-        '.card:hover { --stir: 1 }',
-        '.card:is(:hover, :focus-within) { --stir: 1 }',
-        '.cards .card:hover { --stir: 1 }',
-        '@supports (display: grid) { .card:hover { --stir: 1 } }',
-        '.cards .card:hover { content: "}"; --stir: 1; }',
         `@media ${FINE_POINTER} { .card:hover { content: '{;'; --stir: 1 } } .card:focus:hover { --stir: 1 }`,
-      ].join(' '),
+        ['.card:focus:hover'],
+      ],
+      ['@media (hover: hover) { .card:hover { --stir: 1 } }', ['.card:hover']],
+      [`.card { @media ${FINE_POINTER} { &:hover { --stir: 1 } } }`, []],
+      ['.card:not(:hover) { --stir: 1 }', []],
+    ];
+    expect(cases.map(([css]) => ungatedHovers(rules(css)))).toEqual(
+      cases.map(([, found]) => [...found]),
     );
-    expect(ungatedHovers(sheet.rules)).toEqual([
-      '.card:hover',
-      '.card:is(:hover, :focus-within)',
-      '.cards .card:hover',
-      '.card:hover',
-      '.cards .card:hover',
-      '.card:focus:hover',
-    ]);
+  });
+
+  plain('refuse each generated ungated hover stir and pass each gated one', () => {
+    const next = draws(7);
+    const sheets = Array.from({ length: 160 }, (_, n) => generated(next, n % 5 === 4));
+    expect(
+      sheets.map(({ css }) => ({ css, ungated: ungatedHovers(rules(css)).length > 0 })),
+    ).toEqual(sheets.map(({ css, gated }) => ({ css, ungated: !gated })));
+    expect(new Set(sheets.map(({ gated }) => gated))).toEqual(new Set([true, false]));
   });
 
   plain('find an emblem eased with a spring', () => {
     const sheet = rules(
-      ':root { --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --calm: cubic-bezier(0.2, 0.7, 0.2, 1) } .emblem-land g { transition: rotate 900ms var(--spring) } .emblem-path g { transition: scale 600ms var(--calm), opacity 600ms var(--calm) }',
+      ':root { --spring: cubic-bezier(0.34, 1.56, 0.64, 1); --calm: cubic-bezier(0.2, 0.7, 0.2, 1) } .emblem-land g { transition: rotate 900ms var(--spring) } .emblem-path g { transition: scale 600ms var(--calm), opacity 600ms var(--calm) } .emblem-taught .leaf { transition: scale 1s cubic-bezier(0.5, -0.4, 0.5, 1) } .emblem-remedies g { transition-timing-function: linear(0, 1.2, 1) } .x { .emblem-path & { transition: top 1s cubic-bezier(0, 0, 1, 2) } }',
     );
-    expect(springs(sheet.rules)).toEqual(['.emblem-land g: cubic-bezier(0.34, 1.56, 0.64, 1)']);
+    expect(sprung(sheet)).toEqual([
+      '.emblem-land g: cubic-bezier(0.34, 1.56, 0.64, 1)',
+      '.emblem-taught .leaf: cubic-bezier(0.5, -0.4, 0.5, 1)',
+      '.emblem-remedies g: linear(0, 1.2, 1)',
+      '.emblem-path &: cubic-bezier(0, 0, 1, 2)',
+    ]);
   });
 });
 
 describe('the motion in the stylesheet', () => {
-  test('nests no block in a rule, so every rule is read', () =>
-    Effect.gen(function* () {
-      expect((yield* sheetOf).nested).toEqual([]);
-    }));
-
   test('pointing stirs a card only where a fine pointer hovers, so a tap leaves no card stirred', () =>
     Effect.gen(function* () {
       const sheet = yield* stylesheet;
-      expect(given(sheet, '.card:hover', '--stir')).toEqual([
-        { media: [FINE_POINTER], value: '1' },
-      ]);
+      expect(given(sheet, '.card:hover', '--stir')).toEqual(
+        expected(`@media ${FINE_POINTER} { .card:hover { --stir: 1 } }`, '.card:hover', '--stir'),
+      );
       expect(ungatedHovers(sheet)).toEqual([]);
     }));
 
   test('each emblem stirs calmly, its easing never overshooting or springing back', () =>
     Effect.gen(function* () {
-      expect(springs(yield* stylesheet)).toEqual([]);
+      const sheet = yield* stylesheet;
+      expect(sheet.filter((rule) => isEmblem(rule.chain)).length).toBeGreaterThan(0);
+      expect(sprung(sheet)).toEqual([]);
     }));
 
   test('a card rests unstirred, and a focused or pressed card stirs as a pointed one does', () =>
     Effect.gen(function* () {
       const sheet = yield* stylesheet;
-      expect(given(sheet, '.card', '--stir')).toEqual([
-        { media: [], value: '0' },
-        { media: [LESS_MOTION], value: '0 !important' },
-      ]);
-      expect(given(sheet, '.card:active', '--stir')).toEqual([{ media: [], value: '1' }]);
-      expect(given(sheet, '.card:has(h3 a:focus-visible)', '--stir')).toEqual([
-        { media: [], value: '1' },
-      ]);
+      expect(given(sheet, '.card', '--stir')).toEqual(
+        expected(
+          `.card { --stir: 0 } @media ${LESS_MOTION} { .card { --stir: 0 !important } }`,
+          '.card',
+          '--stir',
+        ),
+      );
+      expect(given(sheet, '.card:active, .card:has(h3 a:focus-visible)', '--stir')).toEqual(
+        expected(
+          '.card:active, .card:has(h3 a:focus-visible) { --stir: 1 }',
+          '.card:active, .card:has(h3 a:focus-visible)',
+          '--stir',
+        ),
+      );
     }));
 
   test('for a reader who asks for less motion, the canvases are not shown', () =>
     Effect.gen(function* () {
-      expect(given(yield* stylesheet, '.motion', 'display')).toEqual([
-        { media: [LESS_MOTION], value: 'none' },
-      ]);
+      expect(given(yield* stylesheet, '.motion', 'display')).toEqual(
+        expected(`@media ${LESS_MOTION} { .motion { display: none } }`, '.motion', 'display'),
+      );
     }));
 
   test('a canvas is laid over its still and shown only once it has drawn', () =>
     Effect.gen(function* () {
       const sheet = yield* stylesheet;
-      expect(given(sheet, '.motion', 'position')).toEqual([{ media: [], value: 'absolute' }]);
-      expect(given(sheet, '.motion', 'pointer-events')).toEqual([{ media: [], value: 'none' }]);
-      expect(given(sheet, '.motion', 'opacity')).toEqual([{ media: [], value: '0' }]);
-      expect(given(sheet, '.motion-on', 'opacity')).toEqual([{ media: [], value: '1' }]);
+      const motion = '.motion { position: absolute; pointer-events: none; opacity: 0 }';
+      for (const property of ['position', 'pointer-events', 'opacity'])
+        expect(given(sheet, '.motion', property)).toEqual(expected(motion, '.motion', property));
+      expect(given(sheet, '.motion-on', 'opacity')).toEqual(
+        expected('.motion-on { opacity: 1 }', '.motion-on', 'opacity'),
+      );
     }));
 });
