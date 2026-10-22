@@ -3522,7 +3522,7 @@ sound leg (`soundLeg`: the mix, Mixer), and the
 layout and look legs (`layoutLeg`: the browser, Checker and Looker), and the
 draw leg (`drawLeg`, `tools/draw-check.ts`: the film's `film.ts` built from
 its committed timings and each scene drawn in this process into the stand-in
-context at its moments, as every-scene-draws runs it in the gate).
+context at its moments, as `tools/talk.slow.test.ts` runs it in `test:slow`).
 `--static` runs the static leg alone, with no mix and no browser: it is what
 the lab runs after each write; with `--folder v<n>` it checks that version
 folder's own files (its scenes, takes, sound and credits). `--sound` adds the sound leg, still with no
