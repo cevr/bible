@@ -11,8 +11,9 @@
 # 2. The full lint (`bun run lint`): the judged rules, then every rule over
 #    every file, no file kept.
 # 3. The format check and the dead exports.
-# 4. `bun run test:reads`: every file a unit test reads is one its cached
-#    `test` task hashes (`test-reads.ts`).
+# 4. `bun run test:reads`: each file, module and native library a unit
+#    test's bun processes open is one its cached `test` task hashes
+#    (`test-reads.ts`).
 #
 # It runs under the host's test lock (`flock` where there is one, else
 # `lockf -k`, on `$LOCK`), so two slow suites on one machine take turns.
