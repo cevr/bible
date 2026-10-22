@@ -75,7 +75,8 @@ const turboRuns = (lines: ReadonlyArray<string>) =>
  * before alchemy starts: its commands are joined by `&&` alone, so each runs
  * only when the one before it passed, and the first command with an
  * `alchemy` word (`alchemy`, `bunx alchemy`, `node_modules/.bin/alchemy`,
- * `alchemy@<version>`) comes after the slow suite.
+ * `alchemy@<version>`, alchemy's own `alchemy/bin/` file) comes after the
+ * slow suite.
  */
 const slowBeforeAlchemy = (name: string, script: string) => {
   const commands = commandsOf(script);
@@ -83,7 +84,7 @@ const slowBeforeAlchemy = (name: string, script: string) => {
     (command) => command.join(' ') === `turbo run test:slow --filter=${name}`,
   );
   const alchemy = commands.findIndex((command) =>
-    command.some((word) => /(^|\/)alchemy(@\S*)?$/.test(word)),
+    command.some((word) => /(^|\/)alchemy(@\S*)?$|(^|\/)alchemy\/bin\//.test(word)),
   );
   return andChained(script) && slow > -1 && alchemy > slow;
 };
@@ -168,6 +169,7 @@ describe('the slow suite', () => {
           `${slow}; ${deploy}`,
           `bunx alchemy deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
           `node_modules/.bin/alchemy deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
+          `node node_modules/alchemy/bin/cli.js deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
           `bunx alchemy@2.0.0-beta.83 deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
           deploy,
           `${deploy} && ${slow}`,

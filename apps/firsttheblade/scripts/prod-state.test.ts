@@ -91,20 +91,12 @@ const importedFrom = (program: ESTree.Program, source: string) =>
     return statement.specifiers.map((specifier) => specifier.local.name);
   });
 
-/** The name a call chain starts from: `gate` for `gate(…).pipe(…)`. */
-const rootName = (node: ESTree.Node): ReadonlyArray<string> => {
-  if (node.type === 'Identifier') return [node.name];
-  if (node.type === 'CallExpression') return rootName(node.callee);
-  if (node.type === 'MemberExpression') return rootName(node.object);
-  return [];
-};
-
 /**
  * The first `count` statements of the stack's generator (the third argument
- * of `export default Alchemy.Stack(…)`, an `Effect.gen`), each as the name
- * the call of its `yield*` starts from; any other statement is `[]`.
+ * of `export default Alchemy.Stack(…)`, an `Effect.gen`), each as its text in
+ * `source`.
  */
-const firstCalls = (program: ESTree.Program, count: number) =>
+const firstStatements = (program: ESTree.Program, source: string, count: number) =>
   program.body.flatMap((statement) => {
     if (statement.type !== 'ExportDefaultDeclaration') return [];
     const stack = statement.declaration;
@@ -114,12 +106,7 @@ const firstCalls = (program: ESTree.Program, count: number) =>
     const body = gen.arguments[0];
     if (body?.type !== 'FunctionExpression') return [];
     return Option.toArray(Option.fromNullOr(body.body)).flatMap(({ body: statements }) =>
-      statements.slice(0, count).map((node) => {
-        if (node.type !== 'ExpressionStatement') return [];
-        const { expression } = node;
-        if (expression.type !== 'YieldExpression' || !expression.delegate) return [];
-        return Option.toArray(Option.fromNullOr(expression.argument)).flatMap(rootName);
-      }),
+      statements.slice(0, count).map((node) => source.slice(node.start, node.end)),
     );
   });
 
@@ -223,9 +210,12 @@ describe('the prod state check', () => {
       const app = path.dirname(import.meta.dir);
       const source = yield* fs.readFileString(path.join(app, 'alchemy.run.ts'));
       const { program } = parseSync('alchemy.run.ts', source);
-      expect(firstCalls(program, 2)).toEqual([
-        importedFrom(program, './scripts/prod-state.ts'),
-        importedFrom(program, './kit/shippable.ts'),
+      const state = importedFrom(program, './scripts/prod-state.ts');
+      const stills = importedFrom(program, './kit/shippable.ts');
+      expect([state.length, stills.length]).toEqual([1, 1]);
+      expect(firstStatements(program, source, 2)).toEqual([
+        `yield* ${state[0]}().pipe(Effect.orDie);`,
+        `yield* ${stills[0]}(import.meta.dir).pipe(Effect.orDie);`,
       ]);
       const { scripts } = yield* Schema.decodeEffect(Scripts)(
         yield* fs.readFileString(path.join(app, 'package.json')),
