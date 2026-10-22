@@ -12,8 +12,7 @@
 # 2. The work that holds a time limit (`gate:tests`): each workspace's
 #    `test` (bun's 5 s a case) and `gate:timed` (a package's own check that
 #    waits on a browser with time limits: firsttheblade's built pages'
-#    contrast, and the leaf and the content policy as Chrome computes them
-#    on the built home page), each alone, one after another, as `test:budget` measures a
+#    contrast), each alone, one after another, as `test:budget` measures a
 #    test, then the film's guard tests, under the host's test lock (`flock`
 #    where there is one, else `lockf -k`, on `$LOCK`), so two gates on one
 #    machine take turns. Selah's tests are its native gate's, in the checks,

@@ -238,10 +238,11 @@ hold none of them and pass (`email-promise-no-net-word`,
 `email-promise-what-we-send`). So, in anything a reader gets:
 **Say how often and what we email only in the promise's words.**
 
-The app's `gate:timed` is `bun run contrast && bun run computed`: `bun run
-gate` runs it after the build, with the tests, alone under the host's test
-lock, since each browser holds a limit on each step; so does CI's gate job,
-in the runner's Google Chrome.
+The app's `gate:timed` is `bun run contrast`: `bun run gate` runs it after
+the build, with the tests, alone under the host's test lock, since its
+browser holds a 30 s limit on each shot; so does CI's gate job, in the
+runner's Google Chrome. `bun run computed` is not in the gate: run it by
+hand after a build, before a deploy.
 
 ### Known limits of `bun run promise`
 

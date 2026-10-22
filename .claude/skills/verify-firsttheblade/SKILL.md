@@ -56,6 +56,12 @@ its proof; `tmp/` is git-ignored. Pick a free port per run (`PORT`, never
    root holds one preview: a launch in a root whose recorded preview still
    runs is `Refused`; stop it first, or use another root.
 
+Before a site deploy, after the build, run `bun run --cwd apps/firsttheblade
+computed` by hand: the healing leaf and the content policy as Chrome
+computes them on the built home page (`scripts/computed.ts` lists what it
+reads). It takes about 10 s. The gate does not run it (owner, 2026-10-22:
+the gate is unit tests and lint).
+
 A stage instead: build, then
 
 ```bash
