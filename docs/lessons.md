@@ -2713,3 +2713,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The styles test's reader ended a block at the first `}`, even one in a string, so `.cards .card:hover { content: "}"; --stir: 1; }` dropped its stir and popped the `@media` stack early, and the ungated hover passed.
 - **Cause:** The reader split the sheet at braces and semicolons with no notion of a quoted string.
 - **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `read a brace, a semicolon, a colon or a comment in a quoted string as part of its value`, `apps/firsttheblade/src/motion/styles.test.ts` `find each hover stir outside the fine-pointer query, however it is written`.
+
+### hill-streaks-tied-to-the-master
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the streak lift's test moves with its own constants, so nothing ties `HILL_STREAKS` to the master"
+- **Source:** ftb-motion/round-3-findings.md F3
+- **Wrong:** The streak lift's fixture was painted where `HILL_STREAKS` says, so a streak moved in the constant moved the fixture too and the test stayed green, while the master's real edge stayed and a step was lifted onto the wrong hill.
+- **Cause:** No test read the master's streaks.
+- **Guard:** code: `apps/firsttheblade/kit/field-paint.test.ts` `were measured on this master, so a new one refuses them until they are measured again`, `apps/firsttheblade/kit/field-paint.test.ts` `each has its step on the master, and the shipped still has none across it`.

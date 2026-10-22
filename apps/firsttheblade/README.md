@@ -277,7 +277,10 @@ also refuses each still with one byte changed, re-encoded, one pixel one level o
 swapped or dropped, and the lights the earlier light guards let through.
 `bun run kit` and `bun run kit:field` print each still that differs from the
 record and never write it. A repainted or re-encoded still goes to the owner
-as a lab ask with 1:1 crops, and then `bun run kit:approve` records it. The field and the night move in the browser
+as a lab ask with 1:1 crops, and then `bun run kit:approve` records it. The
+far hills' streak lifts (`kit/field-paint.ts` `HILL_STREAKS`) were measured on
+the master: `kit/field-paint.test.ts` holds the master's SHA-256, so a new
+master refuses them until they are measured again. The field and the night move in the browser
 (`src/motion/scene.ts`): a WebGL2 canvas over each still, loaded only for a
 reader who has not asked for less motion, drawing only while it is on the
 screen. The series cards' emblems are laid in the page as drawings

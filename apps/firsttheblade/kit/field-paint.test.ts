@@ -1,5 +1,10 @@
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, test } from 'bun:test';
+import { Effect, FileSystem } from 'effect';
+import { it } from 'effect-bun-test';
+import sharp from 'sharp';
 
+import { sha256 } from './approval.ts';
 import {
   HILL_STREAKS,
   type Pixels,
@@ -175,4 +180,71 @@ describe('the far hills without the old rays’ edges', () => {
     expect(hillPixel(lifted, 280, 510)).toEqual([...TREE]);
     expect(hillPixel(lifted, 1000, 575)).toEqual(hillPixel(painted, 1000, 575));
   });
+});
+
+/** The master the streaks' lines and steps were measured on, by the SHA-256 of its bytes. */
+const MEASURED_ON = '912faa678ed6c8793eaab564a40708e604945f377c0b0dfadbc484eb7db38b2e';
+
+const withFiles = it.effect.layer(BunServices.layer);
+
+const MASTER = `${import.meta.dir}/art/field.webp`;
+
+/** An image's red, green and blue, as rows of pixels. */
+const rgbOf = (file: string) =>
+  Effect.map(
+    Effect.promise(() => sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true })),
+    ({ data, info }) => ({ data, width: info.width }),
+  );
+
+/**
+ * The step across a streak's line on an image at the master's width: the
+ * mean, over the middle of the line, of the pixel 6 px up and right of it
+ * minus the pixel 6 px down and left, in red, green and blue.
+ */
+const measuredStep = (
+  image: { readonly data: Uint8Array; readonly width: number },
+  line: readonly [number, number, number, number],
+) => {
+  const [x0, y0, x1, y1] = line;
+  const length = Math.hypot(x1 - x0, y1 - y0);
+  const nx = (y1 - y0) / length;
+  const ny = -(x1 - x0) / length;
+  const total = [0, 0, 0];
+  let samples = 0;
+  for (let t = 0.2; t <= 0.8; t += 0.02) {
+    const cx = x0 + t * (x1 - x0);
+    const cy = y0 + t * (y1 - y0);
+    for (const sign of [1, -1]) {
+      const i = Math.round(cy + sign * 6 * ny) * image.width + Math.round(cx + sign * 6 * nx);
+      for (const k of [0, 1, 2]) total[k] = at(total, k) + sign * at(image.data, i * 3 + k);
+    }
+    samples++;
+  }
+  return total.map((value) => value / samples);
+};
+
+describe('the streaks as the master has them', () => {
+  withFiles(
+    'were measured on this master, so a new one refuses them until they are measured again',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        expect(sha256(yield* fs.readFile(MASTER))).toBe(MEASURED_ON);
+      }),
+  );
+
+  withFiles('each has its step on the master, and the shipped still has none across it', () =>
+    Effect.gen(function* () {
+      const master = yield* rgbOf(MASTER);
+      const shipped = yield* rgbOf(`${import.meta.dir}/../src/art/field-3072.webp`);
+      for (const { line, step } of HILL_STREAKS) {
+        const onMaster = measuredStep(master, line);
+        const onShipped = measuredStep(shipped, line);
+        for (const k of [0, 1, 2]) {
+          expect(Math.abs(at(onMaster, k) - at(step, k))).toBeLessThan(2);
+          expect(Math.abs(at(onShipped, k))).toBeLessThan(2.5);
+        }
+      }
+    }),
+  );
 });
