@@ -28,6 +28,7 @@
     "test:e2e:check": "bun run --cwd packages/film test:e2e:check",
     "test:perf": "turbo run test:perf --concurrency=1",
     "test:budget": "bun packages/scripts/src/test-budget.ts",
+    "test:reads": "bun packages/scripts/src/test-reads.ts",
     "test:slow": "sh packages/scripts/src/test-slow.sh",
     "gate": "sh packages/scripts/src/gate.sh",
     "dead-exports": "bun packages/scripts/src/dead-exports.ts",

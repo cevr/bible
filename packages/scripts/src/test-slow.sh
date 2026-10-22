@@ -11,6 +11,8 @@
 # 2. The full lint (`bun run lint`): the judged rules, then every rule over
 #    every file, no file kept.
 # 3. The format check and the dead exports.
+# 4. `bun run test:reads`: every file a unit test reads is one its cached
+#    `test` task hashes (`test-reads.ts`).
 #
 # It runs under the host's test lock (`flock` where there is one, else
 # `lockf -k`, on `$LOCK`), so two slow suites on one machine take turns.
@@ -33,6 +35,8 @@ bun run fmt:check
 fmt=$?
 bun run dead-exports
 dead=$?
+bun run test:reads
+reads=$?
 
-echo "test:slow: turbo exited $turbo, lint $lint, fmt $fmt, dead-exports $dead"
-[ "$turbo" -eq 0 ] && [ "$lint" -eq 0 ] && [ "$fmt" -eq 0 ] && [ "$dead" -eq 0 ]
+echo "test:slow: turbo exited $turbo, lint $lint, fmt $fmt, dead-exports $dead, test:reads $reads"
+[ "$turbo" -eq 0 ] && [ "$lint" -eq 0 ] && [ "$fmt" -eq 0 ] && [ "$dead" -eq 0 ] && [ "$reads" -eq 0 ]

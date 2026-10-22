@@ -39,6 +39,7 @@ bun run gate                   # The feedback cycle: oxlint (deterministic rules
 bun run test:slow              # Typecheck, builds, slow tests, browser and built-page checks, full lint, e2e; by hand and before deploys
 bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
 bun run test:budget [<ws>…]    # Each workspace's unit tests alone under 1 s, no total (local only)
+bun run test:reads             # Every file a unit test reads is one its cached test task hashes (in test:slow)
 bun run --filter @bible/selah gate  # Native Swift gate on macOS (also in test:slow)
 ```
 
