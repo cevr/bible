@@ -15,11 +15,12 @@
  * Tapping the field enters search mode: a bar with the focused text field
  * and Cancel, over the results. The list stays mounted beneath, untouchable
  * and hidden from assistive technology, so it keeps its place. Cancel, or
- * Android's Back, clears the query and shows the list as it was.
+ * Android's Back while the home screen is in focus (`searchBack`), clears
+ * the query and shows the list as it was.
  */
 
 import { useAtom } from '@effect/atom-react';
-import { Link, useLinkTo, useSafeAreaInsets } from 'one';
+import { Link, useLinkTo, useNavigation, useSafeAreaInsets } from 'one';
 import { useDeferredValue, useEffect, useState } from 'react';
 import {
   BackHandler,
@@ -43,6 +44,7 @@ import { HymnList } from '~/reader/HymnList';
 import { searchOffset, searchQuery } from '~/reader/place';
 import { color, useAccent } from '~/color';
 
+import { searchBack } from './back';
 import { Browse } from './Browse';
 import { Gear } from './Gear';
 import { searchLabel } from './Results';
@@ -171,11 +173,12 @@ function Search({ onCancel }: { readonly onCancel: () => void }) {
     Keyboard.dismiss();
     onCancel();
   };
+  const navigation = useNavigation();
   useEffect(() => {
-    const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      cancel();
-      return true;
-    });
+    const back = BackHandler.addEventListener(
+      'hardwareBackPress',
+      searchBack({ isFocused: () => navigation.isFocused(), cancel }),
+    );
     return () => back.remove();
   }, []);
   return (
