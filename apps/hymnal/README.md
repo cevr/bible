@@ -148,7 +148,8 @@ a press on it opens the hymn. Playing another hymn replaces the first.
 - Known gaps. **1:** a server that stops sending while online leaves the
   page in Loading or Buffering; after the first sound Retry shows after
   15 s. **2:** Android sounds from 0:00 for a moment before a play from a
-  place lands (MediaPlayer's lead-in; One 2.8.1 has no way round it).
+  place lands (MediaPlayer's lead-in; a gap of One's session player, still
+  there in 2.9.0).
   **3:** a host pause hides what happens inside it: a connection blip One
   tells no change for, or sound no read sampled, is unseen, and the page
   keeps the place from before it.
