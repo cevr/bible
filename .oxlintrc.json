@@ -547,15 +547,14 @@
       // The First the Blade site ships each image as a file of its own: the
       // build walk (apps/firsttheblade/kit/build-walk.ts) reads the built
       // site's files by their bytes, and the stills rule holds each image it
-      // finds to an approval. An image inlined into another file, by a
-      // `?inline` import or a data URL written in a module
-      // (film/no-data-url), has no bytes of its own an approval can hold:
-      // the walk refuses each built file that holds a data URL, and this
-      // block refuses one in the source, before a build. A file is an
-      // image by its bytes, not its name, so `?inline` is refused on any
-      // import, by Vite's own test of it (`[?&]inline\b`). Each module the
-      // site serves is read, its scripts too, under `src/` and `public/`.
-      // The tests and fixtures are not served.
+      // finds to an approval. An image inlined into another file by a
+      // `?inline` import has no bytes of its own an approval can hold, and
+      // the site's content policy (`img-src 'self'`) has the browser refuse
+      // it; this block refuses the import in the source, before a build. A
+      // file is an image by its bytes, not its name, so `?inline` is
+      // refused on any import, by Vite's own test of it (`[?&]inline\b`).
+      // Each module the site serves is read, its scripts too, under `src/`
+      // and `public/`. The tests and fixtures are not served.
       "files": ["**/apps/firsttheblade/{src,public}/**/*.{ts,tsx,js,jsx,mjs,cjs}"],
       "excludeFiles": ["**/*.test.ts", "**/*.test.tsx", "**/fixtures/**"],
       "rules": {
@@ -565,12 +564,11 @@
             "patterns": [
               {
                 "regex": "[?&]inline\\b",
-                "message": "an import inlined into the file that imports it (?inline): an image inside another file has no bytes of its own an approval can hold, and the build walk refuses each built file that holds one. Import the file's URL, which the build emits as a file of its own."
+                "message": "an import inlined into the file that imports it (?inline): an image inside another file has no bytes of its own an approval can hold, and the site's content policy (img-src 'self') has the browser refuse it. Import the file's URL, which the build emits as a file of its own."
               }
             ]
           }
-        ],
-        "film/no-data-url": "error"
+        ]
       }
     },
     {

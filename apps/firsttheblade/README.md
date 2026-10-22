@@ -282,9 +282,12 @@ reader (`kit/served.ts`: every image file under `public/` and `src/`, and
 every image a module under `src/` names, read by Vite's parser and
 lightningcss) is a fast check the tests run before a build. The walk reads
 files, so each image ships as a file of its own: under `src/`, oxlint refuses
-an import inlined into its importer (`?inline`) and a data URL a module
-writes (`film/no-data-url`, `.oxlintrc.json`), and `kit/build-walk.test.ts`
-refuses a data URL in any other served text file, a stylesheet or a drawing.
+an import inlined into its importer (`?inline`, `.oxlintrc.json`). An image
+inside another file (a data URL, however it is spelled) is no file the walk
+can find, and needs none: every response carries a content policy whose
+`img-src` is `'self'` alone, so the browser refuses it and it never paints
+(`src/worker/respond.test.ts` holds the policy over every route; the
+`computed` check proves the refusal in Chrome).
 Whether a still's
 light comes from the sun is his look, so the code does not measure it. The
 record, `kit/approved-stills.json` (`kit/approval.ts`), holds his approval

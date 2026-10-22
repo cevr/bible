@@ -481,7 +481,7 @@ describe('the lint config', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    "refuses an inlined import (Vite's own test of it) and a data URL in every module the First the Blade site serves, scripts too, and passes a URL import and prose",
+    "refuses an inlined import (Vite's own test of it) in every module the First the Blade site serves, scripts too, and passes a URL import",
     () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
@@ -495,7 +495,7 @@ describe('the lint config', () => {
           o.files.some((glob) => new Glob(glob).match(file));
         const block = config.overrides.find((o) => SERVED_MODULES.every((file) => covers(o, file)));
         expect(block).toBeDefined();
-        const rules = ['no-restricted-imports', 'film/no-data-url'].flatMap((key) =>
+        const rules = ['no-restricted-imports'].flatMap((key) =>
           Option.toArray(
             Option.map(
               Option.flatMap(Option.fromUndefinedOr(block), (o) => ruleIn(o, key)),
@@ -503,17 +503,15 @@ describe('the lint config', () => {
             ),
           ),
         );
-        expect(rules.map(([key]) => key)).toEqual(['no-restricted-imports', 'film/no-data-url']);
+        expect(rules.map(([key]) => key)).toEqual(['no-restricted-imports']);
         const probe = [
           "import a from './a.png?inline';",
           "import b from './b.png?url&inline';",
           "export const c = () => import('./c.webp?inline');",
           "export { d } from './d.svg?inline';",
-          "export const e = 'data:image/png;base64,iVBORw0KGgo=';",
           "import f from './f.png?url';",
           "import g from './inline.png';",
           "import h from './h.png?inlined';",
-          "export const i = 'the pages as data: where each is served';",
           "import j from './j.png?inline=1';",
           "import k from './k.png?inline-x';",
           'export const used = [a, b, f, g, h, j, k];',
@@ -526,10 +524,8 @@ describe('the lint config', () => {
           `${probe.join('\n')}\n`,
         );
         expect(
-          [...reportedLines(out, ['no-restricted-imports', 'no-data-url'])].toSorted(
-            (x, y) => x - y,
-          ),
-        ).toEqual([1, 2, 3, 4, 5, 10, 11]);
+          [...reportedLines(out, ['no-restricted-imports'])].toSorted((x, y) => x - y),
+        ).toEqual([1, 2, 3, 4, 8, 9]);
       }),
     SPAWNS_MS,
   );

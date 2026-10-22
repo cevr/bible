@@ -78,8 +78,6 @@ const MESSAGES = {
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case alone: test.serial, or a runner's .serial form (it.live.serial).",
   'no-test-seam.ts:3 film/no-test-seam':
     "a test seam imported by product code: a testing.ts module holds a package's test-only doubles and fixtures, so a shipped import never reaches one. Move what this file needs out of the seam, into the module it belongs to.",
-  'no-data-url.tsx:3 film/no-data-url':
-    'a data URL in a served module: an image written inside another file has no bytes of its own an approval can hold, and the build walk refuses each built file that holds one. Ship the image as a file of its own, which the walk reads by its bytes.',
   'no-read-once.ts:23 film/no-read-once':
     'evaluate reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).',
   'told-after-answer.ts:18 film/told-after-answer':

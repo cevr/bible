@@ -4023,12 +4023,6 @@ package's test-only doubles live in its `testing.ts` seam (`core/testing.ts`,
 and product code imports none, by a relative path, a package export, a type
 import, a re-export or a dynamic `import('…')`. The tests, the fixtures, the
 seams and the type tests are let off.
-`film/no-data-url` (`lint/no-data-url.ts`) holds the First the Blade site's
-modules under `src` and `public`: a string or template that opens a data URL
-(`data:image/png`, `data:,`, `'data:' + type`) is refused, since an image
-written inside another file has no bytes of its own an approval can hold
-(the site's build walk refuses each built file that holds one). The tests
-and fixtures are let off.
 `film/synth-own-math` (`lint/synth-own-math.ts`) holds the sound graph
 (`core/synth/graph/`) to the same samples on every host: a host's `Math.sin`,
 `exp`, `log`, `pow` and `tanh` are approximations its engine chooses, so the

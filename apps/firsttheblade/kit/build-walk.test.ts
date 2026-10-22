@@ -7,21 +7,19 @@
  * format under any name, extension (none, a wrong one, another image's) and
  * folder is refused, and each file named as an image whose bytes no
  * signature reads is refused as `unknown`; the approved stills and the
- * images outside the rule, under any name, pass. A built file that holds a
- * data URL (a page, a stylesheet, a script, in UTF-8 or UTF-16, gzipped or
- * not) is refused as `data url`. The build inlines no imported asset, and
- * no served source file the linter does not read (a stylesheet, a drawing)
- * holds an image inside it as a data URL.
+ * images outside the rule, under any name, pass. The build inlines no
+ * imported asset. An image inside another file (a data URL) is no file the
+ * walk reads: the content policy has the browser refuse it
+ * (`../src/worker/respond.test.ts`, `../scripts/computed.ts`).
  */
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Glob, JSONC } from 'bun';
-import { Effect, FileSystem, Option, Order, Path, Schema } from 'effect';
+import { Effect, FileSystem, Option, Order, Path } from 'effect';
 
 import { readRecord, unapprovedBuilt } from './approval.ts';
-import { DATA_URL, type Format, formatOf } from './build-walk.ts';
+import { type Format, formatOf } from './build-walk.ts';
 import viteConfig from '../vite.config.ts';
-import { OUTSIDE, SERVED_FOLDERS } from './served.ts';
+import { OUTSIDE } from './served.ts';
 
 const APP = `${import.meta.dir}/..`;
 
@@ -164,8 +162,6 @@ const imageOf = (format: Format, next: Draw): Uint8Array => {
       return svgIn(pick(next, ENCODINGS), next);
     case 'unknown':
       return joined(ascii('?'), body);
-    case 'data url':
-      return joined(ascii('url(data:image/png;base64,'), body);
   }
 };
 
@@ -258,12 +254,7 @@ const utf8 = (text: string) => new TextEncoder().encode(text);
 
 /** The files of the built site that are no image, as the build writes them. */
 const NOT_IMAGES: ReadonlyArray<readonly [string, Uint8Array]> = [
-  [
-    'a script',
-    utf8(
-      'import{a as b}from"./x.js";const svg=`<svg viewBox="0 0 1 1"></svg>`;const f={_tag:`FormData`,formData:1,data:2},g={data:n/2,Data:a.b/c},h={data:"x"},k={a:1, data:`y`},m=c?data:\'z\':0;',
-    ),
-  ],
+  ['a script', utf8('import{a as b}from"./x.js";const svg=`<svg viewBox="0 0 1 1"></svg>`;')],
   ['a stylesheet', utf8('.a{background:url(/og/home.jpg)}')],
   [
     'a page with an svg inside',
@@ -278,56 +269,7 @@ const NOT_IMAGES: ReadonlyArray<readonly [string, Uint8Array]> = [
   ['bytes that are not text', Uint8Array.from([0xc3, 0x28, 0x3c, 0x73, 0x76, 0x67])],
 ];
 
-/** Files of the built site that hold an image inside them as a data URL. */
-const INLINED: ReadonlyArray<Uint8Array> = [
-  utf8('<!doctype html><img src="data:image/png;base64,iVBORw0KGgo=">'),
-  utf8('.a{background:url("data:image/svg+xml,%3Csvg%3E%3C/svg%3E")}'),
-  utf8('const a="data:image/webp;base64,UklGRg==";export{a};'),
-  utf8('const b=`DATA:,x`;export{b};'),
-  joined(
-    [0xff, 0xfe],
-    [...new TextEncoder().encode('.a{mask:url(data:;base64,AA==)}')].flatMap((byte) => [byte, 0]),
-  ),
-  Bun.gzipSync(utf8('const c="data:image/png;base64,iVBORw0KGgo=";')),
-  utf8('const d=t=>"data:"+t+";base64,"+e;export{d};'),
-  utf8('const g=t=>`url(data:`+t+`)`;export{g};'),
-  utf8('<!doctype html><img src="data&#58;image/png;base64,iVBORw0KGgo=">'),
-  utf8('<!doctype html><img src="DATA&#x3A;;base64,AA==">'),
-];
-
 const test = it.effect.layer(BunServices.layer);
-
-const ALL_DATA_URLS = new RegExp(DATA_URL.source, 'giu');
-
-/** Each data URL's opening a text holds. */
-const dataUrls = (text: string) => Array.from(text.matchAll(ALL_DATA_URLS), ([found]) => found);
-
-const fatalUtf8 = new TextDecoder('utf-8', { fatal: true });
-const textOf = Option.liftThrowable((bytes: Uint8Array) => fatalUtf8.decode(bytes));
-
-/** A test, which is not served. */
-const TEST = /\.test\./u;
-
-/** The globs of each block of the repo's `.oxlintrc.json` that refuses a data URL (film/no-data-url). */
-const dataUrlLinted = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const text = yield* fs.readFileString(path.join(APP, '..', '..', '.oxlintrc.json'));
-  const { overrides } = yield* Schema.decodeUnknownEffect(LintConfig)(JSONC.parse(text));
-  const globs = overrides
-    .filter(({ rules }) => rules['film/no-data-url'] === 'error')
-    .flatMap(({ files }) => files.map((glob) => new Glob(glob)));
-  return (file: string) => globs.some((glob) => glob.match(`apps/firsttheblade/${file}`));
-});
-
-const LintConfig = Schema.Struct({
-  overrides: Schema.Array(
-    Schema.Struct({
-      files: Schema.Array(Schema.String),
-      rules: Schema.Record(Schema.String, Schema.Unknown),
-    }),
-  ),
-});
 
 describe('the build walk', () => {
   test('reads each format by its first bytes, a gzipped one by what it unzips to', () =>
@@ -378,32 +320,7 @@ describe('the build walk', () => {
         expect([name, formatOf(given)]).toEqual([name, Option.none()]);
     }));
 
-  test('refuses a script that joins a type to the scheme at run time and a page whose colon is a character reference, each as a data URL, and passes a key or a name data', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const dist = yield* fs.makeTempDirectoryScoped({ prefix: 'dist-' });
-      const files: ReadonlyArray<readonly [string, string]> = [
-        ['assets/joined.js', 'const d=t=>"data:"+t+";base64,"+e;export{d};'],
-        ['assets/url.css.js', 'const g=t=>`url(data:`+t+`)`;export{g};'],
-        ['entity.html', '<img src="data&#58;image/png;base64,iVBORw0KGgo=">'],
-        ['hex.html', '<img src="DATA&#x3A;;base64,AA==">'],
-        ['assets/keys.js', 'const h={data:"x"},k={a:1, data:`y`},m=c?data:\'z\':0;export{h,k,m};'],
-      ];
-      for (const [file, text] of files) {
-        yield* fs.makeDirectory(path.dirname(path.join(dist, file)), { recursive: true });
-        yield* fs.writeFileString(path.join(dist, file), text);
-      }
-      const refused = yield* unapprovedBuilt(APP, dist);
-      expect(refused).toEqual([
-        { image: 'assets/joined.js', format: 'data url' },
-        { image: 'assets/url.css.js', format: 'data url' },
-        { image: 'entity.html', format: 'data url' },
-        { image: 'hex.html', format: 'data url' },
-      ]);
-    }).pipe(Effect.scoped));
-
-  test('refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and each file that holds a data URL, and passes the approved stills and the images outside the rule under any name', () =>
+  test('refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -429,11 +346,6 @@ describe('the build walk', () => {
         yield* put(pathOf(next, 1000 + i), yield* fs.readFile(path.join(APP, source)));
       for (const [i, [, given]] of NOT_IMAGES.entries())
         yield* put(pathOf(next, 2000 + i, PLAIN_EXTENSIONS), given);
-      for (const [i, given] of INLINED.entries()) {
-        const file = pathOf(next, 4000 + i, [...PLAIN_EXTENSIONS, ...IMAGE_EXTENSIONS]);
-        yield* put(file, given);
-        expected.push({ image: file, format: 'data url' });
-      }
       for (let i = 0; i < 40; i += 1) {
         const file = pathOf(next, 3000 + i, IMAGE_EXTENSIONS);
         const [, given] = NOT_IMAGES[i % NOT_IMAGES.length] ?? ['', new Uint8Array()];
@@ -445,41 +357,4 @@ describe('the build walk', () => {
         expected.toSorted(Order.mapInput(Order.String, ({ image }) => image)),
       );
     }).pipe(Effect.scoped));
-
-  test('no served file the linter does not read, a stylesheet or a drawing, holds a data URL, so each image the site serves is a file the walk reads', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      expect(
-        [
-          'background: url("data:image/png;base64,iVBORw0KGgo=")',
-          '<image href="data:image/jpeg;base64,/9j/4A==" />',
-          'mask: url(DATA:,x)',
-          'the pages as data: where each is served',
-        ].map(dataUrls),
-      ).toEqual([['data:image/png'], ['data:image/jpeg'], ['DATA:,'], []]);
-      const linted = yield* dataUrlLinted;
-      expect(
-        ['src/a/b.js', 'src/a/b.mjs', 'public/rogue.js', 'public/a/b.cjs', 'src/a.tsx'].map(linted),
-      ).toEqual([true, true, true, true, true]);
-      const read: Array<string> = [];
-      const found: Array<readonly [string, ReadonlyArray<string>]> = [];
-      for (const folder of SERVED_FOLDERS) {
-        const entries = yield* fs.readDirectory(path.join(APP, folder), { recursive: true });
-        for (const entry of entries.toSorted()) {
-          const file = `${folder}/${entry.split(path.sep).join('/')}`;
-          if (TEST.test(file) || linted(file)) continue;
-          if ((yield* fs.stat(path.join(APP, file))).type !== 'File') continue;
-          const text = textOf(yield* fs.readFile(path.join(APP, file)));
-          if (Option.isNone(text)) continue;
-          read.push(file);
-          const urls = dataUrls(text.value);
-          if (urls.length > 0) found.push([file, urls]);
-        }
-      }
-      expect(read).toEqual(
-        expect.arrayContaining(['src/styles.css', 'src/art/emblem-remedies.svg']),
-      );
-      expect(found).toEqual([]);
-    }));
 });

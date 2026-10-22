@@ -24,7 +24,6 @@
     "film/media-through-player": "error",
     "film/booleans-through-pressed": "error",
     "film/no-test-seam": "error",
-    "film/no-data-url": "error",
     "film/focus-through-focus-for": "error",
     "film/pages-in-case-scope": "error",
     "film/no-history-comment": "error",
