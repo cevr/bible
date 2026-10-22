@@ -209,7 +209,7 @@ export const readRecord = (out: string, hymn: number) =>
   });
 
 /** A hymn's MIDI file: parsed, its sha256, and what it asks of the recording. */
-const sourceOf = (style: Style, hymn: number) =>
+export const sourceOf = (style: Style, hymn: number) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -227,7 +227,7 @@ type Source = Effect.Success<ReturnType<typeof sourceOf>>;
  * render (no record, another config, or an MP3 that is not the recorded
  * one), or its record checked again, which `stands` or `fails`.
  */
-const standingOf = (setup: Setup, hymn: number, source: Source) =>
+export const standingOf = (setup: Setup, hymn: number, source: Source) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
