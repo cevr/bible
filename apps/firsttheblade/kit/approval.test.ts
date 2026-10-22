@@ -281,6 +281,13 @@ const scramble = (root: string, still: string, next: () => number) =>
     );
   });
 
+/** `still` at `root` written with the bytes of `twin` as they stand. */
+const twinned = (root: string, still: string, twin: string) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    yield* fs.writeFile(`${root}/${still}`, yield* fs.readFile(`${root}/${twin}`));
+  });
+
 /** The record at `root` pinned pending on `ask`, the lab holding it unanswered; the record as pinned. */
 const pinOn = (root: string, ask: string) =>
   Effect.gen(function* () {
@@ -322,6 +329,138 @@ const draws = (seed: number) => {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
     return state / 2 ** 32;
   };
+};
+
+/** `still` at `root` rewritten from `next`: half the time a byte copy of another of `all`, else fresh bytes. */
+const rewritten = (root: string, still: string, all: ReadonlyArray<string>, next: () => number) => {
+  const others = all.filter((other) => other !== still);
+  const twin = Option.filter(
+    Option.fromUndefinedOr(others[Math.floor(next() * others.length)]),
+    () => next() < 0.5,
+  );
+  return Option.match(twin, {
+    onNone: () => scramble(root, still, next),
+    onSome: (copied) => twinned(root, still, copied),
+  });
+};
+
+/** The steps of a drawn ask: two his answers reach unless it is wild, and a branch. */
+const STEPS = ['look', 'approve', 'revise'];
+
+/** Each file's `src` with the step its image block sits on. */
+type Placed = ReadonlyArray<readonly [string, string]>;
+
+/**
+ * An ask `id` at `state`, drawn from `next`, with an image block for each
+ * file of `files` (its hash by `src`). Half are wild: each block sits on any
+ * of its three steps, his answers reach any of them, and the receipt misses
+ * files; the rest keep every block on `look` or `approve`, both reached, and
+ * every file in the receipt, so approvals build up across asks. Either way
+ * his answers may name a step the ask lacks or a step twice, in any order,
+ * and the receipt may hold a still of `stills`'s hash under a `src` no block
+ * shows (`extra`). Its approve step holds the values of `APPROVED`.
+ */
+const drawnAsk = (
+  id: string,
+  state: LabAsk['state'],
+  files: Readonly<Record<string, string>>,
+  stills: Approved['stills'],
+  next: () => number,
+) => {
+  const wild = next() < 0.5;
+  const open = STEPS.slice(0, 2 + Number(wild));
+  const placed: Placed = Object.keys(files).map(
+    (src) => [src, open[Math.floor(next() * open.length)] ?? 'look'] as const,
+  );
+  const reachedOnce = STEPS.filter((step) => (!wild && step !== 'revise') || next() < 0.7);
+  const names = [
+    ...reachedOnce,
+    ...['gone'].filter(() => next() < 0.25),
+    ...reachedOnce.filter(() => next() < 0.3),
+  ]
+    .map((step) => [next(), step] as const)
+    .toSorted(([a], [b]) => a - b)
+    .map(([, step]) => step);
+  const extra = Object.fromEntries(
+    Object.entries(stills)
+      .filter(() => next() < 0.15)
+      .map(([still, hash]) => [srcOf(`unshown/${still}`), hash]),
+  );
+  const receipt = {
+    ...Object.fromEntries(Object.entries(files).filter(() => !wild || next() < 0.85)),
+    ...extra,
+  };
+  const values = Object.fromEntries(
+    Object.entries(APPROVED).flatMap(([question, given]) =>
+      valueOf(given).map((value) => [question, value] as const),
+    ),
+  );
+  const blocksOn = (step: string) =>
+    placed.filter(([, on]) => on === step).map(([src]) => ({ kind: 'image', image: { src } }));
+  const ask: LabAsk = {
+    id,
+    ask: {
+      steps: {
+        look: { blocks: [{ kind: 'video' }, { kind: 'image', image: {} }, ...blocksOn('look')] },
+        approve: { blocks: [...blocksOn('approve'), { kind: 'choose' }] },
+        revise: { blocks: blocksOn('revise') },
+        end: {},
+      },
+    },
+    shown: receipt,
+    state,
+    answered: names.map((step) => ({
+      step,
+      values: Object.fromEntries(Object.entries(values).filter(() => step === 'approve')),
+      at: AT,
+    })),
+  };
+  return { ask, placed, names, receipt, extra };
+};
+
+/** What the blocks `placed` on `steps` showed him by `receipt`: each such file's hash, by `src`, none the receipt lacks. */
+const shownOnSteps = (
+  placed: Placed,
+  receipt: Readonly<Record<string, string>>,
+  steps: ReadonlyArray<string>,
+) =>
+  Object.fromEntries(
+    placed
+      .filter(([src, on]) => steps.includes(on) && Object.hasOwn(receipt, src))
+      .map(([src]) => [src, receipt[src] ?? ''] as const),
+  );
+
+/**
+ * Why a refusal of a drawn ask was one the rule's edges decide, each a
+ * name of the random test's `seen`: `fewer(files)` says whether counting
+ * `files` as shown too would name fewer stills.
+ */
+const refusedWhy = (
+  drawn: {
+    readonly placed: Placed;
+    readonly names: ReadonlyArray<string>;
+    readonly receipt: Readonly<Record<string, string>>;
+    readonly extra: Readonly<Record<string, string>>;
+    readonly files: Readonly<Record<string, string>>;
+    readonly stills: Approved['stills'];
+    readonly notShown: ReadonlyArray<string>;
+  },
+  fewer: (files: Readonly<Record<string, string>>) => boolean,
+) => {
+  const { placed, names, receipt, extra, files, stills, notShown } = drawn;
+  const reachedFiles = Object.fromEntries(
+    placed.filter(([, on]) => names.includes(on)).map(([src]) => [src, files[src] ?? ''] as const),
+  );
+  return [
+    ...['refused: shown only on an unreached step'].filter(() =>
+      fewer(shownOnSteps(placed, receipt, STEPS)),
+    ),
+    ...['refused: a reached file the receipt holds no hash of'].filter(() => fewer(reachedFiles)),
+    ...['refused: held only by a receipt entry no block names'].filter(() => fewer(extra)),
+    ...['refused: two stills of one hash, both named'].filter(() =>
+      notShown.some((a) => notShown.some((b) => a !== b && stills[a] === stills[b])),
+    ),
+  ];
 };
 
 const test = it.effect.layer(Layer.mergeAll(BunServices.layer, layerHeld));
@@ -742,7 +881,7 @@ describe('kit:approve', () => {
       expect(yield* verdictOf(kept)).toBe('passes');
     }).pipe(Effect.scoped));
 
-  test('over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown', () =>
+  test('over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown', () =>
     Effect.gen(function* () {
       const root = yield* freshApp;
       const next = draws(54);
@@ -800,7 +939,7 @@ describe('kit:approve', () => {
         );
         given = Option.none();
       };
-      /** The pinned stills (sorted) whose bytes no file of `files` and no kept approval showed. */
+      /** The pinned stills (sorted) whose bytes no file of `files` and no kept approval showed, each named, twins too. */
       const unshownOf = (stills: Approved['stills'], files: Readonly<Record<string, string>>) => {
         const hashes = new Set([
           ...Object.values(files),
@@ -810,9 +949,14 @@ describe('kit:approve', () => {
           .filter((still) => !hashes.has(stills[still] ?? ''))
           .toSorted();
       };
-      const expectedOf = (answer: string, notShown: ReadonlyArray<string>) => {
+      const expectedOf = (
+        answer: string,
+        reachesChoice: boolean,
+        notShown: ReadonlyArray<string>,
+      ) => {
         if (answer === 'approve, still asking' || answer === 'unanswered') return 'AskUnanswered';
         if (!answer.startsWith('approve')) return 'AskNotApproval';
+        if (!reachesChoice) return 'AskUnanswered';
         if (notShown.length > 0) return 'StillsNotShown';
         return 'approved';
       };
@@ -821,7 +965,8 @@ describe('kit:approve', () => {
         const ask = `c${i.toString(16).padStart(10, '0')}`;
         const { stills: before } = yield* readRecord(root);
         const scrambled = Object.keys(before).filter(() => next() < 0.3);
-        for (const still of scrambled) yield* scramble(root, still, next);
+        // Some become byte copies of another still, so two paths can share one hash.
+        for (const still of scrambled) yield* rewritten(root, still, Object.keys(before), next);
         const { stills, earlier } = yield* pinOn(root, ask);
         pinModel(ask, stills);
         expect([i, earlier]).toEqual([i, kept]);
@@ -839,15 +984,25 @@ describe('kit:approve', () => {
         );
         if (Option.isNone(drawn)) return yield* Effect.die(new Error('no answer drawn'));
         const [answer, stateOf] = drawn.value;
-        const ofAsk = withReceipt(
-          { ...held(APPROVED, Object.keys(files), 'Answered', ask), state: stateOf(APPROVED) },
-          files,
-        );
+        const {
+          ask: ofAsk,
+          placed,
+          names,
+          receipt,
+          extra,
+        } = drawnAsk(ask, stateOf(APPROVED), files, stills, next);
         yield* holdingReads([asRead(ofAsk), real.read]);
-        const notShown = unshownOf(stills, files);
-        const expected = expectedOf(answer, notShown);
+        const shownHim = shownOnSteps(placed, receipt, names);
+        const notShown = unshownOf(stills, shownHim);
+        const expected = expectedOf(answer, names.includes('approve'), notShown);
         seen.add(expected);
-        const hashes = new Set(Object.values(files));
+        if (expected === 'StillsNotShown')
+          for (const why of refusedWhy(
+            { placed, names, receipt, extra, files, stills, notShown },
+            (more) => unshownOf(stills, { ...shownHim, ...more }).length < notShown.length,
+          ))
+            seen.add(why);
+        const hashes = new Set(Object.values(shownHim));
         if (expected === 'approved' && Object.values(stills).some((hash) => !hashes.has(hash)))
           seen.add('approved by an earlier approval');
         expect([i, answer, yield* approvedOn(root, SHOWED)]).toEqual([
@@ -864,8 +1019,12 @@ describe('kit:approve', () => {
           expect(yield* notShownBy(root, ask)).toEqual(Option.some(notShown));
         if (expected !== 'approved') continue;
         const record = yield* readRecord(root);
-        expect(record.approval).toMatchObject({ status: 'approved', ask, shown: files });
+        expect([i, record.approval]).toMatchObject([i, { status: 'approved', ask }]);
         given = Option.liftPredicate(record.approval, Schema.is(Given));
+        expect([i, Option.map(given, (approval) => approval.shown)]).toEqual([
+          i,
+          Option.some(shownHim),
+        ]);
         const unseen = new Set(Object.values(stills).filter((hash) => !hashes.has(hash)));
         kept = kept.filter((approval) =>
           Object.values(approval.shown).some((hash) => unseen.has(hash)),
@@ -891,6 +1050,10 @@ describe('kit:approve', () => {
         'approved',
         'approved by an earlier approval',
         're-pin refused',
+        'refused: a reached file the receipt holds no hash of',
+        'refused: held only by a receipt entry no block names',
+        'refused: shown only on an unreached step',
+        'refused: two stills of one hash, both named',
       ]);
     }).pipe(Effect.scoped));
 });

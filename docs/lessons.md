@@ -2822,7 +2822,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F1
 - **Wrong:** The record pinned five link cards (`public/og/*.jpg`) whose bytes this unit changed and that no ask showed, and `approve` turned it approved on the owner's real answer to ask adf28c17753, which showed screenshots of the page.
 - **Cause:** The premise "an approval holds when the owner's answer says approve" was false: his answer does not say which bytes he saw, and nothing read what the ask showed. The new premise: an approval binds bytes the owner was shown. Rule: "A still is approved only if its SHA-256 equals a file that an image block of the approving ask showed, and that ask's `stills` answer is `approve`."
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753 as it holds no receipt, and with its saved hashes as one, as its image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`. `kit:approve` reads the hash of each image block's file from the receipt the lab keeps as it makes the ask, the hash of the copy its page serves (`packages/film/src/tools/ask-store.ts` `receipted`).
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753 as it holds no receipt, and with its saved hashes as one, as its image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask ab47076e90b as it holds no receipt, and it stays an earlier approval of the stills it showed, each kept by its path with the hash it showed`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is on an ask saved beside it, each approval it keeps held by its saved ask, and every still was shown byte for byte`. `kit:approve` reads the hash of each image block's file from the receipt the lab keeps as it makes the ask, the hash of the copy its page serves (`packages/film/src/tools/ask-store.ts` `receipted`).
 
 ### served-images-read-from-the-build
 
@@ -2912,7 +2912,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-3-findings.md F1
 - **Wrong:** `imagesShown` read the image blocks of every step of the ask, so an ask whose stills sat only on a branch his answer did not take still approved them.
 - **Cause:** The reader took the ask's steps as what the page showed, but the page shows only the sections his answers reach; and the property's `held()` put its images on a step outside `answered`, so it held the defect as correct.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block on a step he reached showed byte for byte, naming each: one shown as a crop, one in a block of another kind, one on a step his answers did not reach`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### approval-receipt-made-with-the-ask
 
@@ -2923,6 +2923,26 @@ The form of an entry, each field on its own line:
 - **Wrong:** `kit:approve` fetched each image block's file from the lab and hashed it at approve time, so a file rewritten after the answer approved bytes the owner never saw. Then the lab hashed each file as it made the ask but its page still served the set's file as it stood, so a second `publish_set` before the answer showed the owner other bytes than the receipt held, and `approve` took the receipt's.
 - **Cause:** The premise "the lab's file at a shown src is what the owner saw" was false twice: the lab serves a set's files fresh and `publish_set` rewrites them in place, so neither a hash at approve nor a hash at make is what the page served. The premise now: every image an ask's page serves is the copy, named by its SHA-256, that the lab made as it made the ask (`asks/shown/`, `askShownUrl`); its receipt is those hashes, and the lab refuses an answer while a copy no longer holds its hash.
 - **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `shows each image file as the copy it makes with the ask, by its SHA-256, which a later rewrite of the file does not move; a video's frame has none`, `packages/film/src/tools/ask-materials.test.ts` `serves each image of random asks as the bytes its receipt holds at the answer, its set files rewritten at random between the make and the answer`, `packages/film/src/tools/ask-materials.test.ts` `refuses an answer once a copy its page shows no longer holds its hash, and takes it while the copy does`, `packages/film/src/tools/lab-mcp.test.ts` `serves an ask's image from the copy it made, after a second publish_set rewrites the set's file, and takes the answer on it`, `packages/film/src/tools/ask-store.test.ts` `keeps the receipt of its images as it makes the ask: each try's file copied by its SHA-256 and shown as the copy, none for a try with no file`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and one whose record holds no receipt, on pin and approve; a file its receipt has no hash of shows nothing`, `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with its receipt, and approve saves it again as answered with the receipt of the steps he reached`.
+
+### random-approval-draws-the-rules-domain
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the random approval test never puts an image on a step the answer did not reach"
+- **Source:** ftb-approval-receipts/round-1-findings.md F2
+- **Wrong:** The random approval test put every image on the two steps its answers reached, with a receipt equal to the files, so a mutant whose `imagesShown` read every step of the ask passed it.
+- **Cause:** The generator drew from a narrower domain than the rule's: image blocks on any step, answers that reach any subset of them (with a step the ask lacks and a step twice), and a receipt that misses files and holds others. The test now draws each of those, its oracle counts only blocks on the steps it drew as reached, and its `seen` holds a refusal of a still shown only on an unreached step.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
+
+### random-approval-draws-twin-stills
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the random approval test never draws two stills with the same bytes"
+- **Source:** ftb-approval-receipts/round-1-findings.md F5
+- **Wrong:** Each still the random test rewrote got fresh random bytes, so a `stillsNotShown` that named one path per missing hash passed it.
+- **Cause:** Two stills that share bytes were outside the generator, though the rule names each still, not each hash. The test now writes some stills as byte copies of others, and its `seen` holds a refusal that names both of two stills of one hash.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### earlier-approvals-held-by-their-saved-ask
 
@@ -2952,7 +2972,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-remedies-emblem/round-1-findings.md F4
 - **Wrong:** A defect in `stillsNotShown` would change the result and the expectation together.
 - **Cause:** The test's expectation called the code it tested.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, some byte copies of others, image blocks on random steps, answers reaching any of them, and receipts missing and adding entries, approves only stills a reached block showed by the receipt, or an approval it gave, and refuses a re-pin after it to bytes not shown`.
 
 ### build-walk-reads-every-svg-encoding
 
