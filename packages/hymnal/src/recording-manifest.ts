@@ -35,7 +35,7 @@ export const RecordingManifest = Schema.Struct({
   style: Schema.String,
   /** Where it was rendered: `darwin-arm64`. */
   platform: Schema.String,
-  /** The sha256 of the style, the instrument lock and the tools: what every hymn's resume key shares. */
+  /** The sha256 of what shapes the sound besides a hymn's MIDI file (`configOf` in `scripts/render/run.ts`): what every hymn's resume key shares. */
   configHash: Schema.String,
   tools: Schema.Struct({
     sfizz: Schema.Struct({ version: Schema.String, sha256: Schema.String }),

@@ -1,84 +1,108 @@
 /**
- * One hymn from its MIDI file to its checked MP3, and the run around the
- * hymns: the resume key, the machine's guards, the record and the manifest.
+ * The run around the hymns: the resume key, the machine's guards, the checks,
+ * the record and the manifest. The sound itself is `audio.ts`.
  *
- * - **Resume.** A hymn is kept or rendered by `resume.ts`; the render's own
- *   sources (`sourcesOf`) are part of its key.
- * - **Guards.** Before a hymn starts, the run waits while swap use is over
+ * - **Resume.** A hymn's key covers what shapes its sound and nothing else
+ *   (`configOf`, `AUDIO_SOURCES`). A hymn whose record stands (`resume.ts`)
+ *   is checked again from its record (`record.ts`): kept when it passes,
+ *   with its record's verdict written anew when that changed, and rendered
+ *   again only when it fails, since only a render measures it afresh.
+ * - **Guards.** Before a hymn renders, the run waits while swap use is over
  *   8 GB or the 1-minute load is over 12 (one line when it starts waiting;
  *   the wait is left out of the hymn's times), and stops when the output's
  *   disk has under 3 GB free.
- * - **Memory.** The piano's sampler runs beside the string samplers, one at a
- *   time: at most two children, each under `nice -n 10` and `time -l`. The
- *   mix reads one stem at a time. Each child's peak and the render's own
- *   (sampled every 250 ms) go in the record, and the memory check holds them.
- * - **Files.** The stems, the dry mix and the pre-master go once the hymn is
- *   done; `<n>.mp3` and `<n>.json` are written to `.part` files and renamed,
- *   and a failed hymn also gets `<n>.png`, the film's sheet of it.
+ * - **Memory.** Each sampler's peak comes from `time -l`, and the render's
+ *   own is sampled every 250 ms over the mix and the master; the record
+ *   keeps each, and the memory check holds them.
+ * - **Files.** `<n>.mp3` and `<n>.json` are written to `.part` files and
+ *   renamed. A failed hymn also gets `<n>.png`, the film's sheet of it,
+ *   which goes once the hymn passes.
  */
 
 import { encodePng, loudness, sheetOf } from '@bible/film/measure';
 import { Effect, FileSystem, Path, Schema } from 'effect';
 import * as Midi from '../../src/midi.js';
-import { creditText, recordingKey } from '../../src/recordings.js';
+import { recordingKey } from '../../src/recordings.js';
 import { ManifestJson, type RecordingManifest } from '../../src/recording-manifest.js';
 import { voices } from '../../src/voices.js';
+import { type AudioSetup, mixAndMaster, readMidi, sampleStems, stemJobs } from './audio.js';
 import { checksOf, firstSound, LIMITS, longestQuiet, passed, samplePeak } from './checks.js';
-import { masterHymn } from './master.js';
-import { addStem, emptyMix } from './mix.js';
 import { RenderFailed, runOk } from './proc.js';
-import { hashOf, resumeOf } from './resume.js';
-import { sample, ramSfz, sha256Hex } from './sfizz.js';
-import { stemMidi, stemNotes } from './stems.js';
-import { PIANO_SFZ, type Stem, type Style } from './style.js';
-import { readWav, writeWav } from './wav.js';
+import {
+  expectedOf,
+  type HymnRecord,
+  HymnRecordJson,
+  measuredOf,
+  RecordObjectJson,
+  sameVerdicts,
+} from './record.js';
+import { hashOf, keyOf, keysOf, resumeOf } from './resume.js';
+import { sha256Hex } from './sfizz.js';
+import type { Style } from './style.js';
 
 /** Everything a hymn's render reads besides its MIDI file. */
-export interface Setup {
-  readonly style: Style;
+export interface Setup extends AudioSetup {
   readonly set: string;
-  readonly cache: string;
   readonly out: string;
   readonly work: string;
-  readonly sfizz: { readonly binary: string; readonly sha256: string };
+  readonly sfizzSha256: string;
   readonly nodeAv: string;
   readonly configHash: string;
-  readonly ir: string;
 }
 
-/** The part of a hymn's record the resume and the manifest read. */
-const Kept = Schema.Struct({
-  hymn: Schema.Int,
-  key: Schema.String,
-  passed: Schema.Boolean,
-  file: Schema.String,
-  bytes: Schema.Int,
-  sha256: Schema.String,
-  md5: Schema.String,
-  seconds: Schema.Finite,
-  lufs: Schema.Finite,
-  truePeak: Schema.Finite,
-  lagMs: Schema.Finite,
-});
-const KeptJson = Schema.fromJsonString(Kept);
+/**
+ * The files whose bytes shape a recording, by path from the repository
+ * root: every module `audio.ts` reaches, the film's meter and sum that level
+ * the stems, and the room. `sources.test.ts` holds this list to the imports.
+ * The instruments, the sampler's build, NodeAV and the credits go into the
+ * config as themselves (`configOf`).
+ */
+export const AUDIO_SOURCES = [
+  'packages/film/src/core/dsp.ts',
+  'packages/film/src/core/synth/loudness.ts',
+  'packages/hymnal/scripts/render/audio.ts',
+  'packages/hymnal/scripts/render/master.ts',
+  'packages/hymnal/scripts/render/mix.ts',
+  'packages/hymnal/scripts/render/plan.ts',
+  'packages/hymnal/scripts/render/proc.ts',
+  'packages/hymnal/scripts/render/random.ts',
+  'packages/hymnal/scripts/render/room-C.wav',
+  'packages/hymnal/scripts/render/sfizz.ts',
+  'packages/hymnal/scripts/render/stems.ts',
+  'packages/hymnal/scripts/render/style.ts',
+  'packages/hymnal/scripts/render/wav.ts',
+  'packages/hymnal/src/chord.ts',
+  'packages/hymnal/src/midi.ts',
+  'packages/hymnal/src/score.ts',
+  'packages/hymnal/src/voices.ts',
+] as const;
 
-/** The render's own sources (its tests aside), by path from the hymnal package: what a change to the code re-renders. */
-export const sourcesOf = Effect.gen(function* () {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const pkg = path.resolve(import.meta.dir, '../..');
-  const scripts = (yield* fs.readDirectory(import.meta.dir, { recursive: true }))
-    .map((f) => path.join('scripts/render', f))
-    .filter((f) => !f.endsWith('.test.ts') && !f.endsWith('.DS_Store'));
-  const files = [...scripts, 'src/voices.ts', 'src/midi.ts', 'src/score.ts'].sort();
-  const out: Array<readonly [string, string]> = [];
-  for (const file of files) {
-    const full = path.join(pkg, file);
-    if ((yield* fs.stat(full)).type === 'File')
-      out.push([file, sha256Hex(yield* fs.readFile(full))]);
-  }
-  return out;
-});
+/** The config every hymn's key shares: the style, the instrument lock, the tools, the credits and `AUDIO_SOURCES`. */
+export const configOf = (
+  style: Style,
+  tools: {
+    readonly lock: string;
+    readonly sfizzSha256: string;
+    readonly nodeAv: string;
+    readonly comment: string;
+  },
+) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = path.resolve(import.meta.dir, '../../../..');
+    const sources: Array<readonly [string, string]> = [];
+    for (const file of AUDIO_SOURCES)
+      sources.push([file, sha256Hex(yield* fs.readFile(path.join(root, file)))]);
+    return hashOf([
+      ['style', JSON.stringify(style)],
+      ['lock', tools.lock],
+      ['sfizz', tools.sfizzSha256],
+      ['node-av', tools.nodeAv],
+      ['comment', tools.comment],
+      ...sources,
+    ]);
+  });
 
 /** sysctl's swap in use, in bytes, and the 1-minute load. */
 const machine = Effect.gen(function* () {
@@ -157,33 +181,6 @@ const md5Hex = (bytes: Uint8Array) => {
   return hasher.digest('hex');
 };
 
-/** The record of `hymn` in `out`, when there is one that reads. */
-export const readKept = (out: string, hymn: number) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const file = path.join(out, `${hymn}.json`);
-    if (!(yield* fs.exists(file))) return undefined;
-    const text = yield* fs.readFileString(file);
-    return yield* Schema.decodeEffect(KeptJson)(text).pipe(Effect.orElseSucceed(() => undefined));
-  });
-
-/** What one hymn came to: kept from an earlier run, rendered and passed, or rendered and failed. */
-export interface Outcome {
-  readonly hymn: number;
-  readonly status: 'kept' | 'passed' | 'failed';
-  readonly line: string;
-}
-
-/** One stem of a hymn: its style entry, its note count, its MIDI and WAV files and its RAM wrapper. */
-interface StemJob {
-  readonly stem: Stem;
-  readonly notes: number;
-  readonly mid: string;
-  readonly wav: string;
-  readonly sfz: string;
-}
-
 const utf8 = (text: string) => new TextEncoder().encode(text);
 
 /** Writes `bytes` to `file` through a `.part` file. */
@@ -194,107 +191,118 @@ const writeAtomic = (file: string, bytes: Uint8Array) =>
     yield* fs.rename(`${file}.part`, file);
   });
 
+/** A record as its file's text. */
+const recordText = <A>(value: A) => utf8(`${JSON.stringify(value, null, 2)}\n`);
+
+/** The record of `hymn` in `out`, typed and whole, when there is one that reads. */
+export const readRecord = (out: string, hymn: number) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const file = path.join(out, `${hymn}.json`);
+    if (!(yield* fs.exists(file))) return undefined;
+    const text = yield* fs.readFileString(file);
+    return yield* Effect.all({
+      typed: Schema.decodeEffect(HymnRecordJson)(text),
+      whole: Schema.decodeEffect(RecordObjectJson)(text),
+    }).pipe(Effect.orElseSucceed(() => undefined));
+  });
+
+/** A hymn's MIDI file: parsed, its sha256, and what it asks of the recording. */
+const sourceOf = (style: Style, hymn: number) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const bytes = yield* fs.readFile(
+      path.resolve(import.meta.dir, '../../data/midi', `${padded(hymn)}.mid`),
+    );
+    const midi = yield* readMidi(bytes, hymn);
+    return { midi, sha256: sha256Hex(bytes), expected: expectedOf(midi, style, hymn) };
+  });
+
+type Source = Effect.Success<ReturnType<typeof sourceOf>>;
+
+/**
+ * Where a hymn stands in the set under today's config and checks: to
+ * render (no record, another config, or an MP3 that is not the recorded
+ * one), or its record checked again, which `stands` or `fails`.
+ */
+const standingOf = (setup: Setup, hymn: number, source: Source) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const mp3File = path.join(setup.out, `${hymn}.mp3`);
+    const record = yield* readRecord(setup.out, hymn);
+    const mp3Sha = (yield* fs.exists(mp3File)) ? sha256Hex(yield* fs.readFile(mp3File)) : undefined;
+    if (
+      record === undefined ||
+      resumeOf(record.typed, keysOf(setup.configHash, source.sha256), mp3Sha) === 'render'
+    )
+      return { kind: 'render' } as const;
+    const checks = checksOf(
+      measuredOf(record.typed, source.expected, setup.style.master.targetLufs),
+    );
+    return { kind: passed(checks) ? 'stands' : 'fails', ...record, checks } as const;
+  });
+
+/** What one hymn came to: kept from an earlier run, rendered and passed, or rendered and failed. */
+export interface Outcome {
+  readonly hymn: number;
+  readonly status: 'kept' | 'passed' | 'failed';
+  readonly line: string;
+}
+
+/** Removes `<n>.png`, a failed hymn's sheet, once the hymn passes. */
+const dropSheet = (out: string, hymn: number) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const sheet = path.join(out, `${hymn}.png`);
+    if (yield* fs.exists(sheet)) yield* fs.remove(sheet);
+  });
+
 /** Renders `hymn` into `setup.out`, or keeps it (see the module's doc). */
 export const renderHymn = (setup: Setup, hymn: number) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const { style } = setup;
-    const midiBytes = yield* fs.readFile(
-      path.resolve(import.meta.dir, '../../data/midi', `${padded(hymn)}.mid`),
-    );
-    const key = hashOf([
-      ['config', setup.configHash],
-      ['midi', sha256Hex(midiBytes)],
-    ]);
-    const mp3File = path.join(setup.out, `${hymn}.mp3`);
-    const kept = yield* readKept(setup.out, hymn);
-    const mp3Sha = (yield* fs.exists(mp3File)) ? sha256Hex(yield* fs.readFile(mp3File)) : undefined;
-    if (resumeOf(kept, key, mp3Sha) === 'keep')
-      return { hymn, status: 'kept', line: `${hymn} kept` } satisfies Outcome;
+    const source = yield* sourceOf(style, hymn);
+    const standing = yield* standingOf(setup, hymn, source);
+    if (standing.kind === 'stands') {
+      if (standing.typed.passed && sameVerdicts(standing.typed.checks, standing.checks))
+        return { hymn, status: 'kept', line: `${hymn} kept` } satisfies Outcome;
+      yield* writeAtomic(
+        path.join(setup.out, `${hymn}.json`),
+        recordText({ ...standing.whole, passed: true, checks: standing.checks }),
+      );
+      yield* dropSheet(setup.out, hymn);
+      return {
+        hymn,
+        status: 'kept',
+        line: `${hymn} kept: checked again, passed`,
+      } satisfies Outcome;
+    }
 
     const waited = yield* guard(setup.out);
     const started = performance.now();
-    const midi = yield* Midi.parse(midiBytes).pipe(
-      Effect.mapError((e) => RenderFailed.make({ step: `midi ${hymn}`, reason: e.reason })),
-    );
+    const { midi, expected } = source;
     const parts = voices(midi);
     const at = Midi.secondsAt(midi);
     const midiSeconds = Midi.secondsOf(midi);
+    const mp3File = path.join(setup.out, `${hymn}.mp3`);
     const work = path.join(setup.work, String(hymn));
-    yield* fs.makeDirectory(work, { recursive: true });
 
-    // The stems' MIDI files, then the samplers: the piano beside the strings, one string at a time.
-    const stems: StemJob[] = [];
-    for (const stem of style.stems) {
-      // The pilot's seed, the hymn padded as its file is named: the same velocities the owner heard.
-      const seed = `${padded(hymn)}-${style.name}-${stem.name}`;
-      const notes = stemNotes(parts, stem, seed, style.humanise);
-      const mid = path.join(work, `${stem.name}.mid`);
-      yield* fs.writeFile(mid, stemMidi(midi, notes));
-      const sfz = yield* ramSfz(path.join(setup.cache, 'instruments'), stem.sfz);
-      stems.push({ stem, notes: notes.length, mid, wav: path.join(work, `${stem.name}.wav`), sfz });
-    }
-    const runStem = (s: StemJob) =>
-      Effect.map(sample(setup.sfizz.binary, s.sfz, s.mid, s.wav, style), (r) => ({
-        name: s.stem.name,
-        ...r,
-      }));
-    const piano = stems.filter((s) => s.stem.sfz === PIANO_SFZ);
-    const strings = stems.filter((s) => s.stem.sfz !== PIANO_SFZ);
+    const jobs = yield* stemJobs(setup, hymn, midi, work);
     const sampledStart = performance.now();
-    const [pianoRuns, stringRuns] = yield* Effect.all(
-      [
-        Effect.forEach(piano, runStem, { concurrency: 1 }),
-        Effect.forEach(strings, runStem, { concurrency: 1 }),
-      ],
-      { concurrency: 2 },
-    );
+    const { piano: pianoRuns, strings: stringRuns } = yield* sampleStems(setup, jobs);
     const samplerSeconds = (performance.now() - sampledStart) / 1000;
-
-    const mixed = yield* sampledRss(
-      Effect.gen(function* () {
-        // The mix: one stem read at a time, its float WAV gone once it is in.
-        const mixStart = performance.now();
-        const total = Math.round((midiSeconds + style.tail) * style.rate);
-        const needed = Math.round(midiSeconds * style.rate);
-        const mix = emptyMix(style.rate, total);
-        const stemRows = [];
-        for (const s of stems) {
-          const bytes = yield* fs.readFile(s.wav);
-          const pcm = yield* Effect.try({
-            try: () => readWav(bytes),
-            catch: (cause) => RenderFailed.make({ step: `stem ${s.wav}`, reason: String(cause) }),
-          });
-          const lufs = addStem(mix, pcm, style.stemLufs + s.stem.level, s.stem.pan);
-          yield* fs.remove(s.wav);
-          stemRows.push({ name: s.stem.name, notes: s.notes, lufs, frames: pcm.frames, needed });
-        }
-        const dry = path.join(work, 'dry.wav');
-        yield* fs.writeFile(dry, writeWav(mix));
-        const mixSeconds = (performance.now() - mixStart) / 1000;
-
-        const masterStart = performance.now();
-        const mastered = yield* masterHymn({
-          dry,
-          ir: setup.ir,
-          pre: path.join(work, 'pre.wav'),
-          out: `${mp3File}.part`,
-          seconds: total / style.rate,
-          comment: creditText(),
-          style,
-        });
-        yield* fs.remove(dry);
-        yield* fs.remove(path.join(work, 'pre.wav'));
-        return {
-          stemRows,
-          mastered,
-          mixSeconds,
-          masterSeconds: (performance.now() - masterStart) / 1000,
-        };
-      }),
-    );
-    const { stemRows, mastered, mixSeconds, masterSeconds } = mixed.value;
+    const mixed = yield* sampledRss(mixAndMaster(setup, jobs, midi, work, `${mp3File}.part`));
+    const { mastered, mixSeconds, masterSeconds } = mixed.value;
+    const stemRows = mixed.value.stemRows.map((s) => ({
+      ...s,
+      needed: expected.stems[s.name] ?? 0,
+    }));
     const decoded = mastered.pcm;
 
     // The checks, on the MP3 as a player decodes it.
@@ -311,7 +319,7 @@ export const renderHymn = (setup: Setup, hymn: number) =>
     };
     const checks = checksOf({
       seconds: decoded.frames / style.rate,
-      expectedSeconds: midiSeconds + style.tail,
+      expectedSeconds: expected.seconds,
       truePeak: mastered.truePeak,
       lufs: filmLufs,
       ebur128Lufs: mastered.lufs,
@@ -325,12 +333,12 @@ export const renderHymn = (setup: Setup, hymn: number) =>
     const ok = passed(checks);
     yield* fs.rename(`${mp3File}.part`, mp3File);
     const mp3 = yield* fs.readFile(mp3File);
-    if (!ok)
-      yield* writeAtomic(path.join(setup.out, `${hymn}.png`), encodePng(sheetOf(decoded, [])));
+    if (ok) yield* dropSheet(setup.out, hymn);
+    else yield* writeAtomic(path.join(setup.out, `${hymn}.png`), encodePng(sheetOf(decoded, [])));
     const runs = [...pianoRuns, ...stringRuns];
     const record = {
       hymn,
-      key,
+      key: keyOf(setup.configHash, source.sha256),
       passed: ok,
       file: `${hymn}.mp3`,
       bytes: mp3.byteLength,
@@ -353,6 +361,7 @@ export const renderHymn = (setup: Setup, hymn: number) =>
               notes: s.notes,
               lufs: Number.isFinite(s.lufs) ? Math.round(s.lufs * 100) / 100 : 'silent',
               frames: s.frames,
+              needed: s.needed,
               rss: r?.rss ?? 0,
               seconds: Math.round((r?.seconds ?? 0) * 100) / 100,
             },
@@ -368,10 +377,7 @@ export const renderHymn = (setup: Setup, hymn: number) =>
       },
       waitedSeconds: Math.round(waited),
     };
-    yield* writeAtomic(
-      path.join(setup.out, `${hymn}.json`),
-      utf8(`${JSON.stringify(record, null, 2)}\n`),
-    );
+    yield* writeAtomic(path.join(setup.out, `${hymn}.json`), recordText(record));
     const failedNames = Object.entries(checks)
       .filter(([, c]) => !c.ok)
       .map(([name]) => name);
@@ -383,30 +389,40 @@ export const renderHymn = (setup: Setup, hymn: number) =>
     return { hymn, status: ok ? 'passed' : 'failed', line } satisfies Outcome;
   });
 
-/** The set's manifest from every record in `setup.out`, written to `manifest.json`. */
+/** One hymn's row of the manifest, from its record and today's verdict on it. */
+const manifestRow = (record: HymnRecord, passedNow: boolean) => ({
+  hymn: record.hymn,
+  key: recordingKey(record.hymn),
+  file: record.file,
+  bytes: record.bytes,
+  sha256: record.sha256,
+  md5: record.md5,
+  seconds: record.seconds,
+  lufs: record.lufs,
+  truePeak: record.truePeak,
+  lagMs: record.lagMs,
+  passed: passedNow,
+});
+
+/**
+ * The set's manifest from the records in `setup.out` that stand under
+ * today's config, each passed or failed by today's checks, written to
+ * `manifest.json`; a record that does not stand (another config, or an MP3
+ * that is not its own) is left out and named in `left`.
+ */
 export const writeManifest = (setup: Setup) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const hymns = [];
+    const left: number[] = [];
     for (const name of (yield* fs.readDirectory(setup.out)).sort()) {
       const match = /^(\d+)\.json$/.exec(name);
       if (match === null) continue;
-      const record = yield* readKept(setup.out, Number(match[1]));
-      if (record === undefined) continue;
-      hymns.push({
-        hymn: record.hymn,
-        key: recordingKey(record.hymn),
-        file: record.file,
-        bytes: record.bytes,
-        sha256: record.sha256,
-        md5: record.md5,
-        seconds: record.seconds,
-        lufs: record.lufs,
-        truePeak: record.truePeak,
-        lagMs: record.lagMs,
-        passed: record.passed,
-      });
+      const hymn = Number(match[1]);
+      const standing = yield* standingOf(setup, hymn, yield* sourceOf(setup.style, hymn));
+      if (standing.kind === 'render') left.push(hymn);
+      else hymns.push(manifestRow(standing.typed, standing.kind === 'stands'));
     }
     const manifest: RecordingManifest = {
       set: setup.set,
@@ -414,7 +430,7 @@ export const writeManifest = (setup: Setup) =>
       platform: `${process.platform}-${process.arch}`,
       configHash: setup.configHash,
       tools: {
-        sfizz: { version: '1.2.3', sha256: setup.sfizz.sha256 },
+        sfizz: { version: '1.2.3', sha256: setup.sfizzSha256 },
         nodeAv: { version: setup.nodeAv },
       },
       hymns: hymns.sort((a, b) => a.hymn - b.hymn),
@@ -424,7 +440,7 @@ export const writeManifest = (setup: Setup) =>
       path.join(setup.out, 'manifest.json'),
       utf8(`${JSON.stringify(JSON.parse(text), null, 2)}\n`),
     );
-    return manifest;
+    return { manifest, left: left.sort((a, b) => a - b) };
   });
 
 /** The room's impulse response, the float WAV beside the render's sources (`STYLE.reverb.ir`). */

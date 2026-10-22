@@ -225,14 +225,21 @@ the listening pilot. The code is `scripts/render/`; its numbers are data in
   bit-exact, the credits as the one comment.
 - Each hymn is checked on the MP3 as a player decodes it
   (`scripts/render/checks.ts`): length, true peak, loudness, clipping, silence
-  while notes sound, onset lag, every stem sounding, and each process's peak
-  memory. A hymn that fails gets a `<n>.png` sheet beside its record.
+  while notes sound, onset lag, every stem sounding through its own last
+  note's release, and each process's peak memory. A hymn that fails gets a
+  `<n>.png` sheet beside its record, gone once it passes.
 
 The cache is `$HYMN_RENDER_CACHE` (default `~/.cache/manna-hymn-render`), and
 the set goes to `sets/warm-1/` there unless `--out` names a folder: `<n>.mp3`,
 `<n>.json` (its checks, memory, times and resume key) and `manifest.json`. A
-rerun renders only a hymn whose MIDI file, style, lock, sampler, NodeAV or
-render code changed, or that failed. Before each hymn the run waits while swap
+hymn's resume key covers only what shapes its sound: its MIDI file, the style,
+the lock, the sampler, NodeAV, the credits and the files the sound's code
+reaches (`AUDIO_SOURCES` in `scripts/render/run.ts`). A rerun renders a hymn
+whose key changed, and checks every other again from its record
+(`scripts/render/record.ts`): it keeps one that passes and renders again one
+that fails, so a change to the checks renders nothing. The manifest lists the
+records that stand under today's key, each passed or failed by today's
+checks. Before each hymn the run waits while swap
 use is over 8 GB or the load over 12, and stops under 3 GB of free disk. The
 bytes are this Mac's: another host's sampler and FFmpeg give others, so a set
 is rendered on one host and recorded with its tools' hashes.

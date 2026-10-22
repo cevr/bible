@@ -13,7 +13,9 @@
  * (`sets/warm-1/` unless `--out` names another folder). A run prints one
  * line a hymn and a last summary line, writes the set's `manifest.json`, and
  * exits non-zero when any hymn failed. A rerun renders only what failed or
- * changed (`run.ts`). The set is rendered on this Mac only: another host's
+ * whose sound changed, and checks the rest again from their records
+ * (`run.ts`); the summary's `stale` counts records left out of the manifest
+ * because they were rendered under another config. The set is rendered on this Mac only: another host's
  * sampler and FFmpeg give other bytes.
  */
 
@@ -21,12 +23,11 @@ import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { Config, Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { Command, Flag } from 'effect/cli';
-import { RECORDING_SET } from '../../src/recordings.js';
+import { creditText, RECORDING_SET } from '../../src/recordings.js';
 import { chosenOf } from './hymns.js';
 import { fetchInstruments, lockInstruments, readLock } from './instruments.js';
 import { RenderFailed } from './proc.js';
-import { hashOf } from './resume.js';
-import { renderHymn, roomOf, sourcesOf, writeManifest } from './run.js';
+import { configOf, renderHymn, roomOf, writeManifest } from './run.js';
 import { sfizzBinary } from './sfizz.js';
 import { STYLE } from './style.js';
 
@@ -95,14 +96,13 @@ const render = Command.make('render', {
       const fetched = yield* fetchInstruments(cache, lock);
       const sfizz = yield* sfizzBinary(cache);
       const nodeAv = yield* nodeAvVersion;
-      const configHash = hashOf([
-        ['style', JSON.stringify(STYLE)],
-        ['lock', lockText],
-        ['sfizz', sfizz.sha256],
-        ['node-av', nodeAv],
-        ...(yield* sourcesOf),
-      ]);
-      const ir = roomOf(STYLE);
+      const comment = creditText();
+      const configHash = yield* configOf(STYLE, {
+        lock: lockText,
+        sfizzSha256: sfizz.sha256,
+        nodeAv,
+        comment,
+      });
       yield* Effect.sync(() =>
         console.log(
           `render set=${RECORDING_SET} hymns=${chosen.length} instruments-fetched=${fetched} config=${configHash.slice(0, 12)}`,
@@ -110,14 +110,16 @@ const render = Command.make('render', {
       );
       const setup = {
         style: STYLE,
+        instruments: path.join(cache, 'instruments'),
+        sampler: sfizz.binary,
+        ir: roomOf(STYLE),
+        comment,
         set: RECORDING_SET,
-        cache,
         out,
         work,
-        sfizz,
+        sfizzSha256: sfizz.sha256,
         nodeAv,
         configHash,
-        ir,
       };
       const counts = { kept: 0, passed: 0, failed: 0 };
       for (const hymn of chosen) {
@@ -135,10 +137,10 @@ const render = Command.make('render', {
         counts[outcome.status]++;
         yield* Effect.sync(() => console.log(outcome.line));
       }
-      const manifest = yield* writeManifest(setup);
+      const { manifest, left } = yield* writeManifest(setup);
       yield* Effect.sync(() => {
         console.log(
-          `render set=${RECORDING_SET} hymns=${chosen.length} rendered=${counts.passed + counts.failed} kept=${counts.kept} failed=${counts.failed} manifest=${manifest.hymns.length}`,
+          `render set=${RECORDING_SET} hymns=${chosen.length} rendered=${counts.passed + counts.failed} kept=${counts.kept} failed=${counts.failed} manifest=${manifest.hymns.length} stale=${left.length}`,
         );
         if (counts.failed > 0) process.exitCode = 1;
       });

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { ManifestJson } from '../../src/recording-manifest.js';
 import { chosenOf, hymnsOf } from './hymns.js';
 import { addStem, emptyMix, fitted, panGains } from './mix.js';
-import { hashOf, resumeOf } from './resume.js';
+import { hashOf, keyOf, keysOf, resumeOf } from './resume.js';
 import { roomOf } from './run.js';
 import { STYLE } from './style.js';
 import { readWav, writeWav } from './wav.js';
@@ -51,27 +51,36 @@ describe('the hymns a run names', () => {
 });
 
 describe('the resume', () => {
-  const record = { key: 'k', passed: true, sha256: 'mp3' };
+  const record = { key: 'k', sha256: 'mp3' };
 
-  it.effect('keeps a passed hymn whose key and MP3 are unchanged', () =>
+  it.effect('checks a hymn again whose key and MP3 are unchanged', () =>
     Effect.sync(() => {
-      expect(resumeOf(record, 'k', 'mp3')).toBe('keep');
+      expect(resumeOf(record, ['k'], 'mp3')).toBe('check');
+      expect(resumeOf(record, ['k0', 'k'], 'mp3')).toBe('check');
     }),
   );
 
   const renders = [
-    ['no record', undefined, 'k', 'mp3'],
-    ['a changed key', record, 'k2', 'mp3'],
-    ['a failed record', { ...record, passed: false }, 'k', 'mp3'],
-    ['a changed MP3', record, 'k', 'other'],
-    ['a missing MP3', record, 'k', undefined],
+    ['no record', undefined, ['k'], 'mp3'],
+    ['a changed key', record, ['k2'], 'mp3'],
+    ['a changed MP3', record, ['k'], 'other'],
+    ['a missing MP3', record, ['k'], undefined],
   ] as const;
-  for (const [name, kept, key, sha] of renders)
+  for (const [name, kept, keys, sha] of renders)
     it.effect(`renders on ${name}`, () =>
       Effect.sync(() => {
-        expect(resumeOf(kept, key, sha)).toBe('render');
+        expect(resumeOf(kept, keys, sha)).toBe('render');
       }),
     );
+
+  it.effect("stands an earlier config's record only while today's config sounds the same", () =>
+    Effect.sync(() => {
+      const same = [{ config: 'old', sounds: 'new' }];
+      expect(keysOf('new', 'midi', same)).toEqual([keyOf('new', 'midi'), keyOf('old', 'midi')]);
+      expect(keysOf('newer', 'midi', same)).toEqual([keyOf('newer', 'midi')]);
+      expect(keyOf('new', 'midi')).not.toBe(keyOf('new', 'midi2'));
+    }),
+  );
 
   it.effect('hashes a list by its names, values and order', () =>
     Effect.sync(() => {

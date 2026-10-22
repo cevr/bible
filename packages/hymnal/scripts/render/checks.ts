@@ -105,7 +105,7 @@ export interface Measured {
   readonly peak: number;
   readonly longestQuiet: number;
   readonly lagMs: number;
-  /** Each stem with notes: its loudness, its frames, and the frames the MIDI needs. */
+  /** Each stem with notes: its loudness, its frames, and the frames through its own last note-off (`expectedOf` in `record.ts`). */
   readonly stems: ReadonlyArray<{
     readonly lufs: number;
     readonly frames: number;
