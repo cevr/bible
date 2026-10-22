@@ -5,18 +5,17 @@
  * the rows; the web draws neither.
  */
 
+import type { Href } from 'one';
+
 import { hymns } from '~/hymns/hymns';
 import { HymnList, type PullDown } from '~/reader/HymnList';
 import { hymnsOffset } from '~/reader/place';
 
+/** One function for every render, so the rows are drawn again only when what they show changes. */
+const hymnHref = (n: number): Href => `/hymns/${n}`;
+
 export function Browse({ pullDown }: { readonly pullDown?: PullDown }) {
   return (
-    <HymnList
-      hymns={hymns}
-      hrefOf={(n) => `/hymns/${n}`}
-      offset={hymnsOffset}
-      byTopic
-      pullDown={pullDown}
-    />
+    <HymnList hymns={hymns} hrefOf={hymnHref} offset={hymnsOffset} byTopic pullDown={pullDown} />
   );
 }

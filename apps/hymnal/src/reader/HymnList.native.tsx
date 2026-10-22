@@ -50,6 +50,36 @@ const hymnRows = (hymns: ReadonlyArray<HymnText>) => ({
   sticky: [],
 });
 
+/**
+ * What a row reads from outside its item. The list draws a row again only
+ * when its item or this changes, so a row reads nothing else: `drawRow`
+ * sits outside the component and sees its item and this alone.
+ */
+interface Look {
+  readonly accent: ColorValue;
+  readonly hymnHeight: number;
+  readonly topicHeight: number;
+  readonly hrefOf: HymnListProps['hrefOf'];
+}
+
+const drawRow = ({
+  item,
+  extraData,
+}: {
+  readonly item: Row<HymnText>;
+  readonly extraData: Look;
+}) => {
+  if (item.kind === 'topic') return <Topic name={item.name} height={extraData.topicHeight} />;
+  return (
+    <HymnRow
+      hymn={item.hymn}
+      href={extraData.hrefOf(item.hymn.number)}
+      height={extraData.hymnHeight}
+      accent={extraData.accent}
+    />
+  );
+};
+
 export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: HymnListProps) {
   const { fontScale } = useWindowDimensions();
   const accent = useAccent();
@@ -59,6 +89,10 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
   }, [hymns, byTopic]);
   const hymnHeight = heightOf('hymn', fontScale);
   const topicHeight = heightOf('topic', fontScale);
+  const look = useMemo(
+    (): Look => ({ accent, hymnHeight, topicHeight, hrefOf }),
+    [accent, hymnHeight, topicHeight, hrefOf],
+  );
   return (
     <AnimatedLegendList
       data={rows}
@@ -84,17 +118,8 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
       keyboardShouldPersistTaps="handled"
       {...dismissal}
       ListEmptyComponent={<Text style={styles.empty}>{empty}</Text>}
-      renderItem={({ item }) => {
-        if (item.kind === 'topic') return <Topic name={item.name} height={topicHeight} />;
-        return (
-          <HymnRow
-            hymn={item.hymn}
-            href={hrefOf(item.hymn.number)}
-            height={hymnHeight}
-            accent={accent}
-          />
-        );
-      }}
+      extraData={look}
+      renderItem={drawRow}
     />
   );
 }
