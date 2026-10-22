@@ -20,6 +20,58 @@ interface Sheet {
   readonly nested: ReadonlyArray<string>;
 }
 
+/** The characters the reader splits a sheet at, and the stand-in each has inside a quoted string. */
+const HIDDEN: ReadonlyArray<readonly [string, string]> = [
+  ['{', '\uE000'],
+  ['}', '\uE001'],
+  [';', '\uE002'],
+  [':', '\uE003'],
+  [',', '\uE004'],
+  ['(', '\uE005'],
+  [')', '\uE006'],
+  ['/', '\uE007'],
+];
+
+/**
+ * A stylesheet with its comments taken out and each character the reader
+ * splits at hidden inside quoted strings (an escaped quote stays in its
+ * string), so a brace in `content: "}"` neither ends its block nor a
+ * comment-like run in a string its value.
+ */
+const hidden = (css: string) => {
+  let out = '';
+  let quote = '';
+  for (let at = 0; at < css.length; at++) {
+    const char = css.charAt(at);
+    if (quote !== '' && char === '\\') {
+      out += char + css.charAt(at + 1);
+      at++;
+      continue;
+    }
+    if (quote !== '') {
+      out += Option.getOrElse(
+        Option.fromNullishOr(HIDDEN.find(([plain]) => plain === char)?.[1]),
+        () => char,
+      );
+      if (char === quote) quote = '';
+      continue;
+    }
+    if (css.startsWith('/*', at)) {
+      const close = css.indexOf('*/', at + 2);
+      at = close + 1;
+      if (close < 0) at = css.length;
+      continue;
+    }
+    if (char === '"' || char === "'") quote = char;
+    out += char;
+  }
+  return out;
+};
+
+/** A part of a hidden sheet with its quoted strings shown again. */
+const shown = (text: string) =>
+  HIDDEN.reduce((part, [plain, stand]) => part.replaceAll(stand, plain), text);
+
 /** A selector list split at its own commas, not at those inside `:is()`, `:where()` or `:has()`. */
 const selectorsOf = (header: string) => {
   const found: Array<string> = [];
@@ -27,7 +79,7 @@ const selectorsOf = (header: string) => {
   let selector = '';
   for (const char of header) {
     if (char === ',' && depth === 0) {
-      found.push(selector.trim());
+      found.push(shown(selector.trim()));
       selector = '';
       continue;
     }
@@ -35,7 +87,7 @@ const selectorsOf = (header: string) => {
     if (char === ')') depth--;
     selector += char;
   }
-  found.push(selector.trim());
+  found.push(shown(selector.trim()));
   return found;
 };
 
@@ -43,10 +95,11 @@ const selectorsOf = (header: string) => {
  * Every style rule of a stylesheet, in source order, with the at-rule blocks
  * it sits in (an `@media` by its query, any other by its whole header). A
  * rule with a block nested in it (`&:hover { … }`) is not read but named in
- * `nested`, so a test refuses what it cannot read.
+ * `nested`, so a test refuses what it cannot read. Braces, semicolons and
+ * colons in quoted strings are read as part of their value (`hidden`).
  */
 const rules = (css: string): Sheet => {
-  const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const text = hidden(css);
   const found: Array<Rule> = [];
   const nested: Array<string> = [];
   const within: Array<string> = [];
@@ -60,12 +113,12 @@ const rules = (css: string): Sheet => {
     const header = text.slice(start, at).trim().replace(/\s+/g, ' ');
     start = at + 1;
     if (header.startsWith('@')) {
-      within.push(header.replace(/^@media /, ''));
+      within.push(shown(header.replace(/^@media /, '')));
       continue;
     }
     const end = text.indexOf('}', at);
     if (text.slice(at + 1, end).includes('{')) {
-      nested.push(header);
+      nested.push(shown(header));
       at = end;
       start = end + 1;
       continue;
@@ -73,7 +126,8 @@ const rules = (css: string): Sheet => {
     const declarations = new Map<string, string>();
     for (const line of text.slice(at + 1, end).split(';')) {
       const colon = line.indexOf(':');
-      if (colon > 0) declarations.set(line.slice(0, colon).trim(), line.slice(colon + 1).trim());
+      if (colon > 0)
+        declarations.set(shown(line.slice(0, colon).trim()), shown(line.slice(colon + 1).trim()));
     }
     found.push({
       media: [...within],
@@ -170,6 +224,32 @@ describe('the stylesheet as rules', () => {
     ]);
   });
 
+  plain(
+    'read a brace, a semicolon, a colon or a comment in a quoted string as part of its value',
+    () => {
+      expect(
+        rules(
+          `.a { content: "}"; --x: 1 } .b[title='a, b'] { content: '{ /* a; b: c */ }' } .c { top: 0 }`,
+        ).rules,
+      ).toEqual([
+        {
+          media: [],
+          selectors: ['.a'],
+          declarations: new Map([
+            ['content', '"}"'],
+            ['--x', '1'],
+          ]),
+        },
+        {
+          media: [],
+          selectors: [".b[title='a, b']"],
+          declarations: new Map([['content', "'{ /* a; b: c */ }'"]]),
+        },
+        { media: [], selectors: ['.c'], declarations: new Map([['top', '0']]) },
+      ]);
+    },
+  );
+
   plain('name a rule with a block nested in it, which they do not read', () => {
     expect(rules('.card { &:hover { --stir: 1; } } .d { top: 0 }')).toEqual({
       rules: [{ media: [], selectors: ['.d'], declarations: new Map([['top', '0']]) }],
@@ -192,6 +272,8 @@ describe('the stylesheet as rules', () => {
         '.card:is(:hover, :focus-within) { --stir: 1 }',
         '.cards .card:hover { --stir: 1 }',
         '@supports (display: grid) { .card:hover { --stir: 1 } }',
+        '.cards .card:hover { content: "}"; --stir: 1; }',
+        `@media ${FINE_POINTER} { .card:hover { content: '{;'; --stir: 1 } } .card:focus:hover { --stir: 1 }`,
       ].join(' '),
     );
     expect(ungatedHovers(sheet.rules)).toEqual([
@@ -199,6 +281,8 @@ describe('the stylesheet as rules', () => {
       '.card:is(:hover, :focus-within)',
       '.cards .card:hover',
       '.card:hover',
+      '.cards .card:hover',
+      '.card:focus:hover',
     ]);
   });
 

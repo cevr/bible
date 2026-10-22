@@ -2703,3 +2703,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** A changed master, kit step or encode could ship a still the owner never saw.
 - **Cause:** The kit wrote the stills, and the gate judged them by a measure, not by his approval.
 - **Guard:** skill: whether a repainted still's light is right is the owner's eye at 1:1, and the record is written only after he answers. Carried by `.claude/skills/verify-firsttheblade/features/motion.md`: "A repainted or re-encoded still goes to the owner as a lab ask with 1:1"
+
+### styles-test-reads-quoted-braces
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "repeat of r2 F2; a quoted brace in a declaration hides an ungated hover from the styles test"
+- **Source:** ftb-motion/round-3-findings.md F2
+- **Wrong:** The styles test's reader ended a block at the first `}`, even one in a string, so `.cards .card:hover { content: "}"; --stir: 1; }` dropped its stir and popped the `@media` stack early, and the ungated hover passed.
+- **Cause:** The reader split the sheet at braces and semicolons with no notion of a quoted string.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `read a brace, a semicolon, a colon or a comment in a quoted string as part of its value`, `apps/firsttheblade/src/motion/styles.test.ts` `find each hover stir outside the fine-pointer query, however it is written`.
