@@ -8,8 +8,9 @@
  * thread from the topics' fixed places (`pin.ts`), not the list's sticky
  * headers: those wait on the JS thread at each handoff, and a fast drag
  * showed the row missing or out of place for a frame.
- * After its last row the list keeps `endSpace` of the bottom inset, so the
- * row ends clear of the home indicator and the docked bar.
+ * After its last row the list keeps `ListEnd`, the end space over the bottom
+ * inset it meets, so the row ends clear of the home indicator, or of the
+ * bar docked under the stack while it shows.
  * Every row is one line of one height, scaled with the reader's text size,
  * so the list knows each row's size before it draws it (`getFixedItemSize`)
  * and reuses a row's view for the next row it shows (`recycleItems`).
@@ -19,7 +20,7 @@
  */
 
 import { AnimatedLegendList } from '@legendapp/list/reanimated';
-import { type Href, Link, useLinkTo, useSafeAreaInsets } from 'one';
+import { type Href, Link, useLinkTo } from 'one';
 import { useMemo } from 'react';
 import Animated, {
   type SharedValue,
@@ -40,7 +41,7 @@ import type { HymnText } from '~/hymns/hymns';
 import { color, useAccent } from '~/color';
 
 import type { HymnListProps } from './HymnList';
-import { endSpace } from './end';
+import { ListEnd } from './ListEnd';
 import { dismissal } from './keyboard';
 import { pinnedAt, topicStarts } from './pin';
 import { type Row, rowsOf } from './rows';
@@ -96,7 +97,6 @@ const drawRow = ({
 
 export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: HymnListProps) {
   const { fontScale } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const accent = useAccent();
   const { rows, sticky } = useMemo(() => {
     if (byTopic) return rowsOf(hymns);
@@ -133,7 +133,7 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
         ListHeaderComponent={pullDown?.node}
         estimatedHeaderSize={pullDown?.height}
         // The last row ends clear of the home indicator and the docked bar.
-        ListFooterComponent={<View testID="list-end" style={{ height: endSpace(insets.bottom) }} />}
+        ListFooterComponent={<ListEnd />}
         // The list opens with the search field tucked under the title, and a
         // drag let go between there and the top settles at one or the other;
         // past the field it scrolls freely.

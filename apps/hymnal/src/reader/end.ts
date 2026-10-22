@@ -1,8 +1,8 @@
 /**
- * The space a list keeps after its last row, so the row ends clear of the
- * home indicator and of the bar docked under the stack. It comes from the
- * bottom safe-area inset alone, the same with the bar docked or not: the
- * bar lies outside the list's frame, and the list reads none of its state.
+ * The space a list keeps after its last row, so the row ends clear of what
+ * lies under the list: the home indicator, or the bar docked under the stack
+ * while it shows. It comes from the bottom inset the list meets
+ * (`useStackBottom`): the device's inset with no bar, none over the bar.
  */
 
 /** The room between the last row and the bottom inset, in points. */

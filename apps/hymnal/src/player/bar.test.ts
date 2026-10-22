@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
 
-import { Bar, barFor, playedShare, toldPlace } from './bar';
+import { Bar, barFor, playedShare, stackBottom, toldPlace } from './bar';
 import { Player, type Track } from './player';
 
 const three: Track = { number: 3, title: 'Three' };
@@ -88,5 +88,19 @@ describe('the seek line', () => {
       Option.none(),
     );
     expect(toldPlace(Player.Idle())).toEqual(Option.none());
+  });
+});
+
+describe('stackBottom', () => {
+  it('leaves the stack the device inset while the bar is hidden', () => {
+    expect(stackBottom(Bar.Hidden(), 34)).toBe(34);
+    expect(stackBottom(Bar.Hidden(), -1)).toBe(0);
+  });
+
+  it('leaves none while the bar shows: the bar holds the home indicator', () => {
+    for (const state of Object.values(holding(three))) {
+      expect(stackBottom(barFor(state, Option.none()), 34)).toBe(0);
+    }
+    expect(stackBottom(barFor(Player.Idle(), Option.some(four)), 34)).toBe(0);
   });
 });

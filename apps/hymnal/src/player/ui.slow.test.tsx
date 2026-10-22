@@ -14,17 +14,20 @@ import { View } from 'react-native';
 import { createRoot } from 'react-dom/client';
 
 import { hymnAt } from '~/hymns/hymns';
+import { endSpace } from '~/reader/end';
+import { ListEnd } from '~/reader/ListEnd';
 import { HymnScreen } from '~/reader/HymnScreen';
 import { audioUrl } from '~/remote';
 import { theme } from '~/theme';
 
 import { fakeDevice } from '../test/device';
-import { opened, params } from '../test/one';
+import { opened, params, safeArea } from '../test/one';
 import { PlayerContext } from './context';
 import { FullPlayer } from './FullPlayer';
 import { useShowsPage } from './page';
 import { Command, Player, playerOn, type Track } from './player';
 import { PlayerBar } from './PlayerBar';
+import { StackBottom } from './StackBottom';
 import { useCommitAtRest, useScrub } from './scrub';
 
 const morning = Option.getOrThrow(hymnAt('100'));
@@ -653,6 +656,40 @@ describe('the bottom bar', () => {
         `1${praise.title}Play`,
       );
     }),
+  );
+});
+
+describe('a list’s end over the bottom bar', () => {
+  /** A phone list's end space in the layout's stack, and the bar docked under it. */
+  const home = (
+    <>
+      <StackBottom>
+        <ListEnd />
+      </StackBottom>
+      <PlayerBar />
+    </>
+  );
+  const heightOf = (found: Option.Option<Element>) =>
+    Option.map(found, (e) => Number.parseFloat(getComputedStyle(e).height));
+  const paddingOf = (found: Option.Option<Element>) =>
+    Option.map(found, (e) => Number.parseFloat(getComputedStyle(e).paddingBottom));
+
+  it.live('ends over the home indicator with no bar, and over the bar once a hymn is held', () =>
+    Effect.gen(function* () {
+      safeArea.bottom = 34;
+      using page = mount(home);
+      const end = () => page.find('[data-testid="list-end"]');
+      expect(Option.isNone(page.find('[aria-label="Player"]'))).toBe(true);
+      expect(heightOf(end())).toEqual(Option.some(endSpace(34)));
+
+      page.send(Command.Start({ track: morning }));
+      page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
+      yield* page.until(Player.$is('Playing'));
+      // The bar holds the home indicator; the list keeps its own room over the bar.
+      expect(paddingOf(page.find('[aria-label="Player"]'))).toEqual(Option.some(34));
+      expect(heightOf(end())).toEqual(Option.some(endSpace(0)));
+      expect(endSpace(0)).toBeGreaterThanOrEqual(24);
+    }).pipe(Effect.ensuring(Effect.sync(() => void (safeArea.bottom = 0)))),
   );
 });
 

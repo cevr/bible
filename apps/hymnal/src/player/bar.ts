@@ -89,3 +89,15 @@ export const toldPlace = (state: Player): Option.Option<string> =>
       Option.map(length, (whole) => `${clock(at)} of ${clock(whole)}`),
     ),
   );
+
+/**
+ * The bottom inset the stack's screens meet, for a device's bottom inset of
+ * `inset` points. The layout docks the bar under the stack, so while it shows
+ * it holds the home indicator and the screens end on its top edge: none is
+ * left. While it is hidden the screens reach the window's bottom edge.
+ */
+export const stackBottom = (bar: Bar, inset: number): number =>
+  Bar.$match(bar, {
+    Hidden: () => Math.max(0, inset),
+    Shown: () => 0,
+  });
