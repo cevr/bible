@@ -2,9 +2,10 @@
  * The stills the owner approved, by their bytes. Two rules:
  *
  * - A still is approved only if its SHA-256 equals a file that an image
- *   block of the approving ask showed, and that ask's `stills` answer is
+ *   block of an approving ask showed, and that ask's `stills` answer is
  *   `approve`. An approval binds the bytes the owner was shown, not his
- *   word alone.
+ *   word alone, and stays true of those bytes: a later ask need show only
+ *   the stills that changed.
  * - Every image file of the built site (`dist/` after `bun run build`, each
  *   found by its bytes, `./build-walk.ts`) is an approved still or an image
  *   outside the rule (`OUTSIDE`, `./served.ts`, each with its reason). The
@@ -18,26 +19,29 @@
  * `kit/approved-stills.json` holds the approval (the lab ask that shows him
  * the stills: pending until he answers, then approved with the lab it was
  * read from, the label of his answer, all his answers, and the SHA-256 of
- * each file the ask showed) and the SHA-256 of each still: every served
- * image (`servedImages`) not outside the rule.
+ * each file the ask showed), the earlier approvals that showed a still's
+ * bytes as they stand, and the SHA-256 of each still: every served image
+ * (`servedImages`) not outside the rule. Each ask it names is saved beside
+ * it (`savedAsk`): the lab's record of the ask, and the hash of each file it
+ * showed.
  *
  * `unapproved` names each still whose bytes differ from the record, each the
  * record does not name, and each the record names with no file;
  * `kit/field-still.test.ts` holds it empty. `bun run kit` and
  * `bun run kit:field` print it after they write, and never write the record.
  * `pin` (`bun run kit:pin`, `./pin.ts`) writes the record pending on an ask,
- * from the stills as they stand. `approve` (`bun run kit:approve`,
- * `./approve.ts`) turns it approved from the lab's record of the ask: its
- * answer, and the files its image blocks showed. `shippable`
- * (`bun run kit:shippable`, and first in `alchemy.run.ts` on stage `prod`)
- * refuses a record that is not approved, a still the approval's shown files
- * do not hold, and each image of a fresh build the record and `OUTSIDE` do
- * not hold.
+ * from the stills as they stand, and saves the ask. `approve`
+ * (`bun run kit:approve`, `./approve.ts`) turns it approved from the lab's
+ * record of the ask: its answer, and the files its image blocks showed; and
+ * saves the ask as answered. `shippable` (`bun run kit:shippable`, and first
+ * in `alchemy.run.ts` on stage `prod`) refuses a record that is not
+ * approved, a still no approval's shown files hold, and each image of a
+ * fresh build the record and `OUTSIDE` do not hold.
  */
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 import { type BuiltImage, buildSite, builtImages, Format, sha256 } from './build-walk.ts';
-import { AskAnswers, type LabAsk, LabAsks } from './lab-asks.ts';
+import { AskAnswers, type AskRead, type LabAsk, LabAsks } from './lab-asks.ts';
 import { OUTSIDE, servedImages } from './served.ts';
 
 /** The record, from the app. */
@@ -54,26 +58,72 @@ export const APPROVE = 'approve';
  * gave in that ask in the lab's words, and the SHA-256 of each file its
  * image blocks showed, by the block's `src`.
  */
+export const Given = Schema.Struct({
+  status: Schema.Literal('approved'),
+  ask: Schema.String,
+  lab: Schema.String,
+  answered: Schema.String,
+  answer: Schema.String,
+  answers: AskAnswers,
+  shown: Schema.Record(Schema.String, Schema.String),
+});
+export type Given = typeof Given.Type;
+
 export const Approval = Schema.Union([
   Schema.Struct({ status: Schema.Literal('pending'), ask: Schema.String }),
-  Schema.Struct({
-    status: Schema.Literal('approved'),
-    ask: Schema.String,
-    lab: Schema.String,
-    answered: Schema.String,
-    answer: Schema.String,
-    answers: AskAnswers,
-    shown: Schema.Record(Schema.String, Schema.String),
-  }),
+  Given,
 ]);
 export type Approval = typeof Approval.Type;
 
-/** The record: the approval, and each still's path (from the app) with the SHA-256 of its bytes. */
+/**
+ * The record: the approval; the approvals of earlier asks, each kept while
+ * it showed the bytes of a pinned still, so a still unchanged since he
+ * approved it stays approved when a later ask shows only what changed; and
+ * each still's path (from the app) with the SHA-256 of its bytes.
+ */
 export const Approved = Schema.Struct({
   approval: Approval,
+  earlier: Schema.Array(Given),
   stills: Schema.Record(Schema.String, Schema.String),
 });
 export type Approved = typeof Approved.Type;
+
+/**
+ * Where an ask the record names is saved, from the app: the lab's record of
+ * it as the lab gave it, and the SHA-256 of each file its image blocks
+ * showed, by `src`. `pin` saves the ask it pins on, `approve` saves it again
+ * as answered, so the committed record's asks are always saved beside it.
+ */
+export const savedAsk = (ask: string) => ({
+  record: `kit/fixtures/ask-${ask}.json`,
+  shown: `kit/fixtures/ask-${ask}.shown.json`,
+});
+
+const BodyJson = Schema.fromJsonString(Schema.Unknown, { space: 2 });
+const ShownJson = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String), {
+  space: 2,
+});
+
+/** Ask `ask`, as the lab gave it (`read`), saved at `savedAsk` with the hash of each file it showed. */
+const saveAsk = Effect.fn('Approval.saveAsk')(function* (
+  app: string,
+  ask: string,
+  { body }: AskRead,
+  shown: Readonly<Record<string, string>>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const { record, shown: shownAt } = savedAsk(ask);
+  yield* fs.makeDirectory(path.dirname(path.join(app, record)), { recursive: true });
+  yield* fs.writeFileString(
+    path.join(app, record),
+    `${yield* Schema.encodeEffect(BodyJson)(body)}\n`,
+  );
+  yield* fs.writeFileString(
+    path.join(app, shownAt),
+    `${yield* Schema.encodeEffect(ShownJson)(shown)}\n`,
+  );
+});
 
 const RecordJson = Schema.fromJsonString(Approved, { space: 2 });
 
@@ -211,13 +261,37 @@ export class ShipUnapproved extends Schema.TaggedError<ShipUnapproved>()('ShipUn
   }
 }
 
-/** The record written pending on `ask`, from the stills as they stand; the lab must hold the ask. */
+/**
+ * The record written pending on `ask`, from the stills as they stand; the
+ * lab must hold the ask. It keeps each approval of another ask (the record's
+ * own, once approved, and its earlier ones) that showed the bytes of a
+ * pinned still, and saves the ask as the lab gave it with the hash of each
+ * file it shows.
+ */
 export const pin = Effect.fn('Approval.pin')(function* (app: string, ask: string) {
-  yield* (yield* LabAsks).read(ask);
-  return yield* writeRecord(app, {
-    approval: { status: 'pending', ask },
-    stills: Object.fromEntries(yield* hashedStills(app)),
-  });
+  const lab = yield* LabAsks;
+  const read = yield* lab.read(ask);
+  const shown = yield* shownBy(read.record);
+  const before = yield* readRecord(app);
+  const stills = Object.fromEntries(yield* hashedStills(app));
+  const pinned = new Set(Object.values(stills));
+  const given = [before.approval].filter(Schema.is(Given));
+  const earlier = [...given, ...before.earlier].filter(
+    (approval) =>
+      approval.ask !== ask && Object.values(approval.shown).some((hash) => pinned.has(hash)),
+  );
+  yield* saveAsk(app, ask, read, shown);
+  return yield* writeRecord(app, { approval: { status: 'pending', ask }, earlier, stills });
+});
+
+/** The SHA-256 of each file the ask's image blocks show, as the lab serves it, by `src`. */
+const shownBy = Effect.fn('Approval.shownBy')(function* (held: LabAsk) {
+  const lab = yield* LabAsks;
+  return Object.fromEntries(
+    yield* Effect.forEach(imagesShown(held), (src) =>
+      Effect.map(lab.shownHash(src), (hash) => [src, hash] as const),
+    ),
+  );
 });
 
 /** The `src` of each image block the ask shows, in its steps' order, once each. */
@@ -235,12 +309,12 @@ export const imagesShown = (ask: LabAsk) => [
   ),
 ];
 
-/** Each pinned still (sorted) whose SHA-256 no shown file has. */
+/** Each pinned still (sorted) whose SHA-256 no file of any of the shown sets has. */
 export const stillsNotShown = (
   stills: Approved['stills'],
-  shown: Readonly<Record<string, string>>,
+  ...shown: ReadonlyArray<Readonly<Record<string, string>>>
 ) => {
-  const hashes = new Set(Object.values(shown));
+  const hashes = new Set(shown.flatMap((files) => Object.values(files)));
   return Object.keys(stills)
     .filter((still) => !hashes.has(stills[still] ?? ''))
     .toSorted();
@@ -251,15 +325,18 @@ export const stillsNotShown = (
  * ask. Refused unless the record is pending on that ask, the lab holds the
  * ask, the owner answered it, his answer to the stills question is the
  * approve choice, every pinned still's SHA-256 is that of a file one of the
- * ask's image blocks showed (each other named), and every still is the one
- * the record pinned.
+ * ask's image blocks showed or an earlier approval the record keeps showed
+ * (each other named), and every still is the one the record pinned. It
+ * saves the ask again as the lab gave it answered, and keeps only the
+ * earlier approvals that hold a still this ask did not show.
  */
 export const approve = Effect.fn('Approval.approve')(function* (app: string, ask: string) {
   const record = yield* readRecord(app);
   if (record.approval.status !== 'pending' || record.approval.ask !== ask)
     return yield* RecordNotPending.make({ ask, approval: record.approval });
   const lab = yield* LabAsks;
-  const held = yield* lab.read(ask);
+  const read = yield* lab.read(ask);
+  const held = read.record;
   if (held.state._tag === 'Asking') return yield* AskUnanswered.make({ ask });
   const answer = yield* Effect.fromOption(
     Option.fromUndefinedOr(held.state.answers[STILLS_QUESTION]),
@@ -273,12 +350,12 @@ export const approve = Effect.fn('Approval.approve')(function* (app: string, ask
       held.answered.find(({ values }) => Object.hasOwn(values, STILLS_QUESTION)),
     ),
   ).pipe(Effect.mapError(() => AskUnanswered.make({ ask })));
-  const shown = Object.fromEntries(
-    yield* Effect.forEach(imagesShown(held), (src) =>
-      Effect.map(lab.shownHash(src), (hash) => [src, hash] as const),
-    ),
+  const shown = yield* shownBy(held);
+  const notShown = stillsNotShown(
+    record.stills,
+    shown,
+    ...record.earlier.map((approval) => approval.shown),
   );
-  const notShown = stillsNotShown(record.stills, shown);
   if (notShown.length > 0) return yield* StillsNotShown.make({ ask, stills: notShown });
   const moved = yield* unapproved(app);
   if (moved.length > 0) return yield* StillsMoved.make({ ask, stills: moved });
@@ -294,8 +371,17 @@ export const approve = Effect.fn('Approval.approve')(function* (app: string, ask
     answers,
     shown,
   };
-  yield* writeRecord(app, { approval, stills: record.stills });
-  return { approval, stills: record.stills };
+  const left = new Set(
+    stillsNotShown(record.stills, shown).flatMap((still) =>
+      Option.toArray(Option.fromUndefinedOr(record.stills[still])),
+    ),
+  );
+  const earlier = record.earlier.filter((given) =>
+    Object.values(given.shown).some((hash) => left.has(hash)),
+  );
+  yield* saveAsk(app, ask, read, shown);
+  yield* writeRecord(app, { approval, earlier, stills: record.stills });
+  return { approval, earlier, stills: record.stills };
 });
 
 /**
@@ -326,9 +412,9 @@ export const unapprovedBuilt = Effect.fn('Approval.unapprovedBuilt')(function* (
  */
 export const shippable = Effect.fn('Approval.shippable')(function* (app: string) {
   const path = yield* Path.Path;
-  const { approval, stills } = yield* readRecord(app);
+  const { approval, earlier, stills } = yield* readRecord(app);
   if (approval.status === 'pending') return yield* ShipPending.make({ ask: approval.ask });
-  const notShown = stillsNotShown(stills, approval.shown);
+  const notShown = stillsNotShown(stills, approval.shown, ...earlier.map(({ shown }) => shown));
   if (notShown.length > 0)
     return yield* StillsNotShown.make({ ask: approval.ask, stills: notShown });
   yield* buildSite(app);

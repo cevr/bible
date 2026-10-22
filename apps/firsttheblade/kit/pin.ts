@@ -1,10 +1,13 @@
 /**
  * `bun run kit:pin --ask <id>`: writes the record of the approved stills
  * (`kit/approved-stills.json`, `./approval.ts`) pending on that ask, from the
- * stills as they stand. It refuses an ask the lab does not hold
- * (`./lab-asks.ts`). Pinning binds nothing: `kit:approve` approves only the
- * stills whose bytes an image block of that ask showed, so a pin to bytes
- * the ask did not show is refused there, whenever it was made.
+ * stills as they stand, keeping each earlier approval that showed a pinned
+ * still's bytes, and saves the ask as the lab gives it with the hash of each
+ * file it shows (`kit/fixtures/ask-<id>.json` and `.shown.json`). It refuses
+ * an ask the lab does not hold (`./lab-asks.ts`). Pinning binds nothing:
+ * `kit:approve` approves only the stills whose bytes an image block of that
+ * ask or of a kept approval showed, so a pin to bytes no ask showed is
+ * refused there, whenever it was made.
  *
  * Only the coordinator runs it. The kit never writes the record.
  */
@@ -19,7 +22,7 @@ export const pinned = Effect.fn('KitPin.run')(function* (input: { readonly ask: 
   const path = yield* Path.Path;
   const record = yield* pin(path.dirname(import.meta.dir), input.ask);
   yield* Console.log(
-    `${RECORD}: ${Object.keys(record.stills).length} stills, pending on ask ${input.ask}`,
+    `${RECORD}: ${Object.keys(record.stills).length} stills, pending on ask ${input.ask}, ${record.earlier.length} earlier approvals kept`,
   );
 });
 

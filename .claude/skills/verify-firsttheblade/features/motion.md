@@ -103,7 +103,11 @@ emblems at rest.
   once the owner has answered, approves them
   (`bun run --cwd apps/firsttheblade kit:approve --ask <id>`), which reads
   the ask from the lab, hashes each image block it showed, and refuses each
-  pinned still no shown file holds, any answer but approve, and any still
-  changed since the pin. Every prod plan and deploy builds the site and
+  pinned still no file of this ask or of a kept earlier approval holds, any
+  answer but approve, and any still changed since the pin. An approval stays
+  true of the bytes it showed, so an ask after a change need show only the
+  changed stills; `kit:pin` and `kit:approve` save the ask in
+  `apps/firsttheblade/kit/fixtures/` (`ask-<id>.json`, `ask-<id>.shown.json`),
+  and the committed record must have each of its asks saved there. Every prod plan and deploy builds the site and
   refuses each built image the record and `OUTSIDE` do not hold
   (`kit:shippable`).

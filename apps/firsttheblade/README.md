@@ -191,9 +191,9 @@ of the field at 3072 px, and the dusk band blends in oklab.
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 bun run kit:field  # the field's still (its rays from the sun) and its wind map into src/art/ from kit/art/field.webp; then bun run kit
-bun run kit:pin --ask <id>      # the coordinator only: pins the stills as they stand in kit/approved-stills.json, pending on the lab ask whose image blocks show them
-bun run kit:approve --ask <id>  # the coordinator only: approves the pinned stills when the stills answer is approve and each still's SHA-256 is a file an image block of the ask showed
-bun run kit:shippable           # exits 0 only when the approval's shown files hold every still and a fresh build's dist/ holds no image the record and OUTSIDE do not; the prod stack runs it first
+bun run kit:pin --ask <id>      # the coordinator only: pins the stills as they stand in kit/approved-stills.json, pending on the lab ask whose image blocks show them, and saves the ask in kit/fixtures/
+bun run kit:approve --ask <id>  # the coordinator only: approves the pinned stills when the stills answer is approve and each still's SHA-256 is a file an image block of the ask or of a kept earlier approval showed; saves the ask again, answered
+bun run kit:shippable           # exits 0 only when the approvals' shown files hold every still and a fresh build's dist/ holds no image the record and OUTSIDE do not; the prod stack runs it first
 bun run promise    # builds, then: every sentence a reader gets that speaks of email, of what we send or of how often is the list's promise, or held
 bun run promise:census  # the promise check, red on each way the promise was lost before and on each source it refuses, each injected and built
 ```
@@ -283,8 +283,14 @@ light comes from the sun is his look, so the code does not measure it. The
 record, `kit/approved-stills.json` (`kit/approval.ts`), holds his approval
 (the lab ask that shows him each still byte for byte as an image block,
 pending until he answers, then the lab URL it was read from, his answer's
-label, his answers and the SHA-256 of each file the ask showed) and the
-SHA-256 of each still.
+label, his answers and the SHA-256 of each file the ask showed), the earlier
+approvals that still show a pinned still's bytes (an approval stays true of
+the bytes it showed, so a later ask shows only the stills that changed), and
+the SHA-256 of each still. Each ask the record names is saved beside it in
+`kit/fixtures/` (`ask-<id>.json`, the lab's record as it gave it, and
+`ask-<id>.shown.json`, the hash of each file it showed): `kit:pin` saves the
+ask it pins on and `kit:approve` saves it again answered, and
+`kit/approval.test.ts` holds the committed record to them.
 `kit/field-still.test.ts` refuses every served still whose bytes differ from
 the record, each the record does not name and each it names with no file,
 and an image added under any served folder or named from any module. It
@@ -297,11 +303,12 @@ a render of it is not the still): `bun run kit:pin --ask <id>` pins the
 stills as they stand, and once he answers, `bun run kit:approve --ask <id>`
 reads the ask from the lab (`kit/lab-asks.ts`), fetches and hashes each image
 block it showed, and turns the record approved only when he chose approve,
-each pinned still's SHA-256 is that of a shown file, and every still is the
-one pinned (`kit/approval.test.ts`). On stage `prod` the stack
+each pinned still's SHA-256 is that of a file the ask or a kept earlier
+approval showed, and every still is the one pinned (`kit/approval.test.ts`).
+On stage `prod` the stack
 (`alchemy.run.ts`) runs `kit:shippable` before any resource, so every prod
 plan and deploy builds the site and refuses a pending record, a still the
-approval's shown files do not hold, and each built image the record and
+approvals' shown files do not hold, and each built image the record and
 `OUTSIDE` do not hold (`kit/shippable.test.ts`); a stage deploy does not run
 it. The
 far hills' streak lifts (`kit/field-paint.ts` `HILL_STREAKS`) were measured on

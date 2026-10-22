@@ -6,9 +6,12 @@
  * refuses an ask the lab does not hold, one he has not answered, an answer
  * to the stills question that is not the approve choice, a record not
  * pending on that ask, each pinned still whose SHA-256 no image block of the
- * ask showed, and stills other than the ones the record pinned, naming
- * each. The record keeps the ask, the lab URL it read, the answer's label
- * and the SHA-256 of each shown file.
+ * ask or of an earlier approval the record keeps showed, and stills other
+ * than the ones the record pinned, naming each. The record keeps the ask,
+ * the lab URL it read, the answer's label, the SHA-256 of each shown file,
+ * and the earlier approvals that hold a still this ask did not show; the
+ * ask is saved again as answered (`kit/fixtures/ask-<id>.json` and
+ * `.shown.json`).
  *
  * Only the coordinator runs it, once the owner has answered. The kit never
  * writes the record.
@@ -24,7 +27,7 @@ export const approved = Effect.fn('KitApprove.run')(function* (input: { readonly
   const path = yield* Path.Path;
   const record = yield* approve(path.dirname(import.meta.dir), input.ask);
   yield* Console.log(
-    `${RECORD}: ${Object.keys(record.stills).length} stills, each shown by ask ${input.ask} in the lab at ${record.approval.lab}, approved (${record.approval.answer})`,
+    `${RECORD}: ${Object.keys(record.stills).length} stills, each shown by ask ${input.ask} in the lab at ${record.approval.lab} or by ${record.earlier.length} earlier approvals kept, approved (${record.approval.answer})`,
   );
 });
 

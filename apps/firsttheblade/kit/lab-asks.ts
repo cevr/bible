@@ -1,7 +1,8 @@
 /**
  * The film lab's asks, read: the record of an ask (its steps' blocks, its
  * state, the owner's answers by question, and when he answered each step) as
- * the lab answers `GET /api/asks/<id>`, and the SHA-256 of a file an image
+ * the lab answers `GET /api/asks/<id>`, with the lab's JSON of it whole (the
+ * approval saves it, `./approval.ts`), and the SHA-256 of a file an image
  * block shows, from the bytes the lab serves at the block's `src`. The live
  * layer asks the lab at `FILM_LAB_URL` (the always-on lab,
  * http://127.0.0.1:8229/, unless set), and only reads; the tests give a
@@ -81,10 +82,16 @@ export class LabUnread extends Schema.TaggedError<LabUnread>()('LabUnread', {
   }
 }
 
+/** An ask as the lab answered it: the record the approval reads, and the lab's JSON of it whole, as it gave it. */
+export interface AskRead {
+  readonly record: LabAsk;
+  readonly body: unknown;
+}
+
 export interface LabAsksService {
   /** The lab read, as `FILM_LAB_URL` names it. */
   readonly url: string;
-  readonly read: (ask: string) => Effect.Effect<LabAsk, AskUnknown | LabUnread>;
+  readonly read: (ask: string) => Effect.Effect<AskRead, AskUnknown | LabUnread>;
   /** The SHA-256 (hex) of the bytes the lab serves at an image block's `src`. */
   readonly shownHash: (src: string) => Effect.Effect<string, LabUnread>;
 }
@@ -110,7 +117,8 @@ export const layerLab = Layer.effect(
       if (response.status === 404) return yield* AskUnknown.make({ ask });
       if (response.status !== 200) return yield* unread(`status ${response.status}`);
       const body = yield* response.json.pipe(Effect.mapError((error) => unread(error.message)));
-      return yield* readAsk(body).pipe(Effect.mapError((error) => unread(error.message)));
+      const record = yield* readAsk(body).pipe(Effect.mapError((error) => unread(error.message)));
+      return { record, body };
     });
     const shownHash = Effect.fn('LabAsks.shownHash')(function* (src: string) {
       const unread = (reason: string) => LabUnread.make({ url, reason: `${src}: ${reason}` });

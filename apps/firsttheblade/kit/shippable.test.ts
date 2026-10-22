@@ -1,6 +1,7 @@
 /**
  * `shippable`, the prod deploy's gate: it refuses a pending record and an
- * approval whose shown files do not hold every still before it builds; then
+ * approval whose shown files, with its earlier approvals', do not hold every
+ * still before it builds; then
  * it builds the site and refuses each built image, found by its bytes, that
  * no approved still and no image outside the rule holds. One real build of a
  * copy of the app carries the forms the source reader missed (a template
@@ -24,6 +25,8 @@ import { prodGate } from './shippable.ts';
 
 const APP = `${import.meta.dir}/..`;
 const ASK = 'a1b2c3d4e5f';
+const EARLIER = 'b1c2d3e4f5a';
+const FIELD = 'src/art/field-768.webp';
 
 /** What a copy of the app needs to build, beside its record, a link to the app's `node_modules` and the repo's `tsconfig.json` its own extends. */
 const COPIED = [
@@ -36,12 +39,16 @@ const COPIED = [
   'vite.config.ts',
 ];
 
-/** The record at `root` with its stills and the approval `of` gives for them. */
-const recordWith = (root: string, of: (stills: Approved['stills']) => Approved['approval']) =>
+/** The record at `root` with its stills, the approval `of` gives for them, and the earlier approvals `before` gives. */
+const recordWith = (
+  root: string,
+  of: (stills: Approved['stills']) => Approved['approval'],
+  before: (stills: Approved['stills']) => Approved['earlier'] = () => [],
+) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const { stills } = yield* readRecord(root);
-    const record: Approved = { approval: of(stills), stills };
+    const record: Approved = { approval: of(stills), earlier: before(stills), stills };
     const json = yield* Schema.encodeEffect(Schema.fromJsonString(Approved, { space: 2 }))(record);
     yield* fs.writeFileString(`${root}/${RECORD}`, `${json}\n`);
   });
@@ -49,23 +56,38 @@ const recordWith = (root: string, of: (stills: Approved['stills']) => Approved['
 /** The record at `root` pending on `ASK`, whatever the committed record's approval is. */
 const pendingAt = (root: string) => recordWith(root, () => ({ status: 'pending', ask: ASK }));
 
-/** The record at `root` turned approved on `ASK`, its shown files those `shows` gives for its stills. */
+/** An approval on `ask` whose shown files are `shown`. */
+const givenOn = (ask: string, shown: Record<string, string>): Approved['earlier'][number] => ({
+  status: 'approved',
+  ask,
+  lab: 'http://lab.test/',
+  answered: '2026-10-22T09:00:00.000Z',
+  answer: 'Approve them',
+  answers: { stills: { kind: 'choose', value: 'approve', label: 'Approve them' } },
+  shown,
+});
+
+/** The record at `root` turned approved on `ASK`, its shown files those `shows` gives for its stills, with an earlier approval on `EARLIER` of each set `before` gives. */
 const approvedWith = (
   root: string,
   shows: (stills: Approved['stills']) => Record<string, string>,
+  before: (stills: Approved['stills']) => ReadonlyArray<Record<string, string>> = () => [],
 ) =>
-  recordWith(root, (stills) => ({
-    status: 'approved',
-    ask: ASK,
-    lab: 'http://lab.test/',
-    answered: '2026-10-22T09:00:00.000Z',
-    answer: 'Approve them',
-    answers: { stills: { kind: 'choose', value: 'approve', label: 'Approve them' } },
-    shown: shows(stills),
-  }));
+  recordWith(
+    root,
+    (stills) => givenOn(ASK, shows(stills)),
+    (stills) => before(stills).map((shown) => givenOn(EARLIER, shown)),
+  );
 
 const shownAll = (stills: Approved['stills']) =>
   Object.fromEntries(Object.entries(stills).map(([still, hash]) => [`/files/${still}`, hash]));
+
+/** The stills but the field at 768 shown, and the field at 768 alone. */
+const shownBut = (stills: Approved['stills']) => {
+  const { [FIELD]: _, ...rest } = stills;
+  return shownAll(rest);
+};
+const shownField = (stills: Approved['stills']) => ({ [`/files/${FIELD}`]: stills[FIELD] ?? '' });
 
 const tagOf = <A, E extends { readonly _tag: string }, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(Effect.match({ onFailure: (error) => error._tag, onSuccess: () => 'shippable' }));
@@ -89,15 +111,16 @@ const Scripts = Schema.fromJsonString(
 const test = it.effect.layer(BunServices.layer);
 
 describe('kit:shippable', () => {
-  test('refuses a pending record, and an approval whose shown files lack a still, before it builds', () =>
+  test('refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds', () =>
     Effect.gen(function* () {
       const root = yield* scratchApp(APP);
       yield* pendingAt(root);
       expect(yield* tagOf(shippable(root))).toBe('ShipPending');
-      yield* approvedWith(root, (stills) => {
-        const { 'src/art/field-768.webp': _, ...rest } = stills;
-        return shownAll(rest);
-      });
+      yield* approvedWith(root, shownBut);
+      expect(yield* tagOf(shippable(root))).toBe('StillsNotShown');
+      yield* approvedWith(root, shownBut, (stills) => [
+        { [`/files/${FIELD}`]: `${(stills[FIELD] ?? '').slice(1)}0` },
+      ]);
       expect(yield* tagOf(shippable(root))).toBe('StillsNotShown');
     }).pipe(Effect.scoped));
 
@@ -133,7 +156,7 @@ describe('kit:shippable', () => {
       expect(scripts['plan']).toBe('alchemy plan alchemy.run.ts --stage prod');
     }).pipe(Effect.scoped));
 
-  test('builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes', () =>
+  test('builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -152,7 +175,7 @@ describe('kit:shippable', () => {
       yield* fs.symlink(path.join(APP, 'node_modules'), path.join(root, 'node_modules'));
       yield* fs.makeDirectory(path.join(root, 'kit'));
       yield* fs.copyFile(path.join(APP, RECORD), path.join(root, RECORD));
-      yield* approvedWith(root, shownAll);
+      yield* approvedWith(root, shownBut, (stills) => [shownField(stills)]);
       const next = draws(59);
       const webp = Uint8Array.from([
         ...ascii('RIFF'),

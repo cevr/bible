@@ -2772,7 +2772,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F3
 - **Wrong:** The prod deploy built and shipped with the record `pending`, so stills the owner had not approved could reach the site.
 - **Cause:** Only the kit and its test read the record; the deploy did not.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still, before it builds`, `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`, `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`.
 
 ### styles-test-reads-with-a-css-parser
 
@@ -2822,7 +2822,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F1
 - **Wrong:** The record pinned five link cards (`public/og/*.jpg`) whose bytes this unit changed and that no ask showed, and `approve` turned it approved on the owner's real answer to ask adf28c17753, which showed screenshots of the page.
 - **Cause:** The premise "an approval holds when the owner's answer says approve" was false: his answer does not say which bytes he saw, and nothing read what the ask showed. The new premise: an approval binds bytes the owner was shown. Rule: "A still is approved only if its SHA-256 equals a file that an image block of the approving ask showed, and that ask's `stills` answer is `approve`."
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block showed byte for byte, naming each: one shown as a crop, one in a block of another kind`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753, whose image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `approves on the owner's real answer to ask ab47076e90b, which showed each still byte for byte`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask whose saved record showed every still byte for byte`. `kit:approve` fetches each image block's `src` from the lab and hashes it (`apps/firsttheblade/kit/lab-asks.ts` `shownHash`).
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block showed byte for byte, naming each: one shown as a crop, one in a block of another kind`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753, whose image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `approves on the owner's real answer to ask ab47076e90b over the stills it showed byte for byte, as kept with its saved record`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice or by an approval it gave, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask saved beside it, and with the approved asks it keeps, each saved and answered approve, every still was shown byte for byte`. `kit:approve` fetches each image block's `src` from the lab and hashes it (`apps/firsttheblade/kit/lab-asks.ts` `shownHash`).
 
 ### served-images-read-from-the-build
 
@@ -2832,7 +2832,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F2
 - **Wrong:** The source reader passed a template `new URL`, an `import.meta.glob`, a `.jfif` import and a `.jxl` under `public/`, each of which the build emits, and the generator drew only the forms the reader held.
 - **Cause:** The premise "reading the source can list every image the site serves" was false: each reader holds the forms its author thought of. The new premise: the served images are read from the build output. Rule: "Every image file in the built site (`dist/`, after `vite build`) is in the approval record or in the named `OUTSIDE` list, each with its reason." A file is an image by its bytes, not its name.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes, one still approved by an earlier approval`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
 
 ### every-prod-deploy-walks-the-build
 
@@ -2842,7 +2842,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F3
 - **Wrong:** `shippable` ran only from the `deploy` script, so `bunx alchemy deploy --stage prod` shipped with no check, and it read the sources, not `dist/`.
 - **Cause:** The gate sat on one command that starts a deploy, not in the stack every prod deploy runs.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`, `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still, before it builds`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`, `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`.
 
 ### approval-names-its-lab
 
@@ -2873,3 +2873,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** A hover in an `@scope` root stirred a card outside the fine-pointer query, and the styles test passed it.
 - **Cause:** The reader took a rule's parents from nested style rules only, not from an `@scope` rule's root, and the generator drew no `@scope`.
 - **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `@scope (.cards:hover) { .card { --stir: 1 } }`, `apps/firsttheblade/src/motion/styles.test.ts` `@scope (.cards) { :scope:hover .card { ${body} } }`.
+
+### past-approval-holds-its-own-bytes
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "it checks a past ask against the stills as they stand. Make it hold the stills that ask's fixture showed, so a later re-pin cannot turn it red. A past approval stays true of its own bytes."
+- **Source:** ftb-remedies-emblem/follow-up-1.md F1
+- **Wrong:** The test of the owner's real answer to ask ab47076e90b pinned the stills as they stand, so the re-pin of `public/og/remedies.jpg` on ask aa434d8c292 turned it red; and the record kept one approval, so a later ask had to show every still again, the unchanged ones too.
+- **Cause:** The test read the app's current stills, not the bytes the ask showed, and the record had no place for an approval that stays true of the bytes it showed.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves on the owner's real answer to ask ab47076e90b over the stills it showed byte for byte, as kept with its saved record`, `apps/firsttheblade/kit/approval.test.ts` `an earlier approval keeps the stills unchanged since: a later ask need show only the changed still, and a still changed since no ask showed is refused`.
+
+### pinned-ask-saved-beside-the-record
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "Fix the cause: `kit:pin` writes the ask record it read to `kit/fixtures/ask-<id>.json`, and `kit:approve` rewrites it with the answered record, so the committed record always has its saved ask."
+- **Source:** ftb-remedies-emblem/follow-up-1.md F2
+- **Wrong:** `kit:pin --ask aa434d8c292` wrote the record pending on an ask no file in `kit/fixtures/` held, so the committed-record test could not read it.
+- **Cause:** Saving the ask was a step done by hand, outside `pin` and `approve`.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with the hash of each file it shows, and approve saves it again as answered`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask saved beside it, and with the approved asks it keeps, each saved and answered approve, every still was shown byte for byte`.
