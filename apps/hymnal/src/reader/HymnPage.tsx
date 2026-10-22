@@ -36,15 +36,13 @@ export interface ChordReader {
   readonly book: ChordBook;
 }
 
-/** The hymn's words, with `children` (its recording's control) under its title. */
+/** The hymn's words under its number and title. */
 export function HymnPage({
   hymn,
   reader,
-  children,
 }: {
   readonly hymn: HymnText;
   readonly reader: ChordReader;
-  readonly children?: ReactNode;
 }) {
   const accent = useAccent();
   const [on, setOn] = useAtom(reader.chords);
@@ -74,7 +72,6 @@ export function HymnPage({
         </Text>
       </View>
       <ChordControls on={on} onChange={setOn} printed={printed} move={move} onMove={setMove} />
-      {children}
       <PlayedKeyProvider value={played}>
         <Sections hymn={hymn} chords={chords} />
       </PlayedKeyProvider>

@@ -8,20 +8,13 @@
  * accent fill under `onAccent` on the web and Android.
  */
 
-import { Option } from 'effect';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { useAccent } from '~/color';
 
 import { AccentButton } from './AccentButton';
-import { Command, Player, type Track, trackOf } from './player';
-
-/** The player as `track` sees it: its own state, or idle when it holds another hymn. */
-export const playerFor = (state: Player, track: Track): Player =>
-  trackOf(state).pipe(
-    Option.filter((held) => held.number === track.number),
-    Option.match({ onNone: () => Player.Idle(), onSome: () => state }),
-  );
+import { playerFor } from './bar';
+import { Command, Player, type Track } from './player';
 
 export function Toggle({
   track,

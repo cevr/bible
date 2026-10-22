@@ -9,7 +9,8 @@ import bundled from 'virtual:hymnal-chords';
 
 import { chordBook } from '~/hymns/chords';
 import { hymnAt, hymns } from '~/hymns/hymns';
-import { PlayerControl } from '~/player/PlayerControl';
+import { useShowsPage } from '~/player/page';
+import type { Track } from '~/player/player';
 import { pushedOptions } from '~/stack';
 import { settings } from '~/store';
 
@@ -38,10 +39,15 @@ export function HymnScreen() {
     onSome: (hymn) => (
       <>
         <Stack.Screen options={{ ...pushedOptions, title: hymn.title }} />
-        <HymnPage hymn={hymn} reader={reader}>
-          <PlayerControl track={hymn} />
-        </HymnPage>
+        <Shown hymn={hymn} />
+        <HymnPage hymn={hymn} reader={reader} />
       </>
     ),
   });
+}
+
+/** Tells the bottom bar this hymn's page is shown, for as long as it is. */
+function Shown({ hymn }: { readonly hymn: Track }) {
+  useShowsPage(hymn);
+  return <></>;
 }

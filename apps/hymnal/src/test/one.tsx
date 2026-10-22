@@ -43,6 +43,12 @@ export const safeArea = { top: 0, right: 0, bottom: 0, left: 0 };
 /** One's `useSafeAreaInsets`: the insets a test set. */
 export const useSafeAreaInsets = () => safeArea;
 
+/** The route's params, as a test sets them: the hymn route reads `number`. */
+export const params: Record<string, string> = {};
+
+/** One's `useParams`: the params a test set. */
+export const useParams = <T,>() => params as T;
+
 export const Stack = { Screen: (_: { readonly options: object }) => <></> };
 
 /** One's device modules, which no test reaches: the player's tests hand in their own (`playbackOn`). */

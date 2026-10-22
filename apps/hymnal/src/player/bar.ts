@@ -11,6 +11,7 @@
 import { Data, Option, Predicate } from 'effect';
 
 import { Player, type Track, trackOf } from './player';
+import { clock } from './time';
 
 /** The player as `track` sees it: its own state, or idle when it holds another hymn. */
 export const playerFor = (state: Player, track: Track): Player =>
@@ -54,3 +55,37 @@ export const barFor = (state: Player, page: Option.Option<Track>): Bar =>
         }),
       ),
   });
+
+/** The reader's place in the recording and its length, in seconds, while the player has a place. */
+export const placeOf: (
+  state: Player,
+) => Option.Option<{ at: number; length: Option.Option<number> }> = Player.$match({
+  Idle: () => Option.none(),
+  Loading: () => Option.none(),
+  Playing: ({ at, length }) => Option.some({ at, length }),
+  Buffering: ({ at, length }) => Option.some({ at, length }),
+  Paused: ({ at, length }) => Option.some({ at, length }),
+  Ended: ({ length }) => Option.some({ at: Option.getOrElse(length, () => 0), length }),
+  Stopped: ({ at }) => Option.map(at, (place) => ({ at: place, length: Option.none() })),
+  Failed: ({ at }) => Option.map(at, (place) => ({ at: place, length: Option.none() })),
+});
+
+/** The share of the recording played, from 0 to 1: the seek line's filled part. 0 while no length is known. */
+export const playedShare = (state: Player): number =>
+  placeOf(state).pipe(
+    Option.flatMap(({ at, length }) =>
+      Option.map(
+        Option.filter(length, (whole) => whole > 0),
+        (whole) => Math.min(Math.max(at / whole, 0), 1),
+      ),
+    ),
+    Option.getOrElse(() => 0),
+  );
+
+/** The time gone and the length as the bar says them (`0:30 of 2:00`), while both are known. */
+export const toldPlace = (state: Player): Option.Option<string> =>
+  placeOf(state).pipe(
+    Option.flatMap(({ at, length }) =>
+      Option.map(length, (whole) => `${clock(at)} of ${clock(whole)}`),
+    ),
+  );

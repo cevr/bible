@@ -1,26 +1,30 @@
 /**
- * The player's controls on the web: the hymn page's control and the
- * now-playing bar, mounted in a browser's document (`src/test/setup.ts`)
- * over a player whose device the test holds (`src/test/device.ts`).
+ * The player's controls on the web: the full player (`/player`) and the
+ * bottom bar, over a hymn page or none, mounted in a browser's document
+ * (`src/test/setup.ts`) over a player whose device the test holds
+ * (`src/test/device.ts`).
  */
 
 import { RegistryContext } from '@effect/atom-react';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Duration, Effect, Match, Option, Stream } from 'effect';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
+import { View } from 'react-native';
 import { createRoot } from 'react-dom/client';
 
 import { hymnAt } from '~/hymns/hymns';
+import { HymnScreen } from '~/reader/HymnScreen';
 import { audioUrl } from '~/remote';
 import { theme } from '~/theme';
 
 import { fakeDevice } from '../test/device';
-import { opened } from '../test/one';
+import { opened, params } from '../test/one';
 import { PlayerContext } from './context';
-import { NowPlayingBar } from './NowPlayingBar';
-import { Command, Player, playerOn } from './player';
-import { PlayerControl } from './PlayerControl';
+import { FullPlayer } from './FullPlayer';
+import { useShowsPage } from './page';
+import { Command, Player, playerOn, type Track } from './player';
+import { PlayerBar } from './PlayerBar';
 import { useCommitAtRest, useScrub } from './scrub';
 
 const morning = Option.getOrThrow(hymnAt('100'));
@@ -50,6 +54,42 @@ const release = (bar: HTMLInputElement) => {
   bar.dispatchEvent(new Event('change', { bubbles: true }));
 };
 const praise = Option.getOrThrow(hymnAt('1'));
+
+/** A hymn page shown, as its screen says to the bar. */
+function Shows({ track }: { readonly track: Track }) {
+  useShowsPage(track);
+  return <></>;
+}
+
+/** The full player over `track`'s page, with the bottom bar. */
+const sheetOver = (track: Track) => (
+  <>
+    <Shows track={track} />
+    <FullPlayer />
+    <PlayerBar />
+  </>
+);
+
+/** The bottom bar over `page`'s page, or over no hymn page. */
+const barOver = (page: Option.Option<Track>) => (
+  <>
+    {Option.match(page, { onNone: () => <></>, onSome: (track) => <Shows track={track} /> })}
+    <PlayerBar />
+  </>
+);
+
+/** The hymn route at `/hymns/<n>`, its screen in `page`, and the bottom bar under it. */
+const route = (n: number) => {
+  params['number'] = String(n);
+  return (
+    <>
+      <View testID="page">
+        <HymnScreen />
+      </View>
+      <PlayerBar />
+    </>
+  );
+};
 
 const schemes = ['light', 'dark'] as const;
 
@@ -166,10 +206,10 @@ const gradientOf = (css: string) => {
 };
 
 /**
- * The bar and hymn `shown`'s control over a fresh player, mounted in the
- * document; it unmounts when the test's `using` ends.
+ * `screen` (by default the full player over hymn 100's page) over a fresh
+ * player, mounted in the document; it unmounts when the test's `using` ends.
  */
-const mount = (shown = morning) => {
+const mount = (screen: ReactNode = sheetOver(morning)) => {
   opened.splice(0);
   const { device, layer } = fakeDevice();
   const player = playerOn(layer, Duration.millis(1));
@@ -180,10 +220,7 @@ const mount = (shown = morning) => {
   act(() =>
     root.render(
       <RegistryContext value={registry}>
-        <PlayerContext value={Option.some(player)}>
-          <PlayerControl track={shown} />
-          <NowPlayingBar />
-        </PlayerContext>
+        <PlayerContext value={Option.some(player)}>{screen}</PlayerContext>
       </RegistryContext>,
     ),
   );
@@ -236,7 +273,7 @@ const mount = (shown = morning) => {
   };
 };
 
-describe('the hymn page’s recording control', () => {
+describe('the full player', () => {
   it.live('plays hymn 100: loading, then playing with its place and length, then paused', () =>
     Effect.gen(function* () {
       using page = mount();
@@ -446,17 +483,19 @@ describe('the hymn page’s recording control', () => {
     'offers Play on another hymn’s page while hymn 100 plays, and playing it replaces 100',
     () =>
       Effect.gen(function* () {
-        using page = mount(praise);
+        using page = mount(sheetOver(praise));
         page.send(Command.Start({ track: morning }));
         page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
         yield* page.until(Player.$is('Playing'));
-        expect(Option.getOrThrow(page.find('[aria-label="Play hymn 1"]')).textContent).toBe('Play');
+        expect(Option.getOrThrow(page.find('[aria-label="Play hymn 1"]')).textContent).toBe(
+          'Play 1',
+        );
 
         page.press('Play hymn 1');
         yield* page.until((player) => Player.$is('Loading')(player) && player.track.number === 1);
         expect(page.device.played).toEqual([audioUrl(100), audioUrl(1)]);
-        expect(Option.isSome(page.find(`[aria-label="Now playing 1, ${praise.title}"]`))).toBe(
-          true,
+        expect(Option.getOrThrow(page.find('[aria-label="Open player"]')).textContent).toBe(
+          `1${praise.title}`,
         );
       }),
   );
@@ -535,39 +574,149 @@ describe('the hymn page’s recording control', () => {
   );
 });
 
-describe('the now-playing bar', () => {
-  it.live('draws nothing until a hymn plays, then shows it and opens it', () =>
+describe('the full player in every state', () => {
+  it.live('shows the hymn, its button, the Position bar and both times, still with no length', () =>
     Effect.gen(function* () {
       using page = mount();
-      expect(Option.isNone(page.find('[aria-label="Now playing"]'))).toBe(true);
+      const shows = (button: string, still: boolean, times: ReadonlyArray<string>) => {
+        const heading = Option.getOrThrow(page.find('[role="heading"][aria-level="1"]'));
+        expect(heading.textContent).toBe(`100 ${morning.title}`);
+        expect(Option.isSome(page.find(`[aria-label="${button}"]`))).toBe(true);
+        const bar = page.bar();
+        expect(bar.getAttribute('aria-label')).toBe('Position');
+        expect(bar.disabled).toBe(still);
+        for (const time of times) expect(page.text()).toContain(time);
+      };
+      shows('Play hymn 100', true, ['0:00', '–:––']);
 
       page.press('Play hymn 100');
-      page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
-      yield* page.until(Player.$is('Playing'));
-      const bar = Option.getOrThrow(page.find('[aria-label="Now playing"]'));
-      expect(bar.textContent).toBe(`100${morning.title}Pause`);
-      const link = Option.getOrThrow(page.find(`[aria-label="Now playing 100, ${morning.title}"]`));
-      expect(link.getAttribute('href')).toBe('/hymns/100');
+      yield* page.until(Player.$is('Loading'));
+      shows('Loading hymn 100', true, ['0:00', '–:––']);
 
-      page.press(`Now playing 100, ${morning.title}`);
-      expect(opened).toEqual(['/hymns/100']);
+      page.device.now = { state: 'playing', positionMs: 30_000, durationMs: 120_000 };
+      yield* page.until(Player.$is('Playing'));
+      shows('Pause hymn 100', false, ['0:30', '2:00']);
+
+      page.press('Pause hymn 100');
+      yield* page.until(Player.$is('Paused'));
+      shows('Play hymn 100', false, ['0:30', '2:00']);
     }),
   );
 
-  it.live('pauses from the bar while another hymn’s page shows', () =>
+  it.live('keeps the Position bar, still, once a recording fails', () =>
+    Effect.gen(function* () {
+      using page = mount();
+      page.device.online = false;
+      page.press('Play hymn 100');
+      yield* page.until(Player.$is('Failed'));
+      expect(page.bar().disabled).toBe(true);
+      expect(Option.isSome(page.find('[aria-label="Retry hymn 100"]'))).toBe(true);
+    }),
+  );
+});
+
+describe('the bottom bar', () => {
+  it.live(
+    'draws nothing off a hymn page until a hymn plays, then shows it and opens the player',
+    () =>
+      Effect.gen(function* () {
+        using page = mount(barOver(Option.none()));
+        expect(Option.isNone(page.find('[aria-label="Player"]'))).toBe(true);
+
+        page.send(Command.Start({ track: morning }));
+        page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
+        yield* page.until(Player.$is('Playing'));
+        const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
+        expect(bar.textContent).toBe(`100${morning.title}Pause`);
+
+        page.press('Open player');
+        expect(opened).toEqual(['/player']);
+      }),
+  );
+
+  it.live('pauses from the bar while another hymn’s page shows, then gives way to the page', () =>
     Effect.gen(function* () {
       // The page shows hymn 1; the bar holds hymn 100, started on its own page.
-      using page = mount(praise);
+      using page = mount(barOver(Option.some(praise)));
       page.send(Command.Start({ track: morning }));
       page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
+      expect(Option.getOrThrow(page.find('[aria-label="Player"]')).textContent).toBe(
+        `100${morning.title}Play 1Pause`,
+      );
 
       page.press('Pause hymn 100');
       yield* page.until(Player.$is('Paused'));
       expect(page.device.now.state).toBe('paused');
-      expect(Option.getOrThrow(page.find('[aria-label="Now playing"]')).textContent).toBe(
-        `100${morning.title}Play`,
+      // A paused hymn is not sounding: the bar acts on the page's hymn again.
+      expect(Option.getOrThrow(page.find('[aria-label="Player"]')).textContent).toBe(
+        `1${praise.title}Play`,
       );
+    }),
+  );
+});
+
+describe('the hymn page with the bottom bar', () => {
+  const three = Option.getOrThrow(hymnAt('3'));
+  const four = Option.getOrThrow(hymnAt('4'));
+  const inPage = (page: ReturnType<typeof mount>, selector: string) =>
+    page.find(`[data-testid="page"] ${selector}`);
+
+  it.live('holds no player in the page; the bar holds hymn 3 and plays it', () =>
+    Effect.gen(function* () {
+      using page = mount(route(3));
+      expect(Option.isNone(inPage(page, '[aria-label="Play hymn 3"]'))).toBe(true);
+      expect(Option.isNone(inPage(page, '[aria-label="Recording"]'))).toBe(true);
+      const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
+      expect(bar.querySelector('[aria-label="Play hymn 3"]')).not.toBeNull();
+      expect(bar.textContent).toBe(`3${three.title}Play`);
+
+      page.press('Play hymn 3');
+      yield* page.until(Player.$is('Loading'));
+      expect(page.device.played).toEqual([audioUrl(3)]);
+    }),
+  );
+
+  it.live(
+    'fills the seek line to the share played; the line takes no touch, the bar says the place',
+    () =>
+      Effect.gen(function* () {
+        using page = mount(route(3));
+        page.press('Play hymn 3');
+        page.device.now = { state: 'playing', positionMs: 30_000, durationMs: 120_000 };
+        yield* page.until((player) => Player.$is('Playing')(player) && player.at === 30);
+        const line = Option.getOrThrow(page.find('[data-testid="seek-line"]'));
+        const played = Option.getOrThrow(page.find('[data-testid="seek-played"]'));
+        expect(getComputedStyle(played).width).toBe('25%');
+        expect(getComputedStyle(line).pointerEvents).toBe('none');
+        expect(
+          Option.getOrThrow(page.find('[aria-label="Open player"]')).getAttribute('aria-valuetext'),
+        ).toBe('0:30 of 2:00');
+      }),
+  );
+
+  it.live('opens the full player from the bar’s body', () =>
+    Effect.sync(() => {
+      using page = mount(route(3));
+      page.press('Open player');
+      expect(opened).toEqual(['/player']);
+    }),
+  );
+
+  it.live('shows hymn 3 sounding on hymn 4’s page, and plays 4 from its compact Play', () =>
+    Effect.gen(function* () {
+      using page = mount(route(4));
+      page.send(Command.Start({ track: three }));
+      page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 120_000 };
+      yield* page.until(Player.$is('Playing'));
+      const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
+      expect(bar.querySelector('[aria-label="Open player"]')?.textContent).toBe(`3${three.title}`);
+      expect(bar.querySelector('[aria-label="Pause hymn 3"]')).not.toBeNull();
+
+      page.press('Play hymn 4');
+      yield* page.until((player) => Player.$is('Loading')(player) && player.track.number === 4);
+      expect(page.device.played).toEqual([audioUrl(3), audioUrl(4)]);
+      expect(bar.querySelector('[aria-label="Open player"]')?.textContent).toBe(`4${four.title}`);
     }),
   );
 });

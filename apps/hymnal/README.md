@@ -153,11 +153,11 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   only then; an end leaves no place, so a Resume from Ended plays from 0:00, or follows a phone that
   already plays the recording again (the lock screen's play acts before
   the page hears of it).
-- The page says each state in a line beside its button (`src/player/PlayerControl.tsx`):
+- The full player (`/player`, `src/player/FullPlayer.tsx`) says each state in a line under its hymn:
   Loading and Buffering read "Loading the recording…" with Pause; Failed
   reads "The recording needs a connection." offline, else "The recording
-  could not be played."; Stopped reads Paused. Retry (Resume) shows beside
-  a Failed page, and beside Buffering once it offers Retry. An act clears
+  could not be played."; Stopped reads Paused. Retry (Resume) shows in
+  a Failed player, and beside Buffering once it offers Retry. An act clears
   Retry, as it starts the wait again. The lock screen's announce runs beside
   the reads, never ahead of them.
 - A Pause before the first sound stops the recording: the page shows

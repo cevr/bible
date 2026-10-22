@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
 
-import { Bar, barFor } from './bar';
+import { Bar, barFor, playedShare, toldPlace } from './bar';
 import { Player, type Track } from './player';
 
 const three: Track = { number: 3, title: 'Three' };
@@ -64,5 +64,29 @@ describe('barFor', () => {
       expect(barFor(state, Option.some(four))).toEqual(
         Bar.Shown({ track: four, state: Player.Idle(), page: Option.none() }),
       );
+  });
+});
+
+describe('the seek line', () => {
+  it('fills the share played while the length is known, and nothing before', () => {
+    const track = three;
+    expect(playedShare(Player.Playing({ track, at: 30, length }))).toBe(0.25);
+    expect(playedShare(Player.Paused({ track, at: 90, length }))).toBe(0.75);
+    expect(playedShare(Player.Ended({ track, length }))).toBe(1);
+    expect(playedShare(Player.Playing({ track, at: 30, length: Option.none() }))).toBe(0);
+    expect(playedShare(Player.Playing({ track, at: 130, length }))).toBe(1);
+    expect(playedShare(Player.Idle())).toBe(0);
+    expect(playedShare(Player.Loading({ track }))).toBe(0);
+    expect(playedShare(Player.Stopped({ track, at: Option.some(30) }))).toBe(0);
+  });
+
+  it('says the time gone and the length while both are known', () => {
+    expect(toldPlace(Player.Playing({ track: three, at: 30, length }))).toEqual(
+      Option.some('0:30 of 2:00'),
+    );
+    expect(toldPlace(Player.Playing({ track: three, at: 30, length: Option.none() }))).toEqual(
+      Option.none(),
+    );
+    expect(toldPlace(Player.Idle())).toEqual(Option.none());
   });
 });

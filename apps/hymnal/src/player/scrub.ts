@@ -177,3 +177,20 @@ export const useScrub = (
     },
   };
 };
+
+/** The place under a touch `x` points along a bar `width` points wide, of a recording `max` seconds long. */
+export const placeAt = (x: number, width: number, max: number) =>
+  Option.match(
+    Option.liftPredicate(width, (measured) => measured > 0),
+    {
+      onNone: () => 0,
+      onSome: (measured) => Math.min(Math.max(x / measured, 0), 1) * max,
+    },
+  );
+
+/** How far a screen reader's swipe moves the bar, in seconds. */
+export const NUDGE = 10;
+
+/** The place a screen reader's swipe up (`1`) or down (`-1`) moves the bar to, within the recording. */
+export const nudged = (value: number, max: number, way: 1 | -1) =>
+  Math.min(Math.max(value + way * NUDGE, 0), max);
