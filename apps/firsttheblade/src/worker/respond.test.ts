@@ -5,7 +5,7 @@ import { Headers, HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import { layerSite } from '../mail/films.ts';
 import { layerTest } from '../mail/local.ts';
-import { Assets } from './assets.ts';
+import { Assets, requestUrl } from './assets.ts';
 import { MAIL_ROUTES } from '../mail/paths.ts';
 import { CACHE, CONTENT_SECURITY_POLICY, MOVED, respond, withCharset } from './respond.ts';
 
@@ -27,11 +27,15 @@ const FILES = new Map<string, readonly [string, string]>([
   ['/llms.txt', ['# First the Blade', 'text/plain']],
 ]);
 
+/** A file whose read the host fails: the policy dies on it. */
+const BROKEN = '/assets/broken-abc12345.css';
+
 const AssetsTest = Layer.succeed(
   Assets,
   Assets.of({
     serve: (request) => {
-      const pathname = new URL(request.url, 'http://localhost').pathname;
+      const pathname = requestUrl(request).pathname;
+      if (pathname === BROKEN) return Effect.die(new Error(`the host failed to read ${pathname}`));
       const file = Option.fromNullishOr(FILES.get(pathname));
       return Effect.succeed(
         Option.match(file, {
@@ -146,8 +150,9 @@ const query = (next: () => number) =>
  * A request of each kind the Worker answers, drawn at random: a file the
  * build writes (a page, a script, a stylesheet, a font, a picture, a
  * manifest), a path with no file (the not-found page) and the not-found page
- * itself, a series' former path (a 301), an email list route under each
- * method, and any path under a method no file takes (a 405).
+ * itself, a path that starts `//`, a series' former path (a 301), an email
+ * list route under each method, any path under a method no file takes (a
+ * 405), and a file whose read the host fails (a 500).
  */
 const drawnRequest = (next: () => number): readonly [string, string] => {
   const files = [...FILES.keys()] as [string, ...Array<string>];
@@ -160,6 +165,8 @@ const drawnRequest = (next: () => number): readonly [string, string] => {
     () => [`${pick(next, files)}${query(next)}`, pick(next, ['GET', 'HEAD'])],
     () => [strayPath(next) + query(next), pick(next, ['GET', 'HEAD'])],
     () => ['/404', 'GET'],
+    () => [`/${pick(next, ['/', strayPath(next), pick(next, files)])}${query(next)}`, 'GET'],
+    () => [`${BROKEN}${query(next)}`, pick(next, ['GET', 'HEAD'])],
     () => [`${pick(next, moved)}${pick(next, ['/', ''])}${query(next)}`, 'GET'],
     () => [
       pick(next, [
@@ -250,6 +257,21 @@ describe('the Worker policy', () => {
       }
     }));
 
+  test('answers a path that starts with two slashes as a path, and a file the host fails to read as an empty 500, each with the security headers', () =>
+    Effect.gen(function* () {
+      for (const path of ['//', '//x', '///assets/client-abc12345.css']) {
+        const response = yield* get(path);
+        expect([path, response.status]).toEqual([path, 404]);
+        expect(header(response, 'content-security-policy')).toBe(CONTENT_SECURITY_POLICY);
+      }
+      const broken = yield* get(BROKEN);
+      expect(broken.status).toBe(500);
+      expect(broken.body._tag).toBe('Empty');
+      expect(header(broken, 'content-security-policy')).toBe(CONTENT_SECURITY_POLICY);
+      expect(header(broken, 'x-content-type-options')).toBe('nosniff');
+      expect(header(broken, 'cache-control')).toBe(CACHE.page);
+    }));
+
   test('every response, of each kind the Worker sends over random paths and methods, carries a content policy that lets no picture in from anywhere but this origin, so a data URL never paints', () =>
     Effect.gen(function* () {
       const next = draws(41);
@@ -262,8 +284,8 @@ describe('the Worker policy', () => {
         expect([path, method, policies.length]).toEqual([path, method, 1]);
         expect([path, method, foreignPictures(policies[0] ?? '')]).toEqual([path, method, []]);
       }
-      // Each kind of answer was drawn: a file, a redirect, a refused method, the not-found page.
-      expect([200, 301, 404, 405].filter((status) => !seen.has(status))).toEqual([]);
+      // Each kind of answer was drawn: a file, a redirect, a refused method, the not-found page, a failed read.
+      expect([200, 301, 404, 405, 500].filter((status) => !seen.has(status))).toEqual([]);
     }));
 
   test('the policy reader refuses each way a policy lets a foreign picture in, and passes one that keeps to this origin', () =>

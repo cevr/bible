@@ -19,6 +19,16 @@ export interface AssetsService {
 
 export class Assets extends Context.Service<Assets, AssetsService>()('firsttheblade/Assets') {}
 
+/**
+ * A request's URL. The host hands a request its path and query (`/a?b`),
+ * read here after a placeholder origin, so a path that starts `//` stays a
+ * path and never names a host; a whole URL is read as it is.
+ */
+export const requestUrl = (request: HttpServerRequest.HttpServerRequest) => {
+  if (request.url.startsWith('/')) return new URL(`http://localhost${request.url}`);
+  return new URL(request.url);
+};
+
 /** A request for the page at `path`, on the host `request` came to: how a route answers with a page the prerender wrote. */
 export const pageRequest = (request: HttpServerRequest.HttpServerRequest, path: string) =>
   HttpServerRequest.fromWeb(new Request(new URL(path, request.originalUrl)));
@@ -65,7 +75,7 @@ export const layerDirectory = (root: string) =>
         request: HttpServerRequest.HttpServerRequest,
       ) {
         const notFound = HttpServerResponse.text('Not Found', { status: 404 });
-        const pathname = new URL(request.url, 'http://localhost').pathname;
+        const pathname = requestUrl(request).pathname;
         if (!path.resolve(base, `.${pathname}`).startsWith(base)) return notFound;
         for (const file of candidates(pathname)) {
           const found = yield* read(file);

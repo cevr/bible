@@ -13,16 +13,18 @@
  *   `/assets/` for a year, pages not at all without asking again, and the
  *   rest (icons, link cards, the sitemap) for a day;
  * - every response carries the security headers: the content policy, no
- *   sniffing, no framing, a strict referrer and HTTPS only;
+ *   sniffing, no framing, a strict referrer and HTTPS only; a request the
+ *   policy dies on (a file read that fails) answers an empty 500 that
+ *   carries them too;
  * - a text file (a page, llms.txt, the sitemap) says it is UTF-8, which
  *   every file the prerender writes is.
  */
-import { Effect, Option } from 'effect';
+import { Effect, Option, Predicate } from 'effect';
 import { Headers, type HttpServerRequest, HttpServerResponse } from 'effect/http';
 
 import { SERIES } from '../content.ts';
 import { mailRoute } from '../mail/routes.ts';
-import { Assets, pageRequest } from './assets.ts';
+import { Assets, pageRequest, requestUrl } from './assets.ts';
 
 export const CACHE = {
   immutable: 'public, max-age=31536000, immutable',
@@ -74,8 +76,7 @@ export const MOVED: ReadonlyMap<string, string> = new Map(
   ),
 );
 
-const pathnameOf = (request: HttpServerRequest.HttpServerRequest) =>
-  new URL(request.url, 'http://localhost').pathname;
+const pathnameOf = (request: HttpServerRequest.HttpServerRequest) => requestUrl(request).pathname;
 
 const isHtml = (response: HttpServerResponse.HttpServerResponse) =>
   Option.exists(Headers.get(response.headers, 'content-type'), (type) =>
@@ -117,9 +118,7 @@ const finish = (
       }),
   );
 
-export const respond = Effect.fn('Site.respond')(function* (
-  request: HttpServerRequest.HttpServerRequest,
-) {
+const answer = Effect.fn('Site.answer')(function* (request: HttpServerRequest.HttpServerRequest) {
   const pathname = pathnameOf(request);
   const route = mailRoute(request, pathname);
   if (Option.isSome(route)) return finish(pathname, yield* route.value, CACHE.never);
@@ -134,7 +133,7 @@ export const respond = Effect.fn('Site.respond')(function* (
   }
   const moved = Option.fromNullishOr(MOVED.get(pathname.replace(/(?<=.)\/$/, '')));
   if (Option.isSome(moved)) {
-    const search = new URL(request.url, 'http://localhost').search;
+    const search = requestUrl(request).search;
     return finish(
       pathname,
       HttpServerResponse.empty({ status: 301, headers: { location: `${moved.value}${search}` } }),
@@ -146,3 +145,18 @@ export const respond = Effect.fn('Site.respond')(function* (
   const page = yield* assets.serve(pageRequest(request, NOT_FOUND_PATH));
   return finish(NOT_FOUND_PATH, HttpServerResponse.setStatus(page, 404));
 });
+
+/**
+ * The policy's answer to `request`. A defect (a file read the host fails)
+ * is logged by its kind and answered as an empty 500 with the security
+ * headers, so no response the Worker sends goes without its content policy.
+ */
+export const respond = (request: HttpServerRequest.HttpServerRequest) =>
+  answer(request).pipe(
+    // The log line names the defect's class, never its message, which may hold a path or a query.
+    Effect.catchDefect((defect) =>
+      Effect.logError(
+        `[site] defect status=500 kind=${Option.match(Option.liftPredicate(defect, Predicate.isError), { onNone: () => 'thrown', onSome: (error) => error.name })}`,
+      ).pipe(Effect.as(finish('/', HttpServerResponse.empty({ status: 500 })))),
+    ),
+  );
