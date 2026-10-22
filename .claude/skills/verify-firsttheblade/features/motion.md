@@ -95,9 +95,8 @@ emblems at rest.
   source. Whether a still's light comes from the sun is the owner's look,
   not a measure: on the stage, hash each served still against the record,
   and judge the light by eye at 1:1.
-- An approval ask shows every pinned still byte for byte as an image block;
-  a crop or a render of it is not the still. The coordinator pins the stills
-  on the ask (`bun run --cwd apps/firsttheblade kit:pin --ask <id>`), and
+- An approval ask shows every pinned still byte for byte as an image block; a crop or a render of it is not the still.
+  The coordinator pins the stills on the ask (`bun run --cwd apps/firsttheblade kit:pin --ask <id>`), and
   once the owner has answered, approves them
   (`bun run --cwd apps/firsttheblade kit:approve --ask <id>`), which reads
   the ask from the lab, hashes each image block it showed, and refuses each

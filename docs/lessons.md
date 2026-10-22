@@ -2712,7 +2712,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/round-3-findings.md F1 (the rewrite's approval step)
 - **Wrong:** A changed master, kit step or encode could ship a still the owner never saw.
 - **Cause:** The kit wrote the stills, and the gate judged them by a measure, not by his approval.
-- **Guard:** skill: whether a repainted still's light is right is the owner's eye at 1:1, and the record is written only after he answers. Carried by `.claude/skills/verify-firsttheblade/features/motion.md`: "A repainted or re-encoded still goes to the owner as a lab ask with 1:1"
+- **Guard:** skill: whether a repainted still's light is right is the owner's eye at 1:1, and the record is written only after he answers. Carried by `.claude/skills/verify-firsttheblade/features/motion.md`: "An approval ask shows every pinned still byte for byte as an image block; a crop or a render of it is not the still."
 
 ### styles-test-reads-quoted-braces
 
@@ -2762,7 +2762,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F2
 - **Wrong:** `kit:approve --ask <id> --answer <words>` wrote `approved` for an empty answer, for an ask the lab did not hold, and over stills changed after the ask, hashing the files as they stood.
 - **Cause:** The answer was typed by the agent, not read from the lab, and the approval did not compare the stills with the ones the pending record pinned.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the stills the ask showed, in the lab's words`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the owner has not answered`, `apps/firsttheblade/kit/approval.test.ts` `refuses an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.test.ts` `refuses a record not pending on the ask`, `apps/firsttheblade/kit/approval.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the lab does not hold, and a shown file the lab does not serve`, `apps/firsttheblade/kit/approval.test.ts` `refuses an ask the owner has not answered, and an answer to the stills question that is not the approve choice`, `apps/firsttheblade/kit/approval.test.ts` `refuses a record not pending on the ask, and an approval already given`, `apps/firsttheblade/kit/approval.test.ts` `refuses stills other than the ones the record pinned, naming each`. They hold the rule: "An approval names an ask the owner answered with approval, and the stills that ask showed."
 
 ### prod-deploy-refuses-pending-stills
 
@@ -2772,7 +2772,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F3
 - **Wrong:** The prod deploy built and shipped with the record `pending`, so stills the owner had not approved could reach the site.
 - **Cause:** Only the kit and its test read the record; the deploy did not.
-- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses a pending record, and stills the approved record does not hold`, `apps/firsttheblade/kit/approval.test.ts` `runs first in the prod deploy, and not in the stage deploy`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still, before it builds`, `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`.
 
 ### styles-test-reads-with-a-css-parser
 
@@ -2813,3 +2813,63 @@ The form of an entry, each field on its own line:
 - **Wrong:** The comment on the sun told the owner's revise of 2026-10-21 (the painted rays from the top left while the sun sat at the right).
 - **Cause:** The comment was written as the change's story, not as what the code does and why.
 - **Guard:** none: the repo's rule is `CLAUDE.md` "**Comments:**", read by every review, as for `sway-comments-tell-history`.
+
+### approval-binds-the-shown-bytes
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the record can name stills the ask never showed, so `kit:approve --ask adf28c17753` would write an unsound record"
+- **Source:** ftb-motion/rewrite-round-2-findings.md F1
+- **Wrong:** The record pinned five link cards (`public/og/*.jpg`) whose bytes this unit changed and that no ask showed, and `approve` turned it approved on the owner's real answer to ask adf28c17753, which showed screenshots of the page.
+- **Cause:** The premise "an approval holds when the owner's answer says approve" was false: his answer does not say which bytes he saw, and nothing read what the ask showed. The new premise: an approval binds bytes the owner was shown. Rule: "A still is approved only if its SHA-256 equals a file that an image block of the approving ask showed, and that ask's `stills` answer is `approve`."
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `refuses each pinned still no image block showed byte for byte, naming each`, `apps/firsttheblade/kit/approval.test.ts` `refuses the owner's real answer to ask adf28c17753, whose image blocks showed screenshots of the page, not the stills, naming each still`, `apps/firsttheblade/kit/approval.test.ts` `approves on the owner's real answer to ask ab47076e90b, which showed each still byte for byte`, `apps/firsttheblade/kit/approval.test.ts` `over random pinned stills, shown files and answers, approves only stills shown byte for byte on the approve choice, and refuses a re-pin after it to bytes not shown`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask whose saved record showed every still byte for byte`. `kit:approve` fetches each image block's `src` from the lab and hashes it (`apps/firsttheblade/kit/lab-asks.ts` `shownHash`).
+
+### served-images-read-from-the-build
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the inventory misses images that Vite serves, and the generator is as narrow as the guard"
+- **Source:** ftb-motion/rewrite-round-2-findings.md F2
+- **Wrong:** The source reader passed a template `new URL`, an `import.meta.glob`, a `.jfif` import and a `.jxl` under `public/`, each of which the build emits, and the generator drew only the forms the reader held.
+- **Cause:** The premise "reading the source can list every image the site serves" was false: each reader holds the forms its author thought of. The new premise: the served images are read from the build output. Rule: "Every image file in the built site (`dist/`, after `vite build`) is in the approval record or in the named `OUTSIDE` list, each with its reason." A file is an image by its bytes, not its name.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `builds the site and refuses each built image no approved still holds: a template new URL, an import.meta.glob, a .jfif import, a .jxl under public/; every other image passes`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and passes the approved stills and the images outside the rule under any name`, `apps/firsttheblade/kit/build-walk.test.ts` `reads each format by its first bytes, a gzipped one by what it unzips to`, `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg by its root element after any prolog, and no other markup as one`, `apps/firsttheblade/kit/build-walk.test.ts` `reads none of the site's other files as an image`.
+
+### every-prod-deploy-walks-the-build
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "a prod deploy can skip `shippable`, and `shippable` reads the source, not the build output"
+- **Source:** ftb-motion/rewrite-round-2-findings.md F3
+- **Wrong:** `shippable` ran only from the `deploy` script, so `bunx alchemy deploy --stage prod` shipped with no check, and it read the sources, not `dist/`.
+- **Cause:** The gate sat on one command that starts a deploy, not in the stack every prod deploy runs.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`, `apps/firsttheblade/kit/shippable.test.ts` `refuses a pending record, and an approval whose shown files lack a still, before it builds`.
+
+### approval-names-its-lab
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the record does not say which lab answered"
+- **Source:** ftb-motion/rewrite-round-2-findings.md F4
+- **Wrong:** The approved record kept the ask and the answers but not the lab URL they were read from, so a record approved from another checkout's lab read the same.
+- **Cause:** The lab was a dependency of `approve`, and its URL was not written down with what it gave.
+- **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `approves the pinned stills an image block showed byte for byte, on the approve choice, storing the lab, the answer's label and the shown files' hashes`. `kit:shippable` prints the lab URL (`apps/firsttheblade/kit/shippable.ts` `checked`).
+
+### sway-comment-names-the-old-value
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "the sway comment names the old value"
+- **Source:** ftb-motion/rewrite-round-2-findings.md F5
+- **Wrong:** `src/motion/shaders.ts` and `shaders.test.ts` named the sway's earlier value beside the owner's choice.
+- **Cause:** The comment was written as the change's story, not as what the code does and why.
+- **Guard:** skill: the judged rule `judged/historyComment` warns and fails open, so it gates nothing; the repo's comment rule is read by every review. Carried by `CLAUDE.md`: "A comment says what the code does now and why; history told in words (what it used to do, which pass changed it) is a finding."
+
+### styles-test-reads-scope-roots
+
+- **Date:** 2026-10-21
+- **Kind:** review
+- **Said:** "`@scope (.cards:hover) { .card { --stir: 1 } }` passes the styles guard"
+- **Source:** ftb-motion/rewrite-round-2-findings.md F6
+- **Wrong:** A hover in an `@scope` root stirred a card outside the fine-pointer query, and the styles test passed it.
+- **Cause:** The reader took a rule's parents from nested style rules only, not from an `@scope` rule's root, and the generator drew no `@scope`.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `@scope (.cards:hover) { .card { --stir: 1 } }`, `apps/firsttheblade/src/motion/styles.test.ts` `@scope (.cards) { :scope:hover .card { ${body} } }`.
