@@ -3,15 +3,6 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "inputs": [
-        "app/**",
-        "src/**/*.ts",
-        "public/**",
-        "react-router.config.ts",
-        "vite.config.ts",
-        "tsconfig.json",
-        "package.json"
-      ],
       "outputs": ["build/**"]
     }
   }

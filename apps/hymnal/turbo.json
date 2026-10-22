@@ -4,17 +4,11 @@
   "tasks": {
     "build": {
       "inputs": [
-        "app/**",
-        "src/**",
-        "public/**",
-        "vite.config.ts",
-        "vite/**",
-        "../../packages/hymnal/src/**",
-        "../../packages/hymnal/data/sdah-1985/**",
+        "$TURBO_DEFAULT$",
         ".env*",
-        "tsconfig.json",
-        "../../tsconfig.json",
-        "package.json"
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/packages/hymnal/src/**",
+        "$TURBO_ROOT$/packages/hymnal/data/sdah-1985/**"
       ],
       "outputs": ["dist/**"]
     },

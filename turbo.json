@@ -4,28 +4,23 @@
   "agentGuidance": false,
   "globalDependencies": ["bunfig.toml"],
   "tasks": {
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "inputs": ["$TURBO_DEFAULT$", "../../tsconfig.json"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json"],
       "outputs": []
     },
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "tsconfig.json", "package.json"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json"],
       "outputs": ["dist/**"]
     },
     "test": {
-      "inputs": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "test/**/*.ts",
-        "test/**/*.tsx",
-        "tests/**/*.ts",
-        "tests/**/*.tsx",
-        "package.json"
-      ],
-      "outputs": [],
-      "cache": false
+      "dependsOn": ["^transit"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json"],
+      "outputs": []
     },
     "test:perf": {
       "inputs": ["src/**/*.ts", "src/**/*.tsx", "test/perf/**/*.ts", "package.json"],

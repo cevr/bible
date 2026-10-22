@@ -1,0 +1,27 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/apps/animations/productions/*.json",
+        "$TURBO_ROOT$/apps/animations/src/library/cast/*/cast-sheet/cast-sheet.json",
+        "$TURBO_ROOT$/apps/animations/src/library/cast/*/cast-sheet/look.md",
+        "$TURBO_ROOT$/apps/animations/src/films/*/cast/*/cast-sheet/cast-sheet.json",
+        "$TURBO_ROOT$/apps/animations/src/films/*/cast/*/cast-sheet/look.md",
+        "$TURBO_ROOT$/apps/animations/sounds/library.ts",
+        "$TURBO_ROOT$/apps/animations/sounds/fits/*.json",
+        "$TURBO_ROOT$/apps/animations/docs/ref/house-look.txt",
+        "$TURBO_ROOT$/apps/animations/README.md",
+        "$TURBO_ROOT$/apps/animations/plans/lab.md",
+        "$TURBO_ROOT$/apps/animations/plans/lab-mcp.md",
+        "$TURBO_ROOT$/.claude/skills/film/SKILL.md",
+        "$TURBO_ROOT$/.claude/skills/film/CRAFT.md",
+        "$TURBO_ROOT$/docs/lessons.md",
+        "$TURBO_ROOT$/apps/firsttheblade/kit/approval.ts"
+      ]
+    }
+  }
+}

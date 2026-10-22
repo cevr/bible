@@ -184,15 +184,4 @@ describe('the lessons ledger', () => {
         }),
       ),
   );
-
-  it.effect.layer(BunServices.layer)(
-    'of the repo holds every entry to its fields and every guard to what its file holds',
-    () =>
-      Effect.gen(function* () {
-        const path = yield* Path.Path;
-        const root = path.join(import.meta.dir, '..', '..', '..', '..');
-        const { entries, problems } = yield* ledgerProblems(root);
-        expect({ entries: entries > 50, problems }).toEqual({ entries: true, problems: [] });
-      }),
-  );
 });

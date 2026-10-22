@@ -8,10 +8,18 @@
         "public/**",
         "vite.config.ts",
         "tsconfig.json",
+        "../../tsconfig.json",
         "package.json",
         "scripts/built.ts"
       ],
       "outputs": ["dist/**", ".prerender/**"]
+    },
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/.claude/skills/verify-firsttheblade/**"
+      ]
     }
   }
 }

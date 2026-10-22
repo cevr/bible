@@ -4,6 +4,23 @@
   "tasks": {
     "typecheck": {
       "cache": false
+    },
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/turbo.json",
+        "$TURBO_ROOT$/.oxlintrc.json",
+        "$TURBO_ROOT$/lefthook.yml",
+        "$TURBO_ROOT$/apps/*/package.json",
+        "$TURBO_ROOT$/packages/*/package.json",
+        "$TURBO_ROOT$/apps/*/turbo.json",
+        "$TURBO_ROOT$/packages/*/turbo.json",
+        "$TURBO_ROOT$/apps/*/bunfig.toml",
+        "$TURBO_ROOT$/packages/*/bunfig.toml",
+        "$TURBO_ROOT$/apps/animations/series/*/scripts/*.md"
+      ]
     }
   }
 }

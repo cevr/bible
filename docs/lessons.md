@@ -33,7 +33,7 @@ finding as `<unit>/<review file> F<n>`; a review states each finding as
 `### F<n> <severity>: <what>` with a `Guard class:` line (lint, judged,
 skill, code or none) and a `Cheapest guard:` line, and `bun run merge-audit
 --review <file>` refuses a unit whose findings are not all cited here.
-`packages/scripts/src/lessons/ledger.test.ts` holds every entry to its fields
+`packages/scripts/src/lessons/ledger.slow.test.ts` holds every entry to its fields
 and every guard to what its file holds.
 
 The form of an entry, each field on its own line:
@@ -3031,8 +3031,8 @@ The form of an entry, each field on its own line:
 - **Said:** "the per-commit guard does not hold the ledger test, so \"each commit green\" is not shown"
 - **Source:** ftb-motion/rewrite-round-3-findings.md F4
 - **Wrong:** The ledger test gave 5 failures on a commit of the unit that renamed the tests its entries cite, and `merge-audit --each` said every commit was green.
-- **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run `packages/scripts/src/lessons/ledger.test.ts`.
-- **Guard:** code: `./package.json` `bun test ./packages/scripts/src/lessons/ledger.test.ts`, the root `guard` script that `merge-audit --each` runs on each commit.
+- **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run the ledger test, `packages/scripts/src/lessons/ledger.slow.test.ts`.
+- **Guard:** code: `./package.json` `bun test ./packages/scripts/src/lessons/ledger.slow.test.ts`, the root `guard` script that `merge-audit --each` runs on each commit.
 
 ### images-ship-as-their-own-files
 

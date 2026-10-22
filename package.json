@@ -31,7 +31,7 @@
     "gate": "sh packages/scripts/src/gate.sh",
     "gate:checks": "concurrently -g -n lint,fmt,dead-exports,turbo \"bun run lint\" \"bun run fmt:check\" \"bun run dead-exports\" \"turbo run gate\"",
     "gate:tests": "turbo run gate:timed test --concurrency=1 --filter=!@bible/selah; t=$?; bun run --cwd packages/film test:guard && exit $t",
-    "guard": "concurrently -g -n lint,fmt,dead-exports,film,ledger \"nice -n 10 bun run lint\" \"nice -n 10 bun run fmt:check\" \"nice -n 10 bun run dead-exports\" \"bun run --cwd packages/film test:guard\" \"bun test ./packages/scripts/src/lessons/ledger.test.ts\"",
+    "guard": "concurrently -g -n lint,fmt,dead-exports,film,ledger \"nice -n 10 bun run lint\" \"nice -n 10 bun run fmt:check\" \"nice -n 10 bun run dead-exports\" \"bun run --cwd packages/film test:guard\" \"bun test ./packages/scripts/src/lessons/ledger.slow.test.ts\"",
     "dead-exports": "bun packages/scripts/src/dead-exports.ts",
     "merge-audit": "bun packages/scripts/src/merge-audit.ts",
     "redfirst": "bun packages/scripts/src/redfirst.ts",
