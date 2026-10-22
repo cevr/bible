@@ -4022,6 +4022,11 @@ package's test-only doubles live in its `testing.ts` seam (`core/testing.ts`,
 and product code imports none, by a relative path, a package export, a type
 import, a re-export or a dynamic `import('…')`. The tests, the fixtures, the
 seams and the type tests are let off.
+`film/no-data-url` (`lint/no-data-url.ts`) holds the First the Blade site's
+`src`: a string or template that opens a data URL (`data:image/png`,
+`data:,`, `'data:' + type`) is refused, since an image written inside another
+file is one the site's build walk does not read, so no approval holds it.
+The tests and fixtures are let off.
 `film/synth-own-math` (`lint/synth-own-math.ts`) holds the sound graph
 (`core/synth/graph/`) to the same samples on every host: a host's `Math.sin`,
 `exp`, `log`, `pow` and `tanh` are approximations its engine chooses, so the
@@ -4055,7 +4060,7 @@ properties `getScope`, `getDeclaredVariables`, `scopeManager`,
 reader.
 `lint/plugin.test.ts` runs oxlint over the marked fixtures: every RED
 location must report its rule, with no extra findings. Each of the plugin's
-twenty-seven rules (`lint/plugin.ts`) also has a diagnostic whose corrective
+twenty-eight rules (`lint/plugin.ts`) also has a diagnostic whose corrective
 message is asserted, including the distinct anchor-end and cue-part repairs,
 so a rule that fires but gives the wrong advice fails the fixture suite; the
 test holds that list to the plugin's rules.

@@ -15,6 +15,7 @@ import { keysThroughKeymap } from './keys-through-keymap.ts';
 import { lockThroughSqlite } from './lock-through-sqlite.ts';
 import { mediaThroughPlayer } from './media-through-player.ts';
 import { noCueRemap } from './no-cue-remap.ts';
+import { noDataUrl } from './no-data-url.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
 import { noHistoryComment } from './no-history-comment.ts';
@@ -53,6 +54,7 @@ export default Plugin.define({
     'test-git-config': testGitConfig,
     'no-read-once': noReadOnce,
     'no-test-seam': noTestSeam,
+    'no-data-url': noDataUrl,
     'no-unprobed-ink': noUnprobedInk,
     'one-breakpoint': oneBreakpoint,
     'one-clock-epsilon': oneClockEpsilon,

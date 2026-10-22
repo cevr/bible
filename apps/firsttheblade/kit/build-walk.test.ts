@@ -7,7 +7,9 @@
  * format under any name, extension (none, a wrong one, another image's) and
  * folder is refused, and each file named as an image whose bytes no
  * signature reads is refused as `unknown`; the approved stills and the
- * images outside the rule, under any name, pass.
+ * images outside the rule, under any name, pass. The walk reads files, so
+ * no served text file the linter does not read (a stylesheet, a drawing)
+ * holds an image inside it as a data URL.
  */
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -15,7 +17,7 @@ import { Effect, FileSystem, Option, Order, Path } from 'effect';
 
 import { readRecord, unapprovedBuilt } from './approval.ts';
 import { type Format, formatOf } from './build-walk.ts';
-import { OUTSIDE } from './served.ts';
+import { OUTSIDE, SERVED_FOLDERS } from './served.ts';
 
 const APP = `${import.meta.dir}/..`;
 
@@ -267,6 +269,18 @@ const NOT_IMAGES: ReadonlyArray<readonly [string, Uint8Array]> = [
 
 const test = it.effect.layer(BunServices.layer);
 
+/** A data URL's opening: the scheme, then a media type, `;` or `,`, in any case. */
+const DATA_URL = /\bdata:(?:[\w.+-]+\/[\w.+-]+|[;,])/giu;
+
+/** Each data URL's opening a text holds. */
+const dataUrls = (text: string) => Array.from(text.matchAll(DATA_URL), ([found]) => found);
+
+const fatalUtf8 = new TextDecoder('utf-8', { fatal: true });
+const textOf = Option.liftThrowable((bytes: Uint8Array) => fatalUtf8.decode(bytes));
+
+/** A script the linter reads (film/no-data-url), or a test, which is not served. */
+const LINTED_OR_TEST = /\.[cm]?[jt]sx?$|\.test\./u;
+
 describe('the build walk', () => {
   test('reads each format by its first bytes, a gzipped one by what it unzips to', () =>
     Effect.sync(() => {
@@ -348,4 +362,37 @@ describe('the build walk', () => {
         expected.toSorted(Order.mapInput(Order.String, ({ image }) => image)),
       );
     }).pipe(Effect.scoped));
+
+  test('no served file the linter does not read, a stylesheet or a drawing, holds a data URL, so each image the site serves is a file the walk reads', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      expect(
+        [
+          'background: url("data:image/png;base64,iVBORw0KGgo=")',
+          '<image href="data:image/jpeg;base64,/9j/4A==" />',
+          'mask: url(DATA:,x)',
+          'the pages as data: where each is served',
+        ].map(dataUrls),
+      ).toEqual([['data:image/png'], ['data:image/jpeg'], ['DATA:,'], []]);
+      const read: Array<string> = [];
+      const found: Array<readonly [string, ReadonlyArray<string>]> = [];
+      for (const folder of SERVED_FOLDERS) {
+        const entries = yield* fs.readDirectory(path.join(APP, folder), { recursive: true });
+        for (const entry of entries.toSorted()) {
+          const file = `${folder}/${entry.split(path.sep).join('/')}`;
+          if (LINTED_OR_TEST.test(file)) continue;
+          if ((yield* fs.stat(path.join(APP, file))).type !== 'File') continue;
+          const text = textOf(yield* fs.readFile(path.join(APP, file)));
+          if (Option.isNone(text)) continue;
+          read.push(file);
+          const urls = dataUrls(text.value);
+          if (urls.length > 0) found.push([file, urls]);
+        }
+      }
+      expect(read).toEqual(
+        expect.arrayContaining(['src/styles.css', 'src/art/emblem-remedies.svg']),
+      );
+      expect(found).toEqual([]);
+    }));
 });

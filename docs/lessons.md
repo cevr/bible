@@ -2983,3 +2983,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** The ledger test gave 5 failures on a commit of the unit that renamed the tests its entries cite, and `merge-audit --each` said every commit was green.
 - **Cause:** `merge-audit --each` runs `bun run guard` on each commit, and the guard did not run `packages/scripts/src/lessons/ledger.test.ts`.
 - **Guard:** code: `./package.json` `bun test ./packages/scripts/src/lessons/ledger.test.ts`, the root `guard` script that `merge-audit --each` runs on each commit.
+
+### images-ship-as-their-own-files
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "an image inside another file is not walked (latent)"
+- **Source:** ftb-motion/rewrite-round-3-findings.md F5
+- **Wrong:** No image ships inlined now, but nothing refused one: a `?inline` import, or a data URL written in a script, a stylesheet or a drawing, puts an image inside another file of `dist/`, where the build walk does not read it.
+- **Cause:** The build walk reads the built site's files, one image per file, and nothing held the site's sources to shipping each image as a file of its own.
+- **Guard:** lint:film/no-data-url, proof `packages/film/lint/fixtures/no-data-url.tsx` `RED film/no-data-url`, `packages/film/lint/config.test.ts` `refuses an inlined import and a data URL in the First the Blade site's sources, and passes a URL import and prose`, `apps/firsttheblade/kit/build-walk.test.ts` `no served file the linter does not read, a stylesheet or a drawing, holds a data URL, so each image the site serves is a file the walk reads`. The `?inline` import is refused by the site block's `no-restricted-imports` pattern in `.oxlintrc.json`, which the config test runs.

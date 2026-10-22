@@ -17,6 +17,9 @@
 //   (`@bible/film/review` is the lab's).
 // - The film's rules: `Visitor.accumulate`, which copies its list on every
 //   node it keeps, is refused to them, and `nodes.ts`'s `collect` is not.
+// - The First the Blade site's sources: oxlint lints a probe with the
+//   site's block's own options, and refuses each `?inline` import and data
+//   URL, an image the build walk would not read, and passes a URL import.
 
 import { BunServices } from '@effect/platform-bun';
 import { JSONC } from 'bun';
@@ -152,6 +155,14 @@ const Override = Schema.Struct({
 type Override = typeof Override.Type;
 const Config = Schema.Struct({ overrides: Schema.Array(Override) });
 const Package = Schema.Struct({ exports: Schema.Record(Schema.String, Schema.String) });
+
+/** The config oxlint runs a probe of a block's own rules with. */
+const RulesConfig = Schema.fromJsonString(
+  Schema.Struct({
+    jsPlugins: Schema.Array(Schema.String),
+    rules: Schema.Record(Schema.String, Schema.Unknown),
+  }),
+);
 
 /** The config oxlint runs the probe with: only the host bans and the brands. */
 const ProbeConfig = Schema.fromJsonString(
@@ -465,6 +476,53 @@ describe('the lint config', () => {
           `${probe.join('\n')}\n`,
         );
         expect([...reportedLines(out, ['no-restricted-properties'])]).toEqual([2]);
+      }),
+    SPAWNS_MS,
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "refuses an inlined import and a data URL in the First the Blade site's sources, and passes a URL import and prose",
+    () =>
+      Effect.gen(function* () {
+        const path = yield* Path.Path;
+        const config = yield* readJson('.oxlintrc.json', Config);
+        const block = config.overrides.find((o) =>
+          o.files.includes('**/apps/firsttheblade/src/**/*.ts'),
+        );
+        expect(block).toBeDefined();
+        const rules = ['no-restricted-imports', 'film/no-data-url'].flatMap((key) =>
+          Option.toArray(
+            Option.map(
+              Option.flatMap(Option.fromUndefinedOr(block), (o) => ruleIn(o, key)),
+              (value) => [key, value] as const,
+            ),
+          ),
+        );
+        expect(rules.map(([key]) => key)).toEqual(['no-restricted-imports', 'film/no-data-url']);
+        const probe = [
+          "import a from './a.png?inline';",
+          "import b from './b.png?url&inline';",
+          "export const c = () => import('./c.webp?inline');",
+          "export { d } from './d.svg?inline';",
+          "export const e = 'data:image/png;base64,iVBORw0KGgo=';",
+          "import f from './f.png?url';",
+          "import g from './inline.png';",
+          "import h from './h.png?inlined';",
+          "export const i = 'the pages as data: where each is served';",
+          'export const used = [a, b, f, g, h];',
+        ];
+        const out = yield* oxlintOver(
+          yield* Schema.encodeEffect(RulesConfig)({
+            jsPlugins: [path.join(yield* ROOT, 'packages', 'film', 'lint', 'plugin.ts')],
+            rules: Object.fromEntries(rules),
+          }),
+          `${probe.join('\n')}\n`,
+        );
+        expect(
+          [...reportedLines(out, ['no-restricted-imports', 'no-data-url'])].toSorted(
+            (x, y) => x - y,
+          ),
+        ).toEqual([1, 2, 3, 4, 5]);
       }),
     SPAWNS_MS,
   );

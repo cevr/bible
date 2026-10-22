@@ -544,6 +544,32 @@
       }
     },
     {
+      // The First the Blade site ships each image as a file of its own: the
+      // build walk (apps/firsttheblade/kit/build-walk.ts) reads the built
+      // site's files by their bytes, and the stills rule holds each image it
+      // finds to an approval. An image inlined into another file, by a
+      // `?inline` import or a data URL written in a module
+      // (film/no-data-url), is one the walk does not read. A file is an
+      // image by its bytes, not its name, so `?inline` is refused on any
+      // import. The tests and fixtures are not served.
+      "files": ["**/apps/firsttheblade/src/**/*.ts", "**/apps/firsttheblade/src/**/*.tsx"],
+      "excludeFiles": ["**/*.test.ts", "**/*.test.tsx", "**/fixtures/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "\\?(?:[^#]*&)?inline(?:[&#]|$)",
+                "message": "an import inlined into the file that imports it (?inline): an image inside another file is one the build walk does not read, so no approval holds it. Import the file's URL, which the build emits as a file of its own."
+              }
+            ]
+          }
+        ],
+        "film/no-data-url": "error"
+      }
+    },
+    {
       // The figure measure's pixel loops (`film match`): a crop's RGBA, its
       // labels and its distance fields read pixel by pixel. Typed arrays and
       // label tables are indexed inside their bounds (`!`, `?? 0`) and each
