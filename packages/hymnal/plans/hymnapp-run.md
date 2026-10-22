@@ -165,6 +165,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - The hymnal runs one agent at a time (owner, 2026-10-21: "Just organize you have one agent"; the shared budget gives hymn / selah 1 of the host's 4). The queue is serial: playstall r3 part 8 → part 9 → review → verify → census2 → one29 → topicdata → shell → render → indexes. A reviewer or verifier counts as the one agent, so each unit's roles run one after another. (all units)
 
+- playstall's first rewrite failed its round 3 on its own check: the 8,000-seed world sweep at `107e9d5ab` gave 56 breach lines on 43 seeds in seven classes, 49 of them the reader's place (O6), all above the 1,500 seeds the parts swept. Every r3 part fixed triggers on one premise (timing rules tell a stale read from a fresh one), and parts 8 and 9 made new triggers with their own fixes. So the unit is rewritten a second time: new premise and spec in `playstall/rewrite2/`, product code from main on `hymnapp/playstall2`, the world property and its attack tests carried as the check, 8,000 seeds in every part. No reviewer runs on a request whose check is known red (attack-the-premise). (playstall)
+
 ## Owner questions
 
 - hymnrows (2026-10-20): the rewrite failed its 3 rounds (r6 changes: M1, repeat of r5 M1). The data at head `ebb5933da` is sound by every check: 0 census problems, 518 crops re-cut byte-identical, 584 matches its crop, and the gate is green. The defect is the census's reach: 115 hand-made layout mutants in 25 hymns pass it unseen. Options: (A, recommended) merge the data now and open unit `census2` with the 115 mutants as red fixtures first; (B) one more rewrite before anything merges; (C) merge the data and drop the census's layout check. Answer: pending.
