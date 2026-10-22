@@ -22,7 +22,8 @@
  * A read asked before the latest act is stale, and so is one asked before
  * an answer that said `ended`: it may show the device before its end. One
  * asked before the answer that landed the act may show the device before the
- * landing: it pairs with nothing, though its `ended` still lands. An act that moves the device to a
+ * landing: it closes no pair, though ahead of the answer by the sound since, it starts the
+ * next one; its `ended` still lands. An act that moves the device to a
  * place is pending until it lands, and a read's place never lands it:
  * One answers the page's seek only at the seek's completion (iOS
  * `HybridOneAudio.swift:198-207`, Android `HybridOneAudio.kt:293-304`, the
@@ -243,16 +244,24 @@ export const readOf = (proof: Proof, read: Read): Proved => {
     };
   }
   if (read.asked < proof.endedAt) return { proof, seen: 'stale' };
-  // A read asked before the landing's answer may have seen the device before or after it: at
-  // another place, the page cannot tell which of the two came last, so neither opens a pair.
+  // A read asked before the landing's answer may have seen the device before or after it. Ahead
+  // of the pair's start by what sound since that start explains, it saw the device later, and
+  // the next pair starts from it: the sound between is behind the page. Behind by what sound
+  // before that start explains, the start stands. At any other place the page cannot tell which
+  // of the two came last, so neither opens a pair.
   if (read.asked < proof.landed)
     return {
       proof: {
         ...proof,
-        last: Option.filter(
-          proof.last,
-          (last) => Math.abs(last.status.positionMs - read.status.positionMs) <= slack,
-        ),
+        last: Option.flatMap(proof.last, (last) => {
+          const ahead = read.status.positionMs - last.status.positionMs;
+          if (Math.abs(ahead) <= slack) return Option.some(last);
+          if (ahead > 0 && ahead <= Math.max(0, read.answered - last.asked) + slack)
+            return Option.some(read);
+          if (ahead < 0 && -ahead <= Math.max(0, last.answered - read.asked) + slack)
+            return Option.some(last);
+          return Option.none();
+        }),
       },
       seen: 'nothing',
     };

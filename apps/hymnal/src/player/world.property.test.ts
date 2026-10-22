@@ -1243,8 +1243,9 @@ describe('the player by the world: the part 7 sweep (rw r3 part 8)', () => {
   // Two `ended` reads before a lock-screen seek landed: each shows the device before the
   // landing, and the seek's place stays the reader's (P7).
   seed('two end reads before a lock-screen seek landed', 'ios', 1258);
-  // A read asked before a seek's answer landed, at another place: it may follow the landing
-  // answer, so a later read pairs with neither (O1).
+  // A read asked before a seek's answer landed, ahead of the answer by the sound since it: it
+  // follows the answer, so a later read pairs with it, and the sound before it is no sound
+  // after a hold (O1).
   seed('a read in flight across a landing, then a hold', 'android', 911);
   // A press told after unseen sound in a hold: the place the device reached before the press
   // is one the page may resume from (O6).
@@ -1252,6 +1253,17 @@ describe('the player by the world: the part 7 sweep (rw r3 part 8)', () => {
   // An end read with no length before a seek landed: the device stands at its end then, so the
   // read is before the landing and the seek's place stays the reader's (P7).
   seed('an end read with no length before a lock-screen seek landed', 'web', 228);
+  // A read asked before a landing's answer, ahead of it by the sound since: the device played
+  // on from the landing, so the next read pairs with it and the place the page keeps follows
+  // the sound (O6).
+  seed('a read in flight across a landing, then the place kept', 'ios', 274);
+  seed('a read in flight across a landing, then the place kept', 'ios', 409);
+  seed('a read in flight across a landing, then the place kept', 'android', 666);
+  seed('a read in flight across a landing, then the place kept', 'android', 900);
+  seed('a read in flight across a landing, then the place kept', 'android', 1119);
+  seed('a read in flight across a landing, then the place kept', 'android', 1130);
+  seed('a read in flight across a landing, then the place kept', 'android', 1354);
+  seed('a read in flight across a landing, then the place kept', 'web', 1060);
 });
 
 // A sound pair the page finishes after it lets go sets the reader's place, for Stopped and the
