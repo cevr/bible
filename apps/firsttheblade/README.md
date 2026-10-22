@@ -132,8 +132,8 @@ bun run build      # vite build (browser) + vite build --ssr (pages) + prerender
 bun run preview    # dist/ through the Worker's policy on http://localhost:8470 (PORT to change)
 bun run test       # the Worker's policy, the email list, the pages' data, the sitemap
 bun run typecheck
-bun run plan       # the stills gate (build, walk dist/), then show what `prod` would change
-bun run deploy     # the stills gate (build, walk dist/), then deploy `prod`; the stack runs the gate first on stage prod
+bun run plan       # the prod state check, the stills gate (build, walk dist/), then show what `prod` would change
+bun run deploy     # the prod state check, then the stills gate (build, walk dist/) and deploy `prod`; the stack runs the gate first on stage prod
 bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to the email list
 bun run verify:drive confirm --root <dir> --port <p> --evidence <dir>   # drive the site as a visitor (verify:launch, :doctor, :outbox, :stop, :stage too)
 ```
@@ -144,6 +144,17 @@ How to run and drive the site to check a change, with the proof it keeps,
 is the `verify-firsttheblade` skill (`.claude/skills/verify-firsttheblade`).
 
 Alchemy asks before it changes anything. In a shell that can't prompt (Claude Code's `!`, CI), pass the approval through: `bun run deploy --yes`.
+
+The prod state is local: Alchemy keeps it in
+`.alchemy/state/firsttheblade/prod` (gitignored), in the main checkout
+only. A checkout without it plans every resource as new and binds the live
+Worker to a second D1 and queue, so `bun run plan` and `bun run deploy` first
+run `scripts/prod-state.ts`, which stops them unless the state records the
+live Worker, the list's D1 and the film queue by their names. To deploy from
+a worktree, copy the main checkout's state folder and `.env` in, and read
+the plan first: on prod it updates resources or changes nothing, and a
+resource to create that the change did not add means stop. After the deploy,
+copy the state back home.
 
 A throwaway copy goes to its own stage, on its own `workers.dev` host, and
 never takes the site's hostnames. It does share the sending domain with

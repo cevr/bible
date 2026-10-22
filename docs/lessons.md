@@ -1667,6 +1667,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The claim sat in files about the site's hostnames, and the change that made the domain shared named neither line.
 - **Guard:** skill: a sentence's claim goes stale with no file named in it changing, which only a reader sees. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it"
 
+### prod-deploy-needs-prod-state
+
+- **Date:** 2026-10-21
+- **Kind:** retraction
+- **Said:** "`bun run deploy --yes` from a worktree deploys the live site as the main checkout does."
+- **Source:** memory reference_ftb_prod_state.md; the orchestrator's brief for unit ftb-prodstate (run p5)
+- **Wrong:** A prod deploy ran from the ftb-copy-2 worktree, which had no prod Alchemy state. Alchemy planned "8 to create", made a second D1 and queue, and bound the live Worker `firsttheblade` to them for about 70 s; the contact rule failed as owned by someone else.
+- **Cause:** The prod state is local and git-ignored, in the main checkout's `apps/firsttheblade/.alchemy/state/firsttheblade/prod` only, and Alchemy reads a missing state folder as a stack never deployed.
+- **Guard:** code: `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a checkout with no prod state folder, or an empty one, and says what to do`, `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a state that lacks any one live resource, or holds it unreadable, of another type or under another name`
+
 ### letter-tests-use-the-sent-path
 
 - **Date:** 2026-10-20
