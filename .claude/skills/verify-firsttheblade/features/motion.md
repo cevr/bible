@@ -50,7 +50,9 @@ emblems at rest.
   `apps/firsttheblade/kit/shippable.test.ts` and
   `apps/firsttheblade/scripts/computed.ts`
   (`bun run --cwd apps/firsttheblade computed`, after a build: the leaf as
-  Chrome computes it, and a data-URL picture refused by the content policy).
+  Chrome computes it and where it stands on the page, in each state at the
+  edges of every width band the built stylesheets' media queries make, and a
+  data-URL picture refused by the content policy).
 
 1. **Hero.** `ab set viewport 1280 800`, `ab open $O/`, then
    `ab record start "$EVIDENCE/motion/motion.webm"`. After 4 s,
