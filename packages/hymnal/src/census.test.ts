@@ -35,6 +35,7 @@ import {
   lentReadings,
   photoProblem,
   printedOf,
+  entryProblemsOf,
   problemsOf,
   readCensusOnce,
   readingProblems,
@@ -678,9 +679,9 @@ describe('census', () => {
             const { sources, all, one, matches } = yield* hymn58;
             const answered: Ruling = { ...one, answer: answer('source') };
             const rulings = all.map((ruling) => (ruling === one ? answered : ruling));
-            expect(about(matches, withRulings(sources, 58, rulings), 58)).toEqual([]);
+            expect(entryProblemsOf(matches, withRulings(sources, 58, rulings), 58)).toEqual([]);
             const bare: Ruling = { ...answered, settles: [] };
-            const lines = about(
+            const lines = entryProblemsOf(
               matches,
               withRulings(
                 sources,
@@ -699,13 +700,17 @@ describe('census', () => {
         () =>
           Effect.gen(function* () {
             const { census, sources, n, all, ruled } = yield* pageAnswered;
-            const lines = about(census, withRulings(sources, n, [...all.slice(1), ruled([])]), n);
+            const lines = entryProblemsOf(
+              census,
+              withRulings(sources, n, [...all.slice(1), ruled([])]),
+              n,
+            );
             expect(lines).not.toContain(`${n} says matches, its rulings make it unsettled`);
             expect(lines).not.toContain(`${n} ruling ${all.length} has no site`);
             expect(lines).not.toContain(
               `${n} ruling ${all.length} is disputed but settles no line`,
             );
-            const settling = about(
+            const settling = entryProblemsOf(
               census,
               withRulings(sources, n, [...all.slice(1), ruled(['a line'])]),
               n,
@@ -720,9 +725,9 @@ describe('census', () => {
         Effect.gen(function* () {
           const { census, sources, n, all } = yield* pageAnswered;
           const words: Ruling = { ...all[0]!, answer: answer('source') };
-          expect(about(census, withRulings(sources, n, [...all.slice(1), words]), n)).toContain(
-            `${n} ruling ${all.length} answers no dispute`,
-          );
+          expect(
+            entryProblemsOf(census, withRulings(sources, n, [...all.slice(1), words]), n),
+          ).toContain(`${n} ruling ${all.length} answers no dispute`);
         }),
       );
 
@@ -734,11 +739,11 @@ describe('census', () => {
             const units = unitsOf(sources.rows.get(n)!);
             // Each stanza one line: the base words, divided otherwise.
             const redivided = withFix(sources, n, units);
-            expect(about(census, redivided, n)).toContain(
+            expect(entryProblemsOf(census, redivided, n)).toContain(
               `${n} has a fix file of its own but says matches`,
             );
             const answered = withRulings(redivided, n, [...all.slice(1), ruled([])]);
-            expect(about(census, answered, n)).not.toContain(
+            expect(entryProblemsOf(census, answered, n)).not.toContain(
               `${n} has a fix file of its own but says matches`,
             );
             // The fix sings one word otherwise than its row.
@@ -748,7 +753,7 @@ describe('census', () => {
               ...fix,
               stanzas: [[{ ...line!, text: `unruled ${line!.text}` }], ...fix.stanzas.slice(1)],
             });
-            const lines = about(census, changed, n);
+            const lines = entryProblemsOf(census, changed, n);
             expect(lines.some((p) => p.startsWith(`${n} fix file and row differ: `))).toBe(true);
             expect(lines).toContain(`${n} has a fix file of its own but says matches`);
           }),

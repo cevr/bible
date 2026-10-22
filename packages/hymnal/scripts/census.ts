@@ -3006,6 +3006,17 @@ const orderProblems = (numbers: readonly number[]): string[] => {
   ];
 };
 
+/**
+ * What `problemsOf` prints for hymn `n`'s own entry, read without the rest of
+ * the book: its page, its row, its rulings and its fix.
+ */
+export const entryProblemsOf = (census: Census, sources: Sources, n: number): string[] => {
+  const entry = census.hymns.find((one) => one.number === n);
+  return entry === undefined
+    ? []
+    : entryProblems(entry, decidingOf(sources.inventory).get(n) ?? NO_PAGE, sources);
+};
+
 /** Every way the census disagrees with its committed inputs and the base commit, one line each. */
 export const problemsOf = (census: Census, sources: Sources): string[] => {
   const deciding = decidingOf(sources.inventory);
