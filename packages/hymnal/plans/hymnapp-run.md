@@ -2,7 +2,7 @@
 
 The work, in the owner's words (2026-10-16/17): a hymnal app on One (onestack.dev) whose chords match the sheet music, each chord "right above the syllable where the harmony changes"; transpose with a capo fret; light and dark; "a plain hymn first with a toggle somewhere that turns chords on"; full glass design (react-native-gpui videos, Android's closest equivalent); Effect wherever possible with the official Effect atom React integration, local-first, cached and fast; move S3 `cvr-hymns` to Cloudflare R2 with Alchemy; the 1941 Church Hymnal too; chords from the MIDI ("i think its fine, lets use the midi"); the hymn decks get the syllable splits, last.
 
-Host: claude (laptop) · Units at once: 2 heavy · Gate: ~35 s warm (`bun run gate`, 31 tasks) · Reserved: publish, paid calls, force-push (the r2 deploy and copy are the orchestrator's after merge, owner 2026-10-18; the owner deleted S3 `cvr-hymns` 2026-10-18 after all 694 objects matched R2 by size) · Repo: ~/Developer/personal/bible-tools · Base: b27a9471b
+Host: claude (laptop) · Units at once: 1 agent (owner, 2026-10-21) · Gate: ~35 s warm (`bun run gate`, 31 tasks) · Reserved: publish, paid calls, force-push (the r2 deploy and copy are the orchestrator's after merge, owner 2026-10-18; the owner deleted S3 `cvr-hymns` 2026-10-18 after all 694 objects matched R2 by size) · Repo: ~/Developer/personal/bible-tools · Base: b27a9471b
 Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>` (rift fails on this repo), branch `hymnapp/<unit>`. Merge = rebase on origin/main, gate, `merge-audit --each`, `git push origin HEAD:main` (ff only).
 
 | Unit      | Depends on                     | Workspace                 | Agents                         | Result |
@@ -162,6 +162,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - The owner's UI scrawls start now, not after playstall (owner, 2026-10-20: "What about the UI request that I made"). `shell` no longer waits for playstall: it takes the navigation and the list (no tab bar; search pulled down under the large title; settings as a sheet from a small top-right button; the hymn list on LegendList with sticky topic rows; no empty band above "Hymns"; no collapsed title bar). The bottom mini player and its full-player sheet move from `shell` to `hymnbar`, which now waits for shell and playstall, since both touch the player's controls. `topicdata` and the shell planner start at once; shell's implementor takes the next heavy slot. (shell, hymnbar, topicdata)
 
 - Every verifier in this run uses the `verify-hymnal` skill (`.claude/skills/verify-hymnal/`, `bun run sim` in `apps/hymnal`) to launch, drive and keep proof (owner, via the Mac retro session, 2026-10-21). verifyhymnal merged on the orchestrator's check of its proof (iOS and web, `verifyhymnal/proof/`), its gate and its merge-audit, with no separate reviewer (the one-agent budget). (verifyhymnal)
+
+- The hymnal runs one agent at a time (owner, 2026-10-21: "Just organize you have one agent"; the shared budget gives hymn / selah 1 of the host's 4). The queue is serial: playstall r3 part 8 → part 9 → review → verify → census2 → one29 → topicdata → shell → render → indexes. A reviewer or verifier counts as the one agent, so each unit's roles run one after another. (all units)
 
 ## Owner questions
 
