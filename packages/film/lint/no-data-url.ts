@@ -3,8 +3,10 @@
 // the owner gave (apps/firsttheblade/kit/approval.ts), and the build walk
 // (apps/firsttheblade/kit/build-walk.ts) finds those images as the files of
 // the built site, read by their bytes. An image written into a script as a
-// data URL ships inside another file, where the walk does not read it, so no
-// approval would hold it. An image ships as a file of its own.
+// data URL ships inside another file, with no bytes of its own an approval
+// can hold: the walk refuses each built file that holds one, and this rule
+// refuses it in the source, before a build. An image ships as a file of its
+// own.
 //
 // Refused: a string, or a template read with a value standing for each
 // `${…}`, holding a data URL's opening: `data:` and then a media type
@@ -26,7 +28,7 @@ import {
 const DATA_URL = /\bdata:(?:[\w.+-]+\/[\w.+-]+|[;,]|$)/iu;
 
 const MESSAGE =
-  'a data URL in a served module: an image written inside another file is one the build walk does not read, so no approval holds it. Ship the image as a file of its own, which the walk reads by its bytes.';
+  'a data URL in a served module: an image written inside another file has no bytes of its own an approval can hold, and the build walk refuses each built file that holds one. Ship the image as a file of its own, which the walk reads by its bytes.';
 
 /** A template's text, with a media type standing for each value (`` `data:${type};base64,` `` reads as a data URL). */
 const templateText = (node: ESTree.TemplateLiteral) =>
@@ -46,7 +48,7 @@ export const noDataUrl = Rule.define({
   meta: Rule.meta({
     type: 'problem',
     description:
-      'A served module writes no data URL: an image inside another file is one the build walk does not read.',
+      'A served module writes no data URL: an image inside another file has no bytes of its own an approval can hold.',
   }),
   create: function* () {
     const context = yield* RuleContext;

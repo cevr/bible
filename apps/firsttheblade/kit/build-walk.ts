@@ -9,7 +9,11 @@
  * markup is ASCII). A gzipped file is read by what it
  * unzips to. A file named as an image (`IMAGE`) that no signature reads is
  * an image of format `unknown`, so a form the walk does not know is refused,
- * not passed. Reading the sources cannot list what the build emits, as each
+ * not passed. A file that is no image but holds a data URL in any reading of
+ * its bytes (an HTML page, a stylesheet, a script, gzipped or not) is an
+ * image of format `data url`: an image inside another file has no bytes of
+ * its own the walk can hash, so it is refused whatever it holds. Reading
+ * the sources cannot list what the build emits, as each
  * reader holds only the forms its author thought of; the bytes the build
  * wrote are what the site serves.
  */
@@ -21,7 +25,7 @@ import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
 import { IMAGE } from './served.ts';
 
-/** The image formats the walk reads, by their bytes; `unknown` is a file named as an image whose bytes no signature reads. */
+/** The image formats the walk reads, by their bytes; `unknown` is a file named as an image whose bytes no signature reads, `data url` a file that holds a data URL. */
 export const Format = Schema.Literals([
   'jpeg',
   'png',
@@ -35,6 +39,7 @@ export const Format = Schema.Literals([
   'jpeg 2000',
   'svg',
   'unknown',
+  'data url',
 ]);
 export type Format = typeof Format.Type;
 
@@ -133,6 +138,22 @@ export const formatOf = (bytes: Uint8Array): Option.Option<Format> => {
   );
 };
 
+/**
+ * A data URL's opening, in any case: the scheme, then a media type of a
+ * registered top-level type, `;` or `,`. A minified script's `{data:n/2}`
+ * is no data URL.
+ */
+export const DATA_URL =
+  /\bdata:(?:(?:image|text|application|font|audio|video|model|multipart|message)\/[\w.+-]+|[;,])/iu;
+
+/** Whether any reading of the bytes (a gzipped file's by what it unzips to too) holds a data URL. */
+const holdsDataUrl = (bytes: Uint8Array): boolean =>
+  readings(bytes).some((text) => DATA_URL.test(text)) ||
+  Option.exists(
+    Option.filter(gunzipped(bytes), () => holds(bytes, 0, [0x1f, 0x8b])),
+    holdsDataUrl,
+  );
+
 /** The SHA-256 of bytes, in hex. */
 export const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
@@ -156,8 +177,13 @@ export const builtImages = Effect.fn('BuildWalk.images')(function* (dist: string
         if ((yield* fs.stat(full)).type !== 'File') return Option.none<BuiltImage>();
         const bytes = yield* fs.readFile(full);
         const file = entry.split(path.sep).join('/');
-        const format = Option.orElse(formatOf(bytes), () =>
-          Option.some<Format>('unknown').pipe(Option.filter(() => IMAGE.test(file))),
+        const format = formatOf(bytes).pipe(
+          Option.orElse(() =>
+            Option.some<Format>('data url').pipe(Option.filter(() => holdsDataUrl(bytes))),
+          ),
+          Option.orElse(() =>
+            Option.some<Format>('unknown').pipe(Option.filter(() => IMAGE.test(file))),
+          ),
         );
         return Option.map(format, (format) => ({ file, format, hash: sha256(bytes) }));
       }),

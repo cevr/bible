@@ -12,7 +12,8 @@
  *   true of those bytes: a later ask need show only the stills that changed.
  * - Every image file of the built site (`dist/` after `bun run build`, each
  *   found by its bytes, `./build-walk.ts`) is an approved still or an image
- *   outside the rule (`OUTSIDE`, `./served.ts`, each with its reason). The
+ *   outside the rule (`OUTSIDE`, `./served.ts`, each with its reason), and
+ *   no file of it holds a data URL, an image inside another file. The
  *   build walk is the guard; the source reader (`servedImages`) is a fast
  *   check the kit and the tests run before a build.
  *
@@ -517,7 +518,9 @@ export const approve = Effect.fn('Approval.approve')(function* (app: string, ask
 
 /**
  * Each image of the built site at `dist` (by its bytes) whose SHA-256 is no
- * still's in the record and no image's outside the rule, sorted by path.
+ * still's in the record and no image's outside the rule, sorted by path. A
+ * file the walk reads as holding a data URL is no image file, so no hash of
+ * the record or of `OUTSIDE` holds it: each is refused.
  */
 export const unapprovedBuilt = Effect.fn('Approval.unapprovedBuilt')(function* (
   app: string,

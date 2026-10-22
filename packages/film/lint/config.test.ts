@@ -22,7 +22,7 @@
 //   URL, an image the build walk would not read, and passes a URL import.
 
 import { BunServices } from '@effect/platform-bun';
-import { JSONC } from 'bun';
+import { Glob, JSONC } from 'bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema, Stream } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
@@ -481,14 +481,19 @@ describe('the lint config', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    "refuses an inlined import and a data URL in the First the Blade site's sources, and passes a URL import and prose",
+    "refuses an inlined import (Vite's own test of it) and a data URL in every module the First the Blade site serves, scripts too, and passes a URL import and prose",
     () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
         const config = yield* readJson('.oxlintrc.json', Config);
-        const block = config.overrides.find((o) =>
-          o.files.includes('**/apps/firsttheblade/src/**/*.ts'),
+        const SERVED_MODULES = ['src', 'public'].flatMap((folder) =>
+          ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'].map(
+            (extension) => `apps/firsttheblade/${folder}/a/b.${extension}`,
+          ),
         );
+        const covers = (o: Override, file: string) =>
+          o.files.some((glob) => new Glob(glob).match(file));
+        const block = config.overrides.find((o) => SERVED_MODULES.every((file) => covers(o, file)));
         expect(block).toBeDefined();
         const rules = ['no-restricted-imports', 'film/no-data-url'].flatMap((key) =>
           Option.toArray(
@@ -509,7 +514,9 @@ describe('the lint config', () => {
           "import g from './inline.png';",
           "import h from './h.png?inlined';",
           "export const i = 'the pages as data: where each is served';",
-          'export const used = [a, b, f, g, h];',
+          "import j from './j.png?inline=1';",
+          "import k from './k.png?inline-x';",
+          'export const used = [a, b, f, g, h, j, k];',
         ];
         const out = yield* oxlintOver(
           yield* Schema.encodeEffect(RulesConfig)({
@@ -522,7 +529,7 @@ describe('the lint config', () => {
           [...reportedLines(out, ['no-restricted-imports', 'no-data-url'])].toSorted(
             (x, y) => x - y,
           ),
-        ).toEqual([1, 2, 3, 4, 5]);
+        ).toEqual([1, 2, 3, 4, 5, 10, 11]);
       }),
     SPAWNS_MS,
   );
