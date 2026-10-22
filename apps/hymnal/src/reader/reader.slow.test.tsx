@@ -9,6 +9,7 @@ import { Option } from 'effect';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { StyleSheet, View } from 'react-native';
 
 import { hymnAt, hymns } from '~/hymns/hymns';
 
@@ -34,6 +35,15 @@ const sectionsOf = (html: string) =>
   );
 
 const hymn = (n: number) => Option.getOrThrow(hymnAt(String(n)));
+
+const rowSheet = StyleSheet.create({ row: { flexDirection: 'row' } });
+
+/** The class react-native-web draws a row (`flexDirection: 'row'`) with. */
+const rowClass = Option.getOrThrow(
+  Option.fromNullishOr(
+    /r-flexDirection-\w+/.exec(renderToStaticMarkup(<View style={rowSheet.row} />))?.[0],
+  ),
+);
 
 const page = (n: number) => renderToStaticMarkup(<HymnPage hymn={hymn(n)} reader={readerOn()} />);
 
@@ -86,6 +96,22 @@ describe('a hymn page', () => {
       expect({ piece, found: at >= from }).toEqual({ piece, found: true });
       from = at + piece.length;
     }
+  });
+
+  it('heads hymn 15 with its topic as a quiet line, above its number and title in one row', () => {
+    const html = page(15);
+    const { number, title, topic } = hymn(15);
+    const head = html.slice(0, html.indexOf('role="group"'));
+    const topicAt = head.lastIndexOf('<', head.indexOf('data-testid="hymn-topic"'));
+    const nameAt = head.lastIndexOf('<', head.indexOf('data-testid="hymn-name"'));
+    // The topic is its own line above the row, apart from the heading.
+    expect(textOf(head.slice(0, topicAt))).toBe('');
+    expect(textOf(head.slice(topicAt, nameAt))).toBe(topic);
+    // The row lays its pieces side by side (the class a row View draws with): the number, then the title.
+    const row = head.slice(nameAt);
+    expect(row.slice(0, row.indexOf('>'))).toContain(rowClass);
+    expect(textOf(row).startsWith(`${number} ${title}`)).toBe(true);
+    expect(row.indexOf(`>${number}<`)).toBeLessThan(row.indexOf('role="heading"'));
   });
 
   it('writes the refrain out after each stanza where it is sung after each (100)', () => {

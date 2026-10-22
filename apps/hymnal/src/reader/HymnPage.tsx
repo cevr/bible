@@ -1,6 +1,6 @@
 /**
- * A hymn's words in the order it is sung: its number and title, the
- * `Chords` switch, then each stanza under its number and the refrain,
+ * A hymn's words in the order it is sung: its topic as a quiet line, its
+ * number and title in one row (the number first), the `Chords` switch, then each stanza under its number and the refrain,
  * marked, each time it is sung. The theme's ink on its ground, scaled with
  * the reader's text size.
  *
@@ -64,12 +64,17 @@ export function HymnPage({
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.page}>
       <View style={styles.head}>
-        <Text style={[styles.number, { color: accent }]} dynamicTypeRamp="title2">
-          {hymn.number}
+        <Text testID="hymn-topic" style={styles.topic} dynamicTypeRamp="footnote">
+          {hymn.topic}
         </Text>
-        <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
-          {hymn.title}
-        </Text>
+        <View testID="hymn-name" style={styles.name}>
+          <Text style={[styles.number, { color: accent }]} dynamicTypeRamp="title2">
+            {hymn.number}
+          </Text>
+          <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
+            {hymn.title}
+          </Text>
+        </View>
       </View>
       <ChordControls on={on} onChange={setOn} printed={printed} move={move} onMove={setMove} />
       <PlayedKeyProvider value={played}>
@@ -204,9 +209,11 @@ export function NoHymn({ number }: { readonly number: string }) {
 
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48, gap: 24 },
-  head: { gap: 2 },
+  head: { gap: 4 },
+  topic: { fontSize: 13, color: color.muted },
+  name: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   number: { fontSize: 22, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  title: { fontSize: 22, fontWeight: '700', color: color.ink },
+  title: { flexShrink: 1, fontSize: 22, fontWeight: '700', color: color.ink },
   section: { gap: 4 },
   label: { fontSize: 13, fontWeight: '600', color: color.muted },
   refrain: { paddingLeft: 16 },
