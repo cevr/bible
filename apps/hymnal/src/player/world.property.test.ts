@@ -1479,6 +1479,34 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
       }),
     { judged: false },
   );
+  // Failed or Stopped keeps the reader's place, or the place before the first press the page
+  // has not been told of (r1 m1(b)): the place before a later untold press is no place the page
+  // knew. Here a load with seeks to 0:40 and 1:30, then two lock-screen seeks, to 0:40 and to
+  // 2:30, both told 5 s on, and a Pause whose last look takes a read sampled before them: the
+  // page keeps 1:30. Under mutant `seek-keeps-old-place` it keeps 0:40, the place before the
+  // second press, and breaks O6.
+  fixed(
+    'rw r1 m1(b): two lock-screen seeks the page is not told of, then a Pause while Loading: Stopped at the place before the first',
+    'android',
+    { lag: () => 600, loadFor: () => 60_000, tellAfter: () => 5000 },
+    (w) =>
+      Effect.gen(function* () {
+        w.send(Command.Start({ track: morning }));
+        yield* w.run(1000);
+        w.send(Command.Seek({ seconds: 40 }));
+        yield* w.run(1000);
+        w.send(Command.Seek({ seconds: 90 }));
+        yield* w.run(1000);
+        expect(yield* w.until(() => w.reads.some((read) => read.sampleAt < w.t), 2000)).toBe(true);
+        w.press('seek', 40_000);
+        w.press('seek', 150_000);
+        w.send(Command.Pause());
+        expect(yield* w.until(() => tag(w) === 'Stopped', 1000)).toBe(true);
+        expect(w.tells.length).toBe(2);
+        expect(atOf(w.state())).toEqual(Option.some(90));
+        expect(rules(w)).toEqual([]);
+      }),
+  );
   // A tell of the connection between the turning read's sample and its answer breaks the run
   // (r1 m2): the page reads the connection at the answer. The first world waits offline until
   // the page turns Failed, at a read's answer; the second, the same world, has the link back
