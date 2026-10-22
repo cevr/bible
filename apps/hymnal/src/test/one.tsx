@@ -37,6 +37,12 @@ export function useLinkTo({ href }: { readonly href: string }) {
 /** One's `Link` as the screens under test use it: its href resolver (a typed route is its own path). */
 export const Link = { resolveHref: (href: string) => href };
 
+/** The safe-area insets the screens read, in points: a test sets them, as a phone's would be. */
+export const safeArea = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/** One's `useSafeAreaInsets`: the insets a test set. */
+export const useSafeAreaInsets = () => safeArea;
+
 export const Stack = { Screen: (_: { readonly options: object }) => <></> };
 
 /** One's device modules, which no test reaches: the player's tests hand in their own (`playbackOn`). */

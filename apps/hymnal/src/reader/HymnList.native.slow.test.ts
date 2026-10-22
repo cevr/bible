@@ -25,10 +25,21 @@ interface Seen {
 
 type Change = 'scheme' | 'fontScale' | 'hrefOf';
 
+/** A list's end at a bottom inset: its rows' frame, the last row drawn, and the space after them. */
+interface End {
+  readonly bottom: number;
+  readonly rows: number;
+  readonly frame: ReadonlyArray<number>;
+  readonly lastDrawn: number;
+  readonly space: ReadonlyArray<number>;
+}
+
 const run = Bun.spawnSync(['bun', Bun.resolveSync('../test/phone-list.tsx', import.meta.dir)], {
   stderr: 'pipe',
 });
-const seen: Partial<Record<Change, Seen>> = JSON.parse(run.stdout.toString() || '{}');
+const seen: Partial<Record<Change, Seen>> & { readonly end?: ReadonlyArray<End> } = JSON.parse(
+  run.stdout.toString() || '{}',
+);
 
 /** The rows of `kind` on screen both live and fresh, by label, as each draws them. */
 const shared = (rows: Seen, kind: keyof Rows) => {
@@ -46,7 +57,7 @@ const empty: Rows = { hymns: {}, topics: {} };
 describe('the phones’ hymn list, changed while mounted', () => {
   it('mounts and changes with nothing on its error stream', () => {
     expect(run.stderr.toString()).toBe('');
-    expect(Object.keys(seen)).toEqual(['scheme', 'fontScale', 'hrefOf']);
+    expect(Object.keys(seen)).toEqual(['scheme', 'fontScale', 'hrefOf', 'end']);
   });
 
   it.each<Change>(['scheme', 'fontScale', 'hrefOf'])(
@@ -64,4 +75,31 @@ describe('the phones’ hymn list, changed while mounted', () => {
       expect(hymns.live.filter((row, i) => Bun.deepEquals(row, hymns.before[i]))).toEqual([]);
     },
   );
+});
+
+describe('the phones’ hymn list, at its end', () => {
+  const ends = seen.end ?? [];
+
+  it('keeps at least the bottom inset and 24 pt after its last row, by topic and as three results', () => {
+    expect(ends.map(({ bottom, rows }) => [bottom, rows])).toEqual([
+      [34, 40],
+      [0, 40],
+      [34, 3],
+    ]);
+    for (const end of ends) {
+      expect(end.space).toHaveLength(1);
+      expect(end.space[0]).toBeGreaterThanOrEqual(end.bottom + 24);
+    }
+  });
+
+  it('puts the space after the rows, which keep their fixed sizes', () => {
+    // Forty hymn rows of 44 pt under two topic rows of 36 pt; three results of 44 pt.
+    expect(ends.map((end) => end.frame)).toEqual([[1832], [1832], [132]]);
+    // Every result is drawn, and the last one ends where the rows' frame does.
+    expect(ends[2]?.lastDrawn).toBe(132);
+  });
+
+  it('keeps the same space for the same inset, whatever the list holds', () => {
+    expect(ends[0]?.space).toEqual(ends[2]?.space ?? []);
+  });
 });

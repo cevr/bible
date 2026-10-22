@@ -9,7 +9,8 @@
  * `hrefOf` (a new link for each row). `react-native` is
  * react-native-web with iOS's rules: `Platform.select` takes `ios`, a
  * dynamic colour is its light value, and the colour scheme and the text size
- * are the device's, which the script sets. `~/color` is the phones' colour
+ * are the device's, which the script sets. It also prints, under `end`,
+ * the space each list keeps after its last row at a bottom inset. `~/color` is the phones' colour
  * module. Each element measures as the phone's screen, so the list lays out
  * its rows under happy-dom.
  */
@@ -93,6 +94,7 @@ const { act, createElement } = await import('react');
 const { createRoot } = await import('react-dom/client');
 const Atom = await import('effect/reactivity/Atom');
 const { HymnList } = await import('../reader/HymnList.native');
+const { safeArea } = await import('./one');
 
 /** Forty hymns in two topics: more rows than the screen holds. */
 const hymns = Array.from({ length: 40 }, (_, i) => ({
@@ -190,11 +192,62 @@ const observe = async (change: keyof typeof changes) => {
   return { before, live, fresh };
 };
 
+/** The heights the first of `found` draws at, in points: none when nothing was found. */
+const px = (found: ReadonlyArray<Element>) =>
+  found
+    .slice(0, 1)
+    .filter((e) => e instanceof HTMLElement)
+    .map((e) => Number.parseFloat(e.style.height));
+
+/**
+ * The end of a list mounted at a bottom inset: where its rows end (the
+ * rows' frame, and the last row drawn when every row is drawn), and the
+ * height of the space after them.
+ */
+const endOf = async (
+  bottom: number,
+  shown: ReadonlyArray<(typeof hymns)[number]>,
+  byTopic: boolean,
+) => {
+  safeArea.bottom = bottom;
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  await act(async () => {
+    root.render(createElement(HymnList, { hymns: shown, hrefOf: hrefs.first, offset, byTopic }));
+  });
+  const space = [...host.querySelectorAll('[data-testid="list-end"]')];
+  const frame = space.flatMap((end) =>
+    [end.parentElement?.previousElementSibling].filter((e) => e instanceof Element),
+  );
+  const drawn = elements(frame).map(
+    (row) =>
+      Number.parseFloat(row.style.top) +
+      px([...row.querySelectorAll('[style*="height"]')]).reduce((a, b) => a + b, 0),
+  );
+  const result = {
+    bottom,
+    rows: shown.length,
+    frame: px(frame),
+    lastDrawn: Math.max(0, ...drawn),
+    space: px(space),
+  };
+  act(() => root.unmount());
+  host.remove();
+  safeArea.bottom = 0;
+  return result;
+};
+
 process.stdout.write(
   JSON.stringify({
     scheme: await observe('scheme'),
     fontScale: await observe('fontScale'),
     hrefOf: await observe('hrefOf'),
+    end: [
+      await endOf(34, hymns, true),
+      await endOf(0, hymns, true),
+      await endOf(34, hymns.slice(0, 3), false),
+    ],
   }),
 );
 process.exit(0);
