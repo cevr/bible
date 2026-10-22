@@ -18,6 +18,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | one29     | playerfix, coldload            |                           |                   | merged 8e527c5db |
 | topicdata | —                              |                           |                   | merged 3784ae17e |
 | shell     | topicdata                      | .rifts/manna/shell        | a90e66e812e023e45 | merged 46263e5dd |
+| sdkfx     | shell                          | .rifts/manna/sdkfx        | orchestrator      | merged 51b5e976f |
 | hymnbar   | shell, playstall               |                           |                   |                  |
 | pager     | coldload, playstall            |                           |                   |                  |
 | offline   | playstall                      |                           |                   |                  |
@@ -40,6 +41,7 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Decisions
 
+- 2026-10-22, sdkfx: the owner reported the first Release iPhone build crashing at launch. The tree-shaken Release bundle dropped One's `setSDKNative` call (One's `sideEffects` omits `ios-runtime.native.js`); `apps/hymnal/vite/sdkruntime.ts` keeps it, guarded by `vite/sdkruntime.test.ts` and ledger entry `release-bundle-keeps-sdk-setup`. The orchestrator fixed it directly (one-file fix blocking the owner's phone; the one agent slot held pagerows). After every merge the iPhone gets a Release build (`notes/ios-device.md`).
 - palette merged 2026-10-20 (6cb76a3c4). Three values depart from the spec's table, and the reviewer and verifier accepted each: light muted mixes 20% (35% gives 3.32:1, under AA); dark soft mixes 70% (55% gives 3.75:1 for ink on a pressed row); the dark ground is #032431 (the page's own rounding). Gaps left: Android keeps the system colours; the iOS glass back button and the unselected tab icons stay in the system colour. (palette)
 
 - Never use `git stash` in a manna worktree. Every worktree shares one stash list, and palette r2's drop briefly removed p6-guardloop's stash (restored). Every brief now says so. (palette)
