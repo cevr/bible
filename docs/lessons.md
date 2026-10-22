@@ -3246,3 +3246,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** A file moved from one workspace to another was named at its new path only, so the workspace it left, whose importers may break, was not typechecked before the commit.
 - **Cause:** `git diff --cached --name-only` detects renames by default. The staged files are now named with `--no-renames` (`precommit-typecheck/workspaces.ts` `STAGED_FILES`).
 - **Guard:** code: `packages/scripts/src/precommit-typecheck/staged.test.ts` `name a file moved across workspaces at both paths, so both are typechecked`
+
+### test-reads-sees-native-libraries-and-imports
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "core's unit test loads the host's native accelerator, and neither its cached test hash nor test:reads sees it"
+- **Source:** gate-fast/round-2-findings.md F1, F2
+- **Wrong:** Core's vector tests load `dist-native/vector-scan.dylib`, built on the host and gitignored, through `bun:ffi`'s `dlopen`, and the cli's and egw-search's tests load it through core; no task hashed it, so a rebuilt library kept the cached passes, and test:reads, which recorded only file reads, reported none. Its preload also said imports need no record, though a relative import that leaves its workspace is hashed only when a `turbo.json` names it.
+- **Cause:** The recorder was written to the reads the first finding named, not to every way a bun process opens a file. It now records `dlopen` (`bun:ffi` and `process.dlopen`) and each loaded module, and `packages/core/turbo.json` hashes `dist-native/**` in core's `test` and `transit` inputs.
+- **Guard:** code: `packages/scripts/src/test-reads/preload.slow.test.ts` `records a file a test reads, a module it imports and a native library it loads, in each test runner mode`, `packages/scripts/src/test-slow.sh` `bun run test:reads`

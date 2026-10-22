@@ -1,19 +1,22 @@
 #!/usr/bin/env bun
-// `bun run test:reads`: every file a workspace's unit tests read is a file its
-// cached `test` task hashes. turbo replays a cached pass while the files a task
-// hashes are unchanged, so a test that reads a file its task does not hash (a
-// skill page, a root file, another workspace's data) passes from the cache
-// after that file changes in a way that would fail it.
+// `bun run test:reads`: each file, module and native library a workspace's
+// unit tests open is a file its cached `test` task hashes. turbo replays a
+// cached pass while the files a task hashes are unchanged, so a test that reads
+// a file its task does not hash (a skill page, a root file, another workspace's
+// data, a library built on the host) passes from the cache after that file
+// changes in a way that would fail it.
 //
 // This runs each workspace's `test`, the ones `bun run test` runs, one after
-// another, under a preload that records each path the tests open to read
-// (`test-reads/preload.ts`), then holds the reads to the files turbo's dry run
-// says the task hashes, its dependencies' `transit` tasks included
-// (`test-reads/unhashed.ts`). It prints each workspace's count and each file
-// read and not hashed, and fails on any such file, or on a `test` that does
-// not pass (its reads would be partial). The fix is the file in the
-// workspace's `turbo.json` `test` inputs (`$TURBO_ROOT$/<path>`). Run by
-// `bun run test:slow`; it runs every unit test, so it is not in the gate.
+// another, under a preload that records what their bun processes open
+// (`test-reads/preload.ts`, which names what it does not see), then holds the
+// reads to the files turbo's dry run says the task hashes, its dependencies'
+// `transit` tasks included (`test-reads/unhashed.ts`). It prints each
+// workspace's count and each file read and not hashed, and fails on any such
+// file, or on a `test` that does not pass (its reads would be partial). The
+// fix is the file in the workspace's `turbo.json` `test` inputs
+// (`$TURBO_ROOT$/<path>`), and in its `transit` inputs when other workspaces'
+// tests read it through this one. Run by `bun run test:slow`; it runs every
+// unit test, so it is not in the gate.
 
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';

@@ -359,10 +359,14 @@
     },
     {
       // The read recorder `test-reads.ts` preloads into each unit test run: a
-      // host adapter by its nature, it wraps node:fs, Bun.file and bun:sqlite
-      // in place, before any test's own code or Effect layer exists.
+      // host adapter by its nature, it wraps node:fs, Bun.file, bun:sqlite and
+      // bun:ffi in place, before any test's own code or Effect layer exists,
+      // and lists the loaded modules from the runner's own `afterAll`, which
+      // throws outside `bun test`.
       "files": ["**/packages/scripts/src/test-reads/preload.ts"],
       "rules": {
+        "effect/noTestLifecycleHooks": "off",
+        "effect/noTryCatch": "off",
         "effect/noNodeBuiltinImport": "off",
         "effect/noGlobals": "off",
         "effect/noUnknownParameters": "off",
