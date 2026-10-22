@@ -14,7 +14,7 @@
     "test": "bun run test:browser & browser=$!; bun run test:infra & infra=$!; bun run test:app; app=$?; wait $infra && wait $browser && exit $app",
     "test:app": "bun test --preload ./src/test/setup.ts src",
     "test:browser": "bun test ./test/browser --timeout 30000",
-    "test:infra": "bun test infra scripts",
+    "test:infra": "bun test infra scripts vite",
     "sim": "bun scripts/sim.ts",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
@@ -47,6 +47,7 @@
     "@types/react": "19.3.0",
     "alchemy": "2.0.0-beta.83",
     "effect-bun-test": "catalog:",
+    "rolldown": "1.2.13",
     "vite": "8.3.4"
   }
 }

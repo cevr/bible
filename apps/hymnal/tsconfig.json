@@ -17,6 +17,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "vite/hymnal.ts",
+    "vite/sdkruntime.ts",
     "vite.config.ts"
   ],
   "exclude": [

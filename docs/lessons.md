@@ -2893,3 +2893,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** `kit:pin --ask aa434d8c292` wrote the record pending on an ask no file in `kit/fixtures/` held, so the committed-record test could not read it.
 - **Cause:** Saving the ask was a step done by hand, outside `pin` and `approve`.
 - **Guard:** code: `apps/firsttheblade/kit/approval.test.ts` `pin saves the ask as the lab gives it with the hash of each file it shows, and approve saves it again as answered`, `apps/firsttheblade/kit/approval.test.ts` `the committed record is pinned on an ask saved beside it, and with the approved asks it keeps, each saved and answered approve, every still was shown byte for byte`.
+
+### release-bundle-keeps-sdk-setup
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "Okay, it crashes on startup"
+- **Source:** the owner's report on the first Release build of the hymnal on his iPhone, 2026-10-22 (run hymnapp, after shell merged at 46263e5dd)
+- **Wrong:** The Release app threw "iOS SDK bindings need a native iOS build" at launch and closed; the Debug app ran.
+- **Cause:** One's `ios-runtime.native.js` connects the SDK bindings as a side effect, but One's `package.json` lists no side effect for it, so the tree-shaken Release bundle dropped the call; the Debug bundle is not tree-shaken, and no unit had built Release.
+- **Guard:** code: `apps/hymnal/vite/sdkruntime.test.ts` `with sdkRuntime, the tree-shaken bundle connects the SDK bindings`, `apps/hymnal/vite/sdkruntime.test.ts` `without it, One’s package drops the set-up, so the plugin is still needed`.

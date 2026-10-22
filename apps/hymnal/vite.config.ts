@@ -2,6 +2,7 @@ import { one } from 'one/vite';
 import { defineConfig } from 'vite';
 
 import { hymnal } from './vite/hymnal';
+import { sdkRuntime } from './vite/sdkruntime';
 
 export default defineConfig({
   plugins: [
@@ -11,7 +12,7 @@ export default defineConfig({
       build: { server: { unified: true } },
       native: {
         // The native bundle is its own rolldown build: it takes the words too.
-        bundlerOptions: { plugins: [hymnal()] },
+        bundlerOptions: { plugins: [hymnal(), sdkRuntime()] },
         app: {
           name: 'Hymnal',
           icon: { source: './public/app-icon.png', backgroundColor: '#000000' },
