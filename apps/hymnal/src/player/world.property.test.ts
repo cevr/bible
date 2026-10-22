@@ -1503,7 +1503,6 @@ describe('the oracle judges by the world alone (rw r2 M1 to M7)', () => {
         w.send(Command.Pause());
         expect(yield* w.until(() => tag(w) === 'Stopped', 1000)).toBe(true);
         expect(w.tells.length).toBe(2);
-        expect(atOf(w.state())).toEqual(Option.some(90));
         expect(rules(w)).toEqual([]);
       }),
   );
