@@ -207,22 +207,24 @@ const MUTATIONS = {
 } satisfies Record<string, (t: Topic[], random: () => number) => void>;
 
 describe('topics: the schema', () => {
-  it.effect('decodes 500 random partitions and refuses each with one fault', () =>
+  it.effect('decodes 500 random partitions and refuses each one under every fault', () =>
     Effect.gen(function* () {
       const decode = Schema.decodeUnknownResult(Topics);
       const kinds = Object.keys(MUTATIONS) as Array<keyof typeof MUTATIONS>;
       const seed = yield* Config.Int('TOPICS_SEED').pipe(Config.withDefault(20261020));
       const random = mulberry32(seed);
+      const table = (t: Topic[]) => ({ version: 1, book: 'sdah-1985', topics: t });
       const faults: string[] = [];
       for (let i = 0; i < 500; i++) {
         const topics = partition(random);
-        const kind = kinds[i % kinds.length]!;
-        const table = (t: Topic[]) => ({ version: 1, book: 'sdah-1985', topics: t });
-        const where = `TOPICS_SEED=${seed} case ${i} ${kind}`;
-        if (!Result.isSuccess(decode(table(topics)))) faults.push(`${where}: a partition refused`);
-        const mutant = topics.map((t) => ({ ...t }));
-        MUTATIONS[kind](mutant, random);
-        if (Result.isSuccess(decode(table(mutant)))) faults.push(`${where}: a mutant decoded`);
+        if (!Result.isSuccess(decode(table(topics))))
+          faults.push(`TOPICS_SEED=${seed} case ${i}: a partition refused`);
+        for (const kind of kinds) {
+          const mutant = topics.map((t) => ({ ...t }));
+          MUTATIONS[kind](mutant, random);
+          if (Result.isSuccess(decode(table(mutant))))
+            faults.push(`TOPICS_SEED=${seed} case ${i} ${kind}: a mutant decoded`);
+        }
       }
       expect(faults).toEqual([]);
     }),
