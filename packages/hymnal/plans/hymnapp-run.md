@@ -20,7 +20,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | shell     | topicdata                      | .rifts/manna/shell        | a90e66e812e023e45 | merged 46263e5dd    |
 | sdkfx     | shell                          | .rifts/manna/sdkfx        | orchestrator      | merged 51b5e976f    |
 | sticky    | shell                          |                           |                   | folded into uibulk  |
-| uibulk    | chords, shell, playstall       |                           |                   |                     |
+| uibulk    | chords, shell, playstall       | .rifts/manna/uibulk       | a0dc98a964a5bddef |                     |
 | chordsimp | chords, uibulk                 |                           |                   |                     |
 | h220      | pagerows                       |                           |                   |                     |
 | worship   | uibulk, render                 |                           |                   |                     |
