@@ -19,6 +19,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | topicdata | —                              |                           |                   | merged 3784ae17e |
 | shell     | topicdata                      | .rifts/manna/shell        | a90e66e812e023e45 | merged 46263e5dd |
 | sdkfx     | shell                          | .rifts/manna/sdkfx        | orchestrator      | merged 51b5e976f |
+| sticky    | shell                          |                           |                   |                  |
 | hymnbar   | shell, playstall               |                           |                   |                  |
 | pager     | coldload, playstall            |                           |                   |                  |
 | offline   | playstall                      |                           |                   |                  |
@@ -41,6 +42,7 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 ## Decisions
 
+- The first phone look (owner, 2026-10-22, a scrawl on iPhone Mirroring, `notes/owner/2026-10-22-phone-scrawl.png`): "when you're scrolling ... it kind of jitters the sticky scroll bar there ... as well, when we go into a hymn"; "I don't really want the play and the recording to be here. I want it to be here with also a little seeker somewhere ... like Apple Play, where it's just a minimal line, and then you can press on it to see more information"; "missing a reader setting somewhere, like maybe like an A here or something to increase font or decrease or change font"; "we should be able to swipe left and right to get to the next and the last pages". So: a new unit `sticky` (the sticky topic row holds still while the list scrolls and while a hymn is pushed; a defect on a normal path) runs first after pagerows; then `hymnbar` (its Done line adds: Play and Recording leave the hymn header for the bottom bar, which shows a thin seek line and opens the full player on a tap), `pager` (swipe between hymns), `readview` (an "A" control in the hymn header opens text size and font). These four run before render and indexes. (sticky, hymnbar, pager, readview)
 - 2026-10-22, sdkfx: the owner reported the first Release iPhone build crashing at launch. The tree-shaken Release bundle dropped One's `setSDKNative` call (One's `sideEffects` omits `ios-runtime.native.js`); `apps/hymnal/vite/sdkruntime.ts` keeps it, guarded by `vite/sdkruntime.test.ts` and ledger entry `release-bundle-keeps-sdk-setup`. The orchestrator fixed it directly (one-file fix blocking the owner's phone; the one agent slot held pagerows). After every merge the iPhone gets a Release build (`notes/ios-device.md`).
 - palette merged 2026-10-20 (6cb76a3c4). Three values depart from the spec's table, and the reviewer and verifier accepted each: light muted mixes 20% (35% gives 3.32:1, under AA); dark soft mixes 70% (55% gives 3.75:1 for ink on a pressed row); the dark ground is #032431 (the page's own rounding). Gaps left: Android keeps the system colours; the iOS glass back button and the unselected tab icons stay in the system colour. (palette)
 
