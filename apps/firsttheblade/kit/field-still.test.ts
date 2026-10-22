@@ -160,7 +160,9 @@ const codesApart = (a: Pixels, b: Pixels) => {
  * whether the move survives the encode. A WebP or a PNG is written without
  * loss, one channel one code off: it survives when the bytes decode to the
  * pixels unmoved but that one code, so they differ from the same encode
- * unmoved, which decodes to the pixels as they are. A JPEG has no lossless
+ * unmoved, which decodes to the pixels as they are; its quality is 1, the
+ * fastest, which in a lossless encode spends less effort on size and keeps
+ * every pixel. A JPEG has no lossless
  * encode, and at quality 100 one code can vanish in it: its channel moves by
  * the fewest codes (1, 2, 4, …) whose encode differs from the same encode
  * of the pixels unmoved, and it survives when one does.
@@ -170,11 +172,10 @@ const movedPixel = Effect.fn('FieldStill.movedPixel')(function* (
   image: Pixels,
   next: () => number,
 ) {
-  const encoding = { lossless: true, quality: 100 };
   const pixel = Math.floor(next() * image.width * image.height);
   const channel = Math.floor(next() * 3);
   const code = at(image.data, pixel * 4 + channel);
-  const movedBy = (by: number) => {
+  const movedBy = (by: number, encoding: Encoding) => {
     const data = new Uint8ClampedArray(image.data);
     // Up by `by`, or down by it where up would pass 255.
     data[pixel * 4 + channel] = code + by - 2 * by * Number(code + by > 255);
@@ -182,16 +183,17 @@ const movedPixel = Effect.fn('FieldStill.movedPixel')(function* (
   };
   const named = (by: number) => `pixel ${pixel} channel ${channel} moved by ${by}`;
   if (!/\.jpe?g$/i.test(still)) {
-    const bytes = yield* movedBy(1);
+    const bytes = yield* movedBy(1, { lossless: true, quality: 1 });
     const survives = codesApart(yield* decoded(bytes), image) === 1;
     return { name: named(1), bytes, survives };
   }
+  const encoding = { lossless: true, quality: 100 };
   const control = yield* encoded(still, image, encoding);
   let by = 1;
-  let bytes = yield* movedBy(by);
+  let bytes = yield* movedBy(by, encoding);
   while (Buffer.from(bytes).equals(Buffer.from(control)) && by < 128) {
     by *= 2;
-    bytes = yield* movedBy(by);
+    bytes = yield* movedBy(by, encoding);
   }
   return { name: named(by), bytes, survives: !Buffer.from(bytes).equals(Buffer.from(control)) };
 });
