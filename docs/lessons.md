@@ -2963,3 +2963,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** `formatOf` decoded a file as strict UTF-8 before it looked for the `svg` root, so an SVG in UTF-16 with a byte order mark, in ISO-8859-1, or gzipped UTF-16 was no image to the walk, and the SVG generator wrote only UTF-8.
 - **Cause:** The walk read one encoding of the many XML allows, and a file it could not read passed as no image, so a form it did not know failed open.
 - **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `reads an svg in UTF-16 little or big end first, with its byte order mark or none, in ISO-8859-1, and each gzipped`, `apps/firsttheblade/kit/build-walk.test.ts` `refuses every image under any name, extension and folder, and each file named as an image that no signature reads as unknown, and passes the approved stills and the images outside the rule under any name`.
+
+### leaf-sway-held-by-its-values
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "the leaf's style test holds the stem-foot pivot only on its own rule, not the amplitude, the easing or the rest pose"
+- **Source:** ftb-remedies-emblem/round-1-findings.md F2
+- **Wrong:** The stylesheet tests passed with the sway at `500deg`, a `20s linear` transition, `rotate: calc(5deg + 0deg * var(--stir))`, and an added `.emblem-remedies svg > g { transform-origin: 0 0 }`.
+- **Cause:** The stir reader checked only that `var(--stir)` occurs, and the leaf test read the pivot of one selector and the names of the moved properties, not their values or the other rules on the parts.
+- **Guard:** code: `apps/firsttheblade/src/motion/styles.test.ts` `the healing leaf sways as one about its stem’s foot: each rule on its parts turns them from 0deg at rest to 5deg stirred, about the foot, on the tree’s tokens, and nothing else moves them`, `apps/firsttheblade/src/motion/styles.test.ts` `the leaf’s hold refuses a sway too wide, a slow or linear turn, a turn at rest, and a part turned about another point`.
