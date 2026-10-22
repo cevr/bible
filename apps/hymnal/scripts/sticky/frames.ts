@@ -14,6 +14,11 @@
  * row's hairline at rest (± 1 pt), or when the next topic row pushes it: a
  * line within one topic row under rest, and the first line one topic row
  * above that line (± 1 pt).
+ *
+ * A frame where a hymn page covers the list (the `push` pass) is not the
+ * list's to judge. `listShows` finds the list by a second column, right of
+ * the hymn titles, where the list draws only its rows' separators and topic
+ * hairlines: lines that keep the rows' pitch.
  */
 import { Array as Arr, Option } from 'effect';
 
@@ -25,6 +30,8 @@ export interface Layout {
   readonly top: number;
   /** A topic row's height: `ceil(20 × fontScale) + 16`. */
   readonly topic: number;
+  /** A hymn row's height: `ceil(22 × fontScale) + 22`. */
+  readonly hymn: number;
 }
 
 /** No line under the list's top: the pinned row is not in the column. */
@@ -41,8 +48,16 @@ export interface Seen {
   readonly deviation: number;
 }
 
+/** The list does not stand in the frame: a hymn page covers it, or slides over it. */
+export interface Covered {
+  readonly _tag: 'Covered';
+}
+
 /** What one frame shows. */
-export type Verdict = Missing | Seen;
+export type Verdict = Missing | Seen | Covered;
+
+/** How many row pitches in a row make a column the list's. */
+export const PITCHES = 3;
 
 /** How far a line may sit from its place and still be in it, in points. */
 export const TOLERANCE = 1;
@@ -122,9 +137,30 @@ export const judge = (lines: ReadonlyArray<number>, layout: Layout): Verdict => 
   });
 };
 
+/**
+ * Whether the list stands in a frame, from the lines of a column right of
+ * the hymn titles (`linesIn`): at least `PITCHES` gaps in a row under the
+ * list's top, each a hymn row's or a topic row's height (± 1 pt).
+ */
+export const listShows = (lines: ReadonlyArray<number>, layout: Layout) => {
+  const under = lines.filter((line) => line >= layout.top);
+  const pitch = (gap: number) =>
+    Math.abs(gap - layout.hymn) <= TOLERANCE || Math.abs(gap - layout.topic) <= TOLERANCE;
+  let run = 0;
+  let longest = 0;
+  for (let i = 1; i < under.length; i++) {
+    if (pitch((under[i] ?? 0) - (under[i - 1] ?? 0))) run += 1;
+    else run = 0;
+    longest = Math.max(longest, run);
+  }
+  return longest >= PITCHES;
+};
+
 /** One pass's numbers: the line the check prints. */
 export interface Summary {
   readonly frames: number;
+  /** The frames where the list stands: every frame but the covered ones. */
+  readonly shown: number;
   readonly judged: number;
   readonly missing: number;
   readonly off: number;
@@ -136,15 +172,24 @@ export const summarize = (verdicts: ReadonlyArray<Verdict>): Summary => {
   const deviations = verdicts
     .filter((verdict): verdict is Seen => verdict._tag === 'Seen')
     .map((verdict) => Math.abs(verdict.deviation));
+  const shown = verdicts.filter((verdict) => verdict._tag !== 'Covered').length;
   return {
     frames: verdicts.length,
+    shown,
     judged: deviations.length,
-    missing: verdicts.length - deviations.length,
+    missing: shown - deviations.length,
     off: deviations.filter((deviation) => deviation > TOLERANCE).length,
     worst: round2(Math.max(0, ...deviations)),
   };
 };
 
-/** A pass holds when no frame is off, the worst is within 1 pt, and at least 95% of frames were judged. */
-export const holds = (summary: Summary) =>
-  summary.off === 0 && summary.worst <= TOLERANCE && summary.judged >= 0.95 * summary.frames;
+/**
+ * A pass holds when no frame is off, the worst is within 1 pt, at least 95%
+ * of the frames that show the list were judged, and the list shows in at
+ * least `least` of all frames (every frame unless a pass covers the list).
+ */
+export const holds = (summary: Summary, least = 1) =>
+  summary.off === 0 &&
+  summary.worst <= TOLERANCE &&
+  summary.shown >= least * summary.frames &&
+  summary.judged >= 0.95 * summary.shown;

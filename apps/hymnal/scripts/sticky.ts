@@ -10,18 +10,21 @@
  * (`sticky/frames.ts`). It prints one JSON line per pass and run,
  * `{pass, run, frames, judged, missing, off, worst}`, and exits 0 only when
  * every pass of every run holds: no frame off by more than 1 pt, and at
- * least 95% of frames judged.
+ * least 95% of the frames that show the list judged.
  *
  * - `slow`: three 360 pt drags in 1.2 s up, two down, one fling each way.
  * - `fast`: eight 560 pt drags in 400 ms to leave the top, then, recorded,
  *   six 560 pt drags in 250 ms each way, never back to the top.
  * - `push`: open a mid-list hymn and come back by the header's back button,
- *   then again by agent-device's in-app back (as `sim back` does). Its video
- *   shows a hymn page, so it goes to the trash once read.
+ *   then again by agent-device's in-app back (as `sim back` does). It judges
+ *   only the frames where the list stands (`listShows`, read from a second
+ *   column at the screen's right edge), and needs the list in at least
+ *   `PUSH_SHOWN` of its frames. Its video shows a hymn page, so it goes to
+ *   the trash once read.
  *
  * Run from `apps/hymnal`, on a Release build (`--app` installs one first).
  * The defaults are the iPhone 18 Pro's at the default text size: 3 px per
- * pt, list top 62 pt, topic row 36 pt. The app is never played: no pass
+ * pt, list top 62 pt, topic row 36 pt, hymn row 44 pt. The app is never played: no pass
  * presses Play.
  */
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
@@ -31,7 +34,15 @@ import { Command, Flag } from 'effect/cli';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { attempt, succeed } from './sim/tools.ts';
-import { holds, judge, type Layout, linesIn, summarize } from './sticky/frames.ts';
+import {
+  holds,
+  judge,
+  type Layout,
+  linesIn,
+  listShows,
+  summarize,
+  type Verdict,
+} from './sticky/frames.ts';
 
 const APP_ID = 'im.cvr.hymnal';
 const SESSION = 'sticky-check';
@@ -43,6 +54,7 @@ const Line = Schema.Struct({
   pass: Schema.Literals(PASSES),
   run: Schema.Int,
   frames: Schema.Int,
+  shown: Schema.Int,
   judged: Schema.Int,
   missing: Schema.Int,
   off: Schema.Int,
@@ -52,10 +64,16 @@ const Line = Schema.Struct({
 /** A pass's record: its line, the layout and each frame's verdict. */
 const Record = Schema.Struct({
   ...Line.fields,
-  layout: Schema.Struct({ scale: Schema.Finite, top: Schema.Finite, topic: Schema.Finite }),
+  layout: Schema.Struct({
+    scale: Schema.Finite,
+    top: Schema.Finite,
+    topic: Schema.Finite,
+    hymn: Schema.Finite,
+  }),
   verdicts: Schema.Array(
     Schema.Union([
       Schema.TaggedStruct('Missing', {}),
+      Schema.TaggedStruct('Covered', {}),
       Schema.TaggedStruct('Seen', {
         pinned: Schema.Finite,
         pushed: Schema.Boolean,
@@ -76,8 +94,49 @@ class StickyFailed extends Schema.TaggedError<StickyFailed>()('StickyFailed', {}
   }
 }
 
-/** The column the check reads, in points: left of the hymn rows' separators. */
-const COLUMN = { x: 4, width: 8, band: 260 };
+/** A column of the screen, in points from its `edge`, from the screen's top down `band` points. */
+interface Column {
+  readonly edge: 'left' | 'right';
+  readonly x: number;
+  readonly width: number;
+  readonly band: number;
+}
+
+/** A column's left side as ffmpeg's crop reads it, from its edge's distance in pixels. */
+const cropX = { left: (px: number) => `${px}`, right: (px: number) => `iw-${px}` };
+
+/** The column the check judges, in points: left of the hymn rows' separators. */
+const PINNED: Column = { edge: 'left', x: 4, width: 8, band: 260 };
+
+/**
+ * The column that tells whether the list stands, in points from the right
+ * edge: right of the hymn titles, where the list draws only its rows'
+ * separators and topic hairlines. It stops above the screen's foot.
+ */
+const WITNESS: Column = { edge: 'right', x: 12, width: 8, band: 600 };
+
+/**
+ * The least share of the `push` pass's frames that must show the list. The
+ * recorder writes a frame only when the screen changes, so the hymn page's
+ * slides outweigh the list's still stretches: the list shows in about a
+ * third of the frames (88 of 282 and 85 of 262, measured).
+ */
+const PUSH_SHOWN = 0.2;
+
+/** The least share of each pass's frames that must show the list: every frame where no page covers it. */
+const LEAST: Record<Pass, number> = { slow: 1, fast: 1, push: PUSH_SHOWN };
+
+/** Whether the list stands in each frame: read from the witness column in the `push` pass, else every frame. */
+const shownIn = Effect.fn('Sticky.shownIn')(function* (
+  video: string,
+  layout: Layout,
+  pass: Pass,
+  frames: number,
+) {
+  if (pass !== 'push') return Array.from({ length: frames }, () => true);
+  const witness = yield* columns(video, layout, WITNESS);
+  return witness.map((rows) => listShows(linesIn(rows, layout.scale), layout));
+});
 
 const short = Duration.seconds(30);
 
@@ -151,12 +210,16 @@ const recording = <A, E, R>(udid: string, video: string, drive: Effect.Effect<A,
   );
 
 /** Every frame's grey column, read through ffmpeg into a raw file beside the video. */
-const columns = Effect.fn('Sticky.columns')(function* (video: string, layout: Layout) {
+const columns = Effect.fn('Sticky.columns')(function* (
+  video: string,
+  layout: Layout,
+  column: Column,
+) {
   const fs = yield* FileSystem.FileSystem;
-  const x = Math.round(COLUMN.x * layout.scale);
-  const width = Math.round(COLUMN.width * layout.scale);
-  const height = Math.round(COLUMN.band * layout.scale);
-  const raw = `${video}.gray`;
+  const x = cropX[column.edge](Math.round(column.x * layout.scale));
+  const width = Math.round(column.width * layout.scale);
+  const height = Math.round(column.band * layout.scale);
+  const raw = `${video}.${column.edge}.gray`;
   yield* succeed(
     'ffmpeg',
     [
@@ -201,9 +264,12 @@ const check = Effect.fn('Sticky.check')(function* (
   yield* launch(udid, pass);
   yield* recording(udid, video, gestures(pass));
   yield* Effect.ignore(device(['close']));
-  const verdicts = (yield* columns(video, layout)).map((rows) =>
-    judge(linesIn(rows, layout.scale), layout),
-  );
+  const pinned = yield* columns(video, layout, PINNED);
+  const shows = yield* shownIn(video, layout, pass, pinned.length);
+  const verdicts = pinned.map((rows, frame): Verdict => {
+    if (shows[frame] !== true) return { _tag: 'Covered' };
+    return judge(linesIn(rows, layout.scale), layout);
+  });
   const summary = summarize(verdicts);
   yield* fs.writeFileString(
     path.join(out, `${pass}-${run}.json`),
@@ -211,7 +277,7 @@ const check = Effect.fn('Sticky.check')(function* (
   );
   if (pass === 'push') yield* succeed('trash', [video], short);
   yield* Console.log(encodeLine({ pass, run, ...summary }));
-  return holds(summary);
+  return holds(summary, LEAST[pass]);
 });
 
 const sticky = Command.make(
@@ -234,6 +300,10 @@ const sticky = Command.make(
       Flag.withDefault(36),
       Flag.withDescription("a topic row's height in pt: ceil(20 × fontScale) + 16"),
     ),
+    hymn: Flag.Finite('hymn').pipe(
+      Flag.withDefault(44),
+      Flag.withDescription("a hymn row's height in pt: ceil(22 × fontScale) + 22"),
+    ),
   },
   (flags) =>
     Effect.gen(function* () {
@@ -245,7 +315,12 @@ const sticky = Command.make(
           ['simctl', 'install', flags.udid, flags.app.value],
           Duration.minutes(2),
         );
-      const layout: Layout = { scale: flags.scale, top: flags.top, topic: flags.topic };
+      const layout: Layout = {
+        scale: flags.scale,
+        top: flags.top,
+        topic: flags.topic,
+        hymn: flags.hymn,
+      };
       const passes = PASSES.filter((pass) => flags.pass === 'all' || flags.pass === pass);
       let held = true;
       for (let run = 1; run <= flags.runs; run++)
