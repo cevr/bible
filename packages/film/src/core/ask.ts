@@ -1197,12 +1197,16 @@ export const AskRecord = Schema.Struct({
   deadline: Schema.optionalKey(Schema.String),
   ask: Ask,
   /**
-   * The receipt of what its images show: each image block's `src` whose
-   * route serves a file, with the SHA-256 of that file's bytes as the ask
-   * was made (`AskMaterials.shown`), so a reader binds an answer to the
-   * bytes the owner was shown, not to what the route serves later. A
-   * video's frame is drawn from the video, so it has none. An ask kept
-   * before receipts has no `shown`.
+   * The receipt of what its images show. As the ask is made, the lab
+   * copies each file an image's route serves (`AskMaterials.served`) into
+   * its asks' folder, named by its SHA-256 (`asks/shown/<sha256><.ext>`),
+   * and the image's `src` becomes that copy's route (`askShownUrl`): this
+   * holds each such `src` with its copy's SHA-256. The page serves only the
+   * copy, and an answer is refused when a copy no longer holds its hash
+   * (`AskStore.answerPage`), so the hash is of the bytes the owner was shown
+   * when he answered. A video's frame is drawn from the video, and a file
+   * that did not read as the ask was made was not copied: neither has an
+   * entry. An ask kept before receipts has no `shown`.
    */
   shown: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   state: AskState,

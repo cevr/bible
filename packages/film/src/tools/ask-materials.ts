@@ -14,9 +14,9 @@
 // file found by the read that route makes (a set's file by `Review.resolve`,
 // a board's by `BoardStore.image`, a note's still by `NotesStore.still`, a
 // video's frame by the review's index); a path no image route takes would
-// 404 on the page, so it is refused, named. The same read gives the ask's
-// receipt (`shown`): the SHA-256 of each file an image route serves, as the
-// ask is made, so an answer binds the bytes it was shown.
+// 404 on the page, so it is refused, named. The same read gives the file
+// each image route serves as the ask is made (`served`), which the ask store
+// copies and keeps, by its SHA-256, as the ask's receipt (`AskRecord.shown`).
 
 import {
   Boolean as Bool,
@@ -46,7 +46,6 @@ import { type ReviewIndex, docAt, videoAt } from '../core/review.ts';
 import { Segment } from '../core/segment.ts';
 import { decodeComponent } from '@bible/url-state';
 import { BoardStore } from './board-store.ts';
-import { sha256OfFile } from './digest.ts';
 import type { ContentStore } from './content-store.ts';
 import type { FilmFolder } from './film-repo.ts';
 import { filmNamed } from './film-repo.ts';
@@ -74,12 +73,11 @@ interface AskMaterialsService {
   /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
   readonly problems: (ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
   /**
-   * The receipt of what `ask`'s images show (`AskRecord.shown`): each
-   * image `src` whose route serves a file, with the SHA-256 of that file's
-   * bytes now. A video's frame, and a `src` the lab serves nothing at,
-   * have none.
+   * The file each image `src` of `ask` is served from now, by the read its
+   * route makes, once each in the order shown. A video's frame, and a `src`
+   * the lab serves nothing at, have none.
    */
-  readonly shown: (ask: Ask) => Effect.Effect<Readonly<Record<string, string>>>;
+  readonly served: (ask: Ask) => Effect.Effect<ReadonlyArray<readonly [string, string]>>;
   /**
    * Why `ask`, aimed at `aimed`, may not be made as it recommends: on a
    * production, an ask that shows scenes or figures types each option's
@@ -334,24 +332,17 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
         ),
       ];
 
-      /** The receipt of `src`: its file's SHA-256 when its route serves a file that reads, else none. */
-      const receiptOf = (src: string): Effect.Effect<ReadonlyArray<readonly [string, string]>> =>
-        Effect.flatMap(servedAt(src), (at) =>
+      /** `src` with the file its route serves, when it serves a file. */
+      const fileOf = (src: string): Effect.Effect<ReadonlyArray<readonly [string, string]>> =>
+        Effect.map(servedAt(src), (at) =>
           Match.value(at).pipe(
-            Match.tag('File', ({ file }) =>
-              sha256OfFile(fs, file).pipe(
-                Effect.map((hash) => [[src, hash] as const]),
-                Effect.orElseSucceed(() => []),
-              ),
-            ),
-            Match.orElse(() => Effect.succeed([])),
+            Match.tag('File', ({ file }) => [[src, file] as const]),
+            Match.orElse(() => []),
           ),
         );
 
-      const shown = (ask: Ask) =>
-        Effect.map(Effect.forEach(srcsOf(ask), receiptOf), (each) =>
-          Object.fromEntries(each.flat()),
-        );
+      const served = (ask: Ask) =>
+        Effect.map(Effect.forEach(srcsOf(ask), fileOf), (each) => each.flat());
 
       /** Every image `ask` shows by its `src` that the lab does not serve, named. */
       const images = (ask: Ask) =>
@@ -454,7 +445,7 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
             }),
         });
 
-      return AskMaterials.of({ problems, shown, evidence });
+      return AskMaterials.of({ problems, served, evidence });
     }),
   );
 }

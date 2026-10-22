@@ -50,11 +50,14 @@ import {
 import { Base64 } from 'effect/encoding';
 import { TestClock } from 'effect/testing';
 import { labUrls } from '../core/api.ts';
+import { AskName, imagesIn } from '../core/ask.ts';
 import { type BoardFile, BoardFileJson, BoardName } from '../core/board.ts';
 import { CatalogueJson, emptyCatalogue } from '../core/catalogue.ts';
 import { Segment } from '../core/segment.ts';
 import { currentOf, moveForward, productionsOf } from '../core/production.ts';
+import { AskStore } from './ask-store.ts';
 import type { ContentStore } from './content-store.ts';
+import { sha256Hex } from './digest.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { production, publish } from './production-cli.ts';
 import { ProductionStore } from './production-store.ts';
@@ -690,6 +693,76 @@ describe('asks through the MCP', () => {
           expect((yield* tool('asks', {})).asks).toEqual([]);
           // The set's own answer is served, and so is a try on the board.
           expect(yield* showing(published.files[0].src)).toMatchObject({ status: 'asking' });
+        }),
+      ),
+  );
+
+  it.effect(
+    "serves an ask's image from the copy it made, after a second publish_set rewrites the set's file, and takes the answer on it",
+    () =>
+      provided(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const { lab } = yield* labWithMcp;
+          const { tool } = yield* mcpSession(lab);
+          const set = {
+            name: 'judge-faces',
+            manifest: { title: 'Judge faces', images: ['calmer.png'] },
+          };
+          const published = yield* tool('publish_set', {
+            ...set,
+            files: [{ from: '/work/judge-calmer.png', to: 'calmer.png' }],
+          });
+          const shownAtMake = yield* fs.readFile('/work/judge-calmer.png');
+          yield* tool('ask', {
+            title: 'The calmer judge?',
+            why: 'the cold open keeps one',
+            by: 'agent',
+            blocks: [
+              { kind: 'image', image: { src: published.files[0].src } },
+              {
+                kind: 'choose',
+                id: 'keep',
+                label: 'Keep it?',
+                options: [
+                  { value: 'yes', label: 'Yes', recommended: true, why: 'it reads' },
+                  { value: 'no', label: 'No' },
+                ],
+              },
+            ],
+          });
+          yield* fs.writeFileString('/work/judge-later.png', 'the judge drawn again');
+          yield* tool('publish_set', {
+            ...set,
+            files: [{ from: '/work/judge-later.png', to: 'calmer.png' }],
+          });
+          const get = (src: string) =>
+            Effect.gen(function* () {
+              const response = yield* Effect.promise(() =>
+                lab(new Request(`${MCP_BASE.slice(0, -1)}${src}`), mcpBound),
+              );
+              const bytes = yield* Effect.promise(() => response.arrayBuffer());
+              return { status: response.status, bytes: new Uint8Array(bytes) };
+            });
+          // The set's own route serves its file as it stands; the ask's image is the copy it was made with.
+          expect(new TextDecoder().decode((yield* get(published.files[0].src)).bytes)).toBe(
+            'the judge drawn again',
+          );
+          const asks = yield* AskStore;
+          const [record] = yield* asks.list;
+          const src = Option.getOrElse(
+            Option.flatMap(Option.fromUndefinedOr(record), (r) =>
+              Option.fromUndefinedOr(imagesIn(r.ask)[0]?.src),
+            ),
+            () => '',
+          );
+          expect(yield* get(src)).toEqual({ status: 200, bytes: new Uint8Array(shownAtMake) });
+          expect(record?.shown).toEqual({ [src]: sha256Hex(shownAtMake) });
+          expect((yield* get(src.replace(/[0-9a-f]{64}/, '0'.repeat(64)))).status).toBe(404);
+          const answered = yield* asks.answerPage(record?.id ?? '', [
+            { step: AskName.make('ask'), values: { keep: 'yes' } },
+          ]);
+          expect(answered.state._tag).toBe('Answered');
         }),
       ),
   );

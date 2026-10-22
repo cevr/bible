@@ -5,7 +5,13 @@
 // kept; a choice it makes now recommends one option), the owner answers
 // its page from any device (`answerPage`: each section's step in order, the
 // run moved by its machine, `askMachine`, and every section kept or none),
-// and the agent closes it. An ask made while an earlier one of the same
+// and the agent closes it. Each file an image of the ask shows is copied as
+// the ask is made into `FILMS_LAB/asks/shown/`, named by its SHA-256, and
+// the image shows the copy (`askShownUrl`): its receipt (`AskRecord.shown`)
+// is of the bytes the page serves, whatever becomes of the file after. A
+// copy is shared by every ask that shows the same bytes, and the lab
+// deletes none, so a closed ask's page still shows what it showed; an answer
+// is refused when a copy no longer holds its hash. An ask made while an earlier one of the same
 // asker (`by`) still asks joins that one's page (`page`, the opener's id),
 // so asks made in sequence are answered on one page; `page` on the draft
 // names an open page to join, or `new` opens one. A page is only the asks
@@ -27,6 +33,7 @@
 
 import {
   Array as Arr,
+  Boolean as Bool,
   Clock,
   Config,
   Context,
@@ -73,7 +80,7 @@ import {
   pageOpen,
   unrecommended,
 } from '../core/ask.ts';
-import { boardFileUrl } from '../core/api.ts';
+import { askShownUrl, boardFileUrl } from '../core/api.ts';
 import { panelById, tryOf } from '../core/board.ts';
 import {
   type ProductionFile,
@@ -82,10 +89,17 @@ import {
   setPathOf,
   withAskSaid,
 } from '../core/production.ts';
-import { AskInvalid, AskRefused, AskUnknown, type WordUnaimed } from '../core/refusals.ts';
+import {
+  AskInvalid,
+  AskRefused,
+  AskUnknown,
+  ReviewFileUnknown,
+  type WordUnaimed,
+} from '../core/refusals.ts';
 import { AskMaterials } from './ask-materials.ts';
 import { BoardStore } from './board-store.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
+import { sha256OfFile } from './digest.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
 import { ProductionStore } from './production-store.ts';
 
@@ -135,6 +149,14 @@ interface AskStoreService {
     id: string,
     sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
+  /**
+   * The copy ask `id` shows as `file` (`<sha256><.ext>`, its `src` an
+   * `askShownUrl`): only a copy its receipt names, else ReviewFileUnknown.
+   */
+  readonly shownFile: (
+    id: string,
+    file: string,
+  ) => Effect.Effect<string, AskUnknown | ReviewFileUnknown | StoreError>;
   /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept, and filed. */
   readonly close: (
     id: string,
@@ -165,6 +187,16 @@ const newId = Effect.map(
 );
 
 const ASK_ID = /^a[0-9a-f]{10}$/;
+
+/** A copy's name in `asks/shown/`: its bytes' SHA-256, and its file's extension. */
+const COPY = /^([0-9a-f]{64})(\.[a-z0-9]{1,8})?$/;
+
+/** The extension a copy of `file` keeps, so it is served as its type: lower case, else none. */
+const extensionOf = (file: string): string =>
+  Option.getOrElse(
+    Option.fromNullishOr(/\.[A-Za-z0-9]{1,8}$/.exec(file)?.[0]),
+    () => '',
+  ).toLowerCase();
 
 /** The folder the asks are kept in: `FILMS_LAB/asks` (the app's `lab/` under `runFilmCli`, else `<cwd>/lab`). */
 const asksDir = Effect.gen(function* () {
@@ -197,6 +229,8 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const dir = yield* asksDir;
 
       const file = (id: string) => path.join(dir, `${id}.json`);
+      /** Where the copies of the images asks show are kept, each named by its SHA-256 (`COPY`). */
+      const shownDir = path.join(dir, 'shown');
       const manifest = (id: string, empty = MISSING) => recordAt(file(id), empty);
       const now = Effect.map(DateTime.now, DateTime.formatIso);
 
@@ -357,18 +391,73 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           )),
         ];
         if (absent.length > 0) return yield* AskInvalid.make({ problems: absent });
-        // The receipt of the bytes its images show, read as it is made.
-        const shown = yield* materials.shown(ask);
+        const id = yield* newId;
+        // Its images show copies of their files' bytes as it is made: the receipt is of what the page serves.
+        const { ask: showing, shown } = yield* receipted(id, ask);
         return yield* making.withPermit(
           Effect.gen(function* () {
             const page = yield* pageFor(draft.by, Option.fromUndefinedOr(draft.page));
-            return yield* kept(draft, ask, shown, deadline, page);
+            return yield* kept(id, draft, showing, shown, deadline, page);
           }),
         );
       });
 
-      /** `draft` kept as a new ask, its machine `ask` (its images found) and their receipt `shown`, on `page` (none: its own). */
+      /**
+       * `file`'s bytes copied into `shownDir` under their SHA-256: copied
+       * first, then the copy hashed, so the name is of the bytes kept however
+       * the file changes meanwhile. Two copies of the same bytes land on one
+       * name, the same bytes. Its name, or none when the file does not read.
+       */
+      const copied = (file: string) =>
+        Effect.gen(function* () {
+          yield* fs.makeDirectory(shownDir, { recursive: true });
+          const partial = path.join(
+            shownDir,
+            `.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial`,
+          );
+          return yield* Effect.gen(function* () {
+            yield* fs.copyFile(file, partial);
+            const hash = yield* sha256OfFile(fs, partial);
+            const name = `${hash}${extensionOf(file)}`;
+            yield* fs.rename(partial, path.join(shownDir, name));
+            return Option.some({ hash, name });
+          }).pipe(Effect.onError(() => Effect.ignore(fs.remove(partial, { force: true }))));
+        }).pipe(Effect.orElseSucceed(() => Option.none<{ hash: string; name: string }>()));
+
+      /**
+       * `ask` (ask `id`'s) with each image whose route serves a file showing
+       * its copy (`copied`) instead, and the receipt: each copy's `src` with
+       * its SHA-256. A file that does not read keeps its `src` and has none.
+       */
+      const receipted = (id: AskName, ask: Ask) =>
+        Effect.gen(function* () {
+          const copies = new Map(
+            (yield* Effect.forEach(yield* materials.served(ask), ([src, from]) =>
+              Effect.map(copied(from), (copy) =>
+                Option.toArray(
+                  Option.map(
+                    copy,
+                    ({ hash, name }) => [src, { src: askShownUrl(id, name), hash }] as const,
+                  ),
+                ),
+              ),
+            )).flat(),
+          );
+          const showing = mapImages(ask, (image) =>
+            Option.match(
+              Option.flatMap(Option.fromUndefinedOr(image.src), (src) =>
+                Option.fromUndefinedOr(copies.get(src)),
+              ),
+              { onNone: () => image, onSome: (copy) => ({ ...image, src: copy.src }) },
+            ),
+          );
+          const shown = Object.fromEntries([...copies.values()].map((c) => [c.src, c.hash]));
+          return { ask: showing, shown };
+        });
+
+      /** `draft` kept as new ask `id`, its machine `ask` (its images found, each showing its copy) and their receipt `shown`, on `page` (none: its own). */
       const kept = (
+        id: AskName,
         draft: AskDraft,
         ask: Ask,
         shown: Readonly<Record<string, string>>,
@@ -376,7 +465,6 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         page: Option.Option<AskName>,
       ) =>
         Effect.gen(function* () {
-          const id = yield* newId;
           const record: AskRecord = {
             id,
             title: draft.title,
@@ -476,6 +564,53 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           } satisfies AskRecord;
         });
 
+      /** The name in `shownDir` of the copy `src` shows for ask `id` with hash `hash`: none when `src` is no such copy's route. */
+      const copyOf = (id: string, src: string, hash: string) => {
+        const prefix = askShownUrl(id, '');
+        return Option.filter(
+          Option.map(
+            Option.liftPredicate(src, (s) => s.startsWith(prefix)),
+            (s) => s.slice(prefix.length),
+          ),
+          (name) => COPY.exec(name)?.[1] === hash,
+        );
+      };
+
+      /**
+       * Why `record`'s page would show bytes its receipt does not hold: each
+       * image `src` it names that is not a copy of its hash the ask made, or
+       * whose copy is gone or no longer holds its hash. None for an ask kept
+       * before receipts: it binds no bytes.
+       */
+      const unbacked = (record: AskRecord) =>
+        Effect.map(
+          Effect.forEach(Object.entries(record.shown ?? {}), ([src, hash]) =>
+            Option.match(copyOf(record.id, src, hash), {
+              onNone: () => Effect.succeed([`${src} is not the copy of ${hash} the ask made`]),
+              onSome: (name) =>
+                Effect.map(
+                  Effect.option(sha256OfFile(fs, path.join(shownDir, name))),
+                  (now): ReadonlyArray<string> =>
+                    Bool.match(Option.contains(now, hash), {
+                      onTrue: () => [],
+                      onFalse: () => [`${src}: its copy no longer holds ${hash}`],
+                    }),
+                ),
+            }),
+          ),
+          (each) => each.flat(),
+        );
+
+      const shownFile = Effect.fn('AskStore.shownFile')(function* (id: string, name: string) {
+        const record = yield* read(id);
+        const src = askShownUrl(record.id, name);
+        const copy = Option.flatMap(Option.fromUndefinedOr(record.shown?.[src]), (hash) =>
+          copyOf(record.id, src, hash),
+        );
+        if (Option.isNone(copy)) return yield* ReviewFileUnknown.make({ ref: src });
+        return path.join(shownDir, copy.value);
+      });
+
       const answerPage = Effect.fn('AskStore.answerPage')(function* (
         id: string,
         sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
@@ -484,14 +619,21 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         const when = yield* now;
         // A field left empty is kept as not sent, so a retry that sends it blank is the same answer.
         const record = yield* store.transact(at, (current) =>
-          Effect.map(
-            Effect.reduce(
+          Effect.gen(function* () {
+            // Fail closed: an answer binds only bytes the page showed from the ask's own copies.
+            const problems = yield* unbacked(current);
+            if (problems.length > 0)
+              return yield* AskRefused.make({
+                id: current.id,
+                reason: `its page shows images the lab holds no copy of as the ask was made (${problems.join('; ')}): close it and make the ask again`,
+              });
+            const next = yield* Effect.reduce(
               sections,
               () => current,
               (run: AskRecord, s) => stepped(run, s.step, filled(s.values), when),
-            ),
-            (next) => [next, next] as const,
-          ),
+            );
+            return [next, next] as const;
+          }),
         );
         yield* Effect.log(
           `asks.answer id=${id} steps=${sections.map((s) => s.step).join(',')} state=${record.state._tag}`,
@@ -529,7 +671,7 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         return { page: on, asks: asksOnPage(yield* list, on) } satisfies AsksPage;
       });
 
-      return AskStore.of({ dir, file, make, read, page, list, answerPage, close });
+      return AskStore.of({ dir, file, make, read, page, list, answerPage, shownFile, close });
     }),
   );
 }

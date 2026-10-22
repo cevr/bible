@@ -975,7 +975,8 @@ export const sectionsPosted = (post: AskAnswerPost): ReadonlyArray<AskSectionPos
  * record, or with every ask on its page (the asks made in sequence, in the
  * order made), and answered as one page, its sections in order; the answers
  * move its machine and are kept, so a reload or another device opens it
- * where it was left.
+ * where it was left. Each image it shows from a file is served from the
+ * copy the lab made with the ask (`shown`), never from the file as it stands.
  */
 class AsksGroup extends HttpApiGroup.make('asks').add(
   HttpApiEndpoint.get('read', `${API}/asks/:ask`, {
@@ -992,6 +993,12 @@ class AsksGroup extends HttpApiGroup.make('asks').add(
     params: { ask: Schema.String },
     payload: AskAnswerPost,
     success: AskRecord,
+    error: Refusals,
+  }),
+  /** An image the ask shows, as the lab copied it when it made the ask: `<sha256><.ext>`, one its receipt names. */
+  HttpApiEndpoint.get('shown', `${API}/asks/:ask/shown/:file`, {
+    params: { ask: Schema.String, file: Schema.String },
+    success: FileBytes,
     error: Refusals,
   }),
 ) {}
@@ -2079,6 +2086,10 @@ export const boardFileUrl = (film: string, file: string, folder?: Segment): stri
       onSome: (f) => ({ folder: f }),
     }),
   });
+
+/** An image ask `ask` shows, by its copy's name (`<sha256><.ext>`): the bytes it was made with. */
+export const askShownUrl = (ask: string, file: string): string =>
+  labUrls.asks.shown({ params: { ask, file } });
 
 /** A note's still. */
 export const stillUrl = (film: string, name: string): string =>

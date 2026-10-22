@@ -3,10 +3,11 @@
  * receipt, its state, the owner's answers by question, and when he answered
  * each step) as the lab answers `GET /api/asks/<id>`, with the lab's JSON of
  * it whole (the approval saves it, `./approval.ts`). The receipt is the
- * SHA-256 of each image block's file, which the lab records when it makes
- * the ask (`AskRecord.shown`, `packages/film/src/core/ask.ts`), so the bytes
- * an approval binds are the ones the owner was shown before he answered,
- * never the bytes the lab serves at the block's `src` later. The live layer
+ * SHA-256 of each image block's file, which the lab copies under that hash
+ * when it makes the ask, its `src` now the copy's route, the only bytes the
+ * page serves (`AskRecord.shown`, `packages/film/src/core/ask.ts`), so the
+ * bytes an approval binds are the ones the owner was shown before he
+ * answered, never the set's file as it stands later. The live layer
  * asks the lab at `FILM_LAB_URL` (the always-on lab, http://127.0.0.1:8229/,
  * unless set), and only reads; the tests give a stand-in.
  */

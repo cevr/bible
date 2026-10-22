@@ -3,11 +3,13 @@
  *
  * - A still is approved only if its SHA-256 equals a file that an image
  *   block of an approving ask showed, on a step his answer reached, and
- *   that ask's `stills` answer is `approve`. The hash is the lab's receipt,
- *   recorded when it made the ask (`./lab-asks.ts`), so an approval binds
- *   the bytes the owner was shown before he answered, not his word alone
- *   and not the bytes the lab serves later, and stays true of those bytes:
- *   a later ask need show only the stills that changed.
+ *   that ask's `stills` answer is `approve`. The hash is the lab's receipt
+ *   (`./lab-asks.ts`): as the lab makes the ask it copies each image
+ *   block's file under its SHA-256, the page serves only that copy, and the
+ *   lab refuses an answer while a copy no longer holds its hash. So an
+ *   approval binds the bytes the owner was shown before he answered, not
+ *   his word alone and not the set's file as it stands later, and stays
+ *   true of those bytes: a later ask need show only the stills that changed.
  * - Every image file of the built site (`dist/` after `bun run build`, each
  *   found by its bytes, `./build-walk.ts`) is an approved still or an image
  *   outside the rule (`OUTSIDE`, `./served.ts`, each with its reason). The
