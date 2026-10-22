@@ -694,16 +694,21 @@ describe('the material an ask shows', () => {
                   onFailure: (e) => `${e._tag}: ${e.message}`,
                   onSuccess: () => 'kept',
                 });
-                expect([i, message]).toEqual([
-                  i,
-                  expect.stringMatching(/^(AskRefused|AskInvalid): /),
-                ]);
-                expect(message).toContain(`image ${drawn.fault.value.src}`);
-                expect((yield* asks.list).length).toBe(before);
                 const how = Bool.match(Option.isSome(drawn.poisoned), {
                   onTrue: () => 'copy failed',
                   onFalse: () => 'missing',
                 });
+                // Each fault is the rule's refusal, naming the src and what went wrong with it:
+                // a file gone is not served or does not copy, by where its route reads it.
+                const why = Bool.match(how === 'missing', {
+                  onTrue: () =>
+                    /: (the lab serves no file there now|its file did not copy as the ask was made)/,
+                  onFalse: () => /: its file did not copy as the ask was made/,
+                });
+                expect([i, how, message]).toEqual([i, how, expect.stringMatching(/^AskRefused: /)]);
+                expect(message).toContain(`image ${drawn.fault.value.src}: `);
+                expect(message.split(`image ${drawn.fault.value.src}`)[1]).toMatch(why);
+                expect((yield* asks.list).length).toBe(before);
                 seen.add(`${how}: ${drawn.fault.value.kind}`);
                 return Option.none<Made>();
               }
@@ -801,6 +806,58 @@ describe('the material an ask shows', () => {
               'video block',
             ].toSorted(),
           );
+        }),
+        'attempt',
+        files,
+      );
+    },
+  );
+
+  it.effect(
+    "shows a kept ask's copy again in an ask made from its machine, as the same copy under its own route, and refuses the make, naming the src, once the copy no longer holds its hash or is no copy that ask holds",
+    () => {
+      const files = seeded('attempt');
+      const made = new Uint8Array(files.get(`/out/${STILL}`) ?? new Uint8Array());
+      const name = `${sha256Hex(made)}.png`;
+      const copy = `${NOTES_LAB}/asks/shown/${name}`;
+      return run(
+        Effect.gen(function* () {
+          const asks = yield* AskStore;
+          const lab = yield* labHandler();
+          const first = yield* asks.make(
+            asked(about({ kind: 'image', image: { src: `${REVIEW_FILES}${STILL}` } })),
+          );
+          const shown = askShownUrl(first.id, name);
+          expect(imagesIn(first.ask).map((image) => image.src)).toEqual([shown]);
+          const again = yield* asks.make(asked(first.ask));
+          const reshown = askShownUrl(again.id, name);
+          expect([again.id === first.id, imagesIn(again.ask).map((image) => image.src)]).toEqual([
+            false,
+            [reshown],
+          ]);
+          expect(again.shown).toEqual({ [reshown]: sha256Hex(made) });
+          expect(yield* fetched(lab, reshown)).toEqual({
+            status: 200,
+            cache: CACHE.hashed,
+            type: 'image/png',
+            hash: sha256Hex(made),
+          });
+          const before = (yield* asks.list).length;
+          /** Why an ask showing `src` is refused: its tag and message. */
+          const refused = (src: string) =>
+            Effect.map(
+              Effect.flip(asks.make(asked(about({ kind: 'image', image: { src } })))),
+              (e) => `${e._tag}: ${e.message}`,
+            );
+          const unknownAsk = askShownUrl('a0000000000', name);
+          const notInReceipt = askShownUrl(first.id, `${'0'.repeat(64)}.png`);
+          files.set(copy, text('the copy changed under the lab'));
+          for (const src of [shown, unknownAsk, notInReceipt]) {
+            const message = yield* refused(src);
+            expect([src, message]).toEqual([src, expect.stringMatching(/^AskRefused: /)]);
+            expect(message).toContain(`image ${src}: it is no copy ask`);
+          }
+          expect((yield* asks.list).length).toBe(before);
         }),
         'attempt',
         files,

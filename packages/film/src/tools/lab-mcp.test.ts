@@ -688,7 +688,7 @@ describe('asks through the MCP', () => {
             '/api/films/f/board/files/cold.judge.9.png',
           ])
             expect((yield* showing(src)).refused).toContain(
-              `image ${src}: the lab serves no image there`,
+              `image ${src}: the lab serves no file there now`,
             );
           expect((yield* tool('asks', {})).asks).toEqual([]);
           // The set's own answer is served, and so is a try on the board.

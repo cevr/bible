@@ -3083,3 +3083,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** `.emblem-remedies svg > g { --motion-emblem: 0s }`, `.card { --motion-emblem: 0s }` and `.card.card:hover { --stir: 100 }` under the hover query each passed every case of the leaf's hold in `styles.test.ts`, though each changes how the leaf moves.
 - **Cause:** The premise that reading the stylesheet's declarations by text holds the leaf's motion was false three times (ftb-remedies-emblem r1 F2, this unit's r2 F4, r3 F2): the reader never resolved a custom property through the cascade. The new premise: the leaf's motion is measured as the browser computes it. Chrome loads the built home page and reads `getComputedStyle` and each part's matrix at rest, hovered, under keyboard focus, for less motion and under a coarse pointer; the three mutants above and counsel's `all: initial` and part `--stir` each fail it.
 - **Guard:** code: `apps/firsttheblade/scripts/computed.ts` `the healing leaf, as Chrome computes it, rests at 0deg and turns 5deg about its stem’s foot on hover and on keyboard focus, on the root’s motion tokens, and stays at rest for less motion and under a coarse pointer`. Chrome computes the leaf's turn, pivot and transition from the built page in each state (`bun run computed`, which the gate runs in `gate:timed` after the build), so a rule that moves the leaf fails however it is written; the stylesheet's text hold was removed.
+
+### missing-image-refused-by-the-receipt-rule
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "a file missing at make time is refused as `AskInvalid`, where the rule says `AskRefused`"
+- **Source:** ftb-approval-receipts/round-3-findings.md F3
+- **Wrong:** The material check refused an image whose file the lab did not serve as `AskInvalid` before the receipt rule ran, so a file missing at make time and one failing to copy were refused under two tags, and the property accepted either for both.
+- **Cause:** Two checks held one rule: the material check read each image's route, and `receipted` read it again to copy it. The material check no longer reads images; `receipted` resolves every src before it copies any file, and refuses one the lab serves no file for as `AskRefused`, naming it. The property holds the tag, the src and the reason for each fault kind.
+- **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `serves each image of random asks only as the copy its receipt holds, over the receipt rule's whole domain: set files, board tries and note stills, in image blocks and options, on pages of one to three steps and asks sharing a page, their files rewritten at random; a frame, a board block and a video block show live; a file missing or failing to copy refuses the make, naming its src`.
+
+### ask-shows-an-earlier-asks-copy
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "an ask cannot show an earlier ask's copy"
+- **Source:** ftb-approval-receipts/round-3-findings.md F4
+- **Wrong:** An ask made from a kept ask's machine, whose images show that ask's copies (`/api/asks/<id>/shown/<sha256>.png`), was refused as serving no image, a message that sends an agent to ask again the same way.
+- **Cause:** The receipt rule read only the routes of the lab's material (set files, board tries, note stills), not an ask's copy. `receipted` now reads a copy's route through the earlier ask (`shownFile`): one its receipt names, whose bytes hold its hash, is shown again as the same copy under the new ask's route; any other is refused as `AskRefused`, naming the src.
+- **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `shows a kept ask's copy again in an ask made from its machine, as the same copy under its own route, and refuses the make, naming the src, once the copy no longer holds its hash or is no copy that ask holds`.

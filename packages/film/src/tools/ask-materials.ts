@@ -13,10 +13,11 @@
 // it is not there. An image's `src` is one of the lab's image routes, its
 // file found by the read that route makes (a set's file by `Review.resolve`,
 // a board's by `BoardStore.image`, a note's still by `NotesStore.still`, a
-// video's frame by the review's index); a path no image route takes would
-// 404 on the page, so it is refused, named. The same read gives what each
-// image route serves as the ask is made (`served`), which the ask store holds
-// to the receipt rule (`receipted` in `ask-store.ts`).
+// video's frame by the review's index). That read gives what each image
+// route serves as the ask is made (`served`), which the ask store holds to
+// the receipt rule (`receipted` in `ask-store.ts`): an image the lab serves
+// no file for, a path no image route takes among them, refuses the make
+// there, named.
 
 import {
   Boolean as Bool,
@@ -69,7 +70,7 @@ interface Aimed {
 }
 
 interface AskMaterialsService {
-  /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
+  /** What `ask`'s material blocks name that the lab cannot show, each as the agent fixes it; none when all is there. Its images are held where they are copied (`served`). */
   readonly problems: (ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
   /**
    * Each image `src` of `ask` (an image block's or an option's, on every
@@ -334,29 +335,12 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
       const served = (ask: Ask) =>
         Effect.forEach(srcsOf(ask), (src) => Effect.map(servedAt(src), (at) => [src, at] as const));
 
-      /** Every image `ask` shows by its `src` that the lab does not serve, named. */
-      const images = (ask: Ask) =>
-        Effect.map(
-          Effect.forEach(srcsOf(ask), (src) =>
-            Effect.map(servedAt(src), (at) =>
-              problemIf(
-                at._tag === 'None',
-                `image ${src}: the lab serves no image there (a set's file is at the link \`set\` and \`publish_set\` answer for it, under ${REVIEW_FILES}; a board try, {board: {film, panel, try}})`,
-              ),
-            ),
-          ),
-          (each) => each.flat(),
-        );
-
       const problems = (ask: Ask) =>
         Effect.map(
-          Effect.all([
-            Effect.forEach(materialsIn(ask), ({ step, block }) =>
-              found(step, block).pipe(Effect.catch((problem) => Effect.succeed([problem]))),
-            ),
-            images(ask),
-          ]),
-          ([each, unserved]) => [...each.flat(), ...unserved],
+          Effect.forEach(materialsIn(ask), ({ step, block }) =>
+            found(step, block).pipe(Effect.catch((problem) => Effect.succeed([problem]))),
+          ),
+          (each) => each.flat(),
         );
 
       /** The set's review record, as the set lists it, decoded; or why there is none. */

@@ -10,6 +10,7 @@
 // file-served image of an image block or an option is copied as the ask is
 // made, or the make is refused (`AskRefused`, naming the src). A board
 // block's panels and a video's poster or frame show live and bind nothing.
+// An earlier ask's copy, shown again, is the same copy, its hash checked.
 // Each copy is kept in `FILMS_LAB/asks/shown/`, named by its SHA-256, and
 // the image shows its route (`askShownUrl`); its receipt is
 // `AskRecord.shown`. A copy is shared by every ask that shows the same
@@ -55,6 +56,7 @@ import {
   Result,
   Semaphore,
 } from 'effect';
+import { decodeComponent } from '@bible/url-state';
 import { Machine } from 'effect-machine';
 import {
   type Ask,
@@ -84,7 +86,7 @@ import {
   pageOpen,
   unrecommended,
 } from '../core/ask.ts';
-import { askShownUrl, boardFileUrl } from '../core/api.ts';
+import { REVIEW_FILES, askShownUrl, boardFileUrl } from '../core/api.ts';
 import { panelById, tryOf } from '../core/board.ts';
 import {
   type ProductionFile,
@@ -198,6 +200,40 @@ const ASK_ID = /^a[0-9a-f]{10}$/;
 
 /** A copy's name in `asks/shown/`: its bytes' SHA-256, and its file's extension. */
 const COPY = /^([0-9a-f]{64})(\.[a-z0-9]{1,8})?$/;
+
+/** A copy an ask shows: its route under the ask, and the SHA-256 of its bytes. */
+interface Copy {
+  readonly src: string;
+  readonly hash: string;
+}
+
+/** How an image an ask shows becomes its copy: a file the lab serves copied, or an earlier ask's copy shown again. */
+type Plan =
+  | { readonly _tag: 'Copy'; readonly src: string; readonly file: string }
+  | { readonly _tag: 'Shown'; readonly src: string; readonly copy: Copy };
+
+const copyPlan = (src: string, file: string) => Option.some<Plan>({ _tag: 'Copy', src, file });
+
+/** Stand-ins `askShownUrl` keeps as written, so its route reads back as a pattern. */
+const ASK_AT = 'askxroutexask';
+const FILE_AT = 'askxroutexfile';
+const SHOWN_ROUTE = new RegExp(
+  `^${askShownUrl(ASK_AT, FILE_AT)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(ASK_AT, '([^/]+)')
+    .replace(FILE_AT, '([^/]+)')}$`,
+);
+
+/** The ask and copy name of `src` when it is an ask's copy's route (`askShownUrl`); none for any other. */
+const shownRouteOf = (src: string) =>
+  Option.flatMap(
+    Option.fromNullishOr(SHOWN_ROUTE.exec(new URL(src, 'http://lab.invalid').pathname)),
+    ([, ask = '', file = '']) =>
+      Option.all({
+        ask: Result.getSuccess(decodeComponent(ask)),
+        file: Result.getSuccess(decodeComponent(file)),
+      }),
+  );
 
 /** The extension a copy of `file` keeps, so it is served as its type: lower case, else none. */
 const extensionOf = (file: string): string =>
@@ -437,39 +473,52 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
        * only as its copy. Each file-served image of an image block or an
        * option is copied as the ask is made, or the make is refused
        * (`AskRefused`, naming the src). A board block's panels and a video's
-       * poster or frame show live and bind nothing.
+       * poster or frame show live and bind nothing. An image that shows an
+       * earlier ask's copy shows the same copy again, while that ask's
+       * receipt names it and its bytes hold its hash (`shownAgain`).
        *
        * `ask` (ask `id`'s) with each file-served image showing its copy
        * (`copied`), and the receipt: each copy's `src` with its SHA-256.
+       * Every src is resolved before any file is copied, so a make refused
+       * for a file the lab does not serve copies nothing.
        */
       const receipted = (id: AskName, ask: Ask) =>
         Effect.gen(function* () {
-          const each = yield* Effect.forEach(yield* materials.served(ask), ([src, at]) =>
+          // Each src resolved first, so a make refused copies nothing.
+          const planned = yield* Effect.forEach(yield* materials.served(ask), ([src, at]) =>
             Match.value(at).pipe(
-              Match.tag('File', ({ file }) =>
-                Effect.map(copied(file), (copy) =>
-                  Result.fromOption(
-                    Option.map(copy, ({ hash, name }) => [
-                      [src, { src: askShownUrl(id, name), hash }] as const,
-                    ]),
-                    () => `image ${src}: its file did not copy as the ask was made`,
-                  ),
-                ),
-              ),
-              Match.tag('Frame', () => Effect.succeed(Result.succeed([]))),
-              Match.tag('None', () =>
-                Effect.succeed(Result.fail(`image ${src}: the lab serves no file there now`)),
-              ),
+              Match.tag('File', ({ file }) => Effect.succeed(Result.succeed(copyPlan(src, file)))),
+              Match.tag('Frame', () => Effect.succeed(Result.succeed(Option.none<Plan>()))),
+              Match.tag('None', () => shownAgain(id, src)),
               Match.exhaustive,
             ),
           );
+          const unserved = Arr.getFailures(planned);
+          if (unserved.length > 0) return yield* refusedImages(id, unserved);
+          const each = yield* Effect.forEach(
+            Arr.getSomes(Arr.getSuccesses(planned)),
+            (plan): Effect.Effect<Result.Result<readonly [string, Copy], string>> =>
+              Match.value(plan).pipe(
+                Match.tag('Copy', ({ src, file }) =>
+                  Effect.map(copied(file), (copy) =>
+                    Result.fromOption(
+                      Option.map(
+                        copy,
+                        ({ hash, name }) => [src, { src: askShownUrl(id, name), hash }] as const,
+                      ),
+                      () => `image ${src}: its file did not copy as the ask was made`,
+                    ),
+                  ),
+                ),
+                Match.tag('Shown', ({ src, copy }) =>
+                  Effect.succeed(Result.succeed([src, copy] as const)),
+                ),
+                Match.exhaustive,
+              ),
+          );
           const refused = Arr.getFailures(each);
-          if (refused.length > 0)
-            return yield* AskRefused.make({
-              id,
-              reason: `its images show only copies made with it, and ${refused.join('; ')}: make it again`,
-            });
-          const copies = new Map(Arr.getSuccesses(each).flat());
+          if (refused.length > 0) return yield* refusedImages(id, refused);
+          const copies = new Map(Arr.getSuccesses(each));
           const showing = mapImages(ask, (image) =>
             Option.match(
               Option.flatMap(Option.fromUndefinedOr(image.src), (src) =>
@@ -480,6 +529,48 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
           );
           const shown = Object.fromEntries([...copies.values()].map((c) => [c.src, c.hash]));
           return { ask: showing, shown };
+        });
+
+      /** The make of ask `id` refused, naming each image (`why`) it could not show as a copy made with it. */
+      const refusedImages = (id: AskName, why: ReadonlyArray<string>) =>
+        AskRefused.make({
+          id,
+          reason: `its images show only copies made with it, and ${why.join('; ')}: make it again`,
+        });
+
+      /**
+       * What ask `id` shows at `src`, which no route of the lab's material
+       * serves: an earlier ask's copy (`askShownUrl`) shown again, once the
+       * earlier ask's receipt names it and its bytes still hold its hash,
+       * as the same copy under ask `id`'s route; else why it cannot be shown.
+       */
+      const shownAgain = (id: AskName, src: string) =>
+        Option.match(shownRouteOf(src), {
+          onNone: () =>
+            Effect.succeed(
+              Result.fail(
+                `image ${src}: the lab serves no file there now (a set's file is at the link \`set\` and \`publish_set\` answer for it, under ${REVIEW_FILES}; a board try, {board: {film, panel, try}})`,
+              ),
+            ),
+          onSome: ({ ask: earlier, file: name }) =>
+            shownFile(earlier, name).pipe(
+              Effect.map(({ bytes }) =>
+                Result.succeed(
+                  Option.some<Plan>({
+                    _tag: 'Shown',
+                    src,
+                    copy: { src: askShownUrl(id, name), hash: sha256Hex(bytes) },
+                  }),
+                ),
+              ),
+              Effect.catch((error) =>
+                Effect.succeed(
+                  Result.fail(
+                    `image ${src}: it is no copy ask ${earlier} holds (${error.message})`,
+                  ),
+                ),
+              ),
+            ),
         });
 
       /** `draft` kept as new ask `id`, its machine `ask` (its images found, each showing its copy) and their receipt `shown`, on `page` (none: its own). */
