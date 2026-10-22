@@ -65,7 +65,7 @@ const Recorded = Schema.Struct({
 
 const decodeRecorded = Schema.decodeOption(Schema.fromJsonString(Recorded));
 
-export class ProdStateMissing extends Data.TaggedError('ProdStateMissing')<{
+class ProdStateMissing extends Data.TaggedError('ProdStateMissing')<{
   readonly reason: string;
 }> {
   override get message() {
@@ -73,16 +73,31 @@ export class ProdStateMissing extends Data.TaggedError('ProdStateMissing')<{
   }
 }
 
+/**
+ * A live resource whose file records another resource: what it records,
+ * what `LIVE` expects, and where to change `LIVE` when the resource was
+ * replaced on purpose.
+ */
+const differs = (live: Live, found: string, expected: string) =>
+  `${live.label} (${live.file} records ${found}, not ${expected}; if it was replaced on purpose, change LIVE in apps/firsttheblade/scripts/prod-state.ts)`;
+
 /** What `live` lacks in the state folder `dir`, if anything. */
 const lacking = Effect.fn('ProdState.lacking')(function* (dir: string, live: Live) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const text = yield* Effect.option(fs.readFileString(path.join(dir, live.file)));
   const recorded = Option.flatMap(text, decodeRecorded);
-  if (Option.isNone(recorded)) return Option.some(`${live.label} (${live.file})`);
+  if (Option.isNone(recorded)) {
+    return Option.some(`${live.label} (${live.file} is missing or unreadable)`);
+  }
   const { resourceType, attr } = recorded.value;
-  if (resourceType === live.resourceType && attr[live.field] === live.name) return Option.none();
-  return Option.some(`${live.label} ${live.name}`);
+  if (resourceType !== live.resourceType) {
+    return Option.some(differs(live, `a ${resourceType}`, `a ${live.resourceType}`));
+  }
+  const name = Schema.decodeUnknownOption(Schema.String)(attr[live.field]);
+  if (Option.contains(name, live.name)) return Option.none();
+  const found = Option.getOrElse(name, () => `no ${live.field}`);
+  return Option.some(differs(live, found, live.name));
 });
 
 /** Fails with `ProdStateMissing` unless the prod state under the `.alchemy` folder `dotAlchemy` records every live resource. */
@@ -99,7 +114,7 @@ export const checkProdState = Effect.fn('ProdState.check')(function* (dotAlchemy
   );
   if (missing.length > 0) {
     return yield* new ProdStateMissing({
-      reason: `the prod state at ${dir} does not record ${missing.join(', ')}`,
+      reason: `the prod state at ${dir} does not record ${missing.join('; ')}`,
     });
   }
 });

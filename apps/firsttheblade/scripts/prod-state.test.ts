@@ -3,8 +3,9 @@
  * folder is refused; a folder that records the live Worker, D1 and queue
  * passes; and each of the three, missing, unreadable, of another type or
  * recording another resource's name (a second D1 made by a deploy that had
- * no state), is refused by name. The stack's gate reads the `.alchemy` folder
- * Alchemy runs with, on stage `prod` only.
+ * no state), is refused by name, with what it records when it records
+ * another. The stack's gate reads the `.alchemy` folder Alchemy runs with, on
+ * stage `prod` only, and the stack runs it before anything else.
  */
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -106,25 +107,34 @@ describe('the prod state check', () => {
       Effect.gen(function* () {
         for (const { file, label, resourceType, field, name } of RESOURCES) {
           const rest = LIVE.filter(([other]) => other !== file);
+          const unread = `${file} is missing or unreadable`;
+          const replaced = (found: string, expected: string) =>
+            `${file} records ${found}, not ${expected}; if it was replaced on purpose, change LIVE in apps/firsttheblade/scripts/prod-state.ts`;
           const broken = [
-            rest,
-            [...rest, [file, ''] as const],
-            [...rest, [file, '{"resourceType":'] as const],
-            [...rest, [file, resource('Cloudflare.KVNamespace', named(field, name))] as const],
+            [rest, unread],
+            [[...rest, [file, ''] as const], unread],
+            [[...rest, [file, '{"resourceType":'] as const], unread],
             [
-              ...rest,
-              [
-                file,
-                resource(resourceType, named(field, 'firsttheblade-Mail-prod-vcjs7e535fd4wypd')),
-              ] as const,
+              [...rest, [file, resource('Cloudflare.KVNamespace', named(field, name))] as const],
+              replaced('a Cloudflare.KVNamespace', `a ${resourceType}`),
             ],
-            [...rest, [file, resource(resourceType, '')] as const],
-          ];
-          for (const files of broken) {
+            [
+              [
+                ...rest,
+                [
+                  file,
+                  resource(resourceType, named(field, 'firsttheblade-Mail-prod-vcjs7e535fd4wypd')),
+                ] as const,
+              ],
+              replaced('firsttheblade-Mail-prod-vcjs7e535fd4wypd', name),
+            ],
+            [[...rest, [file, resource(resourceType, '')] as const], replaced(`no ${field}`, name)],
+          ] as const;
+          for (const [files, detail] of broken) {
             const line = yield* answer(yield* appWith(Option.some(files)));
             expect([file, line]).toEqual([
               file,
-              expect.stringContaining(`does not record ${label}`),
+              expect.stringContaining(`does not record ${label} (${detail})`),
             ]);
             for (const other of RESOURCES.filter((each) => each.file !== file)) {
               expect([file, line]).toEqual([file, expect.not.stringContaining(other.label)]);
@@ -154,4 +164,17 @@ describe('the prod state check', () => {
         expect(yield* gate(bare, 'agent-mailtest')).toBe('pass');
       }),
     ));
+
+  test('the stack runs the prod state gate first, before the stills gate and every resource', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const lines = (yield* fs.readFileString(path.join(import.meta.dir, '../alchemy.run.ts')))
+        .split('\n')
+        .map((line) => line.trim());
+      expect(lines).toContain("import { prodStateGate } from './scripts/prod-state.ts';");
+      expect(lines.find((line) => line.startsWith('yield* '))).toBe(
+        'yield* prodStateGate().pipe(Effect.orDie);',
+      );
+    }));
 });
