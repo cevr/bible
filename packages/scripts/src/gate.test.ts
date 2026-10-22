@@ -119,19 +119,25 @@ describe('the slow suite', () => {
       }),
   );
 
-  it.effect("runs before each deploy: a deploy script starts with its workspace's test:slow", () =>
-    Effect.gen(function* () {
-      const { packages } = yield* laid;
-      const deploys = packages.flatMap(({ manifest }) =>
-        Option.toArray(manifest)
-          .filter(({ scripts }) => 'deploy' in scripts)
-          .map(({ name, scripts }) => ({ name, first: commandsOf(scripts['deploy'] ?? '')[0] })),
-      );
-      expect(deploys.length).toBeGreaterThan(0);
-      for (const { name, first } of deploys) {
-        expect(first).toEqual(['turbo', 'run', 'test:slow', `--filter=${name}`]);
-      }
-    }),
+  it.effect(
+    "runs before each deploy: a deploy script runs its workspace's test:slow before alchemy starts",
+    () =>
+      Effect.gen(function* () {
+        const { packages } = yield* laid;
+        const deploys = packages.flatMap(({ manifest }) =>
+          Option.toArray(manifest)
+            .filter(({ scripts }) => 'deploy' in scripts)
+            .map(({ name, scripts }) => ({ name, commands: commandsOf(scripts['deploy'] ?? '') })),
+        );
+        expect(deploys.length).toBeGreaterThan(0);
+        for (const { name, commands } of deploys) {
+          const slow = commands.findIndex(
+            (command) => command.join(' ') === `turbo run test:slow --filter=${name}`,
+          );
+          const alchemy = commands.findIndex((command) => command[0] === 'alchemy');
+          expect([name, slow > -1 && alchemy > slow]).toEqual([name, true]);
+        }
+      }),
   );
 
   it.effect("no workspace keeps a gate but Selah's native one, which its test:slow runs", () =>
