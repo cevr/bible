@@ -5,6 +5,7 @@ import {
   Console,
   Effect,
   Exit,
+  FileSystem,
   Inspectable,
   Layer,
   Logger,
@@ -12,7 +13,6 @@ import {
   Predicate,
 } from 'effect';
 import { expect } from 'bun:test';
-import { tmpdir } from 'node:os';
 
 import { getCallSequence, type ServiceCall } from './sequence-recorder.js';
 import { createTestLayer, type TestLayerConfig } from './test-layer.js';
@@ -50,6 +50,21 @@ export interface RunCliResult {
   stderr: string;
 }
 
+/**
+ * The `HOME` a command sees under test: a new folder in the system's temp
+ * folder for each run, removed when the run ends. A command that opens its
+ * local databases there (`~/.bible/…`) starts each run from none, and writes
+ * nothing into the workspace or after the test.
+ */
+const withTestHome = <A>(use: (home: string) => Effect.Effect<A>): Effect.Effect<A> =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const home = yield* fs.makeTempDirectoryScoped({ prefix: 'manna-cli-test-' });
+      return yield* use(home);
+    }),
+  ).pipe(Effect.orDie, Effect.provide(BunServices.layer));
+
 /** The one place the test harness's own layer is provided.
  *
  *  The run itself is a whole program — the CLI plus the call-sequence read that
@@ -65,19 +80,12 @@ export interface RunCliResult {
  *  failed — failed runs still record observable side effects before the failure
  *  point, and tests need to assert on them.
  */
-/**
- * The `HOME` a command sees under test: a folder of this test process in the
- * system's temp folder. A command that opens its local databases there
- * (`~/.bible/…`) starts each run from none, and writes nothing into the
- * workspace.
- */
-const TEST_HOME = `${tmpdir()}/manna-cli-test/${process.pid}`;
-
 const runProvided = (
   cli: (args: string[]) => Effect.Effect<void, unknown, unknown>,
   args: string[],
   recordingConsole: Console.Console,
   layer: Layer.Layer<never, never, never>,
+  home: string,
 ): Effect.Effect<{ cliExit: Exit.Exit<void, unknown>; calls: ServiceCall[] }> =>
   // The CLI's requirements are erased by `layer`, which the type cannot prove.
   // @effect-diagnostics-next-line unsafeEffectTypeAssertion:off
@@ -92,7 +100,7 @@ const runProvided = (
     Effect.provideService(
       ConfigProvider.ConfigProvider,
       ConfigProvider.fromUnknown({
-        HOME: TEST_HOME,
+        HOME: home,
         GEMINI_API_KEY: 'test-key',
         OPENAI_API_KEY: 'test-key',
         ANTHROPIC_API_KEY: 'test-key',
@@ -148,7 +156,9 @@ export const runCli = <Name extends string, Input, ContextInput, E, R>(
       },
     };
 
-    const result = yield* runProvided(cli, args, recordingConsole, layer);
+    const result = yield* withTestHome((home) =>
+      runProvided(cli, args, recordingConsole, layer, home),
+    );
 
     const exit = result.cliExit;
     const effectCalls = result.calls;
