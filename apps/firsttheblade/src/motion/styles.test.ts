@@ -1,8 +1,8 @@
 /**
  * The motion in the page's stylesheet, read with a CSS parser (lightningcss,
  * the one Vite builds the sheet with): its rules as the parser gives them,
- * nested ones and those under `@supports` or `@layer` too, so no way of
- * writing a rule hides it. Expected values are written as CSS and read the
+ * nested ones and those under `@supports`, `@layer` or `@scope` too (a scope's
+ * root read as a parent rule), so no way of writing a rule hides it. Expected values are written as CSS and read the
  * same way, so a rule is compared by what it means, not by its text.
  */
 import { BunServices } from '@effect/platform-bun';
@@ -68,13 +68,12 @@ const headerAt = (css: string, line: number, column: number) => {
   return css.slice(start, css.indexOf('{', start)).trim().replace(/\s+/g, ' ');
 };
 
-/** The rules an at-rule holds that apply wherever it sits (`@supports`, `@layer`, `@container`, `@scope`, `@starting-style`, `@-moz-document`); none for any other rule. */
+/** The rules an at-rule holds that apply wherever it sits (`@supports`, `@layer`, `@container`, `@starting-style`, `@-moz-document`); none for any other rule. */
 const opened = (rule: CssRule): ReadonlyArray<CssRule> => {
   if (
     rule.type === 'supports' ||
     rule.type === 'layer-block' ||
     rule.type === 'container' ||
-    rule.type === 'scope' ||
     rule.type === 'starting-style' ||
     rule.type === 'moz-document'
   )
@@ -93,7 +92,7 @@ const declared = (
   ...(block.importantDeclarations ?? []).map((declaration) => ({ declaration, important: true })),
 ];
 
-/** Every style rule of a stylesheet, in source order, with the `@media` queries and the parent rules it sits in. */
+/** Every style rule of a stylesheet, in source order, with the `@media` queries and the parent rules it sits in, a `@scope` rule's root among them. */
 const rules = (css: string): ReadonlyArray<Rule> => {
   const found: Array<Rule> = [];
   const walk = (
@@ -106,6 +105,17 @@ const rules = (css: string): ReadonlyArray<Rule> => {
       if (rule.type === 'media')
         walk(rule.value.rules, [...media, rule.value.query.mediaQueries], chain, parent);
       walk(opened(rule), media, chain, parent);
+      // A rule under `@scope (<root>)` matches only within the root, as one nested under it does.
+      if (rule.type === 'scope')
+        walk(
+          rule.value.rules,
+          media,
+          Option.match(Option.fromNullishOr(rule.value.scopeStart), {
+            onNone: () => chain,
+            onSome: (root) => [...chain, root],
+          }),
+          parent,
+        );
       if (rule.type === 'nested-declarations')
         found.push({
           media,
@@ -408,6 +418,9 @@ const HOVERED: Some<(body: string) => string> = [
   (body) => `.card { :is(&:hover) { ${body} } }`,
   (body) => `.cards:hover { .card { ${body} } }`,
   (body) => `.cards:hover { & > .card { ${body} } }`,
+  (body) => `@scope (.cards:hover) { .card { ${body} } }`,
+  (body) => `@scope (.cards) { :scope:hover .card { ${body} } }`,
+  (body) => `@scope (.cards:is(:hover)) to (.lit) { & > .card { ${body} } }`,
 ];
 
 /** Ways a selector names a card that is not hovered, which may stir anywhere. */
@@ -416,6 +429,8 @@ const UNHOVERED: Some<(body: string) => string> = [
   (body) => `.card:active { ${body} }`,
   (body) => `.card:has(h3 a:focus-visible) { ${body} }`,
   (body) => `.cards:hover { :not(&) .card { ${body} } }`,
+  (body) => `@scope (.cards) to (.card:hover) { .card { ${body} } }`,
+  (body) => `@scope (.cards:not(:hover)) { .card { ${body} } }`,
 ];
 
 /** Declarations that sit beside a stir, braces, semicolons and comment marks in strings and URLs among them. */
@@ -437,6 +452,7 @@ const WRAPS: Some<(rule: string) => string> = [
   (rule) => `@layer motion; ${rule}`,
   (rule) => `/* .card:hover { } */ ${rule}`,
   (rule) => `@media (min-width: 48rem) { ${rule} }`,
+  (rule) => `@scope (.page) { ${rule} }`,
 ];
 
 /** A sheet's hover stir placed under `query`, inside or outside the `outer` wrapper, or wrapped only, with no query. */
@@ -522,6 +538,10 @@ describe('the stylesheet as rules', () => {
       ['@media (hover: hover) { .card:hover { --stir: 1 } }', ['.card:hover']],
       [`.card { @media ${FINE_POINTER} { &:hover { --stir: 1 } } }`, []],
       ['.card:not(:hover) { --stir: 1 }', []],
+      ['@scope (.cards:hover) { .card { --stir: 1 } }', ['.card']],
+      ['@scope (.cards:hover) { :scope .card { --stir: 1 } }', [':scope .card']],
+      [`@media ${FINE_POINTER} { @scope (.cards:hover) { .card { --stir: 1 } } }`, []],
+      ['@scope (.cards) to (.card:hover) { .card { --stir: 1 } }', []],
     ];
     expect(cases.map(([css]) => ungatedHovers(rules(css)))).toEqual(
       cases.map(([, found]) => [...found]),
