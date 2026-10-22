@@ -110,28 +110,32 @@ const srcOf = (name: string) => `/api/review/files/test/${name}`;
 
 /**
  * An ask the lab holds, at `tag`, with `answers` (each given on one step at
- * `AT`), showing an image block for each `src` of `shows`, a video and a
- * board panel (neither a file it shows as an image), and its choice.
+ * `AT`), showing an image block for each `src` of `shows` over two steps, a
+ * video, an image block with no file, a block of another kind for each `src`
+ * of `others` (none a file it shows as an image), and its choice.
  */
 const held = (
   answers: AskAnswers,
   shows: ReadonlyArray<string>,
   tag: LabAsk['state']['_tag'] = 'Answered',
   id = ASK,
+  others: ReadonlyArray<string> = [],
 ): LabAsk => {
   const values = Object.entries(answers).flatMap(([question, answer]) =>
     valueOf(answer).map((value) => [question, value] as const),
   );
   const steps = [{ step: 'approve', values: Object.fromEntries(values), at: AT }];
-  const blocks = [
-    { kind: 'video' },
-    { kind: 'image', image: {} },
-    ...shows.map((src) => ({ kind: 'image', image: { src } })),
+  const images = shows.map((src) => ({ kind: 'image', image: { src } }));
+  const half = Math.ceil(images.length / 2);
+  const look = [{ kind: 'video' }, { kind: 'image', image: {} }, ...images.slice(0, half)];
+  const approve = [
+    ...others.map((src) => ({ kind: 'board', image: { src } })),
+    ...images.slice(half),
     { kind: 'choose' },
   ];
   return {
     id,
-    ask: { steps: { approve: { blocks }, end: {} } },
+    ask: { steps: { look: { blocks: look }, approve: { blocks: approve }, end: {} } },
     state: { _tag: tag, answers },
     answered: steps.filter(() => Object.keys(answers).length > 0),
   };
@@ -283,7 +287,7 @@ describe('kit:approve', () => {
       if (approval.status === 'approved') expect(approval.shown).toEqual(real.shown);
     }));
 
-  test('refuses each pinned still no image block showed byte for byte, naming each', () =>
+  test('refuses each pinned still no image block showed byte for byte, naming each: one shown as a crop, one in a block of another kind', () =>
     Effect.gen(function* () {
       const { root, stills } = yield* pinnedOn(ASK);
       const [first = '', second = '', ...rest] = Object.keys(stills).toSorted();
@@ -291,7 +295,11 @@ describe('kit:approve', () => {
         ...showing(Object.fromEntries(rest.map((still) => [still, stills[still] ?? '']))),
         [srcOf(`crop-of-${first}`)]: sha256(new TextEncoder().encode(first)),
       };
-      yield* holding([held(APPROVED, Object.keys(files))], files);
+      const board = srcOf(`board-of-${second}`);
+      yield* holding([held(APPROVED, Object.keys(files), 'Answered', ASK, [board])], {
+        ...files,
+        [board]: stills[second] ?? '',
+      });
       const refusal = yield* approve(root, ASK).pipe(
         Effect.flip,
         Effect.map((error) => Option.liftPredicate(error, Schema.is(StillsNotShown))),
