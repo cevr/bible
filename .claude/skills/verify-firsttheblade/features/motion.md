@@ -83,19 +83,25 @@ emblems at rest.
 - Reading a WebGL canvas into a screenshot stalls the GPU, and Chrome logs a
   "GPU stall due to ReadPixels" warning: it is the drive's, not the site's.
 - The field's still is the kit's (`bun run --cwd apps/firsttheblade kit:field`).
-  Its rules: every shipped field still, at every srcset size, is
-  byte-identical to one the owner approved by name; and every image the site
-  serves is in the approval record or in a named list of images outside the
-  rule, each with its reason (`apps/firsttheblade/kit/served.ts` `OUTSIDE`).
-  The record is `apps/firsttheblade/kit/approved-stills.json`, and
-  `apps/firsttheblade/kit/field-still.test.ts` refuses each served image the
-  record does not hold. Whether a still's light comes from the sun is the
-  owner's look, not a measure: on the stage, hash each served still against
-  the record, and judge the light by eye at 1:1.
-- A repainted or re-encoded still goes to the owner as a lab ask with 1:1
-  crops before its hashes are approved. The coordinator pins the stills on
-  the ask (`bun run --cwd apps/firsttheblade kit:pin --ask <id>`), and once
-  the owner has answered, approves them
+  Its rules: a still is approved only if its SHA-256 equals a file that an
+  image block of the approving ask showed, and that ask's `stills` answer is
+  `approve`; and every image file of the built site (`dist/`, found by its
+  bytes, `apps/firsttheblade/kit/build-walk.ts`) is in the approval record
+  or in a named list of images outside the rule, each with its reason
+  (`apps/firsttheblade/kit/served.ts` `OUTSIDE`). The record is
+  `apps/firsttheblade/kit/approved-stills.json`. The build walk is the guard
+  (`kit:shippable`, run first by the stack on stage `prod`);
+  `apps/firsttheblade/kit/field-still.test.ts` is the fast check over the
+  source. Whether a still's light comes from the sun is the owner's look,
+  not a measure: on the stage, hash each served still against the record,
+  and judge the light by eye at 1:1.
+- An approval ask shows every pinned still byte for byte as an image block;
+  a crop or a render of it is not the still. The coordinator pins the stills
+  on the ask (`bun run --cwd apps/firsttheblade kit:pin --ask <id>`), and
+  once the owner has answered, approves them
   (`bun run --cwd apps/firsttheblade kit:approve --ask <id>`), which reads
-  his answer from the lab and refuses any still changed since the pin. The
-  prod deploy refuses a pending record (`kit:shippable`).
+  the ask from the lab, hashes each image block it showed, and refuses each
+  pinned still no shown file holds, any answer but approve, and any still
+  changed since the pin. Every prod plan and deploy builds the site and
+  refuses each built image the record and `OUTSIDE` do not hold
+  (`kit:shippable`).

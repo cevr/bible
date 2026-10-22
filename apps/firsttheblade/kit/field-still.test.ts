@@ -1,10 +1,11 @@
 /**
- * The rule the stills keep: every image the site serves is in the approval
- * record or in a named list of images outside the rule, each with its reason
- * (`OUTSIDE`, `./served.ts`); and each still is byte-identical to the one the
- * owner approved by name (`kit/approved-stills.json`, `./approval.ts`).
- * Whether a still's light comes from the sun is his look, given through a
- * lab ask; this test holds that what ships is what he looked at.
+ * The stills rule's fast check over the source, before a build: every image
+ * the sources name is in the approval record or in a named list of images
+ * outside the rule, each with its reason (`OUTSIDE`, `./served.ts`); and each
+ * still is byte-identical to the one the record pins
+ * (`kit/approved-stills.json`, `./approval.ts`). The guard over what ships
+ * is the build walk (`./build-walk.ts`, `./shippable.test.ts`), and over
+ * what the owner saw the approval's shown files (`./approval.test.ts`).
  *
  * The stills as they stand match the record, and the served images are the
  * record's and the outside list's. Over a copy of the app's served folders,

@@ -1,5 +1,8 @@
 /**
- * Every image the site serves, read from what the app serves: each image
+ * The source reader, the stills rule's fast check before a build: the
+ * images the sources name. It holds only the forms written here, so the
+ * guard is the build walk (`./build-walk.ts`), which reads every image of
+ * `dist/` by its bytes before a prod deploy. It reads each image
  * file (by its extension, `IMAGE`) under `public/`, which the build copies
  * whole into `dist/`, and under `src/`, whose images the build emits when a
  * module names them; and each image a module under `src/` names, wherever

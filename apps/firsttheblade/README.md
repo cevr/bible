@@ -132,8 +132,8 @@ bun run build      # vite build (browser) + vite build --ssr (pages) + prerender
 bun run preview    # dist/ through the Worker's policy on http://localhost:8470 (PORT to change)
 bun run test       # the Worker's policy, the email list, the pages' data, the sitemap
 bun run typecheck
-bun run plan       # build, then show what `prod` would change
-bun run deploy     # refuse stills the owner has not approved (kit:shippable), build, then deploy `prod`
+bun run plan       # the stills gate (build, walk dist/), then show what `prod` would change
+bun run deploy     # the stills gate (build, walk dist/), then deploy `prod`; the stack runs the gate first on stage prod
 bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to the email list
 bun run verify:drive confirm --root <dir> --port <p> --evidence <dir>   # drive the site as a visitor (verify:launch, :doctor, :outbox, :stop, :stage too)
 ```
@@ -191,9 +191,9 @@ of the field at 3072 px, and the dusk band blends in oklab.
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 bun run kit:field  # the field's still (its rays from the sun) and its wind map into src/art/ from kit/art/field.webp; then bun run kit
-bun run kit:pin --ask <id>      # the coordinator only: pins the stills as they stand in kit/approved-stills.json, pending on the lab ask that shows the owner them
-bun run kit:approve --ask <id>  # the coordinator only: turns the pinned stills approved from the owner's answer in the lab, refusing any other answer or any still changed since the pin
-bun run kit:shippable           # exits 0 only when the record is approved and holds every still the site would serve; the prod deploy runs it first
+bun run kit:pin --ask <id>      # the coordinator only: pins the stills as they stand in kit/approved-stills.json, pending on the lab ask whose image blocks show them
+bun run kit:approve --ask <id>  # the coordinator only: approves the pinned stills when the stills answer is approve and each still's SHA-256 is a file an image block of the ask showed
+bun run kit:shippable           # exits 0 only when the approval's shown files hold every still and a fresh build's dist/ holds no image the record and OUTSIDE do not; the prod stack runs it first
 bun run promise    # builds, then: every sentence a reader gets that speaks of email, of what we send or of how often is the list's promise, or held
 bun run promise:census  # the promise check, red on each way the promise was lost before and on each source it refuses, each injected and built
 ```
@@ -266,17 +266,24 @@ The field's master is `kit/art/field.webp`. `bun run kit:field` (`kit/field.ts`)
 paints its sky's top-left rays out, lays the sun's own light over the sky
 (`src/motion/sun.ts`), and writes the three stills and the wind map,
 `src/art/field-wind.png`, which says how far each pixel of the wheat sways.
-It holds two rules. Every shipped field still, at every srcset size, is
-byte-identical to one the owner approved by name. Every image the site serves
-is in the approval record or in a named list of images outside the rule, each
-with its reason (`OUTSIDE`, `kit/served.ts`: the night, the mark, the emblems
-and the icons). Whether a still's light comes from the sun is his look, so the
-code does not measure it. The served images (`kit/served.ts`) are every image
-file under `public/` and `src/`, and every image a module under `src/` names,
-read by Vite's parser and lightningcss. The record,
-`kit/approved-stills.json` (`kit/approval.ts`), holds his approval (the lab
-ask that shows him the stills at 1:1, pending until he answers, then the
-lab's record of his answers) and the SHA-256 of each still.
+It holds two rules. A still is approved only if its SHA-256 equals a file
+that an image block of the approving ask showed, and that ask's `stills`
+answer is `approve`. Every image file of the built site (`dist/` after
+`bun run build`) is in the approval record or in a named list of images
+outside the rule, each with its reason (`OUTSIDE`, `kit/served.ts`: the
+night, the mark, the emblems and the icons). A file is an image by its bytes,
+not its name (`kit/build-walk.ts`: JPEG, PNG and APNG, GIF, WebP, AVIF and
+HEIF, JPEG XL, BMP, ICO and CUR, TIFF, JPEG 2000, SVG by its root element, a
+gzipped one by what it unzips to). The build walk is the guard. The source
+reader (`kit/served.ts`: every image file under `public/` and `src/`, and
+every image a module under `src/` names, read by Vite's parser and
+lightningcss) is a fast check the tests run before a build. Whether a still's
+light comes from the sun is his look, so the code does not measure it. The
+record, `kit/approved-stills.json` (`kit/approval.ts`), holds his approval
+(the lab ask that shows him each still byte for byte as an image block,
+pending until he answers, then the lab URL it was read from, his answer's
+label, his answers and the SHA-256 of each file the ask showed) and the
+SHA-256 of each still.
 `kit/field-still.test.ts` refuses every served still whose bytes differ from
 the record, each the record does not name and each it names with no file,
 and an image added under any served folder or named from any module. It
@@ -284,12 +291,18 @@ also refuses each still with one byte changed, re-encoded, one pixel one level o
 swapped or dropped, and the lights the earlier light guards let through.
 `bun run kit` and `bun run kit:field` print each still that differs from the
 record and never write it. A repainted or re-encoded still goes to the owner
-as a lab ask with 1:1 crops: `bun run kit:pin --ask <id>` pins the stills it
-shows, and once he answers, `bun run kit:approve --ask <id>` reads his answer
-from the lab (`kit/lab-asks.ts`) and turns the record approved only when he
-chose approve and every still is the one pinned (`kit/approval.test.ts`).
-`bun run deploy` runs `bun run kit:shippable` first, so a pending record or
-an unapproved still never ships; a stage deploy does not run it. The
+as a lab ask that shows each still byte for byte as an image block (a crop or
+a render of it is not the still): `bun run kit:pin --ask <id>` pins the
+stills as they stand, and once he answers, `bun run kit:approve --ask <id>`
+reads the ask from the lab (`kit/lab-asks.ts`), fetches and hashes each image
+block it showed, and turns the record approved only when he chose approve,
+each pinned still's SHA-256 is that of a shown file, and every still is the
+one pinned (`kit/approval.test.ts`). On stage `prod` the stack
+(`alchemy.run.ts`) runs `kit:shippable` before any resource, so every prod
+plan and deploy builds the site and refuses a pending record, a still the
+approval's shown files do not hold, and each built image the record and
+`OUTSIDE` do not hold (`kit/shippable.test.ts`); a stage deploy does not run
+it. The
 far hills' streak lifts (`kit/field-paint.ts` `HILL_STREAKS`) were measured on
 the master: `kit/field-paint.test.ts` holds the master's SHA-256, so a new
 master refuses them until they are measured again. The field and the night move in the browser
