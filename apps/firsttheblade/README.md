@@ -189,7 +189,7 @@ of the field at 3072 px, and the dusk band blends in oklab.
 
 ```bash
 bun run contrast   # every built page at 390 and 1440 px, and each link under the pointer, against WCAG AA (build first)
-bun run computed   # in Chrome, on the built home page: the healing leaf's turn, pivot, timing and place on the page in each state, at the edges of every width band the built stylesheets' media queries make, and a data-URL picture refused by the content policy (build first)
+bun run computed   # by hand, not in the gate: in Chrome, on the built home page, the healing leaf at the widths, heights and states its doc lists, and a data-URL picture refused by the content policy (build first)
 bun run kit        # the YouTube kit into kit/out/, and the link cards and icons into public/
 bun run kit:field  # the field's still (its rays from the sun) and its wind map into src/art/ from kit/art/field.webp; then bun run kit
 bun run kit:pin --ask <id>      # the coordinator only: pins the stills as they stand in kit/approved-stills.json, pending on the lab ask whose image blocks show them, and saves the ask in kit/fixtures/

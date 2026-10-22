@@ -3903,7 +3903,10 @@ removed beats and their clean rewrites in
 `packages/scripts/src/judged/fixtures/script-speech.json`, its threshold set
 from `judged:measure`. A film that ended somewhere else than it opened is no
 item of any file, so it is a line of the film skill
-(`.claude/skills/film/CRAFT.md`, **Bookend the setting**).
+(`.claude/skills/film/CRAFT.md`, **Bookend the setting**). A check's doc
+and each ledger guard that names it
+name what it reads as one closed list, and nothing wider: no clause that any
+rule "fails it" (`apps/firsttheblade/scripts/computed.ts`, its leaf).
 **Judged rules** are the rules a pattern cannot decide, decided by a model
 and reported by oxlint. Each is an entry `judged/<id>` in `.oxlintrc.json`,
 its options its whole definition (`packages/scripts/src/judged/rule.ts`): a

@@ -3,35 +3,40 @@
  * reading the sources as text cannot hold it. It serves `dist/` through the
  * Worker's policy (as `bun run preview` does) and holds two things.
  *
- * The healing leaf (`LEAF_HOLD`), on the Health and Cure card. Its widths
- * come from the build: every width condition (`min-width`, `max-width`, a
- * range) of the media queries in the stylesheets under `dist/`, as
- * lightningcss reads them, puts an edge; the page is read at the widest and
- * narrowest whole px of every band the edges make (from 320px to 1920px,
- * wider when an edge is past either), so a new width query adds its bands by
- * itself. A width condition the check cannot place in px (a `calc()`, a
- * `vw`, a `device-width`) is a problem. At each width, in a fresh page each:
- * a fine pointer at rest, hovered, left and keyboard-focused (Tab); less
- * motion at rest, hovered and focused; a coarse pointer at rest, pointed at
- * and tapped (the tap's link kept on the page). Each read waits for every
- * finite animation and transition in the card to finish.
+ * The healing leaf (`LEAF_HOLD`), on the Health and Cure card. What it
+ * reads, and nothing more:
  *
- * Each part of the leaf's drawing (the blade's group and the stem's path) is
- * read with `getComputedStyle` and with its matrix on the page
- * (`getScreenCTM`, scroll added): stirred, the part's move on the page from
- * where it rested on the same page is a turn of 5deg in magnitude about the
- * stem's foot (the first point of the stem's path), and nothing else; at rest
- * it is none. Its own `rotate` is 0deg at rest and 5deg in magnitude stirred,
- * both parts alike, about the foot, with no transform, translate, scale or
- * animation; its transition is `rotate`, over the duration and with the
- * easing the root's `--motion-emblem` and `--motion-ease` compute to, with no
- * delay. Less motion and a coarse pointer leave both parts at rest in every
- * state. Every element from the drawing up to its card keeps, in every
- * state, the `rotate`, `translate`, `scale`, `transform` and `animation-name`
- * it had at rest; at rest, each below the card has none of them, and each
- * part stands on the page turned only by the card's own turn and those above
- * it. What it does not read: a width past the ends it reads that no edge
- * names, a height query, and the leaf on any page but the home page.
+ * - the home page, in the light scheme, at 1x, with script on;
+ * - heights 900 (a fine pointer, less motion) and 844 (a coarse pointer);
+ * - the narrowest and widest whole px of each band the width conditions
+ *   (`min-width`, `max-width`, a range) of the media queries in the
+ *   stylesheets under `dist/` make, as lightningcss reads them, from 320px
+ *   to 1920px (wider when an edge is past either); a width condition it
+ *   cannot place in px (a `calc()`, a `vw`, a `device-width`) is a problem;
+ * - a fine pointer at rest, on the card's link, moved off it, and that link
+ *   focused by Tab; less motion at rest, on the link and the link focused;
+ *   a coarse pointer at rest, on the link, and a tap on it read after its
+ *   release; each in a fresh page, read once every finite animation and
+ *   transition in the card has finished;
+ * - each part of the drawing (the blade's group and the stem's path): its
+ *   computed `rotate`, `transform`, `translate`, `scale`, `transform-origin`,
+ *   transition and `animation-name`, and its matrix on the page
+ *   (`getScreenCTM`, scroll added);
+ * - the `rotate`, `translate`, `scale`, `transform` and `animation-name` of
+ *   each element from the drawing up to its card, and of each element inside
+ *   a part.
+ *
+ * What it holds there: hovered and focused under a fine pointer, each part
+ * turns 5deg in magnitude about the stem's foot (the first point of the
+ * stem's path), both alike, on the page as in its own `rotate`, with no
+ * other move and no growth from where it rested on the same page; in every
+ * other state it reads, it rests where it was. Its transition is `rotate`,
+ * with no delay, over the duration and with the easing the root's
+ * `--motion-emblem` and `--motion-ease` compute to (less motion is not held
+ * to them). Each element from the drawing up to its card, and each inside a
+ * part, keeps in every state the values it had at rest; at rest, each of
+ * them but the card has none, and each part stands on the page turned only
+ * by its card's turn and the turns above it.
  *
  * The content policy (`IMAGE_HOLD`). A data-URL picture is put on the page
  * three ways: an `<img>`, an element's `background-image` set on its style,
@@ -43,7 +48,8 @@
  * picture that paints.
  *
  * Build first (`bun run build`); the run fails naming each problem. The gate
- * runs it after the build (`gate:timed`).
+ * does not run it (owner, 2026-10-22: the gate is unit tests and lint): run
+ * it by hand after a build, before a deploy.
  */
 import { BunHttpServer, BunRuntime, BunServices } from '@effect/platform-bun';
 import { chromium, type Browser, type BrowserContextOptions, type Page } from '@playwright/test';
@@ -57,7 +63,7 @@ import { layerDirectory } from '../src/worker/assets.ts';
 import { respond } from '../src/worker/respond.ts';
 
 const LEAF_HOLD =
-  'the healing leaf, as Chrome computes it at the edges of every width band the built stylesheets’ media queries make, stands as its card turns it and turns 5deg on the page about its stem’s foot on hover and on keyboard focus, on the root’s motion tokens, nothing from its drawing up to its card moving, and stays at rest for less motion and under a coarse pointer';
+  'on the home page (light scheme, 1x, script on), at heights 900 and 844 and the narrowest and widest px of each band the built stylesheets’ width media queries make, the healing leaf turns 5deg about its stem’s foot on the page when the Health and Cure card’s link is hovered or focused by Tab under a fine pointer, with no other move and no growth, on the root’s motion tokens, and rests for less motion and under a coarse pointer at rest, when pointed at and after a tap, by each part’s computed turn, pivot, transition and page matrix, with no element from its drawing to its card or inside its parts changing its rotate, translate, scale, transform or animation-name';
 const IMAGE_HOLD =
   'a data URL in an img, a style and a stylesheet rule is refused by the content policy and paints nothing, where the same probe without the policy paints';
 
@@ -565,7 +571,14 @@ const opened = Effect.fn('computed.open')(function* (
   options: BrowserContextOptions,
 ) {
   const context = yield* Effect.acquireRelease(
-    step('context', () => browser.newContext(options)),
+    step('context', () =>
+      browser.newContext({
+        colorScheme: 'light',
+        deviceScaleFactor: 1,
+        javaScriptEnabled: true,
+        ...options,
+      }),
+    ),
     (made) => Effect.promise(() => made.close()),
   );
   const page = yield* step('page', () => context.newPage());
