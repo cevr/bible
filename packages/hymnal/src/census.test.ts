@@ -628,6 +628,132 @@ describe('census', () => {
         }),
     );
 
+    describe("the owner's answer to a disputed ruling", () => {
+      const answer = (keeps: 'page' | 'source') =>
+        ({
+          by: 'owner',
+          on: '2026-10-22',
+          keeps,
+          quote: "Let's go with your recommendation.",
+        }) as const;
+      /** Hymn 58's one disputed ruling, its hymn's other rulings, and its entry relabelled `matches`. */
+      const hymn58 = Effect.map(read, ({ census, sources }) => {
+        const all = sources.rulings.get(58) ?? [];
+        const one = all.find((ruling) => ruling.kind === 'disputed')!;
+        return {
+          sources,
+          all,
+          one,
+          matches: withEntry(census, 58, (entry) => ({
+            ...entry,
+            row: 'matches',
+            note: 'answered',
+          })),
+        };
+      });
+      /** The first `matches` hymn with rulings, its first ruling made a disputed one answered `page` that settles `settles`. */
+      const pageAnswered = Effect.map(read, ({ census, sources }) => {
+        const n = first(
+          census,
+          'matches',
+          (one) => (sources.rulings.get(one.number) ?? []).length > 0,
+        ).number;
+        const all = sources.rulings.get(n) ?? [];
+        const one = all[0]!;
+        const ruled = (settles: readonly string[]): Ruling => ({
+          ...one,
+          kind: 'disputed',
+          sung: one.row,
+          settles,
+          answer: answer('page'),
+        });
+        return { census, sources, n, all, ruled };
+      });
+
+      it.effect(
+        'settles the lines of a disputed ruling answered source, its hymn as its words give, and flags one that settles nothing',
+        () =>
+          Effect.gen(function* () {
+            const { sources, all, one, matches } = yield* hymn58;
+            const answered: Ruling = { ...one, answer: answer('source') };
+            const rulings = all.map((ruling) => (ruling === one ? answered : ruling));
+            expect(about(matches, withRulings(sources, 58, rulings), 58)).toEqual([]);
+            const bare: Ruling = { ...answered, settles: [] };
+            const lines = about(
+              matches,
+              withRulings(
+                sources,
+                58,
+                all.map((ruling) => (ruling === one ? bare : ruling)),
+              ),
+              58,
+            );
+            const i = all.indexOf(one) + 1;
+            expect(lines).toContain(`58 ruling ${i} is disputed but settles no line`);
+          }),
+      );
+
+      it.effect(
+        'keeps a disputed ruling answered page that settles no line, its hymn as its words give, and flags one that settles a line',
+        () =>
+          Effect.gen(function* () {
+            const { census, sources, n, all, ruled } = yield* pageAnswered;
+            const lines = about(census, withRulings(sources, n, [...all.slice(1), ruled([])]), n);
+            expect(lines).not.toContain(`${n} says matches, its rulings make it unsettled`);
+            expect(lines).not.toContain(`${n} ruling ${all.length} has no site`);
+            expect(lines).not.toContain(
+              `${n} ruling ${all.length} is disputed but settles no line`,
+            );
+            const settling = about(
+              census,
+              withRulings(sources, n, [...all.slice(1), ruled(['a line'])]),
+              n,
+            );
+            expect(settling).toContain(
+              `${n} ruling ${all.length} is answered page but settles a line`,
+            );
+          }),
+      );
+
+      it.effect('flags an answer on a ruling that is not disputed', () =>
+        Effect.gen(function* () {
+          const { census, sources, n, all } = yield* pageAnswered;
+          const words: Ruling = { ...all[0]!, answer: answer('source') };
+          expect(about(census, withRulings(sources, n, [...all.slice(1), words]), n)).toContain(
+            `${n} ruling ${all.length} answers no dispute`,
+          );
+        }),
+      );
+
+      it.effect(
+        'lets a matches hymn own a fix that redivides its words only under a page answer, and never one that changes a word',
+        () =>
+          Effect.gen(function* () {
+            const { census, sources, n, all, ruled } = yield* pageAnswered;
+            const units = unitsOf(sources.rows.get(n)!);
+            // Each stanza one line: the base words, divided otherwise.
+            const redivided = withFix(sources, n, units);
+            expect(about(census, redivided, n)).toContain(
+              `${n} has a fix file of its own but says matches`,
+            );
+            const answered = withRulings(redivided, n, [...all.slice(1), ruled([])]);
+            expect(about(census, answered, n)).not.toContain(
+              `${n} has a fix file of its own but says matches`,
+            );
+            // The fix sings one word otherwise than its row.
+            const fix = answered.fixes.get(n)!;
+            const [line] = fix.stanzas[0]!;
+            const changed = withFixFile(answered, n, {
+              ...fix,
+              stanzas: [[{ ...line!, text: `unruled ${line!.text}` }], ...fix.stanzas.slice(1)],
+            });
+            const lines = about(census, changed, n);
+            expect(lines.some((p) => p.startsWith(`${n} fix file and row differ: `))).toBe(true);
+            expect(lines).toContain(`${n} has a fix file of its own but says matches`);
+          }),
+      );
+    });
+
     describe('rulings of one stretch read the page one way (M3)', () => {
       /** A ruling of hymn `n`'s unit 1 at `at`: its row words, the words it sings, its crops those of `like`. */
       const ruling = (like: Ruling, at: number, row: string, sung: string): Ruling => ({
