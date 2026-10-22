@@ -24,6 +24,18 @@ const TYPED = /\.([cm]?[jt]sx?|json)$/;
 /** The workspaces the typecheck leaves out, by folder. */
 const LEFT_OUT = new Set(['apps/selah']);
 
+/**
+ * The git arguments that name the staged files, one per line. Without renames:
+ * a file moved from one workspace to another is named at both paths, so the
+ * workspace it left, whose importers may now break, is typechecked too.
+ */
+export const STAGED_FILES: ReadonlyArray<string> = [
+  'diff',
+  '--cached',
+  '--name-only',
+  '--no-renames',
+];
+
 /** The names of the workspaces `staged` (paths from the root) asks a typecheck of, sorted. */
 export const typecheckedBy = (
   staged: ReadonlyArray<string>,

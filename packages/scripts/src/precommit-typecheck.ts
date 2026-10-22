@@ -15,7 +15,7 @@ import { Clock, Console, Effect, FileSystem, Option, Path, Schema } from 'effect
 import * as ChildProcess from 'effect/process/ChildProcess';
 import { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 
-import { type Workspace, typecheckedBy } from './precommit-typecheck/workspaces.js';
+import { STAGED_FILES, type Workspace, typecheckedBy } from './precommit-typecheck/workspaces.js';
 
 const Manifest = Schema.fromJsonString(
   Schema.Struct({
@@ -59,7 +59,7 @@ Effect.gen(function* () {
   // packages/scripts/src → the repo root.
   const root = path.resolve(import.meta.dir, '..', '..', '..');
   const staged = (yield* spawner.string(
-    ChildProcess.make('git', ['diff', '--cached', '--name-only'], {
+    ChildProcess.make('git', STAGED_FILES, {
       cwd: root,
       forceKillAfter: '5 seconds',
     }),
