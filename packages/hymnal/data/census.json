@@ -53,7 +53,7 @@
     },
     {
       "number": 3,
-      "row": "unsettled",
+      "row": "matches",
       "source": "photo",
       "pages": ["003.jpg"],
       "readings": {
@@ -61,7 +61,7 @@
         "ocr": 1
       },
       "rulings": {
-        "all": 9,
+        "all": 8,
         "changes": 0
       },
       "stanzas": 3,
@@ -70,8 +70,7 @@
       "witness": {
         "hunks": 1,
         "digest": "59edddd72558b260"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 1 line 8 opens on word 5 of stanza 1 row 4, which the page prints with no capital; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 4,
@@ -369,7 +368,7 @@
     },
     {
       "number": 18,
-      "row": "unsettled",
+      "row": "matches",
       "source": "sdahimages",
       "pages": ["018.png"],
       "readings": {
@@ -377,7 +376,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 7,
+        "all": 6,
         "changes": 0
       },
       "stanzas": 4,
@@ -386,8 +385,7 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 2 row 3 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens; stanza 3 line 8 opens on word 1 of stanza 3 row 4, which the page prints with no capital; stanza 2 has 9 lines, stanza 1 10, under the same systems; stanza 3 has 9 lines, stanza 1 10, under the same systems; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 19,
@@ -3396,7 +3394,7 @@
     },
     {
       "number": 162,
-      "row": "unsettled",
+      "row": "matches",
       "source": "sdahimages",
       "pages": ["162.png"],
       "readings": {
@@ -3413,8 +3411,7 @@
       "witness": {
         "hunks": 2,
         "digest": "ea8c1957a545bb0a"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 2 has 6 lines, stanza 1 7, under the same systems; stanza 2 row 1 prints word 13 with a capital inside a line of stanza 2, where no line or sentence opens; stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 163,
@@ -4343,7 +4340,7 @@
     },
     {
       "number": 207,
-      "row": "unsettled",
+      "row": "matches",
       "source": "scan",
       "pages": ["p202.jpg"],
       "readings": {
@@ -4351,7 +4348,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 5,
+        "all": 4,
         "changes": 0
       },
       "stanzas": 3,
@@ -4360,8 +4357,7 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 1 line 8 opens on word 2 of the refrain after stanza 1: row 2, which the page prints with no capital; stanza 2 line 8 opens on word 2 of the refrain after stanza 2: row 2, which the page prints with no capital; stanza 3 line 8 opens on word 2 of the refrain after stanza 3: row 2, which the page prints with no capital; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 208,
@@ -4491,7 +4487,7 @@
     },
     {
       "number": 214,
-      "row": "unsettled",
+      "row": "fixed",
       "source": "photo",
       "pages": ["214.jpg", "215.jpg"],
       "readings": {
@@ -4508,8 +4504,7 @@
       "witness": {
         "hunks": 2,
         "digest": "26dd88df1a3e3949"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 2 line 9 opens on word 5 of stanza 2 row 7, which the page prints with no capital; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 215,
@@ -8443,7 +8438,7 @@
     },
     {
       "number": 402,
-      "row": "unsettled",
+      "row": "matches",
       "source": "photo",
       "pages": ["401.jpg", "402.jpg"],
       "readings": {
@@ -8451,7 +8446,7 @@
         "ocr": 0
       },
       "rulings": {
-        "all": 2,
+        "all": 1,
         "changes": 0
       },
       "stanzas": 4,
@@ -8460,8 +8455,7 @@
       "witness": {
         "hunks": 1,
         "digest": "bb507684fee235c7"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 2 line 2 opens on word 6 of stanza 2 row 1, which the page prints with no capital; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 403,

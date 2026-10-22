@@ -365,10 +365,13 @@
         }
       ],
       "judge": "shape-judge-judge-a03 (Opus, effort max)",
-      "why": "215-strip0.jpg system 6, lower row (stanza 2), 9 words: by the header metre (10.8.10.8.7.7.7.7.10.8.) its words 1-5 and 6-9 are the 7-syllable lines 7 and 8, and system 7's lower row (10 words, word 1 capitalised, 215-strip0.jpg and 215-strip800.jpg) is the 10-syllable line 9. The database's line 7 runs to word 6, its line 8 opens on word 7 and takes system 7's words 1-4, and its line 9 opens on system 7's word 5, four words after the page's line 9 opens.",
-      "settles": [
-        "214 shape (shape2-24): stanza 2 line 9 opens on word 5 of stanza 2 row 7, which the page prints with no capital"
-      ]
+      "why": "215-strip0.jpg system 6, lower row (stanza 2), 9 words: by the header metre (10.8.10.8.7.7.7.7.10.8.) its words 1-5 and 6-9 are the 7-syllable lines 7 and 8, and system 7's lower row (10 words, word 1 capitalised, 215-strip0.jpg and 215-strip800.jpg) is the 10-syllable line 9. The database's line 7 runs to word 6, its line 8 opens on word 7 and takes system 7's words 1-4, and its line 9 opens on system 7's word 5, four words after the page's line 9 opens. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -393,10 +396,10 @@
           "shows": ""
         }
       ],
-      "judge": "reach-judge-reach-t11 (Opus, effort max)",
-      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.1: can: 214-strip0.jpg system 1, stanza 2's row ends on the moved word, a name of God printed with a capital and a comma after it; 214-strip800.jpg system 2, stanza 2's row opens on an ordinary pronoun printed with a capital, which the move leaves second in its line after that comma, where only a line opening explains its capital. (The page prints a copyright line: no words written.)",
+      "judge": "reach-judge-reach-p214 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:2.1: can: 214-strip800.jpg system 2 (the strip's top system), stanza 2's row, word 1 (word 9 of the part) is printed with a capital though it is no name of God, `I` or `O` and follows a comma, not a full stop, so a line opens there; the change makes it word 2 of line 2, behind the moved word 8 (214-strip0.jpg system 1, stanza 2's row, last word: a name of God, then a comma). The metre alone does not settle it: lines 1 and 2 sing 11 and 8 syllables against 10.8 as the database has them (stanza 2 splits system 1's tied note), 10 and 9 as changed.",
       "gaps": ["movedown:2.1"],
-      "layout": "cb514cc61e0b34e9"
+      "layout": "163ec43228d204b4"
     }
   ]
 }

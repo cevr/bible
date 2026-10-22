@@ -1,7 +1,7 @@
 {
   "number": 214,
   "title": "We Have This Hope",
-  "print": "the owner's photo of his 1985 book (214.jpg, 215.jpg), each line read off the page at its system and row; the rulings (data/crops/214/rulings.json) put in what the page prints where the base row differs: \"heanns\" -> \"heav'ns\" (words, crops 214-1912.jpg, judge-209 (Opus, effort max)); \"heanns\" -> \"heav'ns\" (words, crops 214-1917.jpg, judge-122 (Opus, effort max)).",
+  "print": "the owner's photo of his 1985 book (214.jpg, 215.jpg), each line read off the page at its system and row; the rulings (data/crops/214/rulings.json) put in what the page prints where the base row differs: \"heanns\" -> \"heav'ns\" (words, crops 214-1912.jpg, judge-209 (Opus, effort max)); \"heanns\" -> \"heav'ns\" (words, crops 214-1917.jpg, judge-122 (Opus, effort max)); stanza 2 redivided to the page's line starts by the owner's answer of 2026-10-22 (census2's ask \"rows the page contradicts\", option B), the place named by the ruling of shape-judge-judge-a03 (Opus, effort max).",
   "stanzas": [
     [
       {
@@ -71,16 +71,16 @@
         "from": "214.jpg system 5, row 2. (placed off the page by from-209 (Opus))"
       },
       {
-        "text": "All the universe will sing Hallelujah!",
-        "from": "215.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+        "text": "All the universe will sing",
+        "from": "215.jpg system 1, row 2 (the shape reading shape2-24's rows)"
       },
       {
-        "text": "Christ is King! We have this hope,",
-        "from": "215.jpg system 1, row 2. (placed off the page by from-209 (Opus))"
+        "text": "Hallelujah! Christ is King!",
+        "from": "215.jpg system 1, row 2 (the shape reading shape2-24's rows)"
       },
       {
-        "text": "this faith, and God's great love",
-        "from": "215.jpg system 2, row 2. (placed off the page by from-209 (Opus))"
+        "text": "We have this hope, this faith, and God's great love",
+        "from": "215.jpg system 2, row 2 (the shape reading shape2-24's rows)"
       },
       {
         "text": "We are united in Christ",

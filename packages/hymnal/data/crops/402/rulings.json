@@ -25,38 +25,13 @@
         }
       ],
       "judge": "shape-judge-judge-a05 (Opus, effort max)",
-      "why": "402-strip800.jpg (the same photo as 401-strip800.jpg) system 1, stanza 2 row: the page prints 'our stead Is here,' with a capital on 'Is' (word 7), so poem line 1 ends at 'stead' (word 6) and line 2 opens at 'Is'; the metre 8.8.8.4 agrees (8 syllables in each). The database opens its line 2 at 'stead', one word early: its line 1 holds 5 words where the page's holds 6, its line 2 holds 7 where the page's holds 6.",
-      "settles": [
-        "402 shape (shape2-45): stanza 2 line 2 opens on word 6 of stanza 2 row 1, which the page prints with no capital"
-      ]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "401.jpg",
-          "crop": "401-strip800.jpg",
-          "box": [0, 800, 2268, 1000],
-          "sha": "51c867a991b86ed4",
-          "shows": ""
-        },
-        {
-          "image": "402.jpg",
-          "crop": "402-strip800.jpg",
-          "box": [0, 800, 2268, 1000],
-          "sha": "51c867a991b86ed4",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t21 (Opus, effort max)",
-      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: moveup:2.1: can: The page tells the two layouts apart, but it sides with the change, not the database: 402-strip800.jpg (same photo as 401-strip800.jpg) system 1, stanza 2's row prints the moved word lowercase with no stop after it and the next word with a capital (not a name of God), and the header's 8.8.8.4. gives line 1 eight syllables only with the moved word on it (the database's split sings 7 then 9). The database's stanza 2 break sits one word early; it needs the fix.",
-      "gaps": ["moveup:2.1"],
-      "layout": "3948b0ecf8ca7fc4"
+      "why": "402-strip800.jpg (the same photo as 401-strip800.jpg) system 1, stanza 2 row: the page prints 'our stead Is here,' with a capital on 'Is' (word 7), so poem line 1 ends at 'stead' (word 6) and line 2 opens at 'Is'; the metre 8.8.8.4 agrees (8 syllables in each). The database opens its line 2 at 'stead', one word early: its line 1 holds 5 words where the page's holds 6, its line 2 holds 7 where the page's holds 6. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     }
   ]
 }

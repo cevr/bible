@@ -1,0 +1,111 @@
+{
+  "number": 162,
+  "title": "Wondrous Love",
+  "print": "the deciding page (162.png), redivided to the page's line starts by the owner's answer of 2026-10-22 (census2's ask \"rows the page contradicts\", option B), words as the base row; each line's first word placed at its system and row by the shape reading shape2-18; the places are named by the rulings of shape-judge-judge-a02 (Opus, effort max), shape-judge-judge-c02 (Opus, effort max) (data/crops/162/rulings.json).",
+  "stanzas": [
+    [
+      {
+        "text": "What wondrous love is this,",
+        "from": "162.png system 1, row 1 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "O my soul, O my soul?",
+        "from": "162.png system 1, row 1 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "What wondrous love is this, O my soul?",
+        "from": "162.png system 1, row 1 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "What wondrous love is this",
+        "from": "162.png system 2, row 1 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "That caused the Lord of bliss",
+        "from": "162.png system 3, row 1 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "To bear the dreadful curse for my soul, for my soul;",
+        "from": "162.png system 3, row 1 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "To bear the dreadful curse for my soul",
+        "from": "162.png system 4, row 1 (the shape reading shape2-18's rows)"
+      }
+    ],
+    [
+      {
+        "text": "To God and to the Lamb",
+        "from": "162.png system 1, row 2 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "I will sing, I will sing;",
+        "from": "162.png system 1, row 2 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "To God and to the Lamb, I will sing;",
+        "from": "162.png system 1, row 2 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "To God and to the Lamb",
+        "from": "162.png system 2, row 2 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "Who is the great I am,",
+        "from": "162.png system 3, row 2 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "While millions join the theme, I will sing, I will sing;",
+        "from": "162.png system 3, row 2 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "While millions join the theme, I will sing.",
+        "from": "162.png system 4, row 2 (the shape reading shape2-18's rows)"
+      }
+    ],
+    [
+      {
+        "text": "And when from death I'm free,",
+        "from": "162.png system 1, row 3 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "I'll sing on, I'll sing on;",
+        "from": "162.png system 1, row 3 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "And when from death I'm free, I'll sing on;",
+        "from": "162.png system 1, row 3 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "And when from death I'm free,",
+        "from": "162.png system 2, row 3 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "I'll sing and joyful be,",
+        "from": "162.png system 3, row 3 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "And through eternity I'll sing on, I'll sing on!",
+        "from": "162.png system 3, row 3 (the shape reading shape2-18's rows)"
+      },
+      {
+        "text": "And through eternity, I'll sing on",
+        "from": "162.png system 4, row 3 (the shape reading shape2-18's rows)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "What wondrous love is this,\nO my soul, O my soul?\nWhat wondrous love is this,\nO my soul? What wondrous love is this\nThat caused the Lord of bliss\nTo bear the dreadful curse for my soul, for my soul;\nTo bear the dreadful curse for my soul"
+    },
+    {
+      "id": 1,
+      "text": "To God and to the Lamb I will sing,\nI will sing; To God and to the Lamb,\nI will sing; To God and to the Lamb\nWho is the great I am,\nWhile millions join the theme, I will sing, I will sing;\nWhile millions join the theme, I will sing."
+    },
+    {
+      "id": 2,
+      "text": "And when from death I'm free,\nI'll sing on, I'll sing on;\nAnd when from death I'm free, I'll sing on;\nAnd when from death I'm free,\r\nI'll sing and joyful be,\nAnd through eternity I'll sing on, I'll sing on!\nAnd through eternity, I'll sing on"
+    }
+  ]
+}

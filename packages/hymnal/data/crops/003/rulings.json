@@ -176,38 +176,13 @@
         }
       ],
       "judge": "shape-judge-judge-a01 (Opus, effort max)",
-      "why": "003-strip1600.jpg system 4, stanza 1 row (11 words): word 5 is printed lower case, so the page opens no line there. By the metre 6.6.8.6.6.8.3.3.6.6 (003-strip0.jpg) and the music, the 6-syllable poem line 9 opens on word 4 (capitalised, comma after it), as stanzas 2 and 3 open theirs on word 4 of their system 4 rows; the two 3-syllable lines are words 1-3 of this row and the last 3 words of system 3. Database line 7 runs on to take word 4 (7 words) and line 8 opens at word 5; they should end and open one word earlier (6 words, then 4).",
-      "settles": [
-        "3 shape (shape2-01): stanza 1 line 8 opens on word 5 of stanza 1 row 4, which the page prints with no capital"
-      ]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["the shape readings of the page (data/shapes.json)"],
-      "printed": "",
-      "sung": "",
-      "kind": "layout",
-      "crops": [
-        {
-          "image": "003.jpg",
-          "crop": "003-strip800.jpg",
-          "box": [0, 800, 2268, 1000],
-          "sha": "5449c0e38eca9f8e",
-          "shows": ""
-        },
-        {
-          "image": "003.jpg",
-          "crop": "003-strip1600.jpg",
-          "box": [0, 1600, 2268, 1000],
-          "sha": "2841e726c23092a3",
-          "shows": ""
-        }
-      ],
-      "judge": "reach-judge-reach-t01 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: movedown:1.7: 003-strip1600.jpg system 4, stanza 1's row: \"God\" is printed with a capital (a name of God), and the metre's 3.3.6.6. puts it at the head of the 6-syllable line, so the page fits the moved layout, not the database's, whose line 8 opens on \"in\", printed lowercase. The page shows the database's own break here as off, not the change.",
-      "unreachable": ["movedown:1.7"],
-      "layout": "ea6ac8c4d1f1460a"
+      "why": "003-strip1600.jpg system 4, stanza 1 row (11 words): word 5 is printed lower case, so the page opens no line there. By the metre 6.6.8.6.6.8.3.3.6.6 (003-strip0.jpg) and the music, the 6-syllable poem line 9 opens on word 4 (capitalised, comma after it), as stanzas 2 and 3 open theirs on word 4 of their system 4 rows; the two 3-syllable lines are words 1-3 of this row and the last 3 words of system 3. Database line 7 runs on to take word 4 (7 words) and line 8 opens at word 5; they should end and open one word earlier (6 words, then 4). Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -239,10 +214,10 @@
           "shows": ""
         }
       ],
-      "judge": "reach-judge-reach-t01 (Opus, effort max)",
-      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: 003-strip800.jpg system 2, stanza 1's row: \"Him.\" (with a full stop) is the 8th syllable of line 3, and the header metre 6.6.8.6. fixes line 3 at 8 and line 4 at 6. The move makes them 7 and 7; the capital on \"Him\" alone would not tell. movedown:1.6: can: System 3, stanza 1's row (003-strip800.jpg and 003-strip1600.jpg): \"Him.\" with a full stop is the 8th syllable of line 6, which the header metre fixes at 8. The move leaves line 6 at 7 syllables; the capital on \"Him\" alone would not tell. moveup:1.6: can: System 3, stanza 1's row: \"Now\" follows \"Him.\", and the header metre fixes line 6 at 8 syllables; the move makes it 9. Capitals alone would not tell (\"Now\" follows a full stop, the next word is a divine pronoun). moveup:2.3: can: 003-strip800.jpg system 2, stanza 2's row: the word after \"Come,\" is printed lowercase (\"in-\"), and the move opens line 4 on it. The header metre also fixes line 3 at 8 syllables, which the move makes 9. moveup:2.6: can: System 3, stanza 2's row: \"Where\" follows a full stop and the new line would open on \"I\", capital anyway, so capitals would not tell. The header metre fixes line 6 at 8 syllables, which the move makes 9.",
+      "judge": "reach-judge-reach-p003 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:1.3: can: 003-strip800.jpg system 2, stanza 1's row: word 16 is printed with a capital (a pronoun of God) and a full stop, so its capital alone would not tell. But the header on 003-strip0.jpg prints the metre 6.6.8.6.6.8.3.3.6.6., which ends line 3 on word 16 (8 syllables from word 11) even with its 3.3 read as one line; the change makes lines 3 and 4 run 7 and 7 syllables, not 8 and 6. movedown:1.6: can: 003-strip800.jpg and 003-strip1600.jpg system 3, stanza 1's row: word 31 (the 7th word on that system) is printed with a capital (a pronoun of God) and a full stop, so its capital alone would not tell. But the header metre 6.6.8.6.6.8.3.3.6.6. on 003-strip0.jpg ends line 6 on word 31 (8 syllables from word 27) and gives line 7, its 3.3, 6 syllables; the change makes them 7 and 7. moveup:1.6: can: 003-strip800.jpg and 003-strip1600.jpg system 3, stanza 1's row: word 33, which the change makes open line 7, is printed with a capital (a pronoun of God), so capitals alone would not tell. But the header metre 6.6.8.6.6.8.3.3.6.6. on 003-strip0.jpg ends line 6 at word 31's full stop (8 syllables from word 27) and gives line 7, its 3.3, 6 syllables; the change makes them 9 and 5. moveup:2.3: can: 003-strip800.jpg system 2, stanza 2's row: word 14 (a capital after word 13's full stop) is followed by word 15, a three-syllable word printed lowercase, which the change makes open line 4. The header metre 6.6.8.6.6.8.3.3.6.6. on 003-strip0.jpg refuses it too: line 3 would run 9 syllables, not 8, and line 4 would run 5, not 6. moveup:2.6: can: 003-strip800.jpg and 003-strip1600.jpg system 3, stanza 2's row: the database's word 27 (the 8th word on that system; the page prints line 4's 6 syllables as 3 words to the database's 4) is a capital after a full stop, and the next word is the first-person pronoun, a capital anyway, so capitals alone would not tell. But the header metre 6.6.8.6.6.8.3.3.6.6. on 003-strip0.jpg ends line 6 at that full stop (8 syllables from word 21) and gives line 7, its 3.3, 6 syllables; the change makes them 9 and 5.",
       "gaps": ["movedown:1.3", "movedown:1.6", "moveup:1.6", "moveup:2.3", "moveup:2.6"],
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     }
   ]
 }

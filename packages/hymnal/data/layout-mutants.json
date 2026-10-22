@@ -592,43 +592,43 @@
       "number": 3,
       "mode": "movedown:1.2",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 3,
       "mode": "movedown:1.5",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 3,
       "mode": "movedown:2.2",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 3,
       "mode": "movedown:2.4",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 3,
       "mode": "movedown:2.8",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 3,
       "mode": "moveup:2.2",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 3,
       "mode": "moveup:2.8",
       "from": "census2 r1 F1",
-      "layout": "ea6ac8c4d1f1460a"
+      "layout": "2ed1c1da8d680c86"
     },
     {
       "number": 5,
@@ -706,13 +706,13 @@
       "number": 18,
       "mode": "movedown:1.4",
       "from": "census2 r1 F1",
-      "layout": "2ed6e11eda1a449a"
+      "layout": "80f74d734aa264bf"
     },
     {
       "number": 18,
       "mode": "moveup:1.4",
       "from": "census2 r1 F1",
-      "layout": "2ed6e11eda1a449a"
+      "layout": "80f74d734aa264bf"
     },
     {
       "number": 19,
@@ -1558,7 +1558,7 @@
       "number": 162,
       "mode": "movedown:2.3",
       "from": "census2 r1 F1",
-      "layout": "63c7c29dec49ddc2"
+      "layout": "a8a813d001965ca2"
     },
     {
       "number": 165,
@@ -2776,7 +2776,7 @@
       "number": 402,
       "mode": "movedown:1.3",
       "from": "census2 r1 F1",
-      "layout": "3948b0ecf8ca7fc4"
+      "layout": "cb5d246f4982ae7f"
     },
     {
       "number": 404,

@@ -1,0 +1,97 @@
+{
+  "number": 402,
+  "title": "By Christ Redeemed",
+  "print": "the deciding page (401.jpg, 402.jpg), redivided to the page's line starts by the owner's answer of 2026-10-22 (census2's ask \"rows the page contradicts\", option B), words as the base row; each line's first word placed at its system and row by the shape reading shape2-45; the places are named by the rulings of shape-judge-judge-a05 (Opus, effort max) (data/crops/402/rulings.json).",
+  "stanzas": [
+    [
+      {
+        "text": "By Christ redeemed, in Christ restored,",
+        "from": "401.jpg system 1, row 1 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "We keep the memory adored,",
+        "from": "401.jpg system 1, row 1 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "And show the death of our dear Lord,",
+        "from": "401.jpg system 2, row 1 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "Until He come.",
+        "from": "401.jpg system 2, row 1 (the shape reading shape2-45's rows)"
+      }
+    ],
+    [
+      {
+        "text": "His broken body in our stead",
+        "from": "401.jpg system 1, row 2 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "Is here, in this memorial bread;",
+        "from": "401.jpg system 1, row 2 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "And so our feeble love is fed,",
+        "from": "401.jpg system 2, row 2 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "Until He come.",
+        "from": "401.jpg system 2, row 2 (the shape reading shape2-45's rows)"
+      }
+    ],
+    [
+      {
+        "text": "His fearful drops of agony,",
+        "from": "401.jpg system 1, row 3 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "His lifeblood shed for us we see;",
+        "from": "401.jpg system 1, row 3 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "The wine shall tell the mystery,",
+        "from": "401.jpg system 2, row 3 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "Until He come.",
+        "from": "401.jpg system 2, row 3 (the shape reading shape2-45's rows)"
+      }
+    ],
+    [
+      {
+        "text": "And thus that dark betrayal night,",
+        "from": "401.jpg system 1, row 4 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "With the last advent we unite-",
+        "from": "401.jpg system 1, row 4 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "The shame, the glory, by this rite,",
+        "from": "401.jpg system 2, row 4 (the shape reading shape2-45's rows)"
+      },
+      {
+        "text": "Until He come.",
+        "from": "401.jpg system 2, row 4 (the shape reading shape2-45's rows)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "By Christ redeemed, in Christ restored,\r\nWe keep the memory adored,\nAnd show the death of our dear Lord,\nUntil He come."
+    },
+    {
+      "id": 1,
+      "text": "His broken body in our\nstead Is here, in this memorial bread;\nAnd so our feeble love is fed,\nUntil He come."
+    },
+    {
+      "id": 2,
+      "text": "His fearful drops of agony,\nHis lifeblood shed for us we see;\nThe wine shall tell the mystery,\nUntil He come."
+    },
+    {
+      "id": 3,
+      "text": "And thus that dark betrayal night,\nWith the last advent we unite-\nThe shame, the glory, by this rite,\nUntil He come."
+    }
+  ]
+}

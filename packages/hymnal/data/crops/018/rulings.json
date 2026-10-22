@@ -18,10 +18,13 @@
         }
       ],
       "judge": "shape-judge-judge-a01 (Opus, effort max)",
-      "why": "018-strip800.jpg system 3, stanza 2 row: word 11 'Warm' is capitalised mid-sentence (no stop after the word before) and opens the poem line sung from bar 15, where stanza 1 opens 'Great', stanza 3 'Christ' and stanza 4 its line. Database line 7 runs it on (7 words, to row word 14) and opens line 8 at system 4 word 1 'O' (bar 16, where stanzas 1, 3 and 4 print lower case), 4 words after the page's opening and 4 before the page's next one at system 4 word 5 'For'.",
-      "settles": [
-        "18 shape (shape2-02): stanza 2 row 3 prints word 11 with a capital inside a line of stanza 2, where no line or sentence opens"
-      ]
+      "why": "018-strip800.jpg system 3, stanza 2 row: word 11 'Warm' is capitalised mid-sentence (no stop after the word before) and opens the poem line sung from bar 15, where stanza 1 opens 'Great', stanza 3 'Christ' and stanza 4 its line. Database line 7 runs it on (7 words, to row word 14) and opens line 8 at system 4 word 1 'O' (bar 16, where stanzas 1, 3 and 4 print lower case), 4 words after the page's opening and 4 before the page's next one at system 4 word 5 'For'. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -40,37 +43,13 @@
         }
       ],
       "judge": "shape-judge-judge-a01 (Opus, effort max)",
-      "why": "018-strip800.jpg system 4, stanza 3 row: word 1 'to' is lower case (bar 16, lower case in stanzas 1 and 4 too), so the page opens no line there. The page opens its poem lines at system 3 word 9 'Christ' (bar 15, after 'Al-le-lu-ia!') and at system 4 word 4 'Life', capitalised mid-sentence (bar 17); database line 8 opens 3 words after the one and 3 before the other.",
-      "settles": [
-        "18 shape (shape2-02): stanza 3 line 8 opens on word 1 of stanza 3 row 4, which the page prints with no capital"
-      ]
-    },
-    {
-      "sites": [],
-      "row": "",
-      "readings": ["shape2-02 (the shape reading of the page)"],
-      "printed": "",
-      "sung": "",
-      "kind": "disputed",
-      "crops": [
-        {
-          "image": "018.png",
-          "crop": "018-strip0.jpg",
-          "box": [0, 0, 1274, 1000],
-          "sha": "2dee01b72f9cb41b",
-          "shows": ""
-        },
-        {
-          "image": "018.png",
-          "crop": "018-strip800.jpg",
-          "box": [0, 800, 1274, 850],
-          "sha": "a2e4e66a538934ad",
-          "shows": ""
-        }
-      ],
-      "judge": "shape-judge-judge-a01 (Opus, effort max)",
-      "why": "Stanza 1 opens 10 poem lines at system 1 words 1, 8, 16; system 2 words 5, 11; system 3 words 4, 10, 12; system 4 words 3, 6, as the database's 10 lines do. Stanza 2 opens 10 on the same bars: system 1 words 1, 9, 16; system 2 words 5, 12; system 3 words 3, 8, 11 ('Warm', mid-sentence capital); system 4 words 5 ('For'), 9. The database agrees through line 7's opening, then runs line 7 to system 3 word 14 and opens line 8 at system 4 word 1 ('O', bar 16, lower case in the other stanzas), so words move over a line's end; no whole split or join gives the page's lines.",
-      "settles": ["18 shape (shape2-02): stanza 2 has 9 lines, stanza 1 10, under the same systems"]
+      "why": "018-strip800.jpg system 4, stanza 3 row: word 1 'to' is lower case (bar 16, lower case in stanzas 1 and 4 too), so the page opens no line there. The page opens its poem lines at system 3 word 9 'Christ' (bar 15, after 'Al-le-lu-ia!') and at system 4 word 4 'Life', capitalised mid-sentence (bar 17); database line 8 opens 3 words after the one and 3 before the other. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -96,8 +75,13 @@
         }
       ],
       "judge": "shape-judge-judge-a01 (Opus, effort max)",
-      "why": "Stanza 1 opens its 10 poem lines as in 18-a3. Stanza 3 opens 10 on the same bars: system 1 words 1, 6, 13; system 2 words 5, 12; system 3 words 3, 8, 9 ('Christ', bar 15); system 4 words 4 ('Life', mid-sentence capital), 6. The database opens line 7 at system 3 word 8 but runs it on to word 11 (4 words) and opens line 8 at system 4 word 1 ('to', lower case, bar 16), so 3 words move over a line's end; no whole split or join gives the page's lines.",
-      "settles": ["18 shape (shape2-02): stanza 3 has 9 lines, stanza 1 10, under the same systems"]
+      "why": "Stanza 1 opens 10 poem lines at system 1 words 1, 8, 16; system 2 words 5, 11; system 3 words 4, 10, 12; system 4 words 3, 6, as the database's 10 lines do. Stanza 2 opens 10 on the same bars: system 1 words 1, 9, 16; system 2 words 5, 12; system 3 words 3, 8, 11 ('Warm', mid-sentence capital); system 4 words 5 ('For'), 9. The database agrees through line 7's opening, then runs line 7 to system 3 word 14 and opens line 8 at system 4 word 1 ('O', bar 16, lower case in the other stanzas), so words move over a line's end; no whole split or join gives the page's lines. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -105,8 +89,15 @@
       "readings": ["shape2-02 (the shape reading of the page)"],
       "printed": "",
       "sung": "",
-      "kind": "layout",
+      "kind": "disputed",
       "crops": [
+        {
+          "image": "018.png",
+          "crop": "018-strip0.jpg",
+          "box": [0, 0, 1274, 1000],
+          "sha": "2dee01b72f9cb41b",
+          "shows": ""
+        },
         {
           "image": "018.png",
           "crop": "018-strip800.jpg",
@@ -115,11 +106,14 @@
           "shows": ""
         }
       ],
-      "judge": "shape-judge-judge-c01 (Opus, effort max)",
-      "why": "018-strip800.jpg system 4 (bars 16-17), stanza 3 row: 'Life' (word 4) opens the 4-syllable phrase of bar 17 ('Life forever,', rhyming with 'never'), at the place where stanza 1 prints 'Rich', stanza 2 'For' and stanza 4 'Tell'. The database's line 8 joins two whole 4-syllable poem lines ('to us giving' + 'Life forever') with the page's words in order, as its other final-section lines join 4 + 4.",
-      "settles": [
-        "18 shape (shape2-02): stanza 3 row 4 prints word 4 with a capital inside a line of stanza 3, where no line or sentence opens"
-      ]
+      "judge": "shape-judge-judge-a01 (Opus, effort max)",
+      "why": "Stanza 1 opens its 10 poem lines as in 18-a3. Stanza 3 opens 10 on the same bars: system 1 words 1, 6, 13; system 2 words 5, 12; system 3 words 3, 8, 9 ('Christ', bar 15); system 4 words 4 ('Life', mid-sentence capital), 6. The database opens line 7 at system 3 word 8 but runs it on to word 11 (4 words) and opens line 8 at system 4 word 1 ('to', lower case, bar 16), so 3 words move over a line's end; no whole split or join gives the page's lines. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -144,22 +138,18 @@
           "shows": ""
         }
       ],
-      "judge": "reach-judge-reach-t01 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: moveup:1.3: 018-strip0.jpg system 2, stanza 1's row: \"Of\" follows \"cy!\" and the next word is a name, both capitals anyway, and the header prints no metre. The music's only sign there is a fermata over \"cy!\", a hold rather than a line mark (it alone would put \"Of\" with the next phrase). moveup:2.3: 018-strip0.jpg system 2, stanza 2's row: \"Your\" follows a full stop and the next word is a name of God, both capitals anyway, and the header prints no metre. The music's only sign there is the fermata over \"sure.\", a hold rather than a line mark. split:2.4: 018-strip0.jpg system 2, stanza 2's row: \"Spirit\" is printed with a capital (a name of God) mid-phrase, and the header prints no metre, so nothing marks whether a line opens on it. moveup:2.6: 018-strip800.jpg system 3, stanza 2's row: \"Let\" follows \"!\" and the next word is a divine pronoun, both capitals anyway, and the header prints no metre. split:2.7: 018-strip800.jpg system 3, stanza 2's row: \"Warm\" is printed with a capital after a word with no stop, which marks a line opening, so the page fits the split rather than showing it wrong; it is the database's unsplit line 7 that runs past that capital. No metre is printed. split:2.8: 018-strip800.jpg system 4, stanza 2's row: \"For\" follows \"!\" and is a capital anyway, and the header prints no metre, so nothing tells whether a line opens on it. split:2.9: 018-strip800.jpg system 4, stanza 2's row: \"You\" is printed with a capital as a divine pronoun throughout the hymn, and no metre is printed, so nothing marks a line there. movedown:3.1: 018-strip0.jpg system 1, stanza 3's row: \"Son\" (a name of God) and the next word, a divine pronoun, are both capitals anyway, and no metre is printed. moveup:3.3: 018-strip0.jpg system 2, stanza 3's row: \"Your\" follows \"tion!\" and the next word is a name of God, both capitals anyway, and the header prints no metre. The music's only sign there is the fermata over \"tion!\", a hold rather than a line mark. moveup:3.6: 018-strip800.jpg system 3, stanza 3's row: \"Alleluia\" follows a full stop and the next word is a name of God, both capitals anyway, and the header prints no metre. moveup:4.3: 018-strip0.jpg system 2, stanza 4's row: \"For\" follows \"ing!\" and the next word is a name, both capitals anyway, and the header prints no metre. The music's only sign there is the fermata over \"ing!\", a hold rather than a line mark.",
+      "judge": "reach-judge-reach-p018 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: moveup:1.3: 018-strip0.jpg system 2, stanza 1's row: word 20 ends with an exclamation mark, so the moved word 21 takes its capital anyway, and word 22, the changed line 4's opener, is a personal name printed with a capital. The header prints no metre; a fermata stands over word 20's last syllable, but the row prints no line break. moveup:2.3: 018-strip0.jpg system 2, stanza 2's row: word 20 ends with a full stop and the moved word 21 is a pronoun of God, so its capital stands anyway, and word 22, the changed line 4's opener, is a title of God printed with a capital. The header prints no metre; a fermata stands over word 20's last syllable, but the row prints no line break. moveup:2.6: 018-strip800.jpg system 3, stanza 2's row: word 38 ends with an exclamation mark, so the moved word 39 takes its capital anyway, and word 40, the changed line 7's opener, is a pronoun of God printed with a capital. The header prints no metre that fixes the lines. moveup:2.8: 018-strip800.jpg system 4, stanza 2's row: word 49 ends with an exclamation mark, so the moved word 50 takes its capital anyway, and word 51, the changed line 9's opener, is a pronoun of God printed with a capital. The header prints no metre that fixes the lines. movedown:3.1: 018-strip0.jpg system 1, stanza 3's row: the moved word 5 is a title of God printed with a capital, so it can open line 2, and word 6, the database's line 2 opener, is a pronoun of God printed with a capital, so it can stand mid-line. The header prints no metre that fixes the lines. moveup:3.3: 018-strip0.jpg system 2, stanza 3's row: word 17 ends with an exclamation mark and the moved word 18 is a pronoun of God, so its capital stands anyway, and word 19, the changed line 4's opener, is a title of God printed with a capital. The header prints no metre; a fermata stands over word 17's last syllable, but the row prints no line break. moveup:4.3: 018-strip0.jpg system 2, stanza 4's row: word 19 ends with an exclamation mark, so the moved word 20 takes its capital anyway, and word 21, the changed line 4's opener, is a name of God printed with a capital. The header prints no metre; a fermata stands over word 19's last syllable, but the row prints no line break.",
       "unreachable": [
         "moveup:1.3",
         "moveup:2.3",
-        "split:2.4",
         "moveup:2.6",
-        "split:2.7",
-        "split:2.8",
-        "split:2.9",
+        "moveup:2.8",
         "movedown:3.1",
         "moveup:3.3",
-        "moveup:3.6",
         "moveup:4.3"
       ],
-      "layout": "2ed6e11eda1a449a"
+      "layout": "80f74d734aa264bf"
     },
     {
       "sites": [],
@@ -177,10 +167,10 @@
           "shows": ""
         }
       ],
-      "judge": "reach-judge-reach-u01 (Opus, effort max)",
-      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:4.4: can: 018-strip0.jpg system 2 (bars 5-9), stanza 4's row: the moved word \"way\" is printed lowercase after \"the\" and closed by a dash, and the capital falls on the next word, \"To-day\". The change opens line 5 on a lowercase word, which the page never does.",
+      "judge": "reach-judge-reach-p018 (Opus, effort max)",
+      "why": "The page tells these changes from the row (`can`), or the judge could not tell (`unclear`), but no check of the shape readings does: movedown:4.4: can: 018-strip0.jpg system 2, stanza 4's row: the moved word 27 is printed with a lowercase letter and ends with a dash, so the changed line 5 would open on a lowercase word. Word 28, the database's line 5 opener, is printed with a capital that no full stop, name of God, I or O explains, so the page marks a line opening there.",
       "gaps": ["movedown:4.4"],
-      "layout": "2ed6e11eda1a449a"
+      "layout": "80f74d734aa264bf"
     }
   ]
 }

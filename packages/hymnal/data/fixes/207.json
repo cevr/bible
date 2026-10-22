@@ -1,0 +1,103 @@
+{
+  "number": 207,
+  "title": "It May Be at Morn",
+  "print": "the deciding page (p202.jpg), redivided to the page's line starts by the owner's answer of 2026-10-22 (census2's ask \"rows the page contradicts\", option B), words as the base row; each line's first word placed at its system and row by the shape reading shape2-23; the places are named by the rulings of shape-judge-judge-a03 (Opus, effort max) (data/crops/207/rulings.json).",
+  "stanzas": [
+    [
+      {
+        "text": "It may be at morn, when the day is awaking,",
+        "from": "p202.jpg system 1, row 1 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "When sunlight through darkness and shadow is breaking,",
+        "from": "p202.jpg system 1, row 1 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "That Jesus will come in the fullness of glory",
+        "from": "p202.jpg system 2, row 1 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "To receive from the world His own.",
+        "from": "p202.jpg system 3, row 1 (the shape reading shape2-23's rows)"
+      }
+    ],
+    [
+      {
+        "text": "It may be at midday, it may be at twilight,",
+        "from": "p202.jpg system 1, row 2 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "It may be, perchance, that the blackness of midnight",
+        "from": "p202.jpg system 1, row 2 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "Will burst into light in the blaze of His glory,",
+        "from": "p202.jpg system 2, row 2 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "When Jesus receives His own.",
+        "from": "p202.jpg system 3, row 2 (the shape reading shape2-23's rows)"
+      }
+    ],
+    [
+      {
+        "text": "O joy! O delight! should we go without dying,",
+        "from": "p202.jpg system 1, row 3 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "No sickness, no sadness, no dread, and no crying,",
+        "from": "p202.jpg system 1, row 3 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "Caught up through the clouds with our Lord into glory,",
+        "from": "p202.jpg system 2, row 3 (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "When Jesus receives His own.",
+        "from": "p202.jpg system 3, row 3 (the shape reading shape2-23's rows)"
+      }
+    ]
+  ],
+  "refrain": {
+    "lines": [
+      {
+        "text": "O Lord Jesus, how long, how long",
+        "from": "p202.jpg system 4, the refrain row (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "Ere we shout the glad song?",
+        "from": "p202.jpg system 4, the refrain row (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "Christ returneth,",
+        "from": "p202.jpg system 4, the refrain row (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "Hallelujah! Hallelujah! Amen,",
+        "from": "p202.jpg system 5, the refrain row (the shape reading shape2-23's rows)"
+      },
+      {
+        "text": "Hallelujah! Amen.",
+        "from": "p202.jpg system 5, the refrain row (the shape reading shape2-23's rows)"
+      }
+    ]
+  },
+  "replaces": [
+    {
+      "id": -1,
+      "text": "O Lord Jesus, how long, how long\nEre we shout the glad song?\nChrist returneth, Hallelujah!\nHallelujah! Amen,\nHallelujah! Amen."
+    },
+    {
+      "id": 0,
+      "text": "It may be at morn, when the day is awaking,\nWhen sunlight through darkness and shadow is breaking,\nThat Jesus will come in the fullness of glory\nTo receive from the world His own."
+    },
+    {
+      "id": 1,
+      "text": "It may be at midday, it may be at twilight,\nIt may be, perchance, that the blackness of midnight\nWill burst into light in the blaze of His glory,\nWhen Jesus receives His own."
+    },
+    {
+      "id": 2,
+      "text": "O joy! O delight! should we go without dying,\nNo sickness, no sadness, no dread, and no crying,\nCaught up through the clouds with our Lord into glory,\nWhen Jesus receives His own."
+    }
+  ]
+}

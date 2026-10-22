@@ -1,0 +1,135 @@
+{
+  "number": 3,
+  "title": "God Himself Is With Us",
+  "print": "the deciding page (003.jpg), redivided to the page's line starts by the owner's answer of 2026-10-22 (census2's ask \"rows the page contradicts\", option B), words as the base row; each line's first word placed at its system and row by the shape reading shape2-01; the places are named by the rulings of shape-judge-judge-a01 (Opus, effort max) (data/crops/003/rulings.json).",
+  "stanzas": [
+    [
+      {
+        "text": "God Himself is with us;",
+        "from": "003.jpg system 1, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Let us all adore Him,",
+        "from": "003.jpg system 1, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "And with awe appear before Him.",
+        "from": "003.jpg system 1, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "God is here within us;",
+        "from": "003.jpg system 2, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Soul, in silence fear him,",
+        "from": "003.jpg system 2, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Humbly, fervently draw near Him.",
+        "from": "003.jpg system 3, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Now His own who have known",
+        "from": "003.jpg system 3, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "God, in worship lowly,",
+        "from": "003.jpg system 4, row 1 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Yield their spirits wholly.",
+        "from": "003.jpg system 4, row 1 (the shape reading shape2-01's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Come, abide within me;",
+        "from": "003.jpg system 1, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Let my soul, like Mary,",
+        "from": "003.jpg system 1, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Be Thine earthly sanctuary.",
+        "from": "003.jpg system 1, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Come, in-dwelling Spirit,",
+        "from": "003.jpg system 2, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "With transfigured splendor;",
+        "from": "003.jpg system 2, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Love and honor will I render.",
+        "from": "003.jpg system 3, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Where I go here below,",
+        "from": "003.jpg system 3, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Let me bow before Thee,",
+        "from": "003.jpg system 4, row 2 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Know Thee and adore Thee.",
+        "from": "003.jpg system 4, row 2 (the shape reading shape2-01's rows)"
+      }
+    ],
+    [
+      {
+        "text": "Gladly we surrender",
+        "from": "003.jpg system 1, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Earth's deceitful treasures,",
+        "from": "003.jpg system 1, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Pride of life and sinful pleasures:",
+        "from": "003.jpg system 1, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Gladly, Lord, we offer",
+        "from": "003.jpg system 2, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Thine to be forever,",
+        "from": "003.jpg system 2, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Soul and life and each endeavor.",
+        "from": "003.jpg system 3, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Thou alone shalt be known",
+        "from": "003.jpg system 3, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Lord of all our being,",
+        "from": "003.jpg system 4, row 3 (the shape reading shape2-01's rows)"
+      },
+      {
+        "text": "Life's true way decreeing.",
+        "from": "003.jpg system 4, row 3 (the shape reading shape2-01's rows)"
+      }
+    ]
+  ],
+  "replaces": [
+    {
+      "id": 0,
+      "text": "God Himself is with us;\nLet us all adore Him,\nAnd with awe appear before Him.\nGod is here within us;\nSoul, in silence fear him,\nHumbly, fervently draw near Him.\nNow His own who have known God,\nin worship lowly,\r\nYield their spirits wholly."
+    },
+    {
+      "id": 1,
+      "text": "Come, abide within me;\nLet my soul, like Mary,\nBe Thine earthly sanctuary.\nCome, in-dwelling Spirit,\nWith transfigured splendor;\nLove and honor will I render.\nWhere I go here below,\nLet me bow before Thee,\nKnow Thee and adore Thee."
+    },
+    {
+      "id": 2,
+      "text": "Gladly we surrender\nEarth's deceitful treasures,\nPride of life and sinful pleasures:\nGladly, Lord, we offer\nThine to be forever,\nSoul and life and each endeavor.\nThou alone shalt be known\nLord of all our being,\nLife's true way decreeing."
+    }
+  ]
+}

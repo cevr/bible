@@ -25,8 +25,13 @@
         }
       ],
       "judge": "shape-judge-judge-a02 (Opus, effort max)",
-      "why": "The tune's six phrases (12.9.6.6.12.9 syllables) and the capitals open the page's poem lines at stanza 2 words 1, 13, 22, 28, 34, 45 ('To', 'To', 'To', 'Who', 'While', 'While'), and at stanza 1 words 1, 12, 20, 25, 31, 42 ('What', 'What', 'What', 'That', 'To', 'To'). The database opens stanza 2's lines 2 and 3 at words 10 and 19 ('I will sing'), three words before the page's lines at 13 and 22, and opens stanza 1's line 4 at word 17 ('O my soul?'), three words before the page's line at 20; its other openings match or are whole splits (stanza 1 word 6).",
-      "settles": ["162 shape (shape2-18): stanza 2 has 6 lines, stanza 1 7, under the same systems"]
+      "why": "The tune's six phrases (12.9.6.6.12.9 syllables) and the capitals open the page's poem lines at stanza 2 words 1, 13, 22, 28, 34, 45 ('To', 'To', 'To', 'Who', 'While', 'While'), and at stanza 1 words 1, 12, 20, 25, 31, 42 ('What', 'What', 'What', 'That', 'To', 'To'). The database opens stanza 2's lines 2 and 3 at words 10 and 19 ('I will sing'), three words before the page's lines at 13 and 22, and opens stanza 1's line 4 at word 17 ('O my soul?'), three words before the page's line at 20; its other openings match or are whole splits (stanza 1 word 6). Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -45,10 +50,13 @@
         }
       ],
       "judge": "shape-judge-judge-c02 (Opus, effort max)",
-      "why": "162-strip0.jpg system 1, stanza 2 row: word 13 is a capital 'To' after 'sing;', so the page opens a poem line there (as stanza 3 opens one at 'And' in the same place). The database opens its line 2 three words earlier, at 'I will sing' (word 10), and runs 'To' on as its 4th word; the page shows no line opening at that 'I'.",
-      "settles": [
-        "162 shape (shape2-18): stanza 2 row 1 prints word 13 with a capital inside a line of stanza 2, where no line or sentence opens"
-      ]
+      "why": "162-strip0.jpg system 1, stanza 2 row: word 13 is a capital 'To' after 'sing;', so the page opens a poem line there (as stanza 3 opens one at 'And' in the same place). The database opens its line 2 three words earlier, at 'I will sing' (word 10), and runs 'To' on as its 4th word; the page shows no line opening at that 'I'. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -74,10 +82,13 @@
         }
       ],
       "judge": "shape-judge-judge-c02 (Opus, effort max)",
-      "why": "162-strip0.jpg system 2, stanza 2 row: word 9 is a capital 'To' after 'sing;', so the page opens a poem line there (stanza 3 prints 'And' in the same place). The database opens its line 3 three words earlier, at 'I will sing' (word 6), and runs 'To' on as its 4th word to 'Lamb' at the start of system 3 (162-strip800.jpg).",
-      "settles": [
-        "162 shape (shape2-18): stanza 2 row 2 prints word 9 with a capital inside a line of stanza 2, where no line or sentence opens"
-      ]
+      "why": "162-strip0.jpg system 2, stanza 2 row: word 9 is a capital 'To' after 'sing;', so the page opens a poem line there (stanza 3 prints 'And' in the same place). The database opens its line 3 three words earlier, at 'I will sing' (word 6), and runs 'To' on as its 4th word to 'Lamb' at the start of system 3 (162-strip800.jpg). Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the page's line starts.",
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "page",
+        "quote": "Let's go with your recommendation."
+      }
     },
     {
       "sites": [],
@@ -102,10 +113,10 @@
           "shows": ""
         }
       ],
-      "judge": "reach-judge-reach-t07 (Opus, effort max)",
-      "why": "The page cannot tell these changes from the row: split:2.2: 162-strip0.jpg, stanza 2's row: \"To\" closes the system from bar 1 (off a line opening in the database's layout and the changed one alike) and \"God\" opens the system from bar 5 with a capital (a name of God); the header prints no metre, so nothing on the page tells the two apart. movedown:2.2: 162-strip0.jpg, the system from bar 5, stanza 2's row: the moved word \"Lamb\" is printed with a capital (a name of Christ), and \"I\", which no longer opens a line, is a capital anyway; the header prints no metre. split:2.3: 162-strip0.jpg, the system from bar 5, stanza 2's row: the second \"To God\" prints \"God\" with a capital (a name of God), and \"To\" stays off a line opening in both layouts; the header prints no metre, so nothing on the page tells the two apart. split:2.5: 162-strip800.jpg, the system from bar 10, stanza 2's row: the word after \"theme,\" is \"I\", printed with a capital anyway, and the header prints no metre, so nothing on the page marks whether a line opens there.",
-      "unreachable": ["split:2.2", "movedown:2.2", "split:2.3", "split:2.5"],
-      "layout": "63c7c29dec49ddc2"
+      "judge": "reach-judge-reach-p162 (Opus, effort max)",
+      "why": "The page cannot tell these changes from the row: movedown:2.1: 162-strip0.jpg system 1, stanza 2's row: the moved word 6 is a title of Christ printed with a capital wherever the row has it (word 18, mid-line in system 2, too), word 7 is the first-person pronoun, capital anyway, and neither word 5 nor word 6 carries a comma or stop. The header prints no metre and 162-strip800.jpg prints no text below the music; stanzas 1 and 3 print a lowercase word with a comma under word 6's note, a hint of the shared tune, not a mark in stanza 2's row.",
+      "unreachable": ["movedown:2.1"],
+      "layout": "a8a813d001965ca2"
     }
   ]
 }

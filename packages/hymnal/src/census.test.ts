@@ -10,7 +10,8 @@
  * fixed case the census must refuse, with the problem line it must print.
  */
 
-import { Effect, Exit, Option } from 'effect';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Effect, Exit, FileSystem, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
 import {
@@ -1506,6 +1507,170 @@ describe('census', () => {
           );
           expect(lines.flatMap(wordsOf).filter((word) => words.has(word))).toEqual([]);
         }),
+    );
+  });
+
+  describe("the owner's answers (rows the page contradicts)", () => {
+    /** The hymns whose committed rulings hold an answer `keeps`, or (`undefined`) an unanswered `disputed` ruling. */
+    const answeredBy = (sources: Sources, keeps: 'page' | 'source' | undefined) =>
+      [...sources.rulings]
+        .filter(([, rulings]) =>
+          rulings.some(
+            (ruling) =>
+              ruling.kind === 'disputed' &&
+              (keeps === undefined ? ruling.answer === undefined : ruling.answer?.keeps === keeps),
+          ),
+        )
+        .map(([n]) => n)
+        .toSorted((a, b) => a - b);
+
+    it.effect('answers page for six hymns, source for three, and leaves one disputed', () =>
+      Effect.gen(function* () {
+        const { sources } = yield* read;
+        expect(answeredBy(sources, 'page')).toEqual([3, 18, 162, 207, 214, 402]);
+        expect(answeredBy(sources, 'source')).toEqual([58, 243, 398]);
+        expect(answeredBy(sources, undefined)).toEqual([220]);
+      }),
+    );
+
+    /** A compiled line: its syllables, each with its word's place in the line (0 = first). */
+    const CompiledLines = Schema.Array(Schema.Array(Schema.Struct({ word: Schema.Int })));
+    /** The parts of a compiled hymn (`data/sdah-1985/NNN.json`) these cases read. */
+    const decodeCompiled = Schema.decodeEffect(
+      Schema.fromJsonString(
+        Schema.Struct({
+          stanzas: Schema.Array(Schema.Struct({ lines: CompiledLines })),
+          refrain: Schema.optionalKey(
+            Schema.Struct({ part: Schema.Struct({ lines: CompiledLines }) }),
+          ),
+        }),
+      ),
+    );
+    /** Each line's first word by its place in the part (1 = the part's first word), and the part's word count. */
+    const startsOf = (lines: typeof CompiledLines.Type) => {
+      const starts: number[] = [];
+      let at = 1;
+      for (const line of lines) {
+        starts.push(at);
+        at += new Set(line.map((syllable) => syllable.word)).size;
+      }
+      return { starts, count: at - 1 };
+    };
+    /** The places in the part of the words its shape rows print with a capital, each row offset by the words of the rows before it. */
+    const capitalsOf = (
+      rows: ReadonlyArray<{ readonly words: number; readonly capitals: readonly number[] }>,
+    ) => {
+      const capitals = new Set<number>();
+      let before = 0;
+      for (const row of rows) {
+        for (const place of row.capitals) capitals.add(before + place);
+        before += row.words;
+      }
+      return capitals;
+    };
+    /** Each part (stanzas in order, then the refrain) of each hymn answered page, as compiled and as its shape reading and fix give it. */
+    const pageParts = Effect.gen(function* () {
+      const { sources } = yield* read;
+      const fs = yield* FileSystem.FileSystem;
+      const numbers = answeredBy(sources, 'page');
+      return yield* Effect.forEach(numbers, (n) =>
+        Effect.gen(function* () {
+          const compiled = yield* decodeCompiled(
+            yield* fs.readFileString(
+              new URL(`../data/sdah-1985/${String(n).padStart(3, '0')}.json`, import.meta.url)
+                .pathname,
+            ),
+          );
+          const outline = sources.outlines.get(n)![0]!;
+          const fix = sources.fixes.get(n)!;
+          const parts = [
+            ...compiled.stanzas.map((stanza, k) => ({
+              name: `stanza ${k + 1}`,
+              lines: stanza.lines,
+              rows: outline.stanzas[k]?.rows ?? [],
+              fix: fix.stanzas[k] ?? [],
+              base: fix.replaces?.find((verse) => verse.id === k)?.text,
+            })),
+            ...(compiled.refrain === undefined
+              ? []
+              : [
+                  {
+                    name: 'refrain',
+                    lines: compiled.refrain.part.lines,
+                    rows: outline.refrain?.rows ?? [],
+                    fix: (fix.refrain?.lines ?? []).flatMap((item) =>
+                      'varies' in item ? [] : [item],
+                    ),
+                    base: fix.replaces?.find((verse) => verse.id === -1)?.text,
+                  },
+                ]),
+          ];
+          return { n, stanzas: compiled.stanzas.map((stanza) => stanza.lines.length), parts };
+        }),
+      );
+    }).pipe(Effect.provide(BunServices.layer));
+
+    it.effect('sings each stanza of a hymn answered page in as many lines as its stanza 1', () =>
+      Effect.gen(function* () {
+        const hymns = yield* pageParts;
+        expect(hymns.map(({ n, stanzas }) => [n, stanzas])).toEqual([
+          [3, [9, 9, 9]],
+          [18, [10, 10, 10, 10]],
+          [162, [7, 7, 7]],
+          [207, [4, 4, 4]],
+          [214, [10, 10]],
+          [402, [4, 4, 4, 4]],
+        ]);
+      }),
+    );
+
+    it.effect(
+      'opens every line but the first of a hymn answered page on a word the page prints with a capital',
+      () =>
+        Effect.gen(function* () {
+          const hymns = yield* pageParts;
+          const skipped: string[] = [];
+          const lowercase: string[] = [];
+          for (const { n, parts } of hymns)
+            for (const part of parts) {
+              const { starts, count } = startsOf(part.lines);
+              if (part.rows.reduce((sum, row) => sum + row.words, 0) !== count) {
+                skipped.push(`${n} ${part.name}`);
+                continue;
+              }
+              const capitals = capitalsOf(part.rows);
+              lowercase.push(
+                ...starts
+                  .map((start, k) => ({ start, k }))
+                  .filter(({ start, k }) => k > 0 && !capitals.has(start))
+                  .map(({ start, k }) => `${n} ${part.name} line ${k + 1} at word ${start}`),
+              );
+            }
+          // 402's stanza 3 reads 22 words on the page and 21 in the row: count noise the census passes.
+          expect(skipped).toEqual(['402 stanza 3']);
+          expect(lowercase).toEqual([]);
+        }),
+    );
+
+    it.effect('changes no word of a hymn answered page: only where its lines break', () =>
+      Effect.gen(function* () {
+        const hymns = yield* pageParts;
+        const single = (text: string) =>
+          text
+            .split(/\s+/)
+            .filter((word) => word !== '')
+            .join(' ');
+        const changed: string[] = [];
+        // 214's fix changes two words by its own rulings: the census's row check holds it.
+        for (const { n, parts } of hymns.filter(({ n }) => n !== 214))
+          for (const part of parts)
+            if (
+              part.base === undefined ||
+              single(part.fix.map((line) => line.text).join(' ')) !== single(part.base)
+            )
+              changed.push(`${n} ${part.name}`);
+        expect(changed).toEqual([]);
+      }),
     );
   });
 
