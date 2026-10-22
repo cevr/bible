@@ -81,44 +81,93 @@ const chordsIn: (section: SectionChords) => ReadonlyArray<Chord.Chord> =
 const shownIn = (sections: ReadonlyArray<SectionChords>, key: Chord.Key): ReadonlyArray<string> =>
   sections.flatMap(chordsIn).map((c) => Chord.format(c, key));
 
-/** The symbols shown at each move of one hymn, spelled once per key: `at(T, C)`. */
-const movesOf = (sections: ReadonlyArray<SectionChords>, key: Chord.Key) => {
-  const byKey = new Map<string, string>();
-  return (transpose: number, capo: number) => {
-    const played = playedKey(key, { transpose, capo });
-    const name = keyName(played);
-    return Option.getOrElse(Option.fromUndefinedOr(byKey.get(name)), () => {
-      const shown = shownIn(sections, played).join(' ');
-      byKey.set(name, shown);
-      return shown;
-    });
-  };
-};
-
 const range = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, k) => from + k);
 
 const pc = (name: string) => Chord.pitchClass(name);
 const mod12 = (n: number) => ((n % 12) + 12) % 12;
 
-/** Every key a move reaches from `key`, and each move whose sounding or played key is wrong. */
-const keysOf = (hymn: Hymn, key: Chord.Key) => {
-  const faults: Array<string> = [];
-  const reached = new Map<string, Chord.Key>();
-  const tonic = pc(hymn.key.tonic);
-  for (const transpose of range(-11, 11)) {
-    const sounding = soundingKey(key, { transpose, capo: 0 });
-    if (pc(sounding.tonic) !== mod12(tonic + transpose) || sounding.minor !== hymn.key.minor)
-      faults.push(`${hymn.number}: sounds in ${keyName(sounding)} at ${transpose}`);
-    for (const capo of range(0, 11)) {
-      const played = playedKey(key, { transpose, capo });
-      if (pc(played.tonic) !== mod12(tonic + transpose - capo) || played.minor !== hymn.key.minor)
-        faults.push(`${hymn.number}: plays in ${keyName(played)} at ${transpose}, ${capo}`);
-      reached.set(keyName(played), played);
-    }
-  }
-  return { faults, reached: [...reached.values()] };
+/** `make()` once per `id`, kept in `cache`. */
+const memo = <A>(cache: Map<string, A>, id: string, make: () => A): A =>
+  Option.getOrElse(Option.fromUndefinedOr(cache.get(id)), () => {
+    const made = make();
+    cache.set(id, made);
+    return made;
+  });
+
+/** A key and its name. */
+interface Named {
+  readonly key: Chord.Key;
+  readonly name: string;
+}
+
+const TRANSPOSES = range(-12, 24);
+const CAPOS = range(0, 11);
+
+/**
+ * The played key at every move a property reads (transpose -12 to 24, every
+ * capo fret) from one printed key. A move's key depends on the printed key
+ * alone, so the table is made once per key the set prints in.
+ */
+const playedTables = new Map<string, ReadonlyArray<ReadonlyArray<Named>>>();
+const playedFrom = (key: Chord.Key) =>
+  memo(playedTables, keyName(key), () =>
+    TRANSPOSES.map((transpose) =>
+      CAPOS.map((capo) => {
+        const played = playedKey(key, { transpose, capo });
+        return { key: played, name: keyName(played) };
+      }),
+    ),
+  );
+
+/**
+ * The symbols shown at each move of one hymn, `at(T, C)`. A move changes only
+ * the key the chords are spelled in, so each distinct chord is spelled once
+ * per key and the page's sequence is read through its indices.
+ */
+const movesOf = (sections: ReadonlyArray<SectionChords>, key: Chord.Key) => {
+  const table = playedFrom(key);
+  const index = new Map<string, number>();
+  const distinct: Array<Chord.Chord> = [];
+  const order = sections
+    .flatMap(chordsIn)
+    .map((chord) => memo(index, Chord.format(chord, key), () => distinct.push(chord) - 1));
+  const byKey = new Map<string, string>();
+  return (transpose: number, capo: number) => {
+    const played = Option.getOrThrow(Option.fromUndefinedOr(table[transpose + 12]?.[capo]));
+    return memo(byKey, played.name, () => {
+      const symbols = distinct.map((chord) => Chord.format(chord, played.key));
+      return order.map((k) => symbols[k]).join(' ');
+    });
+  };
 };
+
+/**
+ * Every key a move reaches from `key`, printed as `printed`, and each move
+ * whose sounding or played key is wrong; made once per pair of keys.
+ */
+const reachTables = new Map<
+  string,
+  { readonly faults: ReadonlyArray<string>; readonly reached: ReadonlyArray<Chord.Key> }
+>();
+const keysOf = (printed: Chord.Key, key: Chord.Key) =>
+  memo(reachTables, `${keyName(printed)} ${keyName(key)}`, () => {
+    const faults: Array<string> = [];
+    const reached = new Map<string, Chord.Key>();
+    const tonic = pc(printed.tonic);
+    for (const transpose of range(-11, 11)) {
+      const sounding = soundingKey(key, { transpose, capo: 0 });
+      if (pc(sounding.tonic) !== mod12(tonic + transpose) || sounding.minor !== printed.minor)
+        faults.push(`sounds in ${keyName(sounding)} at ${transpose}`);
+      for (const capo of CAPOS) {
+        const played = playedKey(key, { transpose, capo });
+        if (pc(played.tonic) !== mod12(tonic + transpose - capo) || played.minor !== printed.minor)
+          faults.push(`plays in ${keyName(played)} at ${transpose}, ${capo}`);
+        reached.set(keyName(played), played);
+      }
+    }
+    return { faults, reached: [...reached.values()] };
+  });
 
 /** A shown symbol whose root or bass is not the chord's degree above `key`. */
 const symbolFault = (chord: Chord.Chord, key: Chord.Key): Option.Option<string> => {
@@ -135,16 +184,28 @@ const symbolFault = (chord: Chord.Chord, key: Chord.Key): Option.Option<string> 
   return Option.none();
 };
 
+/**
+ * A chord is its degrees, the same in every hymn: its symbol in C names it,
+ * and each chord is checked once in each key, whichever hymns show it.
+ */
+const C_MAJOR: Chord.Key = { tonic: 'C', minor: false };
+const symbolFaults = new Map<string, Option.Option<string>>();
+
 /** Each distinct shown chord, spelled in every key a move reaches. */
 const spellingFaults = (
   hymn: Hymn,
   keys: ReadonlyArray<Chord.Key>,
   sections: ReadonlyArray<SectionChords>,
 ): ReadonlyArray<string> => {
-  const distinct = new Map(sections.flatMap(chordsIn).map((c) => [Chord.format(c, hymn.key), c]));
+  const distinct = new Map(sections.flatMap(chordsIn).map((c) => [Chord.format(c, C_MAJOR), c]));
   return keys.flatMap((key) =>
-    [...distinct.values()].flatMap((chord) =>
-      Option.toArray(Option.map(symbolFault(chord, key), (f) => `${hymn.number}: ${f}`)),
+    [...distinct].flatMap(([id, chord]) =>
+      Option.toArray(
+        Option.map(
+          memo(symbolFaults, `${id} ${keyName(key)}`, () => symbolFault(chord, key)),
+          (f) => `${hymn.number}: ${f}`,
+        ),
+      ),
     ),
   );
 };
@@ -220,8 +281,11 @@ describe('the chords over every compiled hymn', () => {
 
   it('raises the sound by the transpose and lowers the played key by the capo (P4)', () => {
     const faults = cases.flatMap(({ hymn, chords, sections }) => {
-      const keys = keysOf(hymn, chords.key);
-      return [...keys.faults, ...spellingFaults(hymn, keys.reached, sections)];
+      const keys = keysOf(hymn.key, chords.key);
+      return [
+        ...keys.faults.map((fault) => `${hymn.number}: ${fault}`),
+        ...spellingFaults(hymn, keys.reached, sections),
+      ];
     });
     expect(faults).toEqual([]);
   });
