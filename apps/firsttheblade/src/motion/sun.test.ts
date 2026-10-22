@@ -54,9 +54,9 @@ describe('the light from the sun', () => {
 
 describe('the rays’ turn', () => {
   test('stays within the swing at every time, and reaches both ends of it', () => {
-    const outside = times(0x5eed, 3000).filter((t) => Math.abs(turnAt(t, true)) > TURN.swing);
+    const outside = times(0x5eed, 3000).filter((t) => Math.abs(turnAt(t)) > TURN.swing);
     expect(outside).toEqual([]);
-    const turns = Array.from({ length: 600 }, (_, n) => turnAt((n / 600) * TURN.period, true));
+    const turns = Array.from({ length: 600 }, (_, n) => turnAt((n / 600) * TURN.period));
     expect(Math.max(...turns)).toBeCloseTo(TURN.swing, 4);
     expect(Math.min(...turns)).toBeCloseTo(-TURN.swing, 4);
   });
@@ -69,17 +69,23 @@ describe('the rays’ turn', () => {
   });
 
   test('starts at the still’s angles', () => {
-    expect(turnAt(0, true)).toBe(0);
+    expect(turnAt(0)).toBe(0);
   });
 
-  test('is 0 at every time under less motion or a coarse pointer, and turns otherwise', () => {
-    for (const media of [
-      matching(LESS_MOTION),
-      matching(COARSE_POINTER),
-      matching(LESS_MOTION, COARSE_POINTER),
-    ])
-      expect(times(0xa11, 300).filter((t) => turnAt(t, raysTurn(media)) !== 0)).toEqual([]);
-    expect(raysTurn(matching())).toBe(true);
-    expect(turnAt(TURN.period / 4, raysTurn(matching()))).toBeCloseTo(TURN.swing, 9);
+  test('peaks a quarter period in', () => {
+    expect(turnAt(TURN.period / 4)).toBeCloseTo(TURN.swing, 9);
+  });
+});
+
+describe('raysTurn', () => {
+  test('is false under less motion or a coarse pointer, and true otherwise', () => {
+    expect(
+      [
+        matching(LESS_MOTION),
+        matching(COARSE_POINTER),
+        matching(LESS_MOTION, COARSE_POINTER),
+        matching(),
+      ].map(raysTurn),
+    ).toEqual([false, false, false, true]);
   });
 });

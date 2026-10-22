@@ -56,14 +56,12 @@ export const TURN = { swing: 0.05, period: 60 } as const;
 
 /**
  * The rays' turn `seconds` into the motion, in radians added to each ray's
- * angle (a positive turn swings the fan clockwise on the screen): 0 when
- * the rays rest at the still's angles, which they do whenever they are not
- * `turning`.
+ * angle (a positive turn swings the fan clockwise on the screen), as the
+ * field's shader writes it. Where the rays rest (`raysTurn`, `./query.ts`),
+ * the shader multiplies it by 0.
  */
-export const turnAt = (seconds: number, turning: boolean) => {
-  if (!turning) return 0;
-  return TURN.swing * Math.sin((seconds * 2 * Math.PI) / TURN.period);
-};
+export const turnAt = (seconds: number) =>
+  TURN.swing * Math.sin((seconds * 2 * Math.PI) / TURN.period);
 
 /** The distance from the sun's centre, in widths, and the direction to it. */
 export const fromTheSun = (u: number, v: number) => {

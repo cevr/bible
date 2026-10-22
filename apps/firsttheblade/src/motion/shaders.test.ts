@@ -12,6 +12,15 @@ const turnsIn = (source: string) =>
     (m) => ({ swing: Number(m[1]), tau: Number(m[2]), period: Number(m[3]) }),
   );
 
+/** Whether a field shader writes one turn, multiplied by `u_turning`, with the swing and period of `TURN`. */
+const writesTurn = (source: string) => {
+  const turns = turnsIn(source);
+  return (
+    turns.length === 1 &&
+    turns.every(({ swing, period }) => swing === TURN.swing && period === TURN.period)
+  );
+};
+
 /**
  * The least sway the hero's plants may have: a tip that moves enough to be
  * seen at a glance: the sway the owner saw and chose "Keep it" (ask
@@ -87,29 +96,28 @@ describe('the motion shaders', () => {
   });
 
   test('turn the rays by the swing and period of the one definition, as `turnAt` does', () => {
-    const turns = turnsIn(FIELD_FRAGMENT);
-    expect(turns.length).toBe(1);
-    const [written = { swing: 0, tau: 0, period: 0 }] = turns;
-    expect({ swing: written.swing, period: written.period }).toEqual(TURN);
+    expect(writesTurn(FIELD_FRAGMENT)).toBe(true);
+    const [written = { swing: 0, tau: 0, period: 0 }] = turnsIn(FIELD_FRAGMENT);
     let state = 0x7a11;
     const off: Array<number> = [];
     for (let n = 0; n < 1000; n++) {
       state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
       const t = (state / 2 ** 32) * 3e5;
       const shader = written.swing * Math.sin((written.tau * t) / written.period);
-      if (Math.abs(shader - turnAt(t, true)) > 1e-9) off.push(t);
+      if (Math.abs(shader - turnAt(t)) > 1e-9) off.push(t);
     }
     expect(off).toEqual([]);
   });
 
-  test('a turn written with another swing or period is refused', () => {
+  test('a turn written with another swing or period, or not multiplied by u_turning, is refused', () => {
     const wider = FIELD_FRAGMENT.replace(
       /u_turning \* [0-9.e-]+ \*/,
       `u_turning * ${TURN.swing * 2} *`,
     );
-    expect(turnsIn(wider).map(({ swing }) => swing)).toEqual([TURN.swing * 2]);
     const faster = FIELD_FRAGMENT.replace(/t \/ [0-9.e-]+\)/, 't / 7.0)');
-    expect(turnsIn(faster).map(({ period }) => period)).toEqual([7]);
+    const always = FIELD_FRAGMENT.replace('float turn = u_turning * ', 'float turn = ');
+    expect([wider, faster, always].map(writesTurn)).toEqual([false, false, false]);
+    expect(writesTurn(FIELD_FRAGMENT)).toBe(true);
   });
 
   test('a smoothstep that falls from its first edge to its second is refused', () => {
