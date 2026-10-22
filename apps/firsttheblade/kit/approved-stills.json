@@ -1,7 +1,29 @@
 {
   "approval": {
-    "status": "pending",
-    "ask": "aa434d8c292"
+    "status": "approved",
+    "ask": "aa434d8c292",
+    "lab": "http://127.0.0.1:8229/",
+    "answered": "2026-10-22T11:10:34.961Z",
+    "answer": "Approve it",
+    "answers": {
+      "look": {
+        "kind": "choose",
+        "value": "keep",
+        "label": "Keep it"
+      },
+      "stills": {
+        "kind": "choose",
+        "value": "approve",
+        "label": "Approve it"
+      }
+    },
+    "shown": {
+      "/api/review/files/manna/ftb-remedies-emblem-2026-10-22-r1/01-desktop-rest.png": "496b45d3e9fdd15e0a014081516ff2c8bcb10eb2e4a63bd63862dcc1ed4800de",
+      "/api/review/files/manna/ftb-remedies-emblem-2026-10-22-r1/09-phone-rest.png": "752e002b11500ff9e370afd7d3b3eb22fff4bdbb7da9bcbad7e089a19415e388",
+      "/api/review/files/manna/ftb-remedies-emblem-2026-10-22-r1/06-leaf-rest-x4.png": "f8932004752bb3efb4cb458bb64f85dbbc4d4536cd92fa92051865136bdf0866",
+      "/api/review/files/manna/ftb-remedies-emblem-2026-10-22-r1/07-leaf-hover-x4.png": "d4a739a83956a5dc51b5c9e0ca13cc8307e7bf03e12a3caa0e6f44f1be948939",
+      "/api/review/files/manna/ftb-remedies-emblem-2026-10-22-r1/ship/remedies.jpg": "0a3f51b8b44f9dbc1fc003be912f7bcd012053c225939e4a2295fc4b760cfce6"
+    }
   },
   "earlier": [
     {

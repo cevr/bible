@@ -121,9 +121,32 @@
     }
   },
   "state": {
-    "_tag": "Asking",
-    "step": "ask",
-    "answers": {}
+    "_tag": "Answered",
+    "step": "done",
+    "answers": {
+      "look": {
+        "kind": "choose",
+        "value": "keep",
+        "label": "Keep it"
+      },
+      "stills": {
+        "kind": "choose",
+        "value": "approve",
+        "label": "Approve it"
+      },
+      "note": {
+        "kind": "skipped"
+      }
+    }
   },
-  "answered": []
+  "answered": [
+    {
+      "step": "ask",
+      "values": {
+        "look": "keep",
+        "stills": "approve"
+      },
+      "at": "2026-10-22T11:10:34.961Z"
+    }
+  ]
 }
