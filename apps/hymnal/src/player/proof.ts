@@ -62,6 +62,11 @@ export interface Proof {
   /** When the page had an answer that said `ended` since the latest act: a read asked before is stale. */
   readonly endedAt: number;
   readonly pending: Option.Option<Pending>;
+  /**
+   * An act an `ended` read landed before the device could have reached the end from its place:
+   * a later `ended` read as soon after it keeps its place too.
+   */
+  readonly short: Option.Option<Pending>;
   /** The read the next read pairs with. */
   readonly last: Option.Option<Read>;
   /** The `answered` of the first read of the silence run since the latest act. */
@@ -87,6 +92,7 @@ export const none: Proof = {
   landed: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
   pending: Option.none(),
+  short: Option.none(),
   last: Option.none(),
   quietFrom: Option.none(),
   sounded: false,
@@ -106,6 +112,7 @@ export const acted = (proof: Proof, now: number, target: Option.Option<number>):
   known: now,
   last: Option.none(),
   quietFrom: Option.none(),
+  short: Option.none(),
   pending: Option.match(target, {
     onNone: () => Option.map(proof.pending, (it) => ({ ...it, after: Option.none<Read>() })),
     onSome: (at) => Option.some({ target: at, known: now, after: Option.none<Read>() }),
@@ -183,6 +190,7 @@ const paired = (proof: Proof, read: Read): Proved =>
 const ended = (proof: Proof): Proof => ({
   ...proof,
   pending: Option.none(),
+  short: Option.none(),
   last: Option.none(),
   quietFrom: Option.none(),
   place: Option.none(),
@@ -212,30 +220,42 @@ const placed = (after: Proved, read: Read): Proved => {
  * Whether an `ended` read shows the device before `pending` landed: a seek's completion clears
  * an end (iOS `HybridOneAudio.swift:204`, Android `HybridOneAudio.kt:302`), and from a target
  * short of the end the device reaches it no faster than time passes. The end still lands the
- * act, but the act's place stays the reader's (P7).
+ * act, but the act's place stays the reader's (P7). A device that has not yet given its length
+ * stands at its end when it says `ended`: the read's place is the end then.
  */
-const beforeLanding = (pending: Pending, read: Read) =>
-  Option.exists(
-    Option.fromNullishOr(read.status.durationMs),
-    (length) => length - pending.target > read.answered - pending.known + slack,
-  );
+const beforeLanding = (pending: Pending, read: Read) => {
+  const length = read.status.durationMs ?? read.status.positionMs;
+  return length - pending.target > read.answered - pending.known + slack;
+};
 
 /** The proof after `read`, and what it proved. */
 export const readOf = (proof: Proof, read: Read): Proved => {
   if (read.asked < proof.known) return { proof, seen: 'stale' };
-  if (read.status.state === 'ended')
+  if (read.status.state === 'ended') {
+    // A second `ended` read as soon after the act shows the device before the landing too.
+    const short = Option.filter(
+      Option.orElse(proof.pending, () => proof.short),
+      (it) => beforeLanding(it, read),
+    );
+    return {
+      proof: { ...ended(proof), short, place: Option.map(short, (it) => it.target) },
+      seen: 'nothing',
+    };
+  }
+  if (read.asked < proof.endedAt) return { proof, seen: 'stale' };
+  // A read asked before the landing's answer may have seen the device before or after it: at
+  // another place, the page cannot tell which of the two came last, so neither opens a pair.
+  if (read.asked < proof.landed)
     return {
       proof: {
-        ...ended(proof),
-        place: Option.map(
-          Option.filter(proof.pending, (it) => beforeLanding(it, read)),
-          (it) => it.target,
+        ...proof,
+        last: Option.filter(
+          proof.last,
+          (last) => Math.abs(last.status.positionMs - read.status.positionMs) <= slack,
         ),
       },
       seen: 'nothing',
     };
-  if (read.asked < proof.endedAt) return { proof, seen: 'stale' };
-  if (read.asked < proof.landed) return { proof, seen: 'nothing' };
   return Option.match(proof.pending, {
     onNone: () => placed(paired(proof, read), read),
     // Two reads after the act at one place prove silence while it is pending: a landing would

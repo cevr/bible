@@ -135,6 +135,8 @@ interface Tell {
   readonly run: () => void;
   /** A phone press's reader place before it: the place the page knows until the tell. */
   readonly before?: Option.Option<number>;
+  /** The place before sound a hold kept unseen at the press: the page may still keep it too. */
+  readonly unseen?: Option.Option<number>;
   /** A press that acts at its tell (an iOS seek): its place, the reader's from the press. */
   readonly seekTo?: number;
 }
@@ -155,6 +157,8 @@ interface SeekAsk {
   readonly resolve: (status: Status) => void;
   readonly reject: (error: Error) => void;
   readonly asked: number;
+  /** The world's act count at the ask: the answer is news since the latest act when it holds. */
+  readonly acts: number;
 }
 type RemoteListener = Parameters<Device['audio']['watchRemoteCommands']>[0];
 type NetworkListener = Parameters<Device['network']['addStateListener']>[0];
@@ -362,7 +366,10 @@ const initial = (platform: Platform, start: number) => ({
   failedAt: Number.NEGATIVE_INFINITY,
   endedAt: Number.NEGATIVE_INFINITY,
   endedSeen: false,
-  /** Whether a read asked since the latest act said `ended` (O8: "has said ended since the latest act"). */
+  /**
+   * Whether a read, or a seek's own answer, asked since the latest act said `ended` (O8: "has
+   * said ended since the latest act").
+   */
   endedSaid: false,
   /** Whether the device stood at its end, by the world, when the latest act came. */
   endedBefore: false,
@@ -562,6 +569,8 @@ export const makeWorld = (
         if (status.state === 'ended') {
           w.endedSampled = Math.max(w.endedSampled, at);
           w.endedAsked = ask.asked;
+          // A seek's answer is the device's word, as a read's is (Decided 12).
+          if (ask.acts === w.acts) w.endedSaid = true;
         }
         ask.resolve(status);
       };
@@ -644,7 +653,7 @@ export const makeWorld = (
     // and the web's, at the element's `seeked` (One 2.8.1, `src/platform/audio/index.ts:246-278`).
     dropSeek(false);
     return new Promise<Status>((resolve, reject) => {
-      w.seekAsk = Option.some({ resolve, reject, asked: w.t });
+      w.seekAsk = Option.some({ resolve, reject, asked: w.t, acts: w.acts });
       landAfter(positionMs, after, true);
     });
   };
@@ -777,14 +786,20 @@ export const makeWorld = (
     Math.abs(at - expected) <= 1000 ||
     Option.exists(w.unseenFrom, (from) => Math.abs(at - from) <= 1000);
   const settled = () => w.t >= w.holdEnd + span + step;
-  /** The reader's place before the first phone press not told yet, if one waits. */
+  /**
+   * The places the page may know before the first phone press not told yet, if one waits: the
+   * reader's at the press, and the place before sound a hold kept unseen then.
+   */
   const untoldBefore = () =>
-    Option.map(
-      Option.flatMap(
-        Arr.findFirst(w.tells, (tell) => 'before' in tell),
-        (tell) => Option.fromNullishOr(tell.before),
-      ),
-      Option.getOrElse(() => 0),
+    Option.match(
+      Arr.findFirst(w.tells, (tell) => 'before' in tell),
+      {
+        onNone: () => [],
+        onSome: (tell) => [
+          Option.getOrElse(Option.flatten(Option.fromNullishOr(tell.before)), () => 0),
+          ...Option.toArray(Option.flatten(Option.fromNullishOr(tell.unseen))),
+        ],
+      },
     );
   const noteAct = () => {
     // Whether the device stands at its end: it ended, and no landing, load or replay has moved
@@ -872,10 +887,7 @@ export const makeWorld = (
         w.resumeAt = w.t;
         // A phone press not told yet is unknown to the page: its Resume may play from the
         // place before the first such press.
-        w.resumePlaces.push([
-          Option.getOrElse(w.readerPlace, () => 0),
-          ...Option.toArray(untoldBefore()),
-        ]);
+        w.resumePlaces.push([Option.getOrElse(w.readerPlace, () => 0), ...untoldBefore()]);
       },
       Pause: () => {
         w.wants = false;
@@ -994,6 +1006,7 @@ export const makeWorld = (
       return;
     }
     const before = w.readerPlace;
+    const unseen = w.unseenFrom;
     const pressedAt = w.t;
     w.pressing = true;
     pressed(kind, to);
@@ -1012,6 +1025,7 @@ export const makeWorld = (
     w.tells.push({
       pressedAt,
       before,
+      unseen,
       at: w.t + knobs.tellAfter(),
       run: () => {
         if (kind === 'play') {
@@ -1406,7 +1420,7 @@ export const makeWorld = (
         // A place past an end the page cannot know yet lands at the end. A phone's press not
         // told yet is unknown to the page: the place before it is the page's to keep.
         const kept = Math.min(at * 1000, w.length);
-        const untold = Option.toArray(untoldBefore());
+        const untold = untoldBefore();
         if (!near(kept, expected) && !untold.some((place) => Math.abs(kept - place) <= 1000))
           breach('O6 the page keeps another place', `at=${at} reader=${expected}`);
       });

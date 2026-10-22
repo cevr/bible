@@ -1226,6 +1226,32 @@ describe('the player by the world: the part 6 sweep (rw r3 part 7)', () => {
   seed('an end read before a lock-screen seek landed', 'web', 688);
 });
 
+describe('the player by the world: the part 7 sweep (rw r3 part 8)', () => {
+  /** One seed of `platform`, 90 s as the seeded case draws it: the rules it broke. */
+  const seed = (name: string, platform: Platform, at: number) =>
+    it.effect(`${name} (${platform} ${at}) breaks no rule`, () =>
+      Effect.gen(function* () {
+        expect((yield* seeded(platform, at, 1)).broken).toEqual([]);
+      }),
+    );
+
+  // A seek's own answer that says `ended`, asked since the latest act, is the device saying it
+  // ended: the page shows Ended by it, and a failure after is no act (O8).
+  seed('a seek past the end answered ended, then a failure', 'ios', 949);
+  // Two `ended` reads before a lock-screen seek landed: each shows the device before the
+  // landing, and the seek's place stays the reader's (P7).
+  seed('two end reads before a lock-screen seek landed', 'ios', 1258);
+  // A read asked before a seek's answer landed, at another place: it may follow the landing
+  // answer, so a later read pairs with neither (O1).
+  seed('a read in flight across a landing, then a hold', 'android', 911);
+  // A press told after unseen sound in a hold: the place the device reached before the press
+  // is one the page may resume from (O6).
+  seed('an untold lock-screen seek after unseen sound in a hold', 'android', 1449);
+  // An end read with no length before a seek landed: the device stands at its end then, so the
+  // read is before the landing and the seek's place stays the reader's (P7).
+  seed('an end read with no length before a lock-screen seek landed', 'web', 228);
+});
+
 // O2 judges the page's give-up by what the page was told (orchestrator, after r3 part 6): a
 // phone's press restarts the offline run at its tell, in the order told, never at the press.
 describe('O2 by the acts the page was told (rw r3 part 7)', () => {
