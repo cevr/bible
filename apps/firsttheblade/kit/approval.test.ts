@@ -20,13 +20,42 @@ import {
   shippable,
   StillsMoved,
 } from './approval.ts';
-import { type AskAnswers, AskUnknown, type LabAsk, LabAsks } from './lab-asks.ts';
+import { AskAnswer, type AskAnswers, AskUnknown, LabAsk, LabAsks } from './lab-asks.ts';
 import { scratchApp } from './scratch-app.ts';
 
 const APP = `${import.meta.dir}/..`;
 const ASK = 'a1b2c3d4e5f';
 const OTHER = 'f5e4d3c2b1a';
 const AT = '2026-10-22T09:00:00.000Z';
+
+/**
+ * The owner's real answer to the ask that showed him these stills: the lab's
+ * record of it (`GET /api/asks/adf28c17753`) and the lines `ask wait` printed
+ * when he answered, both kept as he gave them. The tests read the files and
+ * never the lab.
+ */
+const REAL = 'adf28c17753';
+const REAL_RECORD = `${import.meta.dir}/fixtures/ask-${REAL}.json`;
+const REAL_WAIT = `${import.meta.dir}/fixtures/ask-${REAL}.txt`;
+const REAL_AT = '2026-10-22T01:18:28.478Z';
+
+/**
+ * An `ask wait` answer line (`answer <question> <kind> key=value…`, a value
+ * in quotes when it has spaces) read as the question and the answer it
+ * prints, decoded as the lab's answers are.
+ */
+const printedAnswer = Effect.fn('test/printedAnswer')(function* (line: string) {
+  const [, question = '', kind = ''] = line.split(' ');
+  const fields = Array.from(line.matchAll(/(\w+)=("[^"]*"|\S+)/g), ([, key = '', given = '']) => [
+    key,
+    given.replace(/^"|"$/g, ''),
+  ]);
+  const answer = yield* Schema.decodeUnknownEffect(AskAnswer)({
+    kind,
+    ...Object.fromEntries(fields),
+  });
+  return [question, answer] as const;
+});
 
 const SWAY: AskAnswers[string] = { kind: 'choose', value: 'keep', label: 'Keep the sway as it is' };
 const YES: AskAnswers[string] = { kind: 'choose', value: APPROVE, label: 'Approve these stills' };
@@ -129,6 +158,36 @@ describe('kit:approve', () => {
           ask: ASK,
           answered: AT,
           answers: { sway: SWAY, [STILLS_QUESTION]: YES, stills_note: NOTE },
+        },
+        stills: pinned.stills,
+      });
+    }).pipe(Effect.scoped));
+
+  test("approves on the owner's real answer, as the lab records it and ask wait prints it", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const real = yield* Schema.decodeEffect(Schema.fromJsonString(LabAsk))(
+        yield* fs.readFileString(REAL_RECORD),
+      );
+      const lines = (yield* fs.readFileString(REAL_WAIT))
+        .split('\n')
+        .filter((line) => line.startsWith('answer '));
+      const printed = Object.fromEntries(yield* Effect.forEach(lines, printedAnswer));
+      expect(lines.length).toBe(5);
+      expect(printed).toEqual(real.state.answers);
+      const root = yield* pinnedOn(REAL, []);
+      const pinned = yield* readRecord(root);
+      expect(yield* approvedOn(root, REAL, [real])).toEqual(['approved', false]);
+      expect(yield* readRecord(root)).toEqual({
+        approval: {
+          status: 'approved',
+          ask: REAL,
+          answered: REAL_AT,
+          answers: {
+            sway: { kind: 'choose', value: 'more', label: 'A bit more' },
+            e2: { kind: 'choose', value: 'accept', label: 'Accept it' },
+            [STILLS_QUESTION]: { kind: 'choose', value: APPROVE, label: 'Approve them' },
+          },
         },
         stills: pinned.stills,
       });

@@ -1,0 +1,11 @@
+[21:18:29.055] INFO (#3): ask.wait.latched ask=adf28c17753 status=answered
+ask adf28c17753 status=answered step=end page=adf28c17753 by=ftb-motion coordinator title="First the Blade hero: the sway, the last streak trace, and the stills to ship"
+answered step=sway at=2026-10-22T01:18:28.478Z
+answered step=streaks at=2026-10-22T01:18:28.478Z
+answered step=approve at=2026-10-22T01:18:28.478Z
+answer sway choose value=more label="A bit more"
+answer sway_note skipped
+answer e2 choose value=accept label="Accept it"
+answer stills choose value=approve label="Approve them"
+answer stills_note skipped
+local http://localhost:8229/asks/adf28c17753

@@ -1,0 +1,208 @@
+{
+  "id": "adf28c17753",
+  "title": "First the Blade hero: the sway, the last streak trace, and the stills to ship",
+  "why": "Your answers set the sway amount, decide if the faint E2 trace stays, and approve the hero stills. From now on, the gate ships only stills you approved by name.",
+  "by": "ftb-motion coordinator",
+  "created": "2026-10-21T23:51:13.032Z",
+  "ask": {
+    "start": "sway",
+    "steps": {
+      "sway": {
+        "title": "The sway",
+        "blocks": [
+          {
+            "kind": "video",
+            "ref": "manna/ftb-motion-2026-10-21-r3/sway-desktop-before-over-after.mp4",
+            "caption": "Desktop: before (0.0045) on top, after (0.012) below"
+          },
+          {
+            "kind": "video",
+            "ref": "manna/ftb-motion-2026-10-21-r3/sway-phone-before-beside-after.mp4",
+            "caption": "Phone: before on the left, after on the right"
+          },
+          {
+            "kind": "video",
+            "ref": "manna/ftb-motion-2026-10-21-r3/desktop.mp4",
+            "caption": "The whole page on desktop with the new sway, tree card and streak lift"
+          },
+          {
+            "kind": "choose",
+            "id": "sway",
+            "label": "Is the new sway right?",
+            "options": [
+              {
+                "value": "keep",
+                "label": "Keep 0.012",
+                "recommended": true,
+                "why": "You see it at a glance and it is still calm; the reviewer saw no tearing"
+              },
+              {
+                "value": "more",
+                "label": "A bit more"
+              },
+              {
+                "value": "less",
+                "label": "A bit less"
+              }
+            ]
+          },
+          {
+            "kind": "free_text",
+            "id": "sway_note",
+            "label": "Anything else about the motion"
+          }
+        ],
+        "next": [
+          {
+            "to": "streaks"
+          }
+        ]
+      },
+      "streaks": {
+        "title": "The left-hill streaks",
+        "blocks": [
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-r3/streaks-pair-768-hills.png",
+              "caption": "768 (phone): before | after. The streaks are gone."
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-r3/streaks-pair-3072-e2.png",
+              "caption": "3072 at 1:1: before | after. A faint trace of one edge stays on the far hill."
+            }
+          },
+          {
+            "kind": "choose",
+            "id": "e2",
+            "label": "The faint trace at 3072",
+            "options": [
+              {
+                "value": "accept",
+                "label": "Accept it",
+                "recommended": true,
+                "why": "Plain only at 1:1 on the largest size; it has almost no measurable step to lift"
+              },
+              {
+                "value": "lift",
+                "label": "Lift it too"
+              }
+            ]
+          }
+        ],
+        "next": [
+          {
+            "to": "approve"
+          }
+        ]
+      },
+      "approve": {
+        "title": "Approve the stills",
+        "blocks": [
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-r3/desktop-hero.png",
+              "caption": "Desktop hero"
+            }
+          },
+          {
+            "kind": "image",
+            "image": {
+              "src": "/api/review/files/manna/ftb-motion-2026-10-21-r3/phone-hero.png",
+              "caption": "Phone hero"
+            }
+          },
+          {
+            "kind": "prose",
+            "text": "Three tries to make a test that sees rays by itself have failed: the painting's own texture is stronger than a faint ray. From now on the gate ships only stills you approved, matched byte for byte. Any repaint comes back to you as an ask like this one."
+          },
+          {
+            "kind": "choose",
+            "id": "stills",
+            "label": "Approve these hero stills to ship?",
+            "options": [
+              {
+                "value": "approve",
+                "label": "Approve them",
+                "recommended": true,
+                "why": "The light comes from the sun and the old ray edges are lifted"
+              },
+              {
+                "value": "revise",
+                "label": "Not yet: revise"
+              }
+            ]
+          },
+          {
+            "kind": "free_text",
+            "id": "stills_note",
+            "label": "What to revise, if anything"
+          }
+        ],
+        "next": [
+          {
+            "to": "end"
+          }
+        ]
+      },
+      "end": {
+        "end": true,
+        "text": "Thank you. The site ships after the rewrite's review."
+      }
+    }
+  },
+  "state": {
+    "_tag": "Answered",
+    "step": "end",
+    "answers": {
+      "sway": {
+        "kind": "choose",
+        "value": "more",
+        "label": "A bit more"
+      },
+      "sway_note": {
+        "kind": "skipped"
+      },
+      "e2": {
+        "kind": "choose",
+        "value": "accept",
+        "label": "Accept it"
+      },
+      "stills": {
+        "kind": "choose",
+        "value": "approve",
+        "label": "Approve them"
+      },
+      "stills_note": {
+        "kind": "skipped"
+      }
+    }
+  },
+  "answered": [
+    {
+      "step": "sway",
+      "values": {
+        "sway": "more"
+      },
+      "at": "2026-10-22T01:18:28.478Z"
+    },
+    {
+      "step": "streaks",
+      "values": {
+        "e2": "accept"
+      },
+      "at": "2026-10-22T01:18:28.478Z"
+    },
+    {
+      "step": "approve",
+      "values": {
+        "stills": "approve"
+      },
+      "at": "2026-10-22T01:18:28.478Z"
+    }
+  ]
+}
