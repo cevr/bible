@@ -69,6 +69,32 @@ under its number, and the refrain written out each time it is sung.
   seed, and `HYMNAL_LIST_SEED=<seed>` runs its cases again. It needs
   Chromium installed once (`bunx playwright install chromium`).
 
+## Chords
+
+A `Chords` switch under a hymn's title (the stored `chords` setting, off by
+default) draws the hymn's guitar chords over its words. Each sung syllable
+is a box with its chords above it in the body's own font, a word's boxes
+stay together, and a line wraps between words; a chord wider than its
+syllable widens the box, and inside a word the gap shows a hyphen. A part
+placed by line shows each line's chords in one row above it, a plain part
+its words alone, and a hymn with no chords says so. While chords are on,
+`Transpose down`/`Transpose up` move the sounding key (`Key <key>`) through
+the twelve keys, and `Capo down`/`Capo up` set a capo fret, 0 to 11, the
+chords then shown as the shapes that fret plays (`Capo <n>, <key> shapes`).
+Each hymn keeps its own move (`move.<number>` in the settings store).
+
+- The chords come in a module of their own, `virtual:hymnal-chords`,
+  derived from the compiled set when the app is bundled (`vite/chords.ts`,
+  served by the same plugin as the words): one compact string per hymn,
+  about 780 KB in all. The words module is unchanged, and a hymn's string is
+  decoded only when it is shown with chords on, once (`chordBook` in
+  `src/hymns/chords.ts`).
+- The chords are degrees above the hymn's key, spelled with
+  `@bible/hymnal/chord` in the key the move reaches: the printed key at rest
+  and after a whole octave, else the key a signature names on that pitch.
+- `src/hymns/chords.property.test.ts` walks every hymn, section and syllable
+  at every transpose and capo.
+
 ## The player
 
 A hymn page plays the hymn's 1985 recording from `audioUrl(n)`: a Play or

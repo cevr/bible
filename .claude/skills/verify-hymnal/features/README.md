@@ -13,9 +13,10 @@ recipe.
 - The recipes write `bun run --cwd apps/hymnal sim` as `sim`. A step's
   "→" is its observable result: the JSON line's `ok`, and what the
   snapshot or screenshot shows.
-- The app has no seed: its 695 hymns are compiled in, and its only stored
-  choice is the appearance setting. A drive that changes the setting puts
-  it back to `System` at the end.
+- The app has no seed: its 695 hymns are compiled in, and its stored
+  choices are the appearance setting, the chords switch and each hymn's
+  transpose and capo. A drive that changes one puts it back at the end
+  (`System`; chords off, no transpose, no capo).
 
 ## Proof and skip reporting
 
@@ -49,11 +50,11 @@ source seams out.
 
 ## Features
 
-| Feature                               | Id                  | Deep link (iOS / web)               | Proof                                          |
-| ------------------------------------- | ------------------- | ----------------------------------- | ---------------------------------------------- |
-| [Hymn list](hymn-list.md)             | `hymn-list`         | `hymnal://` / `/`                   | rows by number, scroll, open a row             |
-| [Hymn reader](hymn-reader.md)         | `hymn-reader`       | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll          |
-| [Chords and capo](chords-and-capo.md) | `chords`, `capo`    | none: not on main                   | `TargetMissing` for `label=Chords`             |
-| [Player](player.md)                   | `player`            | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control     |
-| [Settings and about](settings.md)     | `settings`, `about` | `hymnal://settings` / `/settings`   | appearance kept after leaving; About's credits |
-| [Search](search.md)                   | `search`            | `hymnal://search` / `/search`       | one match for "great is thy", open it          |
+| Feature                               | Id                                                            | Deep link (iOS / web)               | Proof                                                                    |
+| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| [Hymn list](hymn-list.md)             | `hymn-list`                                                   | `hymnal://` / `/`                   | rows by number, scroll, open a row                                       |
+| [Hymn reader](hymn-reader.md)         | `hymn-reader`                                                 | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll                                    |
+| [Chords and capo](chords-and-capo.md) | `chords`, `capo`, `transpose`, `chords-levels`, `chords-kept` | `hymnal://hymns/100` / `/hymns/100` | `chord-1-1-1` reads `Db`, then follows transpose and capo; kept per hymn |
+| [Player](player.md)                   | `player`                                                      | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control                               |
+| [Settings and about](settings.md)     | `settings`, `about`                                           | `hymnal://settings` / `/settings`   | appearance kept after leaving; About's credits                           |
+| [Search](search.md)                   | `search`                                                      | `hymnal://search` / `/search`       | one match for "great is thy", open it                                    |
