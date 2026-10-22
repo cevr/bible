@@ -975,8 +975,12 @@ export const sectionsPosted = (post: AskAnswerPost): ReadonlyArray<AskSectionPos
  * record, or with every ask on its page (the asks made in sequence, in the
  * order made), and answered as one page, its sections in order; the answers
  * move its machine and are kept, so a reload or another device opens it
- * where it was left. Each image it shows from a file is served from the
- * copy the lab made with the ask (`shown`), never from the file as it stands.
+ * where it was left. Its images keep the receipt rule (`AskStore`'s
+ * `receipted`): an image whose src the receipt names is served only as its
+ * copy. Each file-served image of an image block or an option is copied as
+ * the ask is made, or the make is refused (`AskRefused`, naming the src). A
+ * board block's panels and a video's poster or frame show live and bind
+ * nothing.
  */
 class AsksGroup extends HttpApiGroup.make('asks').add(
   HttpApiEndpoint.get('read', `${API}/asks/:ask`, {
@@ -995,7 +999,7 @@ class AsksGroup extends HttpApiGroup.make('asks').add(
     success: AskRecord,
     error: Refusals,
   }),
-  /** An image the ask shows, as the lab copied it when it made the ask: `<sha256><.ext>`, one its receipt names. */
+  /** An image the ask shows, as the lab copied it when it made the ask (the receipt rule, above): `<sha256><.ext>`, one its receipt names, served only while it holds its hash. */
   HttpApiEndpoint.get('shown', `${API}/asks/:ask/shown/:file`, {
     params: { ask: Schema.String, file: Schema.String },
     success: FileBytes,

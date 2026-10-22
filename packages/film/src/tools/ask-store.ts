@@ -5,13 +5,17 @@
 // kept; a choice it makes now recommends one option), the owner answers
 // its page from any device (`answerPage`: each section's step in order, the
 // run moved by its machine, `askMachine`, and every section kept or none),
-// and the agent closes it. Each file an image of the ask shows is copied as
-// the ask is made into `FILMS_LAB/asks/shown/`, named by its SHA-256, and
-// the image shows the copy (`askShownUrl`): its receipt (`AskRecord.shown`)
-// is of the bytes the page serves, whatever becomes of the file after. A
-// copy is shared by every ask that shows the same bytes, and the lab
-// deletes none, so a closed ask's page still shows what it showed; an answer
-// is refused when a copy no longer holds its hash. An ask made while an earlier one of the same
+// and the agent closes it. Its images keep the receipt rule (`receipted`):
+// an image whose src the receipt names is served only as its copy. Each
+// file-served image of an image block or an option is copied as the ask is
+// made, or the make is refused (`AskRefused`, naming the src). A board
+// block's panels and a video's poster or frame show live and bind nothing.
+// Each copy is kept in `FILMS_LAB/asks/shown/`, named by its SHA-256, and
+// the image shows its route (`askShownUrl`); its receipt is
+// `AskRecord.shown`. A copy is shared by every ask that shows the same
+// bytes, and the lab deletes none, so a closed ask's page still shows what
+// it showed. A copy is served, and an answer taken, only while each copy
+// holds its hash. An ask made while an earlier one of the same
 // asker (`by`) still asks joins that one's page (`page`, the opener's id),
 // so asks made in sequence are answered on one page; `page` on the draft
 // names an open page to join, or `new` opens one. A page is only the asks
@@ -99,7 +103,7 @@ import {
 import { AskMaterials } from './ask-materials.ts';
 import { BoardStore } from './board-store.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { sha256OfFile } from './digest.ts';
+import { sha256Hex, sha256OfFile } from './digest.ts';
 import { type FilmFolder, filmNamed } from './film-repo.ts';
 import { ProductionStore } from './production-store.ts';
 
@@ -150,13 +154,17 @@ interface AskStoreService {
     sections: ReadonlyArray<{ readonly step: AskName; readonly values: StepValues }>,
   ) => Effect.Effect<AskRecord, AskUnknown | AskRefused | StoreError>;
   /**
-   * The copy ask `id` shows as `file` (`<sha256><.ext>`, its `src` an
-   * `askShownUrl`): only a copy its receipt names, else ReviewFileUnknown.
+   * The bytes of the copy ask `id` shows as `file` (`<sha256><.ext>`, its
+   * `src` an `askShownUrl`), read once: only a copy its receipt names, else
+   * ReviewFileUnknown; AskRefused when they no longer hold its hash.
    */
   readonly shownFile: (
     id: string,
     file: string,
-  ) => Effect.Effect<string, AskUnknown | ReviewFileUnknown | StoreError>;
+  ) => Effect.Effect<
+    { readonly name: string; readonly bytes: Uint8Array },
+    AskUnknown | AskRefused | ReviewFileUnknown | StoreError
+  >;
   /** The ask closed, `why` (withdrawn, or filed once answered): what was answered is kept, and filed. */
   readonly close: (
     id: string,
@@ -425,24 +433,43 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
         }).pipe(Effect.orElseSucceed(() => Option.none<{ hash: string; name: string }>()));
 
       /**
-       * `ask` (ask `id`'s) with each image whose route serves a file showing
-       * its copy (`copied`) instead, and the receipt: each copy's `src` with
-       * its SHA-256. A file that does not read keeps its `src` and has none.
+       * The receipt rule: an image whose src the receipt names is served
+       * only as its copy. Each file-served image of an image block or an
+       * option is copied as the ask is made, or the make is refused
+       * (`AskRefused`, naming the src). A board block's panels and a video's
+       * poster or frame show live and bind nothing.
+       *
+       * `ask` (ask `id`'s) with each file-served image showing its copy
+       * (`copied`), and the receipt: each copy's `src` with its SHA-256.
        */
       const receipted = (id: AskName, ask: Ask) =>
         Effect.gen(function* () {
-          const copies = new Map(
-            (yield* Effect.forEach(yield* materials.served(ask), ([src, from]) =>
-              Effect.map(copied(from), (copy) =>
-                Option.toArray(
-                  Option.map(
-                    copy,
-                    ({ hash, name }) => [src, { src: askShownUrl(id, name), hash }] as const,
+          const each = yield* Effect.forEach(yield* materials.served(ask), ([src, at]) =>
+            Match.value(at).pipe(
+              Match.tag('File', ({ file }) =>
+                Effect.map(copied(file), (copy) =>
+                  Result.fromOption(
+                    Option.map(copy, ({ hash, name }) => [
+                      [src, { src: askShownUrl(id, name), hash }] as const,
+                    ]),
+                    () => `image ${src}: its file did not copy as the ask was made`,
                   ),
                 ),
               ),
-            )).flat(),
+              Match.tag('Frame', () => Effect.succeed(Result.succeed([]))),
+              Match.tag('None', () =>
+                Effect.succeed(Result.fail(`image ${src}: the lab serves no file there now`)),
+              ),
+              Match.exhaustive,
+            ),
           );
+          const refused = Arr.getFailures(each);
+          if (refused.length > 0)
+            return yield* AskRefused.make({
+              id,
+              reason: `its images show only copies made with it, and ${refused.join('; ')}: make it again`,
+            });
+          const copies = new Map(Arr.getSuccesses(each).flat());
           const showing = mapImages(ask, (image) =>
             Option.match(
               Option.flatMap(Option.fromUndefinedOr(image.src), (src) =>
@@ -577,8 +604,8 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       };
 
       /**
-       * Why `record`'s page would show bytes its receipt does not hold: each
-       * image `src` it names that is not a copy of its hash the ask made, or
+       * Why `record`'s page breaks the receipt rule (`receipted`): each `src`
+       * its receipt names that is not a copy of its hash the ask made, or
        * whose copy is gone or no longer holds its hash. None for an ask kept
        * before receipts: it binds no bytes.
        */
@@ -604,11 +631,20 @@ export class AskStore extends Context.Service<AskStore, AskStoreService>()(
       const shownFile = Effect.fn('AskStore.shownFile')(function* (id: string, name: string) {
         const record = yield* read(id);
         const src = askShownUrl(record.id, name);
-        const copy = Option.flatMap(Option.fromUndefinedOr(record.shown?.[src]), (hash) =>
-          copyOf(record.id, src, hash),
-        );
-        if (Option.isNone(copy)) return yield* ReviewFileUnknown.make({ ref: src });
-        return path.join(shownDir, copy.value);
+        const hash = Option.fromUndefinedOr(record.shown?.[src]);
+        const copy = Option.flatMap(hash, (h) => copyOf(record.id, src, h));
+        if (Option.isNone(copy) || Option.isNone(hash))
+          return yield* ReviewFileUnknown.make({ ref: src });
+        const bytes = yield* fs
+          .readFile(path.join(shownDir, copy.value))
+          .pipe(Effect.mapError(() => ReviewFileUnknown.make({ ref: src })));
+        // Read once, hashed, and those bytes served: a copy changed under the lab is never served as its hash.
+        if (sha256Hex(bytes) !== hash.value)
+          return yield* AskRefused.make({
+            id: record.id,
+            reason: `its copy ${name} no longer holds ${hash.value}: close it and make the ask again`,
+          });
+        return { name, bytes };
       });
 
       const answerPage = Effect.fn('AskStore.answerPage')(function* (

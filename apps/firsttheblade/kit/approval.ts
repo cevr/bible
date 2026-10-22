@@ -4,12 +4,17 @@
  * - A still is approved only if its SHA-256 equals a file that an image
  *   block of an approving ask showed, on a step his answer reached, and
  *   that ask's `stills` answer is `approve`. The hash is the lab's receipt
- *   (`./lab-asks.ts`): as the lab makes the ask it copies each image
- *   block's file under its SHA-256, the page serves only that copy, and the
- *   lab refuses an answer while a copy no longer holds its hash. So an
- *   approval binds the bytes the owner was shown before he answered, not
- *   his word alone and not the set's file as it stands later, and stays
- *   true of those bytes: a later ask need show only the stills that changed.
+ *   (`./lab-asks.ts`), kept by its receipt rule: an image whose src the
+ *   receipt names is served only as its copy. Each file-served image of an
+ *   image block or an option is copied as the ask is made, or the make is
+ *   refused (`AskRefused`, naming the src). A board block's panels and a
+ *   video's poster or frame show live and bind nothing. The lab refuses an
+ *   answer while a copy no longer holds its hash. The kit counts only the
+ *   images the receipt names (`shownOn`): one it holds no hash of shows
+ *   nothing, so a src outside the rule approves no still. So an approval
+ *   binds the bytes the owner was shown before he answered, not his word
+ *   alone and not the set's file as it stands later, and stays true of
+ *   those bytes: a later ask need show only the stills that changed.
  * - Every image file of the built site (`dist/` after `bun run build`, each
  *   found by its bytes, `./build-walk.ts`) is an approved still or an image
  *   outside the rule (`OUTSIDE`, `./served.ts`, each with its reason), and

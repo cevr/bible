@@ -77,10 +77,13 @@ const board: BoardFile = {
   approvals: [],
 };
 
+/** The film's files: its Board, and each try's image, which an ask copies as it is made (the receipt rule). */
 const files = () =>
   new Map<string, Uint8Array>([
     ['/films/f/scenes/index.ts', text('export {};\n')],
     ['/films/f/board.json', text(Schema.encodeSync(BoardFileJson)(board))],
+    ['/films/f/board/word.church.1.png', text('try 1 as drawn')],
+    ['/films/f/board/word.church.7.png', text('try 7 as drawn')],
   ]);
 
 /** An ask, a page's blocks and a step's name as an agent writes them, decoded as the lab decodes them. */
@@ -207,8 +210,14 @@ describe('the asks on disk', () => {
           blocks: [
             {
               options: [
-                { value: '1', image: { src: '/api/films/f/board/files/word.church.1.png' } },
-                { value: '7', image: { src: '/api/films/f/board/files/word.church.7.png' } },
+                {
+                  value: '1',
+                  image: { src: askShownUrl(made.id, `${sha256Hex(text('try 1 as drawn'))}.png`) },
+                },
+                {
+                  value: '7',
+                  image: { src: askShownUrl(made.id, `${sha256Hex(text('try 7 as drawn'))}.png`) },
+                },
               ],
             },
           ],
@@ -220,25 +229,25 @@ describe('the asks on disk', () => {
   );
 
   it.effect(
-    "keeps the receipt of its images as it makes the ask: each try's file copied by its SHA-256 and shown as the copy, none for a try with no file",
+    "keeps the receipt of its images as it makes the ask: each try's file copied by its SHA-256 and shown as the copy; a try with no file refuses the make, naming its src",
     () => {
+      const one = text('try 1 as drawn');
       const seven = text('try 7 as drawn');
+      const lab = files();
       return Effect.gen(function* () {
         const asks = yield* AskStore;
         const made = yield* asks.make(draft(proof([1, 7])));
-        const copy = askShownUrl(made.id, `${sha256Hex(seven)}.png`);
-        expect(imagesIn(made.ask).map((image) => image.src)).toEqual([
-          '/api/films/f/board/files/word.church.1.png',
-          copy,
-        ]);
-        const receipt = { [copy]: sha256Hex(seven) };
+        const copies = [one, seven].map((bytes) => askShownUrl(made.id, `${sha256Hex(bytes)}.png`));
+        expect(imagesIn(made.ask).map((image) => image.src)).toEqual(copies);
+        const receipt = { [copies[0] ?? '']: sha256Hex(one), [copies[1] ?? '']: sha256Hex(seven) };
         expect(made.shown).toEqual(receipt);
         expect((yield* asks.read(made.id)).shown).toEqual(receipt);
-      }).pipe(
-        Effect.provide(
-          labInMemory(new Map([...files(), ['/films/f/board/word.church.7.png', seven]])),
-        ),
-      );
+        lab.delete('/films/f/board/word.church.1.png');
+        const refused = yield* Effect.flip(asks.make(draft(proof([1, 7]))));
+        expect(refused._tag).toBe('AskRefused');
+        expect(refused.message).toContain('image /api/films/f/board/files/word.church.1.png');
+        expect(yield* asks.list).toHaveLength(1);
+      }).pipe(Effect.provide(labInMemory(lab)));
     },
   );
 

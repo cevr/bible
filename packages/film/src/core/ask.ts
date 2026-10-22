@@ -1197,16 +1197,18 @@ export const AskRecord = Schema.Struct({
   deadline: Schema.optionalKey(Schema.String),
   ask: Ask,
   /**
-   * The receipt of what its images show. As the ask is made, the lab
-   * copies each file an image's route serves (`AskMaterials.served`) into
-   * its asks' folder, named by its SHA-256 (`asks/shown/<sha256><.ext>`),
-   * and the image's `src` becomes that copy's route (`askShownUrl`): this
-   * holds each such `src` with its copy's SHA-256. The page serves only the
-   * copy, and an answer is refused when a copy no longer holds its hash
-   * (`AskStore.answerPage`), so the hash is of the bytes the owner was shown
-   * when he answered. A video's frame is drawn from the video, and a file
-   * that did not read as the ask was made was not copied: neither has an
-   * entry. An ask kept before receipts has no `shown`.
+   * The receipt of what its images show, by the receipt rule
+   * (`AskStore`'s `receipted`): an image whose src the receipt names is
+   * served only as its copy. Each file-served image of an image block or
+   * an option is copied as the ask is made, or the make is refused
+   * (`AskRefused`, naming the src). A board block's panels and a video's
+   * poster or frame show live and bind nothing. Each copy is kept in the
+   * asks' folder, named by its SHA-256 (`asks/shown/<sha256><.ext>`), and
+   * the image's `src` is its route (`askShownUrl`): this holds each such
+   * `src` with its copy's SHA-256. An answer is refused while a copy no
+   * longer holds its hash (`AskStore.answerPage`), so the hash is of the
+   * bytes the owner was shown when he answered. An ask kept before
+   * receipts has no `shown`.
    */
   shown: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
   state: AskState,

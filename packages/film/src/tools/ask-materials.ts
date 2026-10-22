@@ -14,9 +14,9 @@
 // file found by the read that route makes (a set's file by `Review.resolve`,
 // a board's by `BoardStore.image`, a note's still by `NotesStore.still`, a
 // video's frame by the review's index); a path no image route takes would
-// 404 on the page, so it is refused, named. The same read gives the file
-// each image route serves as the ask is made (`served`), which the ask store
-// copies and keeps, by its SHA-256, as the ask's receipt (`AskRecord.shown`).
+// 404 on the page, so it is refused, named. The same read gives what each
+// image route serves as the ask is made (`served`), which the ask store holds
+// to the receipt rule (`receipted` in `ask-store.ts`).
 
 import {
   Boolean as Bool,
@@ -24,7 +24,6 @@ import {
   Effect,
   FileSystem,
   Layer,
-  Match,
   Option,
   Path,
   Predicate,
@@ -73,11 +72,11 @@ interface AskMaterialsService {
   /** What `ask` names that the lab cannot show, each as the agent fixes it; none when all is there. */
   readonly problems: (ask: Ask) => Effect.Effect<ReadonlyArray<string>>;
   /**
-   * The file each image `src` of `ask` is served from now, by the read its
-   * route makes, once each in the order shown. A video's frame, and a `src`
-   * the lab serves nothing at, have none.
+   * Each image `src` of `ask` (an image block's or an option's, on every
+   * step), once each in the order shown, with what its route serves now, by
+   * the read the route makes: a file, a video's frame, or nothing.
    */
-  readonly served: (ask: Ask) => Effect.Effect<ReadonlyArray<readonly [string, string]>>;
+  readonly served: (ask: Ask) => Effect.Effect<ReadonlyArray<readonly [string, Served]>>;
   /**
    * Why `ask`, aimed at `aimed`, may not be made as it recommends: on a
    * production, an ask that shows scenes or figures types each option's
@@ -332,17 +331,8 @@ export class AskMaterials extends Context.Service<AskMaterials, AskMaterialsServ
         ),
       ];
 
-      /** `src` with the file its route serves, when it serves a file. */
-      const fileOf = (src: string): Effect.Effect<ReadonlyArray<readonly [string, string]>> =>
-        Effect.map(servedAt(src), (at) =>
-          Match.value(at).pipe(
-            Match.tag('File', ({ file }) => [[src, file] as const]),
-            Match.orElse(() => []),
-          ),
-        );
-
       const served = (ask: Ask) =>
-        Effect.map(Effect.forEach(srcsOf(ask), fileOf), (each) => each.flat());
+        Effect.forEach(srcsOf(ask), (src) => Effect.map(servedAt(src), (at) => [src, at] as const));
 
       /** Every image `ask` shows by its `src` that the lab does not serve, named. */
       const images = (ask: Ask) =>

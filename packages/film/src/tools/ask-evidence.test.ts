@@ -70,13 +70,20 @@ const RECORD: ReviewRecord = {
   ],
 };
 
+/** The still of the farmer the asks show, a file of the set. */
+const FARMER = 'p5/rbf/farmer.png';
+
 /** The lab over set `p5/rbf`, its review record `record` beside its page (none: the set lists no record). */
 const run = <A, E>(
   self: Effect.Effect<A, E, AskStore | ProductionStore>,
   record: ReviewRecord | 'none',
 ) => {
   const listed = record !== 'none';
-  const files = new Map<string, Uint8Array>([['/films/f/scenes/index.ts', text('export {};\n')]]);
+  const files = new Map<string, Uint8Array>([
+    ['/films/f/scenes/index.ts', text('export {};\n')],
+    // The farmer's still, which the ask copies as it is made (the receipt rule).
+    [`/out/${FARMER}`, text('the farmer as drawn')],
+  ]);
   if (record !== 'none') {
     files.set('/out/p5/rbf/review/evidence.md', text('# Review: f\n'));
     files.set(
@@ -104,9 +111,6 @@ const run = <A, E>(
     ),
   );
 };
-
-/** The still of the farmer the asks show, a file of the set. */
-const FARMER = 'p5/rbf/farmer.png';
 
 /** The farmer of `film`'s scene `a`, as a keep keeps him. */
 const farmerOf = (film: string) => ({ film, scenes: [{ scene: 'a', figures: ['farmer'] }] });
