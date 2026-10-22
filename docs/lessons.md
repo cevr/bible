@@ -2934,6 +2934,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The route trusted a copy's name to stand for its bytes; only `answerPage` hashed it. `shownFile` now reads the copy once, hashes it, and refuses a copy that no longer holds its hash before any cacheable response; the route serves the bytes it hashed.
 - **Guard:** code: `packages/film/src/tools/ask-materials.test.ts` `refuses an answer, and serves no bytes, once a copy its page shows no longer holds its hash, and takes and serves it while the copy does`.
 
+### build-walk-reads-a-data-url-built-at-run-time
+
+- **Date:** 2026-10-22
+- **Kind:** review
+- **Said:** "residual 6 is false: the walk does not find a data URL built at run time in `dist`"
+- **Source:** ftb-approval-receipts/round-2-findings.md F3
+- **Wrong:** `DATA_URL` in `kit/build-walk.ts` had no arm for the scheme at a string's end, so a chunk holding `"data:"+t+";base64,"` passed the walk, and so did a page holding `data&#58;image/png`, while the residual said the walk caught a data URL made at run time.
+- **Cause:** The walk's pattern read only a literal data URL, and the residual was written from the lint's reach, not the walk's. The pattern now reads the scheme at a string's end and a colon written as an HTML character reference, a key or a name `data` aside; a URL put together from smaller pieces is named as outside the walk.
+- **Guard:** code: `apps/firsttheblade/kit/build-walk.test.ts` `refuses a script that joins a type to the scheme at run time and a page whose colon is a character reference, each as a data URL, and passes a key or a name data`.
+
 ### random-approval-draws-the-rules-domain
 
 - **Date:** 2026-10-22

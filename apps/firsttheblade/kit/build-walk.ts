@@ -139,12 +139,15 @@ export const formatOf = (bytes: Uint8Array): Option.Option<Format> => {
 };
 
 /**
- * A data URL's opening, in any case: the scheme, then a media type of a
- * registered top-level type, `;` or `,`. A minified script's `{data:n/2}`
- * is no data URL.
+ * A data URL's opening, in any case: the scheme, its colon written plain or
+ * as an HTML character reference (`data&#58;`), then a media type of a
+ * registered top-level type, `;` or `,`; or the scheme at a string's end, as
+ * a script that joins a type to it at run time writes it (`"data:"+t`). A
+ * minified script's `{data:n/2}`, `{data:"x"}` and `c?data:"y"` are no data
+ * URL: a key or a name, not a string's text.
  */
 export const DATA_URL =
-  /\bdata:(?:(?:image|text|application|font|audio|video|model|multipart|message)\/[\w.+-]+|[;,])/iu;
+  /\bdata(?::|&#0*58;?|&#x0*3a;?|&colon;)(?:(?:image|text|application|font|audio|video|model|multipart|message)\/[\w.+-]+|[;,])|(?<![{,?]\s*)\bdata:["'`]/iu;
 
 /** Whether any reading of the bytes (a gzipped file's by what it unzips to too) holds a data URL. */
 const holdsDataUrl = (bytes: Uint8Array): boolean =>

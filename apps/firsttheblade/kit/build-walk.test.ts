@@ -261,7 +261,7 @@ const NOT_IMAGES: ReadonlyArray<readonly [string, Uint8Array]> = [
   [
     'a script',
     utf8(
-      'import{a as b}from"./x.js";const svg=`<svg viewBox="0 0 1 1"></svg>`;const f={_tag:`FormData`,formData:1,data:2},g={data:n/2,Data:a.b/c};',
+      'import{a as b}from"./x.js";const svg=`<svg viewBox="0 0 1 1"></svg>`;const f={_tag:`FormData`,formData:1,data:2},g={data:n/2,Data:a.b/c},h={data:"x"},k={a:1, data:`y`},m=c?data:\'z\':0;',
     ),
   ],
   ['a stylesheet', utf8('.a{background:url(/og/home.jpg)}')],
@@ -289,6 +289,10 @@ const INLINED: ReadonlyArray<Uint8Array> = [
     [...new TextEncoder().encode('.a{mask:url(data:;base64,AA==)}')].flatMap((byte) => [byte, 0]),
   ),
   Bun.gzipSync(utf8('const c="data:image/png;base64,iVBORw0KGgo=";')),
+  utf8('const d=t=>"data:"+t+";base64,"+e;export{d};'),
+  utf8('const g=t=>`url(data:`+t+`)`;export{g};'),
+  utf8('<!doctype html><img src="data&#58;image/png;base64,iVBORw0KGgo=">'),
+  utf8('<!doctype html><img src="DATA&#x3A;;base64,AA==">'),
 ];
 
 const test = it.effect.layer(BunServices.layer);
@@ -373,6 +377,31 @@ describe('the build walk', () => {
       for (const [name, given] of NOT_IMAGES)
         expect([name, formatOf(given)]).toEqual([name, Option.none()]);
     }));
+
+  test('refuses a script that joins a type to the scheme at run time and a page whose colon is a character reference, each as a data URL, and passes a key or a name data', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const dist = yield* fs.makeTempDirectoryScoped({ prefix: 'dist-' });
+      const files: ReadonlyArray<readonly [string, string]> = [
+        ['assets/joined.js', 'const d=t=>"data:"+t+";base64,"+e;export{d};'],
+        ['assets/url.css.js', 'const g=t=>`url(data:`+t+`)`;export{g};'],
+        ['entity.html', '<img src="data&#58;image/png;base64,iVBORw0KGgo=">'],
+        ['hex.html', '<img src="DATA&#x3A;;base64,AA==">'],
+        ['assets/keys.js', 'const h={data:"x"},k={a:1, data:`y`},m=c?data:\'z\':0;export{h,k,m};'],
+      ];
+      for (const [file, text] of files) {
+        yield* fs.makeDirectory(path.dirname(path.join(dist, file)), { recursive: true });
+        yield* fs.writeFileString(path.join(dist, file), text);
+      }
+      const refused = yield* unapprovedBuilt(APP, dist);
+      expect(refused).toEqual([
+        { image: 'assets/joined.js', format: 'data url' },
+        { image: 'assets/url.css.js', format: 'data url' },
+        { image: 'entity.html', format: 'data url' },
+        { image: 'hex.html', format: 'data url' },
+      ]);
+    }).pipe(Effect.scoped));
 
   test('refuses every image under any name, extension and folder, each file named as an image that no signature reads as unknown, and each file that holds a data URL, and passes the approved stills and the images outside the rule under any name', () =>
     Effect.gen(function* () {
