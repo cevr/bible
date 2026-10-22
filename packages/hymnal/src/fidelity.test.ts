@@ -10,8 +10,9 @@
  * compiler or `sung`: the row's stanzas by id and its one negative-id
  * refrain; the refrain's place from `data/fixes/refrains.json`, read off each
  * refrain hymn's page; and, for a row hymnal.db holds rewritten from its
- * page (each hymn with a `data/fixes/NNN.json`: the census's `fixed` hymns
- * and the seven fixes before it), that printed source in place of the row.
+ * page (each hymn with a `data/fixes/NNN.json`: the census's `fixed` hymns,
+ * its `matches` hymns written as the page lays them out, and the seven fixes
+ * before it), that printed source in place of the row.
  * Where a refrain is sung has no default: a refrain hymn `refrains.json`
  * does not list, or a listed hymn with no refrain, fails. The mutant cases
  * below hold the property to the defects it exists to catch.

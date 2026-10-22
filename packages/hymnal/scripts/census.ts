@@ -42,7 +42,10 @@
  * ruling at its place. Applying every ruling's words to the base row gives
  * what the row must be. An entry is:
  *
- * - `matches`: no ruling changes a word; the row is the base row.
+ * - `matches`: no ruling changes a word; the row is the base row, written
+ *   from `data/fixes/NNN.json` where the page varies its refrain by stanza
+ *   or the owner answered a `disputed` ruling for the page (the base row's
+ *   words, divided as the page prints them).
  * - `fixed`: rulings on crops of a photo or a scan change words; the row is
  *   the base row with every ruling applied, written from
  *   `data/fixes/NNN.json`.
