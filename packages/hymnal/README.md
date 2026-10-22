@@ -362,16 +362,16 @@ page lays the row out otherwise (`disputed`) settles it too, and leaves the
 hymn `unsettled` for the owner; a ruling that settles a line the census no
 longer prints is a problem.
 
-The four states (2026-10-20: 695 hymns, 1652 rulings; 1149 of the 139595
-layout mutations unreached, 679 on the unreachable list and 470 on the gap
+The four states (2026-10-22: 695 hymns, 1693 rulings; 1159 of the 362309
+layout mutations unreached, 679 on the unreachable list and 480 on the gap
 list, in 308 hymns):
 
-| State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                                                                            |
-| ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `matches`   | 600   | 364 scan, 176 engraving, 60 photo | 513 1 reader, 70 1 OCR, 14 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 283 hymns with no ruling; 317 with 1113 rulings: 0 change words, 1113 keep the row (465 words, 208 unreachable list, 191 layout, 115 gap list, 76 echo, 30 repeat, 17 slip, 10 shared, 1 misprint) |
-| `fixed`     | 80    | 54 photo, 26 scan                 | 29 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 80 with 413 rulings: 158 change words (146 words, 10 repeat, 2 owner), 255 keep the row (200 words, 18 layout, 15 gap list, 12 unreachable list, 9 repeat, 1 slip)         |
-| `unsettled` | 11    | 6 engraving, 3 photo, 2 scan      | 6 1 reader, 4 1 OCR, 1 2 reader                                     | 0 hymns with no ruling; 11 with 126 rulings: 23 change words (21 words, 2 shared), 103 keep the row (38 disputed, 28 words, 13 layout, 12 echo, 7 unreachable list, 5 gap list)                    |
-| `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                                                                       |
+| State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                                                                                           |
+| ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `matches`   | 600   | 364 scan, 176 engraving, 60 photo | 513 1 reader, 70 1 OCR, 14 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 272 hymns with no ruling; 328 with 1149 rulings: 0 change words, 1149 keep the row (465 words, 215 layout, 208 unreachable list, 116 gap list, 76 echo, 30 repeat, 15 assumption, 13 slip, 10 shared, 1 misprint) |
+| `fixed`     | 80    | 54 photo, 26 scan                 | 29 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 80 with 417 rulings: 158 change words (146 words, 10 repeat, 2 owner), 259 keep the row (200 words, 19 layout, 15 gap list, 12 unreachable list, 9 repeat, 3 assumption, 1 slip)          |
+| `unsettled` | 11    | 6 engraving, 3 photo, 2 scan      | 6 1 reader, 4 1 OCR, 1 2 reader                                     | 0 hymns with no ruling; 11 with 127 rulings: 23 change words (21 words, 2 shared), 104 keep the row (38 disputed, 28 words, 13 layout, 12 echo, 7 unreachable list, 6 gap list)                                   |
+| `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                                                                                      |
 
 A `fixed` row is the base row with each ruling applied, written from its
 `data/fixes/NNN.json`. One reading is enough to fix a row: a reading only
