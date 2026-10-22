@@ -15,19 +15,21 @@ import type { Track } from '~/player/player';
 import { pushedOptions } from '~/stack';
 import { settings } from '~/store';
 
-import { ChordsButton, HeaderButtons } from './HeaderButtons';
+import { ChordsButton, HeaderButtons, ReadingButton } from './HeaderButtons';
 import { type ChordReader, HymnPage, NoHymn } from './HymnPage';
 
-/** The page's chords: the stored switch and moves, and every hymn's chords, each decoded on first view. */
+/** The page's chords: the stored switch and moves, and every hymn's chords, each decoded on first view; and how the page is set. */
 const reader: ChordReader = {
   chords: settings.chords,
   move: settings.move,
   book: chordBook(bundled),
+  reading: settings.reading,
 };
 
 /** The header's buttons on every hymn's page. */
 const headerRight = () => (
   <HeaderButtons>
+    <ReadingButton />
     <ChordsButton chords={reader.chords} />
   </HeaderButtons>
 );

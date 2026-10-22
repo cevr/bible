@@ -42,6 +42,9 @@ import {
   transposed,
 } from '~/hymns/chords';
 
+import { HangingLine } from './HangingLine';
+import { usePageText } from './pageText';
+
 /** The key the chords are spelled in, as the hymn's move reaches it. */
 const PlayedKey = createContext<Chord.Key>({ tonic: 'C', minor: false });
 
@@ -191,9 +194,7 @@ export const ChordLines = memo(function ChordLines({
     return section.lines.map((line, l) => (
       <View key={l} style={styles.lineLevel}>
         <ChordText chords={shown.lines[l] ?? []} testID={`chords-${p}-${l + 1}`} />
-        <Text style={style} dynamicTypeRamp="body">
-          {line}
-        </Text>
+        <HangingLine line={line} style={style} />
       </View>
     ));
   }
@@ -213,11 +214,12 @@ function SyllableLine({
   readonly style: StyleProp<TextStyle>;
 }) {
   const { fontScale } = useWindowDimensions();
+  const { indent } = usePageText();
   const starts = wordStarts(words);
   return (
-    <View style={[styles.line, { columnGap: 5 * fontScale }]}>
+    <View testID="line" style={[styles.line, { columnGap: 5 * fontScale, paddingLeft: indent }]}>
       {words.map((word, w) => (
-        <View key={w} style={styles.word}>
+        <View key={w} style={[styles.word, w === 0 && { marginLeft: -indent }]}>
           {word.map((box, k) => (
             <SyllableBox
               key={k}
@@ -251,16 +253,17 @@ function SyllableBox({
   readonly joinsNext: boolean;
   readonly style: StyleProp<TextStyle>;
 }) {
+  const { words } = usePageText();
   return (
     <View style={styles.box}>
       <BoxChords chords={box.chords} id={id} />
       <View style={styles.syllable}>
-        <Text style={style} dynamicTypeRamp="body">
+        <Text style={[style, words]} dynamicTypeRamp="body">
           {box.text}
         </Text>
         {joinsNext && (
           <View style={styles.hyphen} aria-hidden>
-            <Text style={[style, styles.hyphenText]} dynamicTypeRamp="body">
+            <Text style={[style, words, styles.hyphenText]} dynamicTypeRamp="body">
               -
             </Text>
           </View>
@@ -278,9 +281,10 @@ function BoxChords({
   readonly chords: ReadonlyArray<Chord.Chord>;
   readonly id: string;
 }) {
+  const text = usePageText();
   if (chords.length === 0) {
     return (
-      <Text style={styles.chord} dynamicTypeRamp="subheadline" aria-hidden>
+      <Text style={[styles.chord, text.chords]} dynamicTypeRamp="subheadline" aria-hidden>
         {'​'}
       </Text>
     );
@@ -298,8 +302,13 @@ function ChordText({
 }) {
   const key = use(PlayedKey);
   const accent = useAccent();
+  const text = usePageText();
   return (
-    <Text testID={testID} style={[styles.chord, { color: accent }]} dynamicTypeRamp="subheadline">
+    <Text
+      testID={testID}
+      style={[styles.chord, text.chords, { color: accent }]}
+      dynamicTypeRamp="subheadline"
+    >
       {chords.map((chord) => Chord.format(chord, key)).join(' ') || '​'}
     </Text>
   );

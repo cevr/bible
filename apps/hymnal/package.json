@@ -15,7 +15,7 @@
     "test:app": "bun test --preload ./src/test/setup.ts --path-ignore-patterns='**/*.slow.test.*' src",
     "test:browser": "bun test ./test/browser --timeout 30000",
     "test:infra": "bun test --path-ignore-patterns='**/*.slow.test.*' infra scripts vite",
-    "test:slow": "bun test --preload ./src/test/setup.ts ./src/player/bar.property.slow.test.tsx ./src/player/ui.slow.test.tsx ./src/player/world.property.slow.test.ts ./src/reader/HymnList.native.slow.test.ts ./src/reader/reader.slow.test.tsx && bun test ./infra/audio/adapters.slow.test.ts ./scripts/sim/sim.slow.test.ts && bun run test:browser",
+    "test:slow": "bun test --preload ./src/test/setup.ts ./src/player/bar.property.slow.test.tsx ./src/player/ui.slow.test.tsx ./src/player/world.property.slow.test.ts ./src/reader/HymnList.native.slow.test.ts ./src/reader/reader.slow.test.tsx ./src/reader/reading.slow.test.tsx && bun test ./infra/audio/adapters.slow.test.ts ./scripts/sim/sim.slow.test.ts && bun run test:browser",
     "sim": "bun scripts/sim.ts",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "turbo run test:slow --filter=@bible/hymnal-app && alchemy deploy alchemy.run.ts --stage prod",

@@ -2,8 +2,11 @@
  * A hymn's words in the order it is sung: its topic as a quiet line, its
  * number and title in one row (the number first), the key controls while
  * chords are on, then each stanza under its number and the refrain, marked,
- * each time it is sung. The theme's ink on its ground, scaled with
- * the reader's text size.
+ * each time it is sung. The theme's ink on its ground, set as the reader
+ * chose in the "Aa" sheet (`reading.ts`) and scaled by the system's text
+ * size. A printed line that wraps hangs under its first word
+ * (`HangingLine`). While the page is shown, the screen stays on if the reader
+ * asked for it (`KeepAwake`).
  *
  * With chords off the page is the words alone and the hymn's chords are not
  * decoded. With chords on, each section is drawn under its chords
@@ -14,7 +17,15 @@ import { useAtom, useAtomValue } from '@effect/atom-react';
 import { Option } from 'effect';
 import type * as Atom from 'effect/reactivity/Atom';
 import { memo, type ReactNode, useMemo } from 'react';
-import { ScrollView, type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-native';
+import {
+  ScrollView,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  type TextStyle,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import {
   type ChordBook,
@@ -26,15 +37,24 @@ import {
   sectionsOf,
 } from '~/hymns/chords';
 import type { HymnText, Section } from '~/hymns/hymns';
+import type { ReadingSettings } from '~/settings';
 import { color, useAccent } from '~/color';
 
 import { ChordControls, ChordLines, PlayedKeyProvider } from './Chords';
+import { HangingLine } from './HangingLine';
+import { KeepAwake } from './KeepAwake';
+import { PageTextProvider, pageTextOf } from './pageText';
+import { readingStyle } from './reading';
 
-/** What the page reads its chords from: the stored choice, each hymn's move, the bundled chords. */
+/**
+ * What the page reads its chords and its setting from: the stored chords
+ * choice, each hymn's move, the bundled chords, and the reading settings.
+ */
 export interface ChordReader {
   readonly chords: Atom.Writable<boolean>;
   readonly move: (number: number) => Atom.Writable<Move>;
   readonly book: ChordBook;
+  readonly reading: ReadingSettings;
 }
 
 /** The hymn's words under its number and title. */
@@ -64,6 +84,7 @@ export function HymnPage({
   });
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.page}>
+      <KeepAwake on={reader.reading.awake} />
       <View style={styles.head}>
         <Text testID="hymn-topic" style={styles.topic} dynamicTypeRamp="footnote">
           {hymn.topic}
@@ -78,11 +99,32 @@ export function HymnPage({
         </View>
       </View>
       <ChordControls on={on} printed={printed} move={move} onMove={setMove} />
-      <PlayedKeyProvider value={played}>
-        <Sections hymn={hymn} chords={chords} />
-      </PlayedKeyProvider>
+      <PageText reading={reader.reading}>
+        <PlayedKeyProvider value={played}>
+          <Sections hymn={hymn} chords={chords} />
+        </PlayedKeyProvider>
+      </PageText>
     </ScrollView>
   );
+}
+
+/** Hands the lines the reader's size, font and spacing, under the system's text size. */
+function PageText({
+  reading,
+  children,
+}: {
+  readonly reading: ReadingSettings;
+  readonly children: ReactNode;
+}) {
+  const size = useAtomValue(reading.size);
+  const font = useAtomValue(reading.font);
+  const spacing = useAtomValue(reading.spacing);
+  const { fontScale } = useWindowDimensions();
+  const text = useMemo(
+    () => pageTextOf(readingStyle({ size, font, spacing }, fontScale)),
+    [size, font, spacing, fontScale],
+  );
+  return <PageTextProvider value={text}>{children}</PageTextProvider>;
 }
 
 /** A section drawn as its words alone. */
@@ -193,11 +235,7 @@ function Lines({
   readonly lines: ReadonlyArray<string>;
   readonly style: StyleProp<TextStyle>;
 }) {
-  return lines.map((line, k) => (
-    <Text key={k} style={style} dynamicTypeRamp="body">
-      {line}
-    </Text>
-  ));
+  return lines.map((line, k) => <HangingLine key={k} line={line} style={style} />);
 }
 
 export function NoHymn({ number }: { readonly number: string }) {

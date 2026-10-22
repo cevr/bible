@@ -15,10 +15,14 @@ import type * as KeyValueStore from 'effect/persistence/KeyValueStore';
 import * as Atom from 'effect/reactivity/Atom';
 
 import { Move, still } from './hymns/chords';
+import { DEFAULT_SIZE, Font, Size, Spacing } from './reader/reading';
 
 /** How the app is shown: as the system is set, or always light, or always dark. */
 export const Appearance = Schema.Literals(['system', 'light', 'dark']);
 export type Appearance = typeof Appearance.Type;
+
+/** The reading settings, each its own stored atom. */
+export type ReadingSettings = ReturnType<typeof settingsOn>['reading'];
 
 export const settingsOn = (store: Layer.Layer<KeyValueStore.KeyValueStore>) => {
   const runtime = Atom.runtime(store);
@@ -40,5 +44,16 @@ export const settingsOn = (store: Layer.Layer<KeyValueStore.KeyValueStore>) => {
      * key and the singers' range for it, so it never reaches another hymn.
      */
     move: Atom.family((number: number) => setting(`move.${number}`, Move, still)),
+    /**
+     * How a hymn page is set (`src/reader/reading.ts`), chosen in the "Aa"
+     * sheet: the same for every hymn. The defaults set the page as it has
+     * always been, with the screen left to sleep as the system sets it.
+     */
+    reading: {
+      size: setting('reading.size', Size, DEFAULT_SIZE),
+      font: setting('reading.font', Font, 'system'),
+      spacing: setting('reading.spacing', Spacing, 'normal'),
+      awake: setting('reading.awake', Schema.Boolean, false),
+    },
   };
 };

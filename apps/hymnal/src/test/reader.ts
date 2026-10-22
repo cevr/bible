@@ -30,5 +30,10 @@ const storeOver = (map: Map<string, string>) =>
 /** A reader over `device`, with its own chord book. */
 export const readerOn = (device: Map<string, string> = new Map()): ChordReader => {
   const settings = settingsOn(storeOver(device));
-  return { chords: settings.chords, move: settings.move, book: chordBook(bundled) };
+  return {
+    chords: settings.chords,
+    move: settings.move,
+    book: chordBook(bundled),
+    reading: settings.reading,
+  };
 };

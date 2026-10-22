@@ -11,9 +11,9 @@ import { webOnly } from '~/web/webOnly';
 
 /**
  * The app's one stack: the home screen, which draws its own title (no
- * native header), each hymn pushed over it, and Settings and the full
- * player as sheets. The player plays on across every screen; its bar is
- * docked under the stack, above the home indicator, on a hymn page and
+ * native header), each hymn pushed over it, and Settings, the reading
+ * settings and the full player as sheets. The player plays on across every
+ * screen; its bar is docked under the stack, above the home indicator, on a hymn page and
  * wherever the player holds a hymn (`PlayerBar`). The screens are told the
  * bottom inset they meet as the bar shows or hides (`StackBottom`).
  */
@@ -34,6 +34,16 @@ export default function HymnalLayout() {
                   presentation: 'formSheet',
                   sheetGrabberVisible: true,
                   sheetAllowedDetents: [0.5, 1],
+                }}
+              />
+              <Stack.Screen
+                name="reading"
+                options={{
+                  title: 'Reading',
+                  headerShown: false,
+                  presentation: 'formSheet',
+                  sheetGrabberVisible: true,
+                  sheetAllowedDetents: [0.6, 1],
                 }}
               />
               <Stack.Screen

@@ -9,7 +9,7 @@
  * finds them in the header.
  */
 
-import type { MouseEvent, ReactNode } from 'react';
+import { type MouseEvent, type ReactNode, useEffect, useId } from 'react';
 import { View } from 'react-native';
 
 /** The hrefs opened inside the app, oldest first. */
@@ -56,6 +56,18 @@ export const Stack = {
     <View testID="header">{options.headerRight?.()}</View>
   ),
 };
+
+/** Each keep-awake hold now taken, by its hook's id: a screen keeps the screen on while this is not empty. */
+export const awake = new Set<string>();
+
+/** One's `useKeepAwake`: held from the first frame of the component that calls it, let go when it leaves. */
+export function useKeepAwake() {
+  const id = useId();
+  useEffect(() => {
+    awake.add(id);
+    return () => void awake.delete(id);
+  }, [id]);
+}
 
 /** One's device modules, which no test reaches: the player's tests hand in their own (`playbackOn`). */
 export const One = {};
