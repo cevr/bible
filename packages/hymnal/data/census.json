@@ -1,5 +1,5 @@
 {
-  "print": "Every hymn 1-695 of the 1985 Seventh-day Adventist Hymnal held against its printed page (2026-10-19). A hymn's deciding page comes from the page inventory (data/pages.json) alone: the owner's photo when his photos show the hymn whole; else the hymnary.org scan of the 1985 book, when it shows every page of the hymn; else the SDAHImages engraving at its pinned commit, unless its credit line dates a words revision after 1985; else none. A photo that shows part of a hymn stands beside its deciding page and rules the places it shows. Readings only find: each deciding page was transcribed blind (never shown the row), for comparison only, by a model reader (`readings.reader`) or by machine OCR (Apple Vision, `readings.ocr`); a proof shown the row is no reading. A script compares each reading with the base row (the hymnal.db at `base.commit`, which the plain census run reads from git) in sung units (each stanza with the refrain after it). Crops decide: every run where a reading differs is ruled by a fresh judge (an Opus subagent at max effort that never read the page whole) on 1:1 crops of the deciding page, one for each system the run lies on, committed beside its rulings under data/crops/NNN/; each ruling names its crops by digest and the words each shows, and a place no crop holds is `unreadable`. Applying the rulings to the base row gives the row. `matches`: no ruling changes a word (`rulings.all` counts the rulings that kept the row). `fixed`: rulings on crops of a photo or a scan change words (`rulings.changes`); the row is written from data/fixes/NNN.json, which keeps the base row as `replaces` and names in each line's `from` a deciding image, its system and its row. `unsettled`: a ruling could not read its crops, rulings on an engraving change words (an engraving never fixes a row), or a judge found on crops that the page lays the row out otherwise, in no way the row's own convention explains (`disputed`: a poem line opened at another word, a block sung where the page does not sing it); the row stays the base row (a `disputed` ruling leaves its words as the other rulings make them, and its layout as it is) and the note says why. `nopage`: no 1985 page of it is known or none could be read (the note says why); the row stays the base row. `unsettled` and `nopage` hymns wait on the owner's photo (owner-photos.md). `stanzas` and `refrain` are the row's; the witness digest pins the hunks between the row and the csycms witness, every refrain block compared, which is not committed.",
+  "print": "Every hymn 1-695 of the 1985 Seventh-day Adventist Hymnal held against its printed page (2026-10-19). A hymn's deciding page comes from the page inventory (data/pages.json) alone: the owner's photo when his photos show the hymn whole; else the hymnary.org scan of the 1985 book, when it shows every page of the hymn; else the SDAHImages engraving at its pinned commit, unless its credit line dates a words revision after 1985; else none. A photo that shows part of a hymn stands beside its deciding page and rules the places it shows. Readings only find: each deciding page was transcribed blind (never shown the row), for comparison only, by a model reader (`readings.reader`) or by machine OCR (Apple Vision, `readings.ocr`); a proof shown the row is no reading. A script compares each reading with the base row (the hymnal.db at `base.commit`, which the plain census run reads from git) in sung units (each stanza with the refrain after it). Crops decide: every run where a reading differs is ruled by a fresh judge (an Opus subagent at max effort that never read the page whole) on 1:1 crops of the deciding page, one for each system the run lies on, committed beside its rulings under data/crops/NNN/; each ruling names its crops by digest and the words each shows, and a place no crop holds is `unreadable`. Applying the rulings to the base row gives the row. `matches`: no ruling changes a word (`rulings.all` counts the rulings that kept the row). `fixed`: rulings on crops of a photo or a scan change words (`rulings.changes`); the row is written from data/fixes/NNN.json, which keeps the base row as `replaces` and names in each line's `from` a deciding image, its system and its row. `unsettled`: a ruling could not read its crops, rulings on an engraving change words (an engraving never fixes a row), or a judge found on crops that the page lays the row out otherwise, in no way the row's own convention explains (`disputed`: a poem line opened at another word, a block sung where the page does not sing it); the row stays the base row (a `disputed` ruling leaves its words as the other rulings make them, and its layout as it is) and the note says why. A `disputed` ruling the owner has answered (`answer`) leaves its hymn the state its words give: `keeps: source`, the row keeps its words and layout; `keeps: page`, the row follows the page's line starts through a fix file that changes no word. `nopage`: no 1985 page of it is known or none could be read (the note says why); the row stays the base row. `unsettled` and `nopage` hymns wait on the owner's photo (owner-photos.md). `stanzas` and `refrain` are the row's; the witness digest pins the hunks between the row and the csycms witness, every refrain block compared, which is not committed.",
   "base": {
     "repo": "github.com/cevr/manna",
     "commit": "aff965cbc19577767977e310179bc41a8ec13623"
@@ -1210,7 +1210,7 @@
     },
     {
       "number": 58,
-      "row": "unsettled",
+      "row": "matches",
       "source": "sdahimages",
       "pages": ["058.png"],
       "readings": {
@@ -1227,8 +1227,7 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 1 sings 4 words from … on, in no row the page prints; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 59,
@@ -5103,7 +5102,7 @@
     },
     {
       "number": 243,
-      "row": "unsettled",
+      "row": "matches",
       "source": "scan",
       "pages": ["p237.jpg"],
       "readings": {
@@ -5120,8 +5119,7 @@
       "witness": {
         "hunks": 0,
         "digest": "4f53cda18c2baa0c"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): stanza 3 row 4 ends … at no place its count gives; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 244,
@@ -8360,7 +8358,7 @@
     },
     {
       "number": 398,
-      "row": "unsettled",
+      "row": "matches",
       "source": "sdahimages",
       "pages": ["397.jpg", "398.png"],
       "readings": {
@@ -8377,8 +8375,7 @@
       "witness": {
         "hunks": 1,
         "digest": "0ea4d626de6bfa9f"
-      },
-      "note": "A judge on crops found the page lays the row out otherwise than the row (a `disputed` ruling): a row … (Amen printed on stanza 2's row after the double bar near the end of system 4, so sung after the last stanza only; not counted in stanza 2's row.) is in no part of the printed source; the row keeps its layout and waits on the owner."
+      }
     },
     {
       "number": 399,

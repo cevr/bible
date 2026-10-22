@@ -18,10 +18,16 @@
         }
       ],
       "judge": "shape-judge-judge-x01 (Opus, effort max)",
-      "why": "398-strip800.jpg system 4: after the double bar the music runs two more bars, and stanza 2's row (the last stanza) prints 'A - men.' under them while stanza 1's row is blank there, so the page prints an Amen sung after the last stanza. The database ends stanza 2 with its line 4 and writes no Amen anywhere.",
+      "why": "398-strip800.jpg system 4: after the double bar the music runs two more bars, and stanza 2's row (the last stanza) prints 'A - men.' under them while stanza 1's row is blank there, so the page prints an Amen sung after the last stanza. The database ends stanza 2 with its line 4 and writes no Amen anywhere. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the source's words and layout.",
       "settles": [
         "398 shape (shape2-44): a row \"amen\" (Amen printed on stanza 2's row after the double bar near the end of system 4, so sung after the last stanza only; not counted in stanza 2's row.) is in no part of the printed source"
-      ]
+      ],
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "source",
+        "quote": "Let's go with your recommendation."
+      }
     }
   ]
 }

@@ -32,10 +32,16 @@
         }
       ],
       "judge": "shape-judge-judge-x01 (Opus, effort max)",
-      "why": "p237-strip1600.jpg system 4, row 3 (stanza 3): the row holds 7 words with capitals at 1 and 5, as the database's lines 7-8 do, but its last word is printed 'me.' in lower case under the final whole note, like the 'me.' of rows 1 and 2; the database ends line 8 'Thee'. Stanza 3's row ends in systems 1-3 (p237-strip0.jpg, p237-strip800.jpg) are printed 'Thee'.",
+      "why": "p237-strip1600.jpg system 4, row 3 (stanza 3): the row holds 7 words with capitals at 1 and 5, as the database's lines 7-8 do, but its last word is printed 'me.' in lower case under the final whole note, like the 'me.' of rows 1 and 2; the database ends line 8 'Thee'. Stanza 3's row ends in systems 1-3 (p237-strip0.jpg, p237-strip800.jpg) are printed 'Thee'. Answered by the owner on 2026-10-22, census2's ask \"rows the page contradicts\", option B: the row keeps the source's words and layout.",
       "settles": [
         "243 shape (shape2-27): stanza 3 row 4 ends \"extol me\" at no place its count gives"
-      ]
+      ],
+      "answer": {
+        "by": "owner",
+        "on": "2026-10-22",
+        "keeps": "source",
+        "quote": "Let's go with your recommendation."
+      }
     }
   ]
 }
