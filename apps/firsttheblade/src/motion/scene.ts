@@ -14,7 +14,6 @@ import { Data, Effect } from 'effect';
 
 import fieldWind from '../art/field-wind.png';
 import { coverMap, positionOf } from './cover.ts';
-import { raysTurn } from './query.ts';
 import { FIELD_FRAGMENT, NIGHT_FRAGMENT, VERTEX } from './shaders.ts';
 
 /** How long the motion takes to grow in from the still, in seconds. */
@@ -140,8 +139,12 @@ interface Clock {
   frame: number;
 }
 
-/** One still, moving until the scene's scope closes or its context is lost. */
-const scene = Effect.fn('Motion.scene')(function* (picture: HTMLImageElement, kind: Kind) {
+/** One still, moving until the scene's scope closes or its context is lost; its rays turn only when `turning`. */
+const scene = Effect.fn('Motion.scene')(function* (
+  picture: HTMLImageElement,
+  kind: Kind,
+  turning: boolean,
+) {
   yield* decoded(picture);
   const maps = yield* Effect.forEach(kind.maps, loaded);
   const canvas = yield* overlay(picture);
@@ -157,11 +160,8 @@ const scene = Effect.fn('Motion.scene')(function* (picture: HTMLImageElement, ki
   const uMap = gl.getUniformLocation(made, 'u_map');
   const uTime = gl.getUniformLocation(made, 'u_time');
   const uRamp = gl.getUniformLocation(made, 'u_ramp');
-  // Read once, so the rays never jump from a swing back to rest mid-scene; a shader without the uniform ignores it.
-  gl.uniform1f(
-    gl.getUniformLocation(made, 'u_turning'),
-    Number(raysTurn((query) => matchMedia(query).matches)),
-  );
+  // Set once, so the rays never jump from a swing back to rest mid-scene; a shader without the uniform ignores it.
+  gl.uniform1f(gl.getUniformLocation(made, 'u_turning'), Number(turning));
 
   const fit = () => {
     const box = picture.getBoundingClientRect();
@@ -243,8 +243,12 @@ const lessMotion = (query: MediaQueryList) =>
     return Effect.sync(() => query.removeEventListener('change', changed));
   });
 
-/** Every still on the page set moving, until the reader asks for less motion: `less` is the query for it, matched by the caller (`./query.ts`). */
-export const moveTheStills = (less: MediaQueryList) =>
+/**
+ * Every still on the page set moving, until the reader asks for less motion:
+ * `less` is the query for it, and `turning` whether the hero's rays turn
+ * (`raysTurn`), both matched by the caller (`./query.ts`).
+ */
+export const moveTheStills = (less: MediaQueryList, turning: boolean) =>
   Effect.suspend(() => {
     if (less.matches) return Effect.void;
     const scenes = KINDS.flatMap((kind) =>
@@ -255,7 +259,7 @@ export const moveTheStills = (less: MediaQueryList) =>
     const moving = Effect.forEach(
       scenes,
       ({ picture, kind }) =>
-        scene(picture, kind).pipe(
+        scene(picture, kind, turning).pipe(
           Effect.scoped,
           Effect.catchTag('Unmoved', (unmoved) =>
             Effect.logDebug('motion.still').pipe(Effect.annotateLogs({ reason: unmoved.reason })),

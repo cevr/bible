@@ -12,7 +12,7 @@ import { Effect } from 'effect';
 
 import { MENU_SLOT_ID } from './ui/header.tsx';
 import { CONFIRM_FORM_ID } from './mail/paths.ts';
-import { LESS_MOTION } from './motion/query.ts';
+import { LESS_MOTION, raysTurn } from './motion/query.ts';
 import { PhoneMenu } from './ui/phone-menu.tsx';
 import './styles.css';
 
@@ -35,5 +35,6 @@ const loadMotion = () => import('./motion/scene.ts');
 
 const less = matchMedia(LESS_MOTION);
 if (!less.matches && document.querySelector('img.field-art, img.night-art')) {
-  void loadMotion().then(({ moveTheStills }) => Effect.runFork(moveTheStills(less)));
+  const turning = raysTurn((query) => matchMedia(query).matches);
+  void loadMotion().then(({ moveTheStills }) => Effect.runFork(moveTheStills(less, turning)));
 }
