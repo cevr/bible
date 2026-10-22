@@ -1266,6 +1266,23 @@ describe('the player by the world: the part 7 sweep (rw r3 part 8)', () => {
   seed('a read in flight across a landing, then the place kept', 'web', 1060);
 });
 
+describe('the player by the world: the part 8 sweep (rw r3 part 9)', () => {
+  /** One seed of `platform`, 90 s as the seeded case draws it: the rules it broke. */
+  const seed = (name: string, platform: Platform, at: number) =>
+    it.effect(`${name} (${platform} ${at}) breaks no rule`, () =>
+      Effect.gen(function* () {
+        expect((yield* seeded(platform, at, 1)).broken).toEqual([]);
+      }),
+    );
+
+  // A lock-screen press told while a Pause while Loading still reads before it lets go: the
+  // device is still let go, so it never sounds under Stopped (O6), and an end a look reads
+  // shows Ended (O8).
+  seed('a lock-screen seek while a Pause while Loading still reads', 'ios', 717);
+  seed('a lock-screen seek near the end while a Pause while Loading still reads', 'ios', 1067);
+  seed('a lock-screen seek past the end while a Pause while Loading still reads', 'ios', 1276);
+});
+
 // A sound pair the page finishes after it lets go sets the reader's place, for Stopped and the
 // next Resume (orchestrator, round 2 review: web 360; P7).
 describe('a pair finished after the let-go sets the place (rw r3 web 360)', () => {

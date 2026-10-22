@@ -375,8 +375,7 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
           Effect.tap((read) =>
             Effect.sync(() => (held.proof = Proof.readOf(held.proof, read).proof)),
           ),
-          Effect.asVoid,
-          Effect.catchTag('PlaybackError', () => Effect.void),
+          Effect.option,
         );
         /**
          * The device answered the ask for `to` ms, asked at `asked`: the act lands
@@ -780,23 +779,50 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             held.resuming = false;
             if (letGo(current)) return;
             if (Player.$is('Loading')(current)) {
+              /**
+               * Stopped at the place the reads proved; Ended once a look says `ended` (P8): the
+               * end let the sound go, so the device is not stopped. It answers whether the
+               * device is still to be stopped. Shown through the registry: a command told after
+               * this Pause supersedes its context, whose own sets are dropped, and the let-go
+               * still shows.
+               */
+              const shown = (look: Option.Option<Proof.Read>) => {
+                const end = Option.filter(look, (read) => read.status.state === 'ended');
+                const page = Option.match(end, {
+                  onNone: () => Player.Stopped({ track, at: placeOf(held.proof) }),
+                  onSome: (read) => Player.Ended({ track, length: lengthOf(read.status) }),
+                });
+                return Effect.sync(() => {
+                  get.registry.set(state, page);
+                  return Option.isNone(end);
+                });
+              };
               // The device may have sounded since the last read: one more read before it lets
               // the recording go keeps the place it reached.
-              yield* lastLook;
-              yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
-              // A read that saw the device playing with no place proved opens a pair: the read
-              // that finishes it, before the device is let go, sets the place the reader last
-              // heard (P7), for Stopped and the next Resume.
-              const opened = Option.exists(
-                held.proof.last,
-                (last) => last.status.state === 'playing' && Option.isNone(held.proof.place),
+              if (!(yield* shown(yield* lastLook))) return;
+              // From here the page shows Stopped, and every command but a load takes the device
+              // as let go: a press told meanwhile does not cut this Pause off, so the device
+              // is let go (or shown ended) unless a load came since.
+              const id = held.id;
+              const ours = () => held.id === id;
+              yield* Effect.uninterruptible(
+                Effect.gen(function* () {
+                  // A read that saw the device playing with no place proved opens a pair: the
+                  // read that finishes it, before the device is let go, sets the place the
+                  // reader last heard (P7), for Stopped and the next Resume.
+                  const opened = Option.exists(
+                    held.proof.last,
+                    (last) => last.status.state === 'playing' && Option.isNone(held.proof.place),
+                  );
+                  if (opened) {
+                    const look = yield* lastLook;
+                    if (!ours() || !(yield* shown(look))) return;
+                  }
+                  yield* cut;
+                  if (!ours()) return;
+                  yield* device.stop.pipe(Effect.catchTag('PlaybackError', logged), Effect.asVoid);
+                }),
               );
-              if (opened) {
-                yield* lastLook;
-                yield* show(Player.Stopped({ track, at: placeOf(held.proof) }));
-              }
-              yield* cut;
-              yield* device.stop.pipe(Effect.catchTag('PlaybackError', logged), Effect.asVoid);
               return;
             }
             yield* act(Option.none());
