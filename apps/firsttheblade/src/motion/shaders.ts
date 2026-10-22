@@ -48,9 +48,8 @@ const rays = RAYS.map(
 /**
  * How far a plant's tip sways, as a share of the painting's width, at a
  * gust's full push: enough that the owner sees the field move at a glance on
- * desktop and on a phone (his words: "a bit more swaying - the movements are
- * too unnoticble"; on ask adf28c17753, "A bit more" than 0.012), while it
- * still drifts slowly with the gusts.
+ * desktop and on a phone, while it still drifts slowly with the gusts. The
+ * owner saw it at 0.016 and chose "Keep it" (ask abdbb63c754).
  */
 const SWAY = 0.016;
 

@@ -4,8 +4,8 @@ import { FIELD_FRAGMENT, NIGHT_FRAGMENT } from './shaders.ts';
 
 /**
  * The least sway the hero's plants may have: a tip that moves enough to be
- * seen at a glance, as the owner asked ("the movements are too unnoticble",
- * then "A bit more" than 0.012 on ask adf28c17753).
+ * seen at a glance: the sway the owner saw and chose "Keep it" (ask
+ * abdbb63c754).
  */
 const SWAY_FLOOR = 0.016;
 
