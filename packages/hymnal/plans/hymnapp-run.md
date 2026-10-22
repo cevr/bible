@@ -5,35 +5,35 @@ The work, in the owner's words (2026-10-16/17): a hymnal app on One (onestack.de
 Host: claude (laptop) · Units at once: 1 agent (owner, 2026-10-21) · Gate: ~35 s warm (`bun run gate`, 31 tasks) · Reserved: publish, paid calls, force-push (the r2 deploy and copy are the orchestrator's after merge, owner 2026-10-18; the owner deleted S3 `cvr-hymns` 2026-10-18 after all 694 objects matched R2 by size) · Repo: ~/Developer/personal/bible-tools · Base: b27a9471b
 Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>` (rift fails on this repo), branch `hymnapp/<unit>`. Merge = rebase on origin/main, gate, `merge-audit --each`, `git push origin HEAD:main` (ff only).
 
-| Unit      | Depends on                     | Workspace                 | Agents                   | Result           |
-| --------- | ------------------------------ | ------------------------- | ------------------------ | ---------------- |
-| glass     | appbase                        | .rifts/bible-tools/glass  | impl ab2ba40 (r8)        |                  |
-| manna     | testsplit, compile, glass      | .rifts/bible-tools/manna  |                          |                  |
-| reader1   | appbase                        | .rifts/manna/reader1      | impl a4ef6ed (r1)        |                  |
-| palette   | reader1                        |                           |                          |                  |
-| playstall | playerfix                      | (removed)                 | (closed)                 | merged 055a51bac |
-| census2   | hymnrows                       | .rifts/manna/census2      | impl a8a74b0 (r3 part 3) |                  |
-| census3   | census2                        |                           |                          |                  |
-| one29     | playerfix, coldload            |                           | impl a3d53ea (r1)        |                  |
-| topicdata | —                              |                           |                          |                  |
-| shell     | topicdata                      | .rifts/manna/shell        | ae81b0e9887d84541        |                  |
-| hymnbar   | shell, playstall               |                           |                          |                  |
-| pager     | coldload, playstall            |                           |                          |                  |
-| offline   | playstall                      |                           |                          |                  |
-| search    | coldload                       |                           |                          |                  |
-| search2   | search                         |                           |                          |                  |
-| scripture | search, topicdata              |                           |                          |                  |
-| lists     | pager                          |                           |                          |                  |
-| topics    | search, topicdata              |                           |                          |                  |
-| readview  | pager                          |                           |                          |                  |
-| render    | hymnrows                       |                           |                          |                  |
-| sync      | hymnrows                       |                           |                          |                  |
-| follow    | sync, pager, playstall         |                           |                          |                  |
-| rate      | follow                         |                           |                          |                  |
-| reader    | appbase, compile, glass, manna | .rifts/bible-tools/reader |                          |                  |
-| chords    | reader                         | .rifts/manna/chords       |                          |                  |
-| listen    | chords                         | .rifts/manna/listen       |                          |                  |
-| selah     | reader                         | .rifts/manna/selah        |                          |                  |
+| Unit      | Depends on                     | Workspace                 | Agents            | Result           |
+| --------- | ------------------------------ | ------------------------- | ----------------- | ---------------- |
+| glass     | appbase                        | .rifts/bible-tools/glass  | impl ab2ba40 (r8) |                  |
+| manna     | testsplit, compile, glass      | .rifts/bible-tools/manna  |                   |                  |
+| reader1   | appbase                        | .rifts/manna/reader1      | impl a4ef6ed (r1) |                  |
+| palette   | reader1                        |                           |                   |                  |
+| playstall | playerfix                      | (removed)                 | (closed)          | merged 055a51bac |
+| census2   | hymnrows                       | .rifts/manna/census2      |                   | merged 0de80174f |
+| census3   | census2                        |                           |                   |                  |
+| one29     | playerfix, coldload            |                           | impl a3d53ea (r1) |                  |
+| topicdata | —                              |                           |                   |                  |
+| shell     | topicdata                      | .rifts/manna/shell        | ae81b0e9887d84541 |                  |
+| hymnbar   | shell, playstall               |                           |                   |                  |
+| pager     | coldload, playstall            |                           |                   |                  |
+| offline   | playstall                      |                           |                   |                  |
+| search    | coldload                       |                           |                   |                  |
+| search2   | search                         |                           |                   |                  |
+| scripture | search, topicdata              |                           |                   |                  |
+| lists     | pager                          |                           |                   |                  |
+| topics    | search, topicdata              |                           |                   |                  |
+| readview  | pager                          |                           |                   |                  |
+| render    | hymnrows                       |                           |                   |                  |
+| sync      | hymnrows                       |                           |                   |                  |
+| follow    | sync, pager, playstall         |                           |                   |                  |
+| rate      | follow                         |                           |                   |                  |
+| reader    | appbase, compile, glass, manna | .rifts/bible-tools/reader |                   |                  |
+| chords    | reader                         | .rifts/manna/chords       |                   |                  |
+| listen    | chords                         | .rifts/manna/listen       |                   |                  |
+| selah     | reader                         | .rifts/manna/selah        |                   |                  |
 
 Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `inexact` (the 7 MIDI files whose verses do not split: 126 225 262 292 403 453 580), `decks` (syllable splits into feat/hymn-decks, last by the owner's word), `selah` (planned: after reader, see Decisions; macOS stays SwiftUI until react-native-gpui ships a real package).
 
@@ -171,6 +171,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - playstall r3 verify failed on D1 only: a seek while Playing shows Loading for about 0.27 s (main: 1 to 2 frames). A regression against main on a normal path, so it holds the merge under the exit rule. Decided: one fix round (r4, the first of the 2 allowed), invariant "a seek while Playing keeps the page Playing" (spec P1). Re-verify the seek paths only, then merge. Not driven by the verifier, now follow-ups: iOS lock-screen controls, an iOS network drop, Android. (orchestrator, 2026-10-22, exit rule, playstall)
 
+- census2 merged without a separate verify (2026-10-22, decided by principle, small and reversible): the unit has no app surface, and the r3 reviewer measured the census summary and the tests at head; the merge gate and merge-audit (13/13 guard ok) ran in the merge worktree. Tooling-only units with no app surface fold verify into the merge; a unit that touches the app keeps its verifier. (census2)
+
 ## Owner questions
 
 - hymnrows (2026-10-20): the rewrite failed its 3 rounds (r6 changes: M1, repeat of r5 M1). The data at head `ebb5933da` is sound by every check: 0 census problems, 518 crops re-cut byte-identical, 584 matches its crop, and the gate is green. The defect is the census's reach: 115 hand-made layout mutants in 25 hymns pass it unseen. Options: (A, recommended) merge the data now and open unit `census2` with the 115 mutants as red fixtures first; (B) one more rewrite before anything merges; (C) merge the data and drop the census's layout check. Answer: pending.
@@ -182,10 +184,11 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - selah (from `notes/selah-dictation.md`, 2026-10-19): (1) what a live mistake shows while the user speaks: a mark only (recall stays unaided), or the correct word (a peek that caps the grade like a hint)? Recommendation: a mark only, with a tap on the mark to reveal the word as a peek. (2) Should Stop suggest a grade from the comparison? Recommendation: yes, pre-selected, the user confirms or changes it. (3) On a phone with no on-device recognizer (Android 12 or older, some makers), may Selah fall back to network recognition after the user agrees? Recommendation: yes, off by default, asked once with what leaves the phone. — answer (owner, 2026-10-19): "for the mistake it should probably show a mark first and then you can kind of hover over and see the word if you really or like click the mark and see the word if you want. Like you said it counts as a peak. Yeah, and we'll go with your record, with your recommendations." So: (1) a mark first; hovering (pointer) or tapping the mark reveals the word, and that counts as a peek; (2) Stop pre-selects a suggested grade the user confirms or changes; (3) network fallback allowed, off by default, asked once with what leaves the phone.
 
-- census2: rows the page contradicts, each `unsettled` with its row unchanged: 3, 18, 58, 162, 207, 214, 220, 243, 398, 402 (table and crops in census2's `blocked.md`). Recommendation: one ask after census2 merges, each row a choice (change the row to the page / keep the row), the page's crop beside it. Answer: —
+- census2: rows the page contradicts, each `unsettled` with its row unchanged: 3, 18, 58, 162, 207, 214, 220, 243, 398, 402 (table and crops in census2's `blocked.md`). Recommendation: one ask after census2 merges, each row a choice (change the row to the page / keep the row), the page's crop beside it. Answer: asked in chat 2026-10-22 (B recommended: the page wins on the line-break rows 3, 18, 162, 207, 214, 402; the word rows 58, 220, 243, 398 keep the source, 220 to a second judge). Pending.
 
 ## Follow-ups
 
+- census2 (merged 0de80174f, 2026-10-22), each with its trigger and cheapest guard: (1) r2 M1, 604 line-break mutants escape through the census's own entry point (trigger: a row edited by hand; guard: the property reads mutants through the census's own path, census3); (2) r2 M2, no mutant crosses the varying-refrain break (trigger: a refrain edit; guard: a mutant class across that break, census3); (3) counsel F1, 5 to 6 own-hymn words in `data/crops/139/rulings.json:28` and `data/shapes.json:82663` (guard: the 3-word lyric scan over committed data files); (4) the redaction misses a quoted span that holds a quote mark (`census.ts:313` with `:2767`; guard: a fixture with an inner quote); (5) a red `toEqual` at `layout.test.ts:199-200` would print stanza text (guard: compare fingerprints); (6) about 19 more `layout` rulings may need the `assumption` kind (judge them in census3); (7) hymn-word runs already on main in `data/crops/183/rulings.json` and `data/crops/231/rulings.json` (same scan as 3); (8) the hymnal tests take 8.6 to 9 s alone, near the 10 s budget (trigger: the next added suite; guard: `test:budget`).
 - playstall (merged 055a51bac, 2026-10-22), each with its trigger and cheapest guard: (1) the 5 lines left of the 8,000-seed sweep at 107e9d5ab (a long host hold, or lock-screen and page commands that overlap; a resume off by 1 to 5.5 s, worst 0:00 for 3:55), guard: each seed as a fixed world case; (2) the platform-ordered world (`playstall/rewrite2/evidence/ordered-world.diff`, 56 lines become 5), unreviewed, guard: review it and adopt it as the world; (3) r4 sweep lines android 862 (O4: a Resume restarts the page's silence wait, the world's O4 does not count it) and web 722 (O6: a seek sent to an ended device, then Resume, plays from the seek's place, the world expects 0:00), guard: the press sequence as a fixed test on the base; (4) not driven by a verifier: iOS lock-screen controls, an iOS network drop, Android; (5) the verifiers' helpers (`obs.js`, `net5.ts`, `step.sh`, `loadgate.sh`, the redaction scripts) move into `verify-hymnal`, plus a `sim seek` command; (6) the old branch `hymnapp/playstall` stays as data (bundle `.bundles/manna-hymnapp-playstall-old-2026-10-22.bundle`).
 - verifyhymnal (merged 9a6cdcfff): register the `hymnal` link scheme in `apps/hymnal/vite.config.ts` (today `sim install` writes it into the git-ignored build settings); the three accessibility follow-ups in `verifyhymnal/round-1-request.md`; drive the hymn list, the player and web search as full journeys in the feature map (only the reader and chords ran end to end); a run on the Workbox.
 - coldload: the r3 verifier's helpers (`tmp/orchestrate/hymnapp/coldload/verify-3-evidence/helpers/`) move into the `verify-hymnal` skill or repo scripts (build the lever).
