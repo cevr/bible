@@ -258,6 +258,30 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   and the page's control and the bar, pressed in a document, in
   `src/player/ui.slow.test.tsx`.
 
+## App icon
+
+The app is named Hymnal, and its icon is one blade of wheat:
+`assets/icon/wheat.svg` is the one shape. `bun run icon`
+(`scripts/icon.ts`) redraws every icon from it in the app's colours
+(`wada167` in `src/theme.ts`):
+
+- iOS: light (blue wheat on ecru), dark (ecru on blue) and tinted (white on
+  black), in `assets/icon/`.
+- Android: the adaptive icon's foreground (blue) and monochrome (white)
+  layers, on an ecru ground the launcher draws.
+- Web: `public/favicon.svg` (ecru on blue in dark mode), `favicon-32.png`,
+  `apple-touch-icon.png`, and the manifest's icons, one of them maskable.
+- The launch screen: `public/splash.png` (blue wheat) and `splash-dark.png`
+  (ecru wheat), each on a transparent square the launch screen centres
+  200 points wide on its ground (ecru, and blue in dark mode). One's
+  prebuild trims an opaque ground away, so the ground is the config's
+  `backgroundColor`, not the PNG's.
+
+`vite/app.ts` holds the native app's name, icons and launch screen; `vite.config.ts` passes
+it to One. A native build reads new icons only after
+`bun run prebuild:native`. `scripts/icon.test.ts` goes red when a drawn file
+no longer matches the script, so an edit to `wheat.svg` needs `bun run icon`.
+
 ## Recordings: R2 at hymns.cvr.im
 
 The 1985 SDA Hymnal's recordings are in the Cloudflare R2 bucket `cvr-hymns`,
