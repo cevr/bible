@@ -1,7 +1,8 @@
-import { Effect } from 'effect';
+import * as BunServices from '@effect/platform-bun/BunServices';
+import { Effect, FileSystem, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { type Hymn, type Order, type Part } from './hymn.js';
+import { type Hymn, Hymn as HymnSchema, type Order, type Part, sung } from './hymn.js';
 import { type Clock, type Laying, secondsAt, timingOf } from './timing.js';
 
 const fit = { notes: 2, syllables: 2, melismas: 0, shared: { inWord: 0, acrossWords: 0 }, cost: 0 };
@@ -225,5 +226,69 @@ describe('secondsAt', () => {
       });
       expect([at(0), at(48), at(96), at(192)]).toEqual([0, 0.25, 0.5, 1.5]);
     }),
+  );
+});
+
+const FOLDER = new URL('../data/sdah-1985/', import.meta.url).pathname;
+const decodeHymn = Schema.decodeUnknownEffect(Schema.fromJsonString(HymnSchema));
+
+/** Why a committed hymn's timing breaks the rules, or nothing. */
+const faults = (hymn: Hymn): string[] => {
+  const timing = hymn.timing;
+  if (timing === undefined) return ['no timing'];
+  const out: string[] = [];
+  const lines = sung(hymn);
+  if (timing.lines.length !== lines.length)
+    return [`${timing.lines.length} timed lines for ${lines.length} sung`];
+  const firstOnly =
+    hymn.refrain?.order === 'first-and-after-each' || hymn.refrain?.order === 'first-and-last';
+  let stanza = 0;
+  timing.lines.forEach((time, i) => {
+    const line = lines[i];
+    if (line === undefined) return;
+    const at = `line ${i}`;
+    if (line.verse !== 'refrain') stanza = line.verse;
+    const before = timing.lines[i - 1];
+    if (before !== undefined && time.start < before.start)
+      out.push(`${at}: starts before the line before`);
+    if (time.until < time.start) out.push(`${at}: ends before it starts`);
+    if (time.syllables.some((s, k) => s < (time.syllables[k - 1] ?? time.start)))
+      out.push(`${at}: a syllable starts before the one before`);
+    if (time.syllables.some((s) => s < time.start || s >= time.until))
+      out.push(`${at}: a syllable outside [start, until)`);
+    if (line.part._tag === 'Sung') {
+      const count = line.part.lines[line.line]?.length;
+      if (time.syllables.length !== count)
+        out.push(`${at}: ${time.syllables.length} syllables for ${count}`);
+    } else if (!time.even || time.syllables.length > 0) out.push(`${at}: a Plain line not even`);
+    const unplayed =
+      stanza > hymn.verses.midi || (line.verse === 'refrain' && stanza === 0 && firstOnly);
+    if (unplayed && time.played) out.push(`${at}: played, though the file does not play it`);
+    if (time.played && time.until > timing.end) out.push(`${at}: played past the file's end`);
+  });
+  const last = timing.lines.at(-1);
+  if (last !== undefined && last.played && last.until !== timing.end)
+    out.push(`the last line ends at ${last.until}, not the file's end ${timing.end}`);
+  if (last !== undefined && !last.played && last.until < timing.end)
+    out.push(`the last line, unplayed, ends before the file's end`);
+  return out;
+};
+
+describe('the committed timing', () => {
+  it.effect('times every sung line of every hymn by the rules', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const names = (yield* fs.readDirectory(FOLDER)).filter((name) => /^\d{3}\.json$/.test(name));
+      expect(names).toHaveLength(695);
+      const hymns = yield* Effect.forEach(
+        names,
+        (name) => fs.readFileString(`${FOLDER}${name}`).pipe(Effect.flatMap(decodeHymn)),
+        { concurrency: 16 },
+      );
+      const found = hymns.flatMap((hymn) =>
+        faults(hymn).map((fault) => `${hymn.number}: ${fault}`),
+      );
+      expect(found.slice(0, 20)).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
   );
 });
