@@ -19,9 +19,10 @@ import * as r2 from '@distilled.cloud/cloudflare/r2';
 import * as Retry from '@distilled.cloud/cloudflare/Retry';
 import * as T from '@distilled.cloud/cloudflare/Traits';
 import * as API from '@distilled.cloud/core/api';
+import { AuthProviders } from 'alchemy/Auth';
 import * as Cloudflare from 'alchemy/Cloudflare';
 import { Effect, Layer, Option, Predicate, Schema, Stream } from 'effect';
-import { HttpClientError } from 'effect/http';
+import { FetchHttpClient, HttpClientError } from 'effect/http';
 
 import type { PutMetadata, TargetObject } from './stores.ts';
 import { StoreFailed, Target } from './stores.ts';
@@ -166,4 +167,15 @@ export const TargetR2 = Layer.effect(
 
     return Target.of({ list, put });
   }),
+);
+
+/**
+ * R2 behind the owner's profile, built only for a real run. The empty
+ * `AuthProviders` registry is the one the Cloudflare auth layer registers
+ * into, as the Alchemy CLI starts it.
+ */
+export const TargetR2Writes = TargetR2.pipe(
+  Layer.provide(Cloudflare.CloudflareApiLive()),
+  Layer.provide(Layer.succeed(AuthProviders, AuthProviders.of({}))),
+  Layer.provide(FetchHttpClient.layer),
 );
