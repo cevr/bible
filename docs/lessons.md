@@ -3256,3 +3256,63 @@ The form of an entry, each field on its own line:
 - **Wrong:** Core's vector tests load `dist-native/vector-scan.dylib`, built on the host and gitignored, through `bun:ffi`'s `dlopen`, and the cli's and egw-search's tests load it through core; no task hashed it, so a rebuilt library kept the cached passes, and test:reads, which recorded only file reads, reported none. Its preload also said imports need no record, though a relative import that leaves its workspace is hashed only when a `turbo.json` names it.
 - **Cause:** The recorder was written to the reads the first finding named, not to every way a bun process opens a file. It now records `dlopen` (`bun:ffi` and `process.dlopen`) and each loaded module, and `packages/core/turbo.json` hashes `dist-native/**` in core's `test` and `transit` inputs.
 - **Guard:** code: `packages/scripts/src/test-reads/preload.slow.test.ts` `records a file a test reads, a module it imports and a native library it loads, in each test runner mode`, `packages/scripts/src/test-slow.sh` `bun run test:reads`
+
+### hymn-left-edge-goes-back-over-the-pager
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "even though we're swiping to go to next or previous hymn, if we swipe directly at the left edge, it should go back"
+- **Source:** tmp/orchestrate/hymnapp/notes/owner/decisions.log 2026-10-23T01:03Z (run hymnapp, unit uibulk A5)
+- **Wrong:** On the paged hymn screen, a pan from the left screen edge turned to the hymn before instead of going back to the list; the base app went back on the same pan.
+- **Cause:** On iOS 26 and later, the stack's pop gesture yields to a scroll view that scrolls sideways, so the pager took the pan (inferred from react-native-screens' `RNSScreenStack.mm`). A strip the back zone's width (`backEdge`, `pager.ts`) now lies over the pager's left edge, so the pager never gets that touch.
+- **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `lies over the pager on every page, the back zone’s width from top to bottom, so its pans go back`
+
+### hymn-header-on-the-push-first-frame
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "there's, like, a slight, tiny shift to the left as the page comes sliding in." and "it would just say him, and then a slash, and then a bracket with, like, number or something. So something went wrong and then the header just kind of disappeared and then the header actually was black or gray instead of the, that background colour."
+- **Source:** the owner's scrawl capture of 2026-10-22, tmp/orchestrate/hymnapp/notes/owner/2026-10-22-header-scrawl.png and decisions.log 2026-10-23T00:39Z (run hymnapp, unit uibulk)
+- **Wrong:** As a hymn page was pushed, its header title moved a little, and once the header showed the route's name, `hymns/[number]`, on the system's grey ground.
+- **Cause:** Each hymn screen set its own header with `Stack.Screen` options from its page's effect, so the push drew the stack's default header until that effect ran (inferred from the code). The stack now gives every screen its ground and the hymn route its title and buttons from the route's number (`stackOptions`, `hymnHeader`), before any page code runs.
+- **Guard:** code: `apps/hymnal/src/reader/header.test.ts` `names the route’s hymn, on the ground, with the page’s buttons`, `apps/hymnal/src/reader/header.test.ts` `is keyed by the name the stack gives the route file`
+
+### hymn-page-scrolls-inside-the-pager
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "I've noticed that you can't scroll down anymore."
+- **Source:** the owner's look on his iPhone at 5b65a158d, tmp/orchestrate/hymnapp/notes/owner/2026-10-22-uibulk-phone-scrawl.png and decisions.log 2026-10-23T01:35Z (run hymnapp, unit uibulk)
+- **Wrong:** A hymn page in the pager did not scroll: a drag down banded back, and the words past the screen's end could not be reached.
+- **Cause:** LegendList sizes a horizontal list's item to its content, so each page grew to its words' full height and its scroll view had nothing to scroll. The screen now measures its height and gives it to each page.
+- **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `is as tall as the pager, not as its words, so the words scroll inside it on every way in`
+
+### hymn-chords-button-a-simple-guitar-head
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "I prefer a simpler icon here. Just like an acoustic guitar head"
+- **Source:** the owner's look on his iPhone at 5b65a158d, tmp/orchestrate/hymnapp/notes/owner/2026-10-22-uibulk-phone-scrawl.png and decisions.log 2026-10-23T01:35Z (run hymnapp, unit uibulk)
+- **Wrong:** The header's Chords button drew the SF Symbol `guitars`, which the owner found too busy for the header.
+- **Cause:** The spec named the SF Symbol; the owner had not seen it at header size. The button now draws one acoustic guitar head with its tuning pegs, the same on every platform.
+- **Guard:** skill: whether an icon reads as simple is a judgment of the eye, which no test can make. Carried by `.claude/skills/verify-hymnal/features/chords-and-capo.md`: "(an acoustic guitar's head with its tuning pegs, the same on every platform, filled while on), and"
+
+### hymn-recent-five-and-stars-not-a-favourites-section
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "Yeah, I think five is good for recents, and I'll go with your recommendation A"
+- **Source:** tmp/orchestrate/hymnapp/notes/owner/decisions.log 2026-10-23T01:35Z (run hymnapp, unit uibulk)
+- **Wrong:** The home list showed up to 8 recent hymns and a `Favourites` section above the topics; the owner wanted at most five recents and, as option A, no Favourites section but a star before a favourite's title in its rows.
+- **Cause:** The spec set Recent at 8 and Favourites as a section before the owner had seen them on his phone.
+- **Guard:** code: `apps/hymnal/src/reader/lists.test.ts` `reads Recent alone, in its stored order, its header opening the Recent screen: Favourites is no shelf, its hymns are starred in the rows`, `apps/hymnal/src/reader/lists.ts` `RECENT_SHOWN`
+
+### hymn-recent-see-all
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "we should also be able to see more recents, maybe by tapping the header"
+- **Source:** tmp/orchestrate/hymnapp/notes/owner/decisions.log 2026-10-23T01:57Z (run hymnapp, unit uibulk)
+- **Wrong:** With the home list showing five recents, the hymns opened before them could not be reached from Recent.
+- **Cause:** Recent kept only what the home list showed. It now keeps 50; the home list shows 5, and the Recent header opens the Recent screen with all of them.
+- **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `Recent’s header is a button that shows See all and opens the Recent screen`, `apps/hymnal/src/reader/pager.slow.test.ts` `the Recent screen lists every hymn Recent keeps, the latest first, a favourite starred, an unknown number dropped`
