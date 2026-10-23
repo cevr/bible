@@ -12,7 +12,7 @@
  * to line `(y - TOP) / STEP` (the page's height reads 0, so the line sits at
  * the top).
  *
- * `HangingLine` is wrapped in a counter of its draws by line; the wrapper
+ * `SyllableLine` is wrapped in a counter of its draws by line; the wrapper
  * draws the real line.
  */
 
@@ -27,7 +27,7 @@ import { createRoot } from 'react-dom/client';
 import { hymnAt } from '~/hymns/hymns';
 import { PlayerContext } from '~/player/context';
 import { Player, playerOn } from '~/player/player';
-import * as Hanging from '~/reader/HangingLine';
+import * as Syllables from '~/reader/SyllableWords';
 import { HymnPage } from '~/reader/HymnPage';
 import { fakeDevice } from '~/test/device';
 import { readerOn } from '~/test/reader';
@@ -36,12 +36,12 @@ import { book } from './book';
 import { seeks } from './seeks';
 import type { Timeline } from './timeline';
 
-/** Draws of `HangingLine` by its line index. */
+/** Draws of `SyllableLine` by its line index. */
 const draws = new Map<number, number>();
-const drawn = Hanging.HangingLine;
+const drawn = Syllables.SyllableLine;
 // oxlint-disable-next-line effect/noModuleMocks -- a line's draws are counted on the real page, so its line is wrapped; the wrapper draws the real line, and no other test file shares this file's process (test:slow runs it alone).
-mock.module('~/reader/HangingLine', () => ({
-  HangingLine: (props: ComponentProps<typeof drawn>) => {
+mock.module('~/reader/SyllableWords', () => ({
+  SyllableLine: (props: ComponentProps<typeof drawn>) => {
     draws.set(props.index, (draws.get(props.index) ?? 0) + 1);
     return drawn(props);
   },
@@ -134,8 +134,8 @@ const mount = (number: number, chords: boolean = false) => {
       Arr.filter([k], () => line.getAttribute('aria-selected') === 'true'),
     );
   /**
-   * In line `k`, the colour of each word (chords off) or each syllable
-   * (chords on, where the chord names above them keep their own colour).
+   * In line `k`, the colour of each syllable (where the chord names above
+   * them keep their own colour), or of each word in a Plain line.
    */
   const colours = (k: number) =>
     Option.match(Arr.get(lines(), k), {
@@ -171,28 +171,31 @@ const mount = (number: number, chords: boolean = false) => {
 };
 
 describe('the follow on a hymn page', () => {
-  it('marks only the sung line, and in it only the sung word in the accent, with chords off and on', () => {
+  it('marks only the sung line, and in it only the sung syllable in the accent, with chords off and on (F1c)', () => {
     const { k, line, second, at } = wordLineOf(timelineOf(100));
-    const sung = line.words[second];
+    // The second word's first syllable, then the one after it inside a word when there is one.
+    const inWord = line.words.findIndex((word, s) => s > 0 && word === line.words[s - 1]);
+    const steps = [{ s: second, ms: at }];
+    if (inWord > 0)
+      steps.push({ s: inWord, ms: Option.getOrThrow(Arr.get(line.syllables, inWord)) });
     for (const chords of [false, true]) {
       using page = mount(100, chords);
-      page.at(at);
-      expect(page.selected()).toEqual([k]);
-      // Chords off: one element per word, the sung one lit. Chords on: one per syllable, the sung word's lit.
-      const lit = Match.value(chords).pipe(
-        Match.when(true, () => line.words.map((word) => word === sung)),
-        Match.orElse(() => page.colours(k).map((_, w) => w === sung)),
-      );
-      expect(page.colours(k)).toEqual(
-        lit.map((on) =>
-          Match.value(on).pipe(
-            Match.when(true, () => ACCENT),
-            Match.orElse(() => MUTED),
+      expect(page.lines().length).toBe(timelineOf(100).lines.length);
+      for (const { s, ms } of steps) {
+        page.at(ms);
+        expect(page.selected()).toEqual([k]);
+        // One element per syllable in both views: the sung one lit, the rest of the line muted.
+        expect(page.colours(k)).toEqual(
+          line.syllables.map((_, x) =>
+            Match.value(x === s).pipe(
+              Match.when(true, () => ACCENT),
+              Match.orElse(() => MUTED),
+            ),
           ),
-        ),
-      );
-      for (const other of page.lines().keys())
-        if (other !== k) expect(page.colours(other)).not.toContain(ACCENT);
+        );
+        for (const other of page.lines().keys())
+          if (other !== k) expect(page.colours(other)).not.toContain(ACCENT);
+      }
     }
   });
 
@@ -204,7 +207,7 @@ describe('the follow on a hymn page', () => {
     expect(page.colours(k)).not.toContain(ACCENT);
   });
 
-  it('draws one line again when the sung word moves, and two when the line changes', () => {
+  it('draws one line again when the sung syllable moves, and two when the line changes', () => {
     const timeline = timelineOf(100);
     const { k, line, at } = wordLineOf(timeline);
     using page = mount(100);

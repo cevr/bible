@@ -26,6 +26,7 @@ import {
   playedKey,
   soundingKey,
   still,
+  syllablesOf,
 } from './chords';
 import { hymns } from './hymns';
 import { simple } from './simple';
@@ -323,6 +324,46 @@ describe('the chords over every compiled hymn', () => {
         chords: true,
       });
     }
+  });
+
+  it('gives every sung line its syllables in order, which make the line and match its times; plain parts as words (F1a)', () => {
+    const faults: Array<string> = [];
+    let lit = 0;
+    for (const { hymn, text, chords } of cases) {
+      const timed = hymn.timing?.lines ?? [];
+      let i = 0;
+      syllablesOf(text, chords).forEach((shown, p) => {
+        const section = Option.getOrThrow(Option.fromUndefinedOr(text.sections[p]));
+        const part = partOf(hymn, section);
+        const first = i;
+        i += section.lines.length;
+        if (part._tag === 'Plain') {
+          if (shown._tag !== 'Words') faults.push(`${hymn.number} section ${p + 1}: ${shown._tag}`);
+          return;
+        }
+        if (shown._tag !== 'Syllables') {
+          faults.push(`${hymn.number} section ${p + 1}: words for a sung part`);
+          return;
+        }
+        shown.lines.forEach((line, l) => {
+          const at = `${hymn.number} ${p + 1}.${l + 1}`;
+          const want = (part.lines[l] ?? []).map((s) => s.text);
+          const got = line.flat().map((box) => box.text);
+          if (got.join('|') !== want.join('|')) faults.push(`${at}: not the part's syllables`);
+          if (
+            line.map((word) => word.map((box) => box.text).join('')).join(' ') !== section.lines[l]
+          )
+            faults.push(`${at}: the syllables do not make the line`);
+          const times = timed[first + l]?.syllables ?? [];
+          if (times.length > 0) {
+            lit += 1;
+            if (times.length !== got.length) faults.push(`${at}: ${times.length} times`);
+          }
+        });
+      });
+    }
+    expect(faults).toEqual([]);
+    expect(lit).toBe(15098);
   });
 });
 

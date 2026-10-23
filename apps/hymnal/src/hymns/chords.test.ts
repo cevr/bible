@@ -8,7 +8,17 @@
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
 
-import { capoed, chordBook, keyName, playedKey, soundingKey, still, transposed } from './chords';
+import {
+  capoed,
+  chordBook,
+  keyName,
+  playedKey,
+  soundingKey,
+  still,
+  syllablesOf,
+  transposed,
+} from './chords';
+import type { HymnText } from './text';
 
 describe('a move', () => {
   it('wraps a transpose through the twelve keys, kept between -5 and 6', () => {
@@ -31,6 +41,42 @@ describe('a move', () => {
     expect(keyName(soundingKey(gFlat, { transpose: 1, capo: 0 }))).toBe('G');
     const cSharpMinor = { tonic: 'C#', minor: true } as const;
     expect(keyName(playedKey(cSharpMinor, { transpose: 0, capo: 1 }))).toBe('Cm');
+  });
+});
+
+describe('a hymn’s syllables', () => {
+  const book = chordBook([[1, '[1,"C",false,[["line",["Ab|+c d","E"]],0],["syllable",["F|+g"]]]']]);
+  const chords = Option.getOrThrow(book.of(1));
+  const section = (kind: 'stanza' | 'refrain', n: number, lines: ReadonlyArray<string>) => {
+    if (kind === 'refrain') return { kind, lines };
+    return { kind, n, lines };
+  };
+  const text = (sections: HymnText['sections']): HymnText => ({
+    number: 1,
+    title: 'T',
+    firstLine: '',
+    topic: '',
+    sections,
+  });
+
+  it('gives each line its words as syllables, a syllable whose text holds a space kept whole', () => {
+    const shown = syllablesOf(
+      text([section('stanza', 1, ['Abc d', 'E']), section('refrain', 0, ['Fg'])]),
+      chords,
+    );
+    const texts = shown.map((s) => {
+      if (s._tag === 'Words') return 'words';
+      return s.lines.map((l) => l.map((w) => w.map((b) => b.text)));
+    });
+    expect(texts).toEqual([[[['Ab', 'c d']], [['E']]], [[['F', 'g']]]]);
+  });
+
+  it('gives words for a plain part and for a part whose line count is not its section’s', () => {
+    const shown = syllablesOf(
+      text([section('stanza', 1, ['Abc d']), section('stanza', 2, ['x'])]),
+      chords,
+    );
+    expect(shown.map((s) => s._tag)).toEqual(['Words', 'Words']);
   });
 });
 

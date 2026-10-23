@@ -154,4 +154,19 @@ describe('every bundled hymn timeline', () => {
     expect(faults.slice(0, 10)).toEqual([]);
     expect(checked).toBeGreaterThan(100_000);
   });
+
+  it('marks a syllable of the sung line at every syllable start and halfway to the next (F1b)', () => {
+    const faults: Array<string> = [];
+    for (const [number, timeline] of timelines)
+      for (const line of timeline.lines)
+        line.syllables.forEach((start, s) => {
+          const next = line.syllables[s + 1] ?? line.until;
+          for (const ms of [start, Math.floor((start + next) / 2)]) {
+            const { syllable } = placeAt(timeline, ms);
+            if (syllable < 0 || syllable >= line.syllables.length)
+              faults.push(`${number} at ${ms}: syllable ${syllable}`);
+          }
+        });
+    expect(faults.slice(0, 10)).toEqual([]);
+  });
 });

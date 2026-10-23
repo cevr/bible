@@ -1,12 +1,12 @@
 /**
- * Which line is being sung, and which of its words: one store per hymn page,
+ * Which line is being sung, and which of its syllables: one store per hymn page,
  * read line by line.
  *
- * Each line subscribes to its own mark, so a word moving on tells one line
+ * Each line subscribes to its own mark, so a syllable moving on tells one line
  * and a line changing tells two (the one left and the one reached); the
  * other lines of the page are never drawn again. A line reads its mark as
  * one number: `OFF` when it is not the sung line, else the index of its sung
- * word (`-1` when no word is lit: a line-level or Plain line, an unplayed
+ * syllable (`-1` when none is lit: a line-level or Plain line, an unplayed
  * one, or a rest).
  */
 
@@ -14,24 +14,24 @@
 export const OFF = -2;
 
 export interface Marks {
-  /** The line's mark: `OFF`, or its sung word (`-1` for none). */
+  /** The line's mark: `OFF`, or its sung syllable (`-1` for none). */
   readonly markOf: (line: number) => number;
   /** Calls `listener` whenever the line's mark changes. */
   readonly subscribe: (line: number, listener: () => void) => () => void;
-  /** Marks `line` (`-1` for none) with its sung `word` (`-1` for none). */
-  readonly set: (line: number, word: number) => void;
+  /** Marks `line` (`-1` for none) with its sung `syllable` (`-1` for none). */
+  readonly set: (line: number, syllable: number) => void;
   /** The sung line, `-1` for none. */
   readonly line: () => number;
 }
 
 export const marksOf = (): Marks => {
-  let current = { line: -1, word: -1 };
+  let current = { line: -1, syllable: -1 };
   const listeners = new Map<number, Set<() => void>>();
   const tell = (line: number) => listeners.get(line)?.forEach((listener) => listener());
   return {
     markOf: (line) => {
       if (line !== current.line) return OFF;
-      return current.word;
+      return current.syllable;
     },
     subscribe: (line, listener) => {
       const set = listeners.get(line) ?? new Set();
@@ -42,10 +42,10 @@ export const marksOf = (): Marks => {
         if (set.size === 0) listeners.delete(line);
       };
     },
-    set: (line, word) => {
+    set: (line, syllable) => {
       const was = current;
-      if (was.line === line && was.word === word) return;
-      current = { line, word };
+      if (was.line === line && was.syllable === syllable) return;
+      current = { line, syllable };
       tell(was.line);
       if (line !== was.line) tell(line);
     },

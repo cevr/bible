@@ -4,12 +4,10 @@
  * off by the header's `ChordsButton`), and each section drawn under its
  * chords.
  *
- * A syllable-level line is a row of words that wraps between words; a word
- * is a row of syllable boxes that stays together; a box is its chords over
- * its syllable, in the body's own font, so a chord sits over the syllable it
- * changes on with no padded spaces. A box widened by a long chord shows a
- * hyphen in the gap inside its word. A line-level part shows each line's
- * chords in one row above the line.
+ * A syllable-level line is its syllables (`SyllableWords.tsx`), each a box
+ * with its chords over it, in the body's own font, so a chord sits over the
+ * syllable it changes on with no padded spaces. A line-level part shows each
+ * line's chords in one row above the line's syllables.
  *
  * The chords are spelled in the key the move reaches, read from a context by
  * each chord's text alone: a tap on a key control redraws the chord texts,
@@ -17,16 +15,9 @@
  */
 
 import * as Chord from '@bible/hymnal/chord';
+import { Option } from 'effect';
 import { createContext, memo, use } from 'react';
-import {
-  Pressable,
-  type StyleProp,
-  StyleSheet,
-  Text,
-  type TextStyle,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
 import type { Section } from '~/hymns/hymns';
@@ -42,10 +33,7 @@ import {
   transposed,
 } from '~/hymns/chords';
 
-import { currentOf } from '~/follow/current';
-import { useLineFollow } from '~/follow/follow';
-
-import { HangingLine } from './HangingLine';
+import { SyllableLine } from './SyllableWords';
 import { usePageText } from './pageText';
 
 /** The key the chords are spelled in, as the hymn's move reaches it. */
@@ -181,16 +169,24 @@ function Step({
   );
 }
 
-/** A section's lines under their chords; `p` is its place on the page, from 1. */
+/**
+ * A section's lines under their chords; `p` is its place on the page, from 1.
+ * A syllable-level line is its syllables, each under its chords; a
+ * line-level line is a row of its chords over its syllables (`syllables`,
+ * the same part's syllables without chords).
+ */
 export const ChordLines = memo(function ChordLines({
   section,
   shown,
+  syllables,
   p,
   first,
   style,
 }: {
   readonly section: Section;
   readonly shown: Exclude<SectionChords, { readonly _tag: 'Words' }>;
+  /** Each line's words as syllables. */
+  readonly syllables: ReadonlyArray<ReadonlyArray<Word>>;
   readonly p: number;
   /** The section's first line's place in the hymn as sung, from 0. */
   readonly first: number;
@@ -200,99 +196,34 @@ export const ChordLines = memo(function ChordLines({
     return section.lines.map((line, l) => (
       <View key={l} style={styles.lineLevel}>
         <ChordText chords={shown.lines[l] ?? []} testID={`chords-${p}-${l + 1}`} />
-        <HangingLine line={line} index={first + l} style={style} />
+        <SyllableLine
+          words={syllables[l] ?? []}
+          label={line}
+          at={`${p}-${l + 1}`}
+          index={first + l}
+          style={style}
+          over={Option.none()}
+        />
       </View>
     ));
   }
   return shown.lines.map((words, l) => (
-    <SyllableLine key={l} words={words} at={`${p}-${l + 1}`} index={first + l} style={style} />
+    <SyllableLine
+      key={l}
+      words={words}
+      label={section.lines[l] ?? ''}
+      at={`${p}-${l + 1}`}
+      index={first + l}
+      style={style}
+      over={Option.some(boxChords)}
+    />
   ));
 });
 
-/**
- * While the line is sung (`follow/`), it is `selected` and its syllables take
- * the muted colour, the sung word's syllables the accent.
- */
-function SyllableLine({
-  words,
-  at,
-  index,
-  style,
-}: {
-  readonly words: ReadonlyArray<Word>;
-  /** The line's place, `p-l`. */
-  readonly at: string;
-  /** The line's place in the hymn as sung, from 0. */
-  readonly index: number;
-  readonly style: StyleProp<TextStyle>;
-}) {
-  const { fontScale } = useWindowDimensions();
-  const { indent } = usePageText();
-  const { marked, ref, wordStyle } = useLineFollow(index);
-  const starts = wordStarts(words);
-  return (
-    <View
-      ref={ref}
-      testID="line"
-      aria-selected={marked}
-      {...currentOf(marked)}
-      style={[styles.line, { columnGap: 5 * fontScale, paddingLeft: indent }]}
-    >
-      {words.map((word, w) => (
-        <View key={w} style={[styles.word, w === 0 && { marginLeft: -indent }]}>
-          {word.map((box, k) => (
-            <SyllableBox
-              key={k}
-              box={box}
-              place={`${at}-${(starts[w] ?? 0) + k + 1}`}
-              joinsNext={k < word.length - 1}
-              style={[style, wordStyle(w)]}
-            />
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/** Each word's first syllable's place in its line, from 0. */
-const wordStarts = (words: ReadonlyArray<Word>): ReadonlyArray<number> =>
-  words.reduce<Array<number>>(
-    (starts, word, w) => [...starts, (starts[w - 1] ?? 0) + (words[w - 1]?.length ?? 0)],
-    [],
-  );
-
-function SyllableBox({
-  box,
-  place,
-  joinsNext,
-  style,
-}: {
-  readonly box: Box;
-  /** The syllable's place, `p-l-s`: its chords are `chord-p-l-s`, its text `syllable-p-l-s`. */
-  readonly place: string;
-  readonly joinsNext: boolean;
-  readonly style: StyleProp<TextStyle>;
-}) {
-  const { words } = usePageText();
-  return (
-    <View style={styles.box}>
-      <BoxChords chords={box.chords} id={`chord-${place}`} />
-      <View style={styles.syllable}>
-        <Text testID={`syllable-${place}`} style={[style, words]} dynamicTypeRamp="body">
-          {box.text}
-        </Text>
-        {joinsNext && (
-          <View style={styles.hyphen} aria-hidden>
-            <Text style={[style, words, styles.hyphenText]} dynamicTypeRamp="body">
-              -
-            </Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-}
+/** A syllable box's chords, `chord-p-l-s`. */
+const boxChords = (box: Box, place: string) => (
+  <BoxChords chords={box.chords} id={`chord-${place}`} />
+);
 
 /** A box's chords, or an empty row of the same height so the line keeps one baseline. */
 function BoxChords({
@@ -352,12 +283,6 @@ const styles = StyleSheet.create({
   stepDisabled: { opacity: 0.35 },
   glyph: { fontSize: 20, lineHeight: 22, fontWeight: '600' },
   reading: { fontSize: 15, color: color.ink, fontVariant: ['tabular-nums'] },
-  line: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6, marginBottom: 8 },
-  word: { flexDirection: 'row' },
-  box: { flexDirection: 'column' },
-  syllable: { flexDirection: 'row' },
-  hyphen: { width: 0, flexGrow: 1, overflow: 'hidden', alignItems: 'center' },
-  hyphenText: { color: color.muted },
   chord: { fontSize: 15, lineHeight: 20, fontWeight: '600', paddingRight: 6 },
   lineLevel: { marginBottom: 8 },
 });

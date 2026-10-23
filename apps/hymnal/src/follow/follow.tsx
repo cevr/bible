@@ -61,7 +61,7 @@ export function FollowProvider({
   return <FollowContext value={value}>{children}</FollowContext>;
 }
 
-/** Line `index`'s mark: `OFF`, or its sung word (`-1` for none). */
+/** Line `index`'s mark: `OFF`, or its sung syllable (`-1` for none). */
 const useLineMark = (index: number): number => {
   const { marks } = use(FollowContext);
   const subscribe = useCallback(
@@ -75,11 +75,11 @@ const useLineMark = (index: number): number => {
 
 /**
  * Line `index` in the follow: whether it is the sung line, a ref for its
- * view (kept for the follow's scroll), and each word's colour. The sung
- * line's words are muted and its sung word is the accent; a line not sung
- * keeps its own colour. The line is not boxed or tinted: in the light
- * theme the ink is the accent, so the sung word shows only against muted
- * words.
+ * view (kept for the follow's scroll), and each syllable's colour, by its
+ * place in the line from 0. The sung line's syllables are muted and its
+ * sung syllable is the accent; a line not sung keeps its own colour. The
+ * line is not boxed or tinted: in the light theme the ink is the accent, so
+ * the sung syllable shows only against muted ones.
  */
 export const useLineFollow = (index: number) => {
   const { keep } = use(FollowContext);
@@ -94,12 +94,19 @@ export const useLineFollow = (index: number) => {
       }),
     [keep, index],
   );
-  const wordStyle = (word: number): TextStyle => {
+  const syllableStyle = (syllable: number): TextStyle => {
     if (!marked) return {};
-    if (word === mark) return { color: accent };
+    if (syllable === mark) return { color: accent };
     return { color: color.muted };
   };
-  return { marked, ref, wordStyle };
+  /** A line drawn as words alone (a Plain part) has no syllable to light: it is muted whole. */
+  const wordsStyle = wordsStyleOf(marked);
+  return { marked, ref, syllableStyle, wordsStyle };
+};
+
+const wordsStyleOf = (marked: boolean): TextStyle => {
+  if (!marked) return {};
+  return { color: color.muted };
 };
 
 /** The player's state when no player is provided. */

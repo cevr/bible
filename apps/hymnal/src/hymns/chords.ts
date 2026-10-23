@@ -1,9 +1,10 @@
 /**
- * A hymn's chords as the reader shows them over its words. The bundle
+ * A hymn's chords as the reader shows them over its words, and its sung
+ * syllables, which the page shows whether chords are on or off. The bundle
  * carries them in a module of their own (`virtual:hymnal-chords`, made by
- * `vite/chords.ts`), one compact string per hymn, so the words and a plain
- * hymn stay as they are; a hymn's string is decoded the first time it is
- * shown with chords on, and kept (`chordBook`).
+ * `vite/chords.ts`), one compact string per hymn, so the words stay as they
+ * are; a hymn's string is decoded the first time its page is shown, and kept
+ * (`chordBook`).
  *
  * The chords are the compiled set's `guitar` level, as degrees above the
  * hymn's key: a move (a transpose and a capo fret) changes the key they are
@@ -67,28 +68,48 @@ const partOf = (chords: HymnChords, section: Section): Option.Option<PartChords>
   return Option.fromUndefinedOr(chords.stanzas[section.n - 1]);
 };
 
-const sectionOf = (chords: HymnChords, section: Section): SectionChords =>
-  Option.match(
-    Option.filter(
-      partOf(chords, section),
-      (part) => part._tag === 'Sung' && part.lines.length === section.lines.length,
-    ),
-    {
-      onNone: () => words,
-      onSome: (part) => {
-        if (part._tag === 'Plain') return words;
-        if (part.level === 'syllable') return { _tag: 'Syllables', lines: part.lines };
-        return {
-          _tag: 'Line',
-          lines: part.lines.map((line) => line.flat().flatMap((box) => box.chords)),
-        };
-      },
-    },
+type SungPart = Extract<PartChords, { readonly _tag: 'Sung' }>;
+
+/** The section's sung part, none for a Plain part or one whose lines are not the section's. */
+const sungOf = (chords: HymnChords, section: Section): Option.Option<SungPart> =>
+  Option.filter(
+    partOf(chords, section),
+    (part): part is SungPart => part._tag === 'Sung' && part.lines.length === section.lines.length,
   );
+
+const sectionOf = (chords: HymnChords, section: Section): SectionChords =>
+  Option.match(sungOf(chords, section), {
+    onNone: () => words,
+    onSome: (part) => {
+      if (part.level === 'syllable') return { _tag: 'Syllables', lines: part.lines };
+      return {
+        _tag: 'Line',
+        lines: part.lines.map((line) => line.flat().flatMap((box) => box.chords)),
+      };
+    },
+  });
 
 /** Each section of `text`, in page order, as it is drawn with `chords` on. */
 export const sectionsOf = (text: HymnText, chords: HymnChords): ReadonlyArray<SectionChords> =>
   text.sections.map((section) => sectionOf(chords, section));
+
+/**
+ * A section as its words are drawn, chords on or off: its words alone
+ * (`Words`: a Plain part, or a part whose lines are not the section's), or
+ * each line's words as their syllables, in the order the part gives them.
+ */
+export type SectionSyllables =
+  | { readonly _tag: 'Words' }
+  | { readonly _tag: 'Syllables'; readonly lines: ReadonlyArray<ReadonlyArray<Word>> };
+
+/** Each section of `text`, in page order, as its syllables: at either level, since both carry them. */
+export const syllablesOf = (text: HymnText, chords: HymnChords): ReadonlyArray<SectionSyllables> =>
+  text.sections.map((section) =>
+    Option.match(sungOf(chords, section), {
+      onNone: (): SectionSyllables => ({ _tag: 'Words' }),
+      onSome: (part): SectionSyllables => ({ _tag: 'Syllables', lines: part.lines }),
+    }),
+  );
 
 /** Whether any part of the hymn carries a chord. */
 export const hasChords = (chords: HymnChords): boolean =>

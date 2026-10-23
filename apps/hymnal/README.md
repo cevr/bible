@@ -77,7 +77,9 @@ is a box with its chords above it in the body's own font, a word's boxes
 stay together, and a line wraps between words; a chord wider than its
 syllable widens the box, and inside a word the gap shows a hyphen. A part
 placed by line shows each line's chords in one row above it, a plain part
-its words alone, and a hymn with no chords says so. While chords are on,
+its words alone, and a hymn with no chords says so. With chords off, a sung
+line still shows its syllables, a hyphen inside each word, so a played
+hymn's follow lights the syllable sung. While chords are on,
 `Transpose down`/`Transpose up` move the sounding key (`Key <key>`) through
 the twelve keys, and `Capo down`/`Capo up` set a capo fret, 0 to 11, the
 chords then shown as the shapes that fret plays (`Capo <n>, <key> shapes`).

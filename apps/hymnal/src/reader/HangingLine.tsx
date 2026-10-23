@@ -6,8 +6,10 @@
  * pulled back to the line's start. The row is one accessible element that
  * reads the whole line.
  *
- * While the line is sung (`follow/`), it is `selected` and its words take
- * the muted colour, the sung word the accent: a change of colour only.
+ * It draws a line of a Plain part, which carries words and no syllables; a
+ * sung line is drawn as its syllables (`SyllableWords.tsx`). While the line
+ * is sung (`follow/`), it is `selected` and its words take the muted colour:
+ * it has no syllable to light.
  */
 
 import { type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-native';
@@ -34,7 +36,7 @@ export function HangingLine({
   readonly style: StyleProp<TextStyle>;
 }) {
   const { words, indent } = usePageText();
-  const { marked, ref, wordStyle } = useLineFollow(index);
+  const { marked, ref, wordsStyle } = useLineFollow(index);
   return (
     <View
       ref={ref}
@@ -48,7 +50,7 @@ export function HangingLine({
       {wordsOf(line).map((word, k) => (
         <Text
           key={k}
-          style={[style, words, k === 0 && { marginLeft: -indent }, wordStyle(k)]}
+          style={[style, words, k === 0 && { marginLeft: -indent }, wordsStyle]}
           dynamicTypeRamp="body"
         >
           {word}

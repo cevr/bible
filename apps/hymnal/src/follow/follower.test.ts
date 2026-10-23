@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'bun:test';
+import { Option } from 'effect';
 
 import { followerOf, type Host, LEAD, type Report } from './follower';
 import { OFF } from './marks';
-import type { TimedLine, Timeline } from './timeline';
+import { type TimedLine, type Timeline, timelineOf } from './timeline';
 
 const line = (start: number, syllables: ReadonlyArray<number>): TimedLine => ({
   start,
@@ -14,14 +15,14 @@ const line = (start: number, syllables: ReadonlyArray<number>): TimedLine => ({
 });
 
 /** Three lines a second each from 1 s: two words, then a line-level line, then two words. */
-const timeline: Timeline = {
+const three: Timeline = {
   lines: [line(1000, [1000, 1500]), line(2000, []), line(3000, [3000, 3400])],
   first: 1000,
   end: 4000,
 };
 
 /** A follower over `timeline` on a hand-moved clock: what it scrolled to and logged. */
-const harness = () => {
+const harness = (timeline: Timeline = three) => {
   let now = 0;
   let timers: Array<{ at: number; run: () => void }> = [];
   const scrolled: Array<number> = [];
@@ -58,7 +59,7 @@ const harness = () => {
 const playing = (at: number): Report => ({ _tag: 'Here', at, state: 'playing' });
 
 describe('followerOf', () => {
-  it('marks nothing before the first sung line, then each line and word as it is sung', () => {
+  it('marks nothing before the first sung line, then each line and syllable as it is sung', () => {
     const h = harness();
     h.report(playing(0));
     expect(h.marks()).toEqual([OFF, OFF, OFF]);
@@ -72,6 +73,24 @@ describe('followerOf', () => {
     expect(h.marks()).toEqual([OFF, OFF, 1]);
     h.advance(4100);
     expect(h.marks()).toEqual([OFF, OFF, OFF]);
+  });
+
+  it('marks the sung syllable, not its word, and a line with no syllable times whole (F1b)', () => {
+    // Line 0: syllables at 1000 and 1500 in one word, 2000 in the next; line 1 even, marked whole.
+    const small = Option.getOrThrow(timelineOf('1,1000,2000,0.500,500;3,2000,1000'));
+    const h = harness(small);
+    const at = (ms: number) => {
+      h.advance(ms);
+      return h.marks();
+    };
+    h.report(playing(0));
+    expect(at(999)).toEqual([OFF, OFF]);
+    expect(at(1000)).toEqual([0, OFF]);
+    expect(at(1499)).toEqual([0, OFF]);
+    expect(at(1500)).toEqual([1, OFF]);
+    expect(at(2000)).toEqual([2, OFF]);
+    expect(at(3000)).toEqual([OFF, -1]);
+    expect(at(4000)).toEqual([OFF, OFF]);
   });
 
   it('scrolls to each line LEAD ms before it is sung, once each', () => {

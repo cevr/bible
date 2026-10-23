@@ -1,6 +1,6 @@
 /**
  * The follow on one hymn page: it hears the player's reports, runs the
- * clock between them (`clock.ts`), marks the sung line and word (`marks.ts`)
+ * clock between them (`clock.ts`), marks the sung line and syllable (`marks.ts`)
  * and asks the page to scroll a line into view.
  *
  * It wakes only when something changes: at each report, and at the next
@@ -98,7 +98,7 @@ export const followerOf = (timeline: Timeline, host: Host) => {
     const place = placeAt(timeline, at);
     if (place.line !== marks.line() && place.line >= 0)
       host.log(`line i=${place.line} of=${timeline.lines.length} at=${Math.round(at)}`);
-    marks.set(place.line, place.word);
+    marks.set(place.line, place.syllable);
     const ahead = placeAt(timeline, at + LEAD);
     // A seek shows the line sung now; playing on shows the next line LEAD ms early.
     let target = ahead.line;

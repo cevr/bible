@@ -5,18 +5,20 @@
  * chords are on, then each stanza under its number and the refrain, marked,
  * each time it is sung. The theme's ink on its ground, set as the reader
  * chose in the "Aa" sheet (`reading.ts`) and scaled by the system's text
- * size. A printed line that wraps hangs under its first word
- * (`HangingLine`). While the page is shown, the screen stays on if the reader
- * asked for it (`KeepAwake`).
+ * size. A printed line that wraps hangs under its first word. While the page
+ * is shown, the screen stays on if the reader asked for it (`KeepAwake`).
  *
- * With chords off the page is the words alone and the hymn's chords are not
- * decoded. With chords on, each section is drawn under its chords
- * (`Chords.tsx`) in the key the hymn's own move reaches: Simple chords
- * (`simple.ts`) unless the reader chose Advanced in Settings.
+ * Each sung line is drawn as its syllables, a hyphen between the syllables
+ * of a word (`SyllableWords.tsx`), whether chords are on or off: the
+ * syllables come from the hymn's bundled chords, decoded once when the page
+ * is shown. A Plain part is its words (`HangingLine`). With chords on, each
+ * section is drawn under its chords (`Chords.tsx`) in the key the hymn's
+ * own move reaches: Simple chords (`simple.ts`) unless the reader chose
+ * Advanced in Settings.
  *
  * While the player plays this hymn, the page follows it (`follow/`): the
- * sung line and word are marked, and the page scrolls each line in before
- * it is sung.
+ * sung line and syllable are marked, and the page scrolls each line in
+ * before it is sung.
  */
 
 import { useAtom, useAtomValue } from '@effect/atom-react';
@@ -40,7 +42,9 @@ import {
   type Move,
   playedKey,
   type SectionChords,
+  type SectionSyllables,
   sectionsOf,
+  syllablesOf,
 } from '~/hymns/chords';
 import type { HymnText, Section } from '~/hymns/hymns';
 import { type ChordStyle, styled } from '~/hymns/simple';
@@ -54,6 +58,7 @@ import { ChordControls, ChordLines, PlayedKeyProvider } from './Chords';
 import { FavouriteButton } from './FavouriteButton';
 import { HangingLine } from './HangingLine';
 import { KeepAwake } from './KeepAwake';
+import { SyllableLine } from './SyllableWords';
 import { PageTextProvider, pageTextOf } from './pageText';
 import { readingStyle } from './reading';
 
@@ -83,15 +88,16 @@ export function HymnPage({
   const on = useAtomValue(reader.chords);
   const style = useAtomValue(reader.style);
   const [move, setMove] = useAtom(reader.move(hymn.number));
+  // The hymn's syllables are drawn with chords on or off, so its string is decoded once it is shown.
+  const book = useMemo(() => reader.book.of(hymn.number), [reader.book, hymn.number]);
   const chords = useMemo(
     () =>
-      Option.some(on).pipe(
-        Option.filter(Boolean),
-        Option.flatMap(() => reader.book.of(hymn.number)),
+      book.pipe(
+        Option.filter(() => on),
         Option.filter(hasChords),
         Option.map((c) => styled(c, style)),
       ),
-    [on, reader.book, hymn.number, style],
+    [on, book, style],
   );
   const printed = Option.match(chords, { onNone: () => 'none' as const, onSome: (c) => c.key });
   const played = Option.match(chords, {
@@ -135,7 +141,7 @@ export function HymnPage({
         <PageText reading={reader.reading}>
           <PlayedKeyProvider value={played}>
             <FollowProvider value={follow.follow}>
-              <Sections hymn={hymn} chords={chords} />
+              <Sections hymn={hymn} book={book} chords={chords} />
             </FollowProvider>
           </PlayedKeyProvider>
         </PageText>
@@ -166,16 +172,21 @@ function PageText({
 
 /** A section drawn as its words alone. */
 const wordsAlone: SectionChords = { _tag: 'Words' };
+const noSyllables: SectionSyllables = { _tag: 'Words' };
 
 /** The key chords are spelled in while none are shown. */
 const hymnKeyAtRest = { tonic: 'C', minor: false } as const;
 
-/** Every section, as words or under its chords: drawn again only when the chords come or go. */
+/** Every section, as its syllables or under its chords: drawn again only when the chords come or go. */
 const Sections = memo(function Sections({
   hymn,
+  book,
   chords,
 }: {
   readonly hymn: HymnText;
+  /** The hymn's syllables and chords as bundled, shown or not. */
+  readonly book: Option.Option<HymnChords>;
+  /** The chords shown, none while chords are off. */
   readonly chords: Option.Option<HymnChords>;
 }) {
   const shown = useMemo(
@@ -186,12 +197,21 @@ const Sections = memo(function Sections({
       }),
     [hymn, chords],
   );
+  const syllables = useMemo(
+    () =>
+      Option.match(book, {
+        onNone: () => hymn.sections.map(() => noSyllables),
+        onSome: (c) => syllablesOf(hymn, c),
+      }),
+    [hymn, book],
+  );
   const firsts = useMemo(() => firstLines(hymn.sections), [hymn.sections]);
   return hymn.sections.map((section, k) => (
     <SectionView
       key={k}
       section={section}
       shown={Option.getOrElse(Option.fromUndefinedOr(shown[k]), () => wordsAlone)}
+      syllables={Option.getOrElse(Option.fromUndefinedOr(syllables[k]), () => noSyllables)}
       p={k + 1}
       first={firsts[k] ?? 0}
     />
@@ -205,22 +225,21 @@ const firstLines = (sections: ReadonlyArray<Section>): ReadonlyArray<number> =>
     [],
   );
 
-function SectionView({
-  section,
-  shown,
-  p,
-  first,
-}: {
+interface BodyProps {
   readonly section: Section;
   readonly shown: SectionChords;
+  readonly syllables: SectionSyllables;
   readonly p: number;
   readonly first: number;
-}) {
+}
+
+function SectionView(props: BodyProps) {
+  const { section } = props;
   if (section.kind === 'refrain') {
     return (
       <Block name="Refrain" label="Refrain">
         <View style={styles.refrain}>
-          <Body section={section} shown={shown} p={p} first={first} style={refrainStyle} />
+          <Body {...props} style={refrainStyle} />
         </View>
       </Block>
     );
@@ -228,28 +247,45 @@ function SectionView({
   return (
     <Block name={`Stanza ${section.n}`} label={String(section.n)}>
       <View>
-        <Body section={section} shown={shown} p={p} first={first} style={styles.line} />
+        <Body {...props} style={styles.line} />
       </View>
     </Block>
   );
 }
 
-/** A section's lines: the words alone, or under their chords. */
+/** A section's lines: the words alone (a Plain part), its syllables, or under their chords. */
 function Body({
   section,
   shown,
+  syllables,
   p,
   first,
   style,
-}: {
-  readonly section: Section;
-  readonly shown: SectionChords;
-  readonly p: number;
-  readonly first: number;
-  readonly style: StyleProp<TextStyle>;
-}) {
-  if (shown._tag === 'Words') return <Lines lines={section.lines} first={first} style={style} />;
-  return <ChordLines section={section} shown={shown} p={p} first={first} style={style} />;
+}: BodyProps & { readonly style: StyleProp<TextStyle> }) {
+  if (syllables._tag === 'Words')
+    return <Lines lines={section.lines} first={first} style={style} />;
+  if (shown._tag !== 'Words')
+    return (
+      <ChordLines
+        section={section}
+        shown={shown}
+        syllables={syllables.lines}
+        p={p}
+        first={first}
+        style={style}
+      />
+    );
+  return syllables.lines.map((words, l) => (
+    <SyllableLine
+      key={l}
+      words={words}
+      label={section.lines[l] ?? ''}
+      at={`${p}-${l + 1}`}
+      index={first + l}
+      style={style}
+      over={Option.none()}
+    />
+  ));
 }
 
 /** A section under its label: the stanza's number, or "Refrain". */

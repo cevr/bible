@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
+import { type Hymn, sung } from '@bible/hymnal/hymn';
 import { RegistryProvider, useAtomSet } from '@effect/atom-react';
 import { Option } from 'effect';
 import type * as Atom from 'effect/reactivity/Atom';
@@ -20,6 +21,14 @@ import { ChordsButton } from './HeaderButtons';
 import { HymnList } from './HymnList';
 import { HymnPage } from './HymnPage';
 import { hymnsOffset } from './place';
+import { readHymns } from '../../vite/words';
+
+let hymnsRead: ReadonlyArray<Hymn> = [];
+/** The compiled hymns, read once. */
+const compiled = () => {
+  if (hymnsRead.length === 0) hymnsRead = readHymns();
+  return hymnsRead;
+};
 
 /** The page's text, tags dropped, one space between pieces. */
 const textOf = (html: string) =>
@@ -30,6 +39,15 @@ const textOf = (html: string) =>
     .replaceAll('&amp;', '&')
     .replace(/\s+/g, ' ')
     .trim();
+
+/** The page's text as it is read: each line as its accessible name, the words its syllables make. */
+const readOf = (html: string) => {
+  const host = document.createElement('div');
+  host.innerHTML = html;
+  for (const line of host.querySelectorAll('[data-testid="line"]'))
+    line.textContent = line.getAttribute('aria-label');
+  return textOf(host.innerHTML);
+};
 
 /** Each section's accessible name, in page order. */
 const sectionsOf = (html: string) =>
@@ -82,7 +100,7 @@ describe('a hymn page', () => {
   it('shows hymn 1 as its title, then its three stanzas in order', () => {
     const html = page(1);
     expect(sectionsOf(html)).toEqual(['Stanza 1', 'Stanza 2', 'Stanza 3']);
-    const text = textOf(html);
+    const text = readOf(html);
     // Each stanza's first and last line, as the 1985 hymnal prints them.
     const expected = [
       '1 Praise to the Lord',
@@ -127,7 +145,7 @@ describe('a hymn page', () => {
       'Stanza 3',
       'Refrain',
     ]);
-    const text = textOf(html);
+    const text = readOf(html);
     expect(text.split('Morning by morning new mercies I see;').length - 1).toBe(3);
   });
 
@@ -181,17 +199,76 @@ const sectionTexts = (host: HTMLElement) =>
 const chordsOn = () => new Map([['chords', 'true']]);
 
 describe('a hymn page with chords off', () => {
-  it('shows the words alone, with no chords control in its body and no key control, and decodes no chords', () => {
+  it('shows no chord and no key control, and decodes the hymn shown once', () => {
     const reader = readerOn();
     const html = renderToStaticMarkup(<HymnPage hymn={hymn(100)} reader={reader} />);
-    expect(html).not.toContain('data-testid="chord-');
+    expect(html).not.toContain('data-testid="chord');
     expect(html).not.toContain('Transpose');
     expect(html).not.toContain('Capo');
     expect(html).not.toContain('role="switch"');
     expect(html).not.toContain('aria-label="Chords"');
-    expect(reader.book.decodes()).toBe(0);
+    expect(reader.book.decodes()).toBe(1);
+  });
+
+  it('draws each sung line as its syllables, read as its whole words (F1c)', () => {
+    const shown = hymn(100);
+    const html = renderToStaticMarkup(<HymnPage hymn={shown} reader={readerOn()} />);
+    const lines = linesOf(html);
+    const words = shown.sections.flatMap((section) => section.lines);
+    expect(lines.length).toBe(24);
+    expect(lines.map((line) => line.label)).toEqual(words);
+    expect(count(html, 'data-testid="syllable-')).toBe(syllableCount(100));
+    expect(syllableCount(100)).toBeGreaterThan(24);
+    // The hyphens sit inside the words and are not read.
+    for (const line of lines) expect(line.hyphens).toBe(line.hidden);
   });
 });
+
+/** Every `line` element's accessible name, its hyphens and its hidden hyphens. */
+const linesOf = (html: string) =>
+  html
+    .split(/(?=<div [^>]*data-testid="line")/)
+    .slice(1)
+    .map((piece) => ({
+      label: textOf(/aria-label="([^"]*)"/.exec(piece)?.[1] ?? ''),
+      hyphens: count(piece, '>-</'),
+      hidden: [...piece.matchAll(/aria-hidden="true"[^>]*><div[^>]*>-</g)].length,
+    }));
+
+const count = (html: string, needle: string) => html.split(needle).length - 1;
+
+/** Hymn `n`'s sung syllables, page order, as compiled: its Sung parts' syllables each time sung. */
+const syllableCount = (n: number) =>
+  sung(Option.getOrThrow(Option.fromUndefinedOr(compiled().find((h) => h.number === n)))).reduce(
+    (sum, line) => {
+      if (line.part._tag !== 'Sung') return sum;
+      return sum + (line.part.lines[line.line]?.length ?? 0);
+    },
+    0,
+  );
+
+describe('a hymn page with chords on and a line-level part', () => {
+  it('draws the chord row over the line’s syllables (F1c)', () => {
+    const number = lineLevelHymn();
+    using app = mount(<HymnPage hymn={hymn(number)} reader={readerOn(chordsOn())} />);
+    const html = app.host.innerHTML;
+    const row = /data-testid="chords-(\d+)-(\d+)"/.exec(html);
+    expect(row).not.toBeNull();
+    expect(html).toContain(`data-testid="syllable-${row?.[1]}-${row?.[2]}-1"`);
+  });
+});
+
+/** The first of hymns 11, 14 and 25 with a line-level part. */
+const lineLevelHymn = () =>
+  Option.getOrThrow(
+    Option.fromUndefinedOr(
+      [11, 14, 25].find((n) =>
+        compiled()
+          .find((h) => h.number === n)
+          ?.stanzas.some((part) => part._tag === 'Sung' && part.level === 'line'),
+      ),
+    ),
+  );
 
 /** The header's `Chords` button over `n`'s page, both over `reader`. */
 const withButton = (n: number, reader: ReturnType<typeof readerOn>) => (
