@@ -218,11 +218,10 @@ describe('the follow on a hymn page', () => {
     expect(bar.getAttribute('aria-valuenow')).toBe('26');
     expect(bar.getAttribute('aria-valuetext')).toBe('14 seconds to the first line');
     expect(page.selected()).toEqual([]);
-    // Drawn absolutely in a box of no height, beside line 0 in a box that is there either way.
+    // Drawn absolutely after line 0, in a box that holds line 0 either way: nothing moves.
     expect(getComputedStyle(bar).position).toBe('absolute');
-    expect(
-      getComputedStyle(Option.getOrThrow(Option.fromNullishOr(bar.parentElement))).height,
-    ).toBe('0px');
+    expect(bar.parentElement).toBe(parent);
+    expect(parent?.firstElementChild).toBe(lineZero());
     expect(lineZero().parentElement).toBe(parent);
 
     page.at(first, 'Playing');

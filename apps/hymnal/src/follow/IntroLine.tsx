@@ -5,11 +5,13 @@
  * while paused or waiting. It is gone from the first line on, when line 0 is
  * marked.
  *
- * It sits in a box of no height just above line 0, its own element beside
- * the line (an accessible line hides the elements inside it on iOS), and is
- * drawn absolutely, so the page never moves when it comes or goes. It reads
- * as a progress bar named `Introduction`: whole percent played, and whole
- * seconds to the first line.
+ * It is drawn absolutely just above line 0, as the element after it in a
+ * box the two share, so the page never moves when it comes or goes. It is
+ * beside the line, not in it (an accessible line hides the elements inside
+ * it on iOS), and its parent box has the line's height: under a box of no
+ * height, iOS leaves it out of the accessibility tree. It is an accessible
+ * element of its own and reads as a progress bar named `Introduction`:
+ * whole percent played, and whole seconds to the first line.
  */
 
 import { Option } from 'effect';
@@ -36,10 +38,8 @@ export function WithIntro({
   if (index !== 0) return children;
   return (
     <View>
-      <View style={styles.box}>
-        <Intro />
-      </View>
       {children}
+      <Intro />
     </View>
   );
 }
@@ -70,6 +70,7 @@ function Fill({ intro, running }: { readonly intro: Shown; readonly running: boo
   const reading = readingOf(intro);
   return (
     <View
+      accessible
       role="progressbar"
       aria-label="Introduction"
       aria-valuemin={0}
@@ -87,7 +88,6 @@ function Fill({ intro, running }: { readonly intro: Shown; readonly running: boo
 }
 
 const styles = StyleSheet.create({
-  box: { height: 0, zIndex: 1 },
   track: {
     position: 'absolute',
     left: 0,
