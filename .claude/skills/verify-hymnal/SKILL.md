@@ -131,8 +131,8 @@ All of it goes under `$EVIDENCE`, outside the checkout's tracked files:
 - A flaky step is reported as n/n trials with the load.
 - A failure is run again on the base commit, in its own checkout and port,
   to tell a new failure from an old one.
-- A feature that is not on main (chords toggle, capo, about) is reported
-  as `TargetMissing` with the reason from its feature file, never as passed
+- A feature that is not in the build under test is reported as
+  `TargetMissing` with the reason from its feature file, never as passed
   through another path.
 
 ## Cleanup
@@ -159,7 +159,17 @@ command or flag; the help goes to stderr). The commands: `boot`, `install`,
 `doctor`, `open`, `tap`, `back`, `fill`, `scroll`, `shot`, `snapshot`, `record`, `log`,
 `down`, and `serve` (the dev server's own process, which `boot` starts).
 Its tests: `apps/hymnal/scripts/sim/sim.slow.test.ts`, run by the hymnal's
-`test:infra`.
+`test:slow`.
+
+`apps/hymnal/scripts/sticky.ts` checks the home list's pinned topic row in
+every frame of a recording: from `apps/hymnal`, on a booted `verify-hymnal`
+and a Release build, `bun scripts/sticky.ts --udid <udid> --app <Hymnal.app>
+--pass all --runs 3 --out "$EVIDENCE/sticky"`. It prints one JSON line per
+pass and run, `{pass, run, frames, judged, missing, off, worst}`, and exits
+0 only when no frame is off by more than 1 pt. It does not boot the
+simulator, and a load above 12 drops frames: read such a run as no timing
+claim and run it again. It trashes its `push` video once read, since that
+video shows a hymn page. Its classifier's tests: `apps/hymnal/scripts/sticky.test.ts`.
 
 ## Hosts
 
