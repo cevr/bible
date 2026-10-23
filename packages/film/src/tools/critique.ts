@@ -111,16 +111,15 @@ interface SheetCritique {
 }
 
 /** A critique job as read: the match it critiques, and its answer once the counsel has given it. */
-export interface CritiqueJob {
+interface CritiqueJob {
   readonly match: MatchTaken;
   readonly critique: Option.Option<CritiqueTaken>;
 }
 
 /** A job the critic does not keep: never started, dropped past its time or count, or the lab restarted since. */
-export class CritiqueJobUnknown extends Schema.TaggedError<CritiqueJobUnknown>()(
-  'CritiqueJobUnknown',
-  { handle: Schema.String },
-) {
+class CritiqueJobUnknown extends Schema.TaggedError<CritiqueJobUnknown>()('CritiqueJobUnknown', {
+  handle: Schema.String,
+}) {
   override get message() {
     return `no critique ${this.handle} is kept (one is kept ${Duration.format(JOB_KEPT_FOR)} after it starts, and a lab restarted keeps none): start it again with the scene and the place`;
   }

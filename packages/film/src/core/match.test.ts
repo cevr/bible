@@ -36,7 +36,7 @@ const CHRIST_CONCEPT = bearded(0.4, 0.38, 0.146);
 const CHRIST_MERGED = bearded(0.4, 0.396, 0.063);
 /** The farmer's concept (rain.rain): edge 0.257, step 0.200. */
 const FARMER_CONCEPT = bearded(0.6, 0.4, 0.257);
-/** The farmer at rain 14.19 s: no band (edge 0.019), a grey beard under dark hair (step 0.494). */
+/** The farmer at rain 14.19 s: no band (edge 0.019), a cream headcloth over a dark beard (step 0.494). */
 const FARMER_GREY = bearded(0.2, 0.694, 0.019);
 
 const ruleOf = (concept: FigureMeasure, scene: FigureMeasure) =>
