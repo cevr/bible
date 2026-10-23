@@ -94,12 +94,18 @@ export function HymnPage({
           {hymn.topic}
         </Text>
         <View testID="hymn-name" style={styles.name}>
-          <Text style={[styles.number, { color: accent }]} dynamicTypeRamp="title2">
-            {hymn.number}
-          </Text>
-          <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
-            {hymn.title}
-          </Text>
+          <View style={styles.words}>
+            <Text
+              testID="hymn-number"
+              style={[styles.number, { color: accent }]}
+              dynamicTypeRamp="title2"
+            >
+              {hymn.number}
+            </Text>
+            <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
+              {hymn.title}
+            </Text>
+          </View>
           <FavouriteButton number={hymn.number} favourites={reader.favourites} />
         </View>
       </View>
@@ -255,7 +261,10 @@ const styles = StyleSheet.create({
   page: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48, gap: 24 },
   head: { gap: 4 },
   topic: { fontSize: 13, color: color.muted },
-  name: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  // The number and title share a baseline; the Favourite button sits at the
+  // row's top, level with their first line.
+  name: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  words: { flexDirection: 'row', alignItems: 'baseline', gap: 10, flexShrink: 1 },
   number: { fontSize: 22, fontWeight: '600', fontVariant: ['tabular-nums'] },
   title: { flexShrink: 1, fontSize: 22, fontWeight: '700', color: color.ink },
   section: { gap: 4 },

@@ -38,8 +38,11 @@ export function FavouriteButton({
 }
 
 const styles = StyleSheet.create({
+  // The button reaches 8 points above and below the title's first line, so
+  // its star sits level with the line while its target stays 44 tall.
   button: {
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
+    marginVertical: -8,
     marginLeft: 'auto',
     minWidth: 44,
     minHeight: 44,

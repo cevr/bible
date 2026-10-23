@@ -117,8 +117,8 @@ const again = (shown: App) => route(shown, Number(params['number']));
 /** What the screen shows: the hymns whose pages are drawn, the headers and their titles' hymns. */
 const seen = (shown: App) => {
   const headers = [...shown.host.querySelectorAll('[data-testid="header"]')];
-  const pages = [...shown.host.querySelectorAll('[data-testid="hymn-name"]')].map((name) =>
-    Number(name.firstElementChild?.textContent),
+  const pages = [...shown.host.querySelectorAll('[data-testid="hymn-number"]')].map((number) =>
+    Number(number.textContent),
   );
   return {
     pages,
