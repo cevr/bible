@@ -44,7 +44,7 @@ brings the sung line back and follows again. The marked line is
 
 - The simulator plays through the Mac's speakers: on iOS, read the `Sound` button's value as `unchecked` before every Play. The choice is kept across relaunches. The checker refuses to press Play unless it reads `unchecked` itself.
 - The pager keeps the pages beside the open hymn in the tree, each with a `hymn-scroll` and `line` nodes of its own, off the screen. The checker takes the scroll whose frame, cut to its ancestors' frames, the screen shows, and only the lines inside it; read a raw snapshot the same way.
-- In a dev build a LogBox toast at the foot can cover the player bar. `agent-device react-native dismiss-overlay --session verify-hymnal` clears it; run it again until it reports the overlay gone.
+- In a dev build a LogBox toast at the foot can cover the player bar. A tap on the bar then opens the LogBox, the press never reaches the app, and the checker samples a hymn that never plays (`seen` 0, `ended` false). The snapshot still lists the bar's buttons under the toast, so take a `sim shot` before a run. `agent-device react-native dismiss-overlay --session verify-hymnal` clears it; run it again until it reports `No React Native overlay detected`. The pager sets `recycleItems`, so LegendList's warning no longer raises one on every launch.
 - A tap on the iOS seek line in the bar does not seek; seek by a drag on the sheet's `Position` bar.
 - The checker reads the tree without touching the app (`--observe-only`); any other driver acting on the simulator during its run counts as a touch it cannot see. Run nothing else until it prints.
 - A load above 12 delays the snapshots: read a run with `missed` lines under such load as no claim and run it again.

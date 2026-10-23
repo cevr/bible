@@ -109,6 +109,8 @@ function Pager({ shown }: { readonly shown: HymnText }) {
           getFixedItemSize={() => width}
           estimatedItemSize={width}
           initialScrollIndex={pages.index}
+          // A page holds its own scroll and follow, so no page's view is reused for another hymn.
+          recycleItems={false}
           drawDistance={width}
           extraData={{ width, height }}
           onMomentumScrollEnd={onMomentumScrollEnd}
