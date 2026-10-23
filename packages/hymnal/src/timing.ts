@@ -151,16 +151,43 @@ const syllablesOf = (line: Line, raw: Raw) => {
   return { syllables: evenRaw(raw.start, raw.next, count).map((one) => one.start), even: true };
 };
 
-/** The tempo map in `PER_BEAT` units: at each time the last event there, from time 0. */
-const temposOf = (clock: Clock, unit: (tick: number) => number): Array<[number, number]> => {
-  const out: Array<[number, number]> = [[0, DEFAULT_TEMPO]];
-  for (const tempo of clock.tempos) {
-    const at = unit(tempo.tick);
-    const last = out.at(-1);
-    if (last !== undefined && last[0] === at) last[1] = tempo.microsPerQuarter;
-    else out.push([at, tempo.microsPerQuarter]);
+/** Microseconds from the file's start at a tick (or a fraction of one), through the file's own tempo map. */
+const fileMicrosAt = (clock: Clock, tick: number): number => {
+  let micros = 0;
+  let from = 0;
+  let tempo = DEFAULT_TEMPO;
+  for (const change of clock.tempos) {
+    if (change.tick > tick) break;
+    micros += ((change.tick - from) * tempo) / clock.ticksPerBeat;
+    from = change.tick;
+    tempo = change.microsPerQuarter;
   }
-  return out;
+  return micros + ((tick - from) * tempo) / clock.ticksPerBeat;
+};
+
+/**
+ * The tempo map in `PER_BEAT` units, from time 0: one entry at each time a
+ * tempo event rounds to. A tempo event off the 1/96 grid moves to the grid,
+ * so each entry but the last takes the tempo that makes its span last as
+ * long as the file's own span between the same two times; carrying the
+ * rounding of whole microseconds forward, the map's seconds at every entry
+ * stay within a microsecond of the file's. Hymn 254's fermatas, a slow
+ * tempo a few ticks off the grid, drifted 130 ms by its end when the
+ * events' tempos were kept as they stand.
+ */
+const temposOf = (clock: Clock, unit: (tick: number) => number): Array<[number, number]> => {
+  const times = [...new Set([0, ...clock.tempos.map((tempo) => unit(tempo.tick))])];
+  const last = clock.tempos.at(-1)?.microsPerQuarter ?? DEFAULT_TEMPO;
+  const tickOf = (time: number) => (time * clock.ticksPerBeat) / PER_BEAT;
+  let micros = 0;
+  return times.map((at, i): [number, number] => {
+    const next = times[i + 1];
+    if (next === undefined) return [at, last];
+    const want = fileMicrosAt(clock, tickOf(next)) * PER_BEAT;
+    const tempo = Math.max(1, Math.round((want - micros) / (next - at)));
+    micros += tempo * (next - at);
+    return [at, tempo];
+  });
 };
 
 /** A hymn's timing, from the clock of its file and what each stanza was laid on (by stanza). */

@@ -212,6 +212,56 @@ describe('timingOf', () => {
       expect(timing.end).toBe(320);
     }),
   );
+
+  it.effect(
+    'keeps the file’s seconds at every tempo time when the tempo events lie off the grid',
+    () =>
+      Effect.sync(() => {
+        // 400 clocks from a fixed seed: resolutions on and off the grid, tempo
+        // events at any tick, fermata-slow tempos among them.
+        let seed = 254;
+        const next = (below: number) => {
+          seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+          return seed % below;
+        };
+        const hymn = hymnOf([sungPart(1)]);
+        for (let run = 0; run < 400; run++) {
+          const ticksPerBeat = [96, 120, 384, 480, 1000][next(5)] ?? 96;
+          let tick = 0;
+          const tempos = Array.from({ length: 1 + next(40) }, () => {
+            tick += next(4 * ticksPerBeat);
+            const slow = next(5) === 0;
+            return {
+              tick,
+              microsPerQuarter: slow ? 2_000_000 + next(6_000_000) : 300_000 + next(900_000),
+            };
+          });
+          const at: Clock = { ticksPerBeat, tempos, lastTick: tick + ticksPerBeat };
+          const layings = [
+            { ...verse(0), tail: 0, span: { start: 0, end: at.lastTick }, starts: [[0]] },
+          ];
+          const timing = timingOf(hymn, at, layings);
+          const seconds = secondsAt(timing);
+          const file = (t: number) => {
+            let s = 0;
+            let from = 0;
+            let tempo = 500_000;
+            for (const change of tempos) {
+              if (change.tick > t) break;
+              s += ((change.tick - from) * tempo) / 1e6 / ticksPerBeat;
+              from = change.tick;
+              tempo = change.microsPerQuarter;
+            }
+            return s + ((t - from) * tempo) / 1e6 / ticksPerBeat;
+          };
+          for (const [time] of timing.tempos)
+            expect(Math.abs(seconds(time) - file((time * ticksPerBeat) / 96))).toBeLessThan(1e-5);
+          // The end lies within half a grid step of the file's end: at most a
+          // half step at the slowest tempo, 8 000 000 µs / 96 / 2 ≈ 42 ms.
+          expect(Math.abs(seconds(timing.end) - file(at.lastTick))).toBeLessThan(0.042);
+        }
+      }),
+  );
 });
 
 describe('secondsAt', () => {
