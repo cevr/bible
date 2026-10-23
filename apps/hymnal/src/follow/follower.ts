@@ -6,9 +6,9 @@
  * It wakes only when something changes: at each report, and at the next
  * syllable's start or the next line's lead while the player plays. The page
  * scrolls only while the player plays. It moves to a line `LEAD` ms before
- * the line is sung, so the line is in view when it starts. A seek (a report
- * further than `SLACK` from the running clock) moves the marks at once and
- * scrolls to the line sung there.
+ * the line is sung, so the line is in view when it starts. A seek (one the
+ * reader asks, of any size, or a report further than `SLACK` from the running
+ * clock) moves the marks at once and scrolls to the line sung there.
  *
  * A hand scroll (`drag`) while the player is on the hymn and not paused holds
  * the page's scroll, not the marks: the page shows a pill (`held`) until the
@@ -137,12 +137,17 @@ export const followerOf = (timeline: Timeline, host: Host) => {
         },
       }),
     );
-    // The reader asked for this place: a seek ends a hand pause.
-    if (snap && held.get()) {
-      held.set(false);
-      host.log('resume reason=seek');
-    }
+    // A report this far off is a seek too, as when the lock screen moved the place.
+    if (snap) release();
     tick();
+  };
+
+  /** A seek ends a hand pause: the next tick scrolls to the line sung there, even the one shown before the drag. */
+  const release = () => {
+    if (!held.get()) return;
+    held.set(false);
+    shown = -1;
+    host.log('resume reason=seek');
   };
 
   return {
@@ -154,6 +159,14 @@ export const followerOf = (timeline: Timeline, host: Host) => {
       if (last._tag === 'Away' || last.state === 'paused' || held.get()) return;
       held.set(true);
       host.log('pause reason=drag');
+    },
+    /**
+     * The reader asked the player for a place (`seeks.ts`): a seek of any size, even one inside
+     * the clock's slack, ends a hand pause, and the next report scrolls to the line sung there.
+     */
+    seek: () => {
+      snap = true;
+      release();
     },
     /** The pill was tapped: scroll to the line sung now and follow again. */
     resume: () => {

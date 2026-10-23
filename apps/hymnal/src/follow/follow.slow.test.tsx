@@ -18,7 +18,7 @@
 
 import { describe, expect, it, mock } from 'bun:test';
 import { RegistryContext } from '@effect/atom-react';
-import { Array as Arr, Duration, Match, Option } from 'effect';
+import { Array as Arr, Duration, Effect, Match, Option, SubscriptionRef } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { act, type ComponentProps } from 'react';
@@ -33,6 +33,7 @@ import { fakeDevice } from '~/test/device';
 import { readerOn } from '~/test/reader';
 
 import { book } from './book';
+import { seeks } from './seeks';
 import type { Timeline } from './timeline';
 
 /** Draws of `HangingLine` by its line index. */
@@ -247,4 +248,25 @@ describe('the follow on a hymn page', () => {
     expect(page.selected()).toEqual([j]);
     expect(page.scrolled.at(-1)).toBe(j);
   });
+
+  it('resumes on a seek the player asks, however small, and scrolls back to the sung line', () =>
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const timeline = timelineOf(100);
+        using page = mount(100);
+        const start = lineOf(timeline, 1).start;
+        page.at(start, 'Playing');
+        page.drag();
+        const before = page.scrolled.length;
+        // The player asks its playback for a place 100 ms on (`seeks.ts` counts it); the
+        // count's atom hears the change on its own fiber, so the page is let run until the pill
+        // goes, a turn at a time, for at most 100 turns.
+        yield* SubscriptionRef.update(seeks, (n) => n + 1);
+        const turn = Effect.promise(() => act(() => Effect.runPromise(Effect.yieldNow)));
+        yield* Effect.repeat(turn, { until: () => Option.isNone(page.pill()), times: 100 });
+        page.at(start + 100, 'Playing');
+        expect(Option.isNone(page.pill())).toBe(true);
+        expect(page.scrolled.slice(before)).toEqual([1]);
+      }),
+    ));
 });

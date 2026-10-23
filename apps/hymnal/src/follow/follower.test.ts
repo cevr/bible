@@ -141,6 +141,22 @@ describe('followerOf', () => {
     expect(h.scrolled.at(-1)).toBe(0);
   });
 
+  it('ends a hand pause on a seek however small, and scrolls back to the line sung there', () => {
+    const h = harness();
+    h.report(playing(1000));
+    // Host time 1000 is 2000 ms into the hymn: line 1 is sung and shown.
+    h.advance(1000);
+    expect(h.scrolled.at(-1)).toBe(1);
+    h.follower.drag();
+    const before = h.scrolled.length;
+    // A seek 100 ms on lies inside the clock's slack: only the seek itself tells the follow.
+    h.follower.seek();
+    h.report(playing(2100));
+    expect(h.follower.held.get()).toBe(false);
+    expect(h.logged.at(-1)).toBe('resume reason=seek');
+    expect(h.scrolled.slice(before)).toEqual([1]);
+  });
+
   it('drops a hand pause when the player pauses or leaves, and a drag while paused holds nothing', () => {
     const h = harness();
     let told = 0;

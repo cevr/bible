@@ -1,4 +1,4 @@
-/* oxlint-disable effect/noGlobals, effect/noNullish -- the follow's host adapter: the follower's clock and timers are the platform's, and React hands refs over as null until a view is drawn. */
+/* oxlint-disable effect/noGlobals -- the follow's host adapter: the follower's clock and timers are the platform's. */
 
 /**
  * The follow on a hymn page, in React: the page's `useFollow` runs a
@@ -19,6 +19,7 @@ import * as Atom from 'effect/reactivity/Atom';
 import {
   createContext,
   type ReactNode,
+  type RefCallback,
   use,
   useCallback,
   useEffect,
@@ -37,6 +38,7 @@ import { book } from './book';
 import { followerOf, type Report } from './follower';
 import { handOf } from './hand';
 import { type Marks, marksOf, OFF } from './marks';
+import { seekCount } from './seeks';
 
 interface Follow {
   readonly marks: Marks;
@@ -84,8 +86,8 @@ export const useLineFollow = (index: number) => {
   const mark = useLineMark(index);
   const accent = useAccent();
   const marked = mark !== OFF;
-  const ref = useCallback(
-    (view: HostInstance | null) =>
+  const ref = useCallback<RefCallback<HostInstance>>(
+    (view) =>
       Option.match(Option.fromNullishOr(view), {
         onNone: () => {},
         onSome: (kept) => keep(index, kept),
@@ -134,7 +136,11 @@ export const useFollow = (number: number) => {
     Option.match(usePlayer(), { onNone: () => idle, onSome: (player) => player.state }),
   );
   const registry = use(RegistryContext);
-  const scroll = useRef<ScrollViewInstance>(null);
+  /** The page's scroll, once drawn: React hands a ref over as nothing until then. */
+  const scroll = useRef<Option.Option<ScrollViewInstance>>(Option.none());
+  const scrollRef = useCallback<RefCallback<ScrollViewInstance>>((node) => {
+    scroll.current = Option.fromNullishOr(node);
+  }, []);
   const height = useRef(0);
   const views = useRef(new Map<number, HostInstance>());
   /** A line event names the clock the follow keeps: the recording with sound on, else the score. */
@@ -153,14 +159,20 @@ export const useFollow = (number: number) => {
             const timer = setTimeout(run, ms);
             return () => clearTimeout(timer);
           },
-          scrollTo: (line, animated) => {
-            const view = views.current.get(line);
-            const inner = scroll.current?.getInnerViewRef();
-            if (!view || !inner) return;
-            view.measureLayout(inner, (_x, y) =>
-              scroll.current?.scrollTo({ y: Math.max(0, y - height.current / 3), animated }),
-            );
-          },
+          scrollTo: (line, animated) =>
+            Option.all([
+              Option.fromNullishOr(views.current.get(line)),
+              scroll.current,
+              Option.flatMap(scroll.current, (page) =>
+                Option.fromNullishOr(page.getInnerViewRef()),
+              ),
+            ]).pipe(
+              Option.map(([view, page, inner]) =>
+                view.measureLayout(inner, (_x, y) =>
+                  page.scrollTo({ y: Math.max(0, y - height.current / 3), animated }),
+                ),
+              ),
+            ),
           log: (event) => {
             if (!dev) return;
             Effect.runSync(Effect.logInfo(`[follow] ${withClock(event)}`));
@@ -176,6 +188,23 @@ export const useFollow = (number: number) => {
   useEffect(
     () => () => Option.match(follower, { onNone: () => {}, onSome: (f) => f.stop() }),
     [follower],
+  );
+  // Each seek the player asks, of any size, ends a hand pause (`seeks.ts`). The count is read
+  // first: the read starts the atom on its ref, and a seek is a count past the one read.
+  useEffect(
+    () =>
+      Option.match(follower, {
+        onNone: () => () => {},
+        onSome: (f) => {
+          let heard = registry.get(seekCount);
+          return registry.subscribe(seekCount, (count) => {
+            if (count === heard) return;
+            heard = count;
+            f.seek();
+          });
+        },
+      }),
+    [follower, registry],
   );
 
   const follow = useMemo<Follow>(
@@ -209,7 +238,8 @@ export const useFollow = (number: number) => {
 
   return {
     follow,
-    scroll,
+    /** The page's scroll's ref. */
+    scroll: scrollRef,
     /** Whether a hand scroll holds the follow: the page shows `Resume follow`. */
     held,
     /** The `Resume follow` pill's press. */
