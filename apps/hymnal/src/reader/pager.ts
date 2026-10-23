@@ -41,3 +41,10 @@ export const settledAt = (
   Option.fromUndefinedOr(
     list[Math.min(Math.max(Math.round(offset / Math.max(width, 1)), 0), list.length - 1)],
   );
+
+/**
+ * Whether `offset` rests on a page's edge, to half a point: a drag let go
+ * there settles with no glide after it, so it is a settle of its own.
+ */
+export const onPage = (offset: number, width: number): boolean =>
+  Math.abs(offset - Math.round(offset / Math.max(width, 1)) * width) <= 0.5;

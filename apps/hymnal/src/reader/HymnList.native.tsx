@@ -19,7 +19,9 @@
  * keeps its own place, and `offset` is the web's alone.
  */
 
+import { useAtomSet } from '@effect/atom-react';
 import { AnimatedLegendList } from '@legendapp/list/reanimated';
+import { Option } from 'effect';
 import { type Href, Link, useLinkTo } from 'one';
 import { useMemo } from 'react';
 import Animated, {
@@ -44,6 +46,7 @@ import type { HymnListProps } from './HymnList';
 import { ListEnd } from './ListEnd';
 import { dismissal } from './keyboard';
 import { pinnedAt, topicStarts } from './pin';
+import { pagesFrom } from './place';
 import { type Row, rowsOf } from './rows';
 
 /** A hymn row's line of text, and the space above and below it, at the reader's usual text size. */
@@ -75,6 +78,8 @@ interface Look {
   readonly hymnHeight: number;
   readonly topicHeight: number;
   readonly hrefOf: HymnListProps['hrefOf'];
+  /** The hymns a row's press hands the pager: this list's, in its order. */
+  readonly source: ReadonlyArray<number>;
 }
 
 const drawRow = ({
@@ -89,6 +94,7 @@ const drawRow = ({
     <HymnRow
       hymn={item.hymn}
       href={extraData.hrefOf(item.hymn.number)}
+      source={extraData.source}
       height={extraData.hymnHeight}
       accent={extraData.accent}
     />
@@ -105,8 +111,14 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
   const hymnHeight = heightOf('hymn', fontScale);
   const topicHeight = heightOf('topic', fontScale);
   const look = useMemo(
-    (): Look => ({ accent, hymnHeight, topicHeight, hrefOf }),
-    [accent, hymnHeight, topicHeight, hrefOf],
+    (): Look => ({
+      accent,
+      hymnHeight,
+      topicHeight,
+      hrefOf,
+      source: hymns.map((hymn) => hymn.number),
+    }),
+    [accent, hymnHeight, topicHeight, hrefOf, hymns],
   );
   const header = pullDown?.height ?? 0;
   const topics = useMemo(
@@ -222,21 +234,32 @@ function Topic({ name, height }: { readonly name: string; readonly height: numbe
   );
 }
 
-/** One hymn's row: a link the router opens in the app. */
+/**
+ * One hymn's row: a link the router opens in the app. Its press first hands
+ * the pager the list it sits in (`source`), so a swipe on the hymn moves
+ * through that list.
+ */
 function HymnRow({
   hymn,
   href,
+  source,
   height,
   accent,
 }: {
   readonly hymn: HymnText;
   readonly href: Href;
+  readonly source: ReadonlyArray<number>;
   readonly height: number;
   readonly accent: ColorValue;
 }) {
   const link = useLinkTo({ href: Link.resolveHref(href) });
+  const pageFrom = useAtomSet(pagesFrom);
+  const onPress: typeof link.onPress = (event) => {
+    pageFrom(Option.some(source));
+    link.onPress(event);
+  };
   return (
-    <Pressable {...link} aria-label={`${hymn.number}, ${hymn.title}`}>
+    <Pressable {...link} onPress={onPress} aria-label={`${hymn.number}, ${hymn.title}`}>
       {({ pressed }) => (
         <View style={[styles.row, { height }, pressed && styles.pressed]}>
           <Text style={[styles.number, { color: accent }]} numberOfLines={1}>

@@ -5,8 +5,10 @@
  * listener in `opening`), and keeps the browser from following it; a click
  * with a modifier key, or not the main button, is left to the browser. A
  * screen's options configure the native header, which a web render has none
- * of, except its right items, which a test finds in `header` as a reader
- * finds them in the header.
+ * of, except its title and its right items, which a test finds in `header`
+ * as a reader finds them in the header. A screen that changes its own
+ * route's params does so in place (`useRouter().setParams`, kept in
+ * `paramsSet`).
  */
 
 import { type MouseEvent, type ReactNode, useEffect, useId } from 'react';
@@ -51,9 +53,27 @@ export const params: Record<string, string> = {};
 /** One's `useParams`: the params a test set. */
 export const useParams = <T,>() => params as T;
 
+/** Each change of the shown route's params, oldest first: a change in place, not a screen pushed. */
+export const paramsSet: Array<Record<string, string>> = [];
+
+/** One's `useRouter`, for a screen that changes its own route's params: the change is recorded and made. */
+export const useRouter = () => ({
+  setParams: (next: Record<string, string>) => {
+    paramsSet.push(next);
+    Object.assign(params, next);
+  },
+});
+
+/** A screen's options: the header, named by its title, holding its right items. */
 export const Stack = {
-  Screen: ({ options }: { readonly options: { readonly headerRight?: () => ReactNode } }) => (
-    <View testID="header">{options.headerRight?.()}</View>
+  Screen: ({
+    options,
+  }: {
+    readonly options: { readonly title?: string; readonly headerRight?: () => ReactNode };
+  }) => (
+    <View testID="header" aria-label={options.title}>
+      {options.headerRight?.()}
+    </View>
   ),
 };
 

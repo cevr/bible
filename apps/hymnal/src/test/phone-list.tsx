@@ -1,4 +1,4 @@
-/* oxlint-disable effect/noGlobals, effect/noAsyncFunction -- a script at Bun's boundary: its loader takes the stand-in modules as source text, which reach the script's device through the global object, and the list is imported only once the stand-ins are registered. */
+/* oxlint-disable effect/noGlobals, effect/noAsyncFunction -- a script at Bun's boundary: the list is imported only once the phone's stand-ins are registered (`phone.ts`), and it prints its report on stdout. */
 
 /**
  * Mounts the phones' hymn list (`HymnList.native.tsx`) as an iPhone draws
@@ -6,89 +6,14 @@
  * stays mounted, and prints the rows on screen as JSON: before the change,
  * live after it, and freshly mounted under the new value. It does so for
  * each change in turn: `scheme` (light to dark), `fontScale` (1 to 1.5) and
- * `hrefOf` (a new link for each row). `react-native` is
- * react-native-web with iOS's rules: `Platform.select` takes `ios`, a
- * dynamic colour is its light value, and the colour scheme and the text size
- * are the device's, which the script sets. It also prints, under `end`,
- * the space each list keeps after its last row at a bottom inset. `~/color` is the phones' colour
- * module. Each element measures as the phone's screen, so the list lays out
- * its rows under happy-dom.
+ * `hrefOf` (a new link for each row), on the phone `phone.ts` stands in
+ * for. It also prints, under `end`, the space each list keeps after its
+ * last row at a bottom inset.
  */
 
-import { GlobalRegistrator } from '@happy-dom/global-registrator';
-import { plugin } from 'bun';
+import { phone } from './phone';
 
-GlobalRegistrator.register({ url: 'http://localhost/' });
-
-/** The phone's settings the stand-in reads, each told to the screens using it when set. */
-const device = {
-  scheme: 'light' as 'light' | 'dark',
-  fontScale: 1,
-  listeners: new Set<() => void>(),
-  set(next: { readonly scheme?: 'light' | 'dark'; readonly fontScale?: number }) {
-    Object.assign(device, next);
-    for (const listener of device.listeners) listener();
-  },
-};
-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true, __DEV__: false, phoneDevice: device });
-
-/** A phone's screen, 390 by 800 points: every element measures so, and says so once observed. */
-HTMLElement.prototype.getBoundingClientRect = () => DOMRect.fromRect({ width: 390, height: 800 });
-class Observer {
-  constructor(private readonly told: (entries: ReadonlyArray<{ target: Element }>) => void) {}
-  observe(target: Element) {
-    queueMicrotask(() => this.told([{ target }]));
-  }
-  unobserve() {}
-  disconnect() {}
-}
-Object.assign(window, { ResizeObserver: Observer });
-
-const web = Bun.resolveSync('react-native-web', import.meta.dir);
-const one = Bun.resolveSync('./one.tsx', import.meta.dir);
-const color = Bun.resolveSync('../color.native.ts', import.meta.dir);
-
-plugin({
-  name: 'hymnal-phone-list',
-  setup(build) {
-    build.module('react-native', () => ({
-      contents: `
-        import { useSyncExternalStore } from 'react';
-        import { Platform as WebPlatform } from ${JSON.stringify(web)};
-        export * from ${JSON.stringify(web)};
-        const device = globalThis.phoneDevice;
-        const subscribe = (listener) => {
-          device.listeners.add(listener);
-          return () => device.listeners.delete(listener);
-        };
-        export const Platform = {
-          ...WebPlatform,
-          OS: 'ios',
-          select: (specifics) => ('ios' in specifics ? specifics.ios : specifics.default),
-        };
-        export const DynamicColorIOS = ({ light }) => light;
-        export const PlatformColor = (name) => name;
-        export const useColorScheme = () => useSyncExternalStore(subscribe, () => device.scheme);
-        const windowOf = (fontScale) => ({ width: 390, height: 800, scale: 3, fontScale });
-        let shown = windowOf(device.fontScale);
-        export const useWindowDimensions = () =>
-          useSyncExternalStore(subscribe, () => {
-            if (shown.fontScale !== device.fontScale) shown = windowOf(device.fontScale);
-            return shown;
-          });
-      `,
-      loader: 'js',
-    }));
-    build.module('one', () => ({
-      contents: `export * from ${JSON.stringify(one)};`,
-      loader: 'js',
-    }));
-    build.module('~/color', () => ({
-      contents: `export * from ${JSON.stringify(color)};`,
-      loader: 'js',
-    }));
-  },
-});
+const { device } = phone();
 
 const { act, createElement } = await import('react');
 const { createRoot } = await import('react-dom/client');

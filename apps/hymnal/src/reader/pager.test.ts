@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
 
-import { pageSource, settledAt } from './pager';
+import { onPage, pageSource, settledAt } from './pager';
 
 const all = Array.from({ length: 695 }, (_, i) => i + 1);
 
@@ -40,5 +40,15 @@ describe('settledAt', () => {
 
   it('names nothing for an empty list', () => {
     expect(settledAt(0, 402, [])).toEqual(Option.none());
+  });
+});
+
+describe('onPage', () => {
+  it('holds an offset on a page’s edge, to half a point', () => {
+    expect([0, 402, 804.4, 401.6].map((x) => onPage(x, 402))).toEqual([true, true, true, true]);
+  });
+
+  it('refuses an offset between two pages', () => {
+    expect([1, 201, 803].map((x) => onPage(x, 402))).toEqual([false, false, false]);
   });
 });
