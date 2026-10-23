@@ -1,0 +1,49 @@
+# Follow
+
+While a hymn plays, its page follows the singing. The line sung now is
+marked: its words turn muted and the word sung now takes the accent colour,
+with no box and no underline. The page scrolls each line in about 600 ms
+before it is sung, a third of the way down, so a reader never scrolls by
+hand. With sound on, the marks keep time with the recording; with sound off
+(`Sound off` beside Play), nothing sounds and they keep the score's time
+from the first sung line. A drag of the page pauses the scroll (the marks
+go on) and shows `Resume follow`; a tap on it, or a seek in the player,
+brings the sung line back and follows again. The marked line is
+`selected` on iOS and `aria-current="true"` on the web.
+
+## Sub-features
+
+- `follow-play`: one tap on `Play hymn <n>` follows the hymn to its last line, with no other touch.
+- `follow-play-recording`: with sound on (web, muted browser), the marks follow the recording.
+- `follow-line`: exactly one line is marked at a time, in order, never back, each line longer than 1 s seen, and the marked line and the next line's top inside the page's scroll.
+- `follow-word`: the sung word in the accent colour, the rest of the marked line muted.
+- `follow-sound`: with `Sound off`, Play sounds nothing and the marks run on the score's clock.
+- `follow-hand`: a drag of the page while it plays shows `Resume follow` and stops the scroll; a tap on it brings the marked line back into view.
+- `follow-seek`: a seek on the player's `Position` bar shows the line sung there and follows again.
+
+## How to get to it (user POV)
+
+- A hymn page, `hymnal://hymns/<n>` (iOS) or `/hymns/<n>` (web): `Play hymn <n>` in the bar at its foot.
+- `Resume follow` over the page after a drag while it plays.
+- `Open player`, then the `Position` bar, to seek.
+
+## Driving it with sim
+
+- **Preconditions:** the hymn reader open (`sim open hymns/100 --expect "label=Play hymn 100"`). On iOS, `Sound off` before any Play: `sim snapshot sound`, and `sim tap label=Sound` while it reads `Sound on` (player.md, Gotchas). On iOS, Play is pressed only with sound off.
+- **States:** default (playing, paused by hand, ended), loading (web, before the recording sounds). Empty and error are n/a: every hymn has a timeline.
+- **Regression:** `apps/hymnal/src/follow/timeline.test.ts`, `apps/hymnal/src/follow/clock.test.ts`, `apps/hymnal/src/follow/follower.test.ts`, `apps/hymnal/src/player/sound.test.ts`, `apps/hymnal/src/follow/follow.slow.test.tsx`, `apps/hymnal/scripts/follow.test.ts` (the checker's judge).
+
+1. **One tap to the end (iOS, `follow-play`, `follow-line`, `follow-sound`).** With the page of hymn 100 open and `Sound off`, from `apps/hymnal`: `bun run follow --udid <udid> --hymn 100 --out "$EVIDENCE/follow"`. It presses `Play hymn 100` once, touches nothing else, records `follow-100.mp4` and reads the tree about every 0.5 s until the button reads `Play hymn 100 again`. → one JSON line, exit 0: `holds` true, `backwards` 0, `missed` [], `last` true, `outside` 0, `doubled` 0, `mismatched` 0, `ended` true, `touches` 1. Then the same on hymns 93 (a refrain after each stanza) and 212, each opened by `sim open` first.
+2. **The word (iOS, `follow-word`).** During step 1's run of 100, `sim shot word-1` and, some seconds later, `sim shot word-2`. Crop the marked line 1:1 into the evidence. → one word in the accent colour, the rest of the line muted; no box, no underline.
+3. **Sound on (web, `follow-play-recording`).** `sim boot --platform web`, `sim open hymns/100 --expect "label=Play hymn 100"`, `sim tap "label=Play hymn 100"`, wait 45 s, `sim snapshot recording`. → exactly one element with `aria-current="true"`, a line after the first stanza's first line, inside `hymn-scroll`'s box.
+4. **A drag (iOS, `follow-hand`).** On hymn 100, `Sound off`, `sim tap "label=Play hymn 100"`, wait 20 s, `sim scroll id=hymn-scroll up`. → `sim snapshot held` holds `Resume follow`, and `sim log` has `[follow] pause reason=drag`. `sim tap "label=Resume follow"`. → `Resume follow` is gone, the selected line lies inside `hymn-scroll`'s frame (`agent-device snapshot --json`), and the log has `[follow] resume reason=pill`.
+5. **A seek (iOS, `follow-seek`).** While it still plays, drag the page again, then `sim tap "label=Open player"` and drag the sheet's `Position` bar (`agent-device gesture pan <x> <y> <dx> 0 700` from the bar's middle). → the log has `[follow] resume reason=seek`; close the sheet, and the selected line lies inside `hymn-scroll`'s frame. Then `sim tap "label=Pause hymn 100"`.
+6. **Proof.** `sim record start follow` before step 4 and `sim record stop` after step 5; `sim log` at the end (`app.log`), where each marked line logs `[follow] line i=<i> of=<n> at=<ms> clock=score` (with sound on, `clock=recording`).
+
+## Gotchas
+
+- The simulator plays through the Mac's speakers: on iOS, read `Sound off` before every Play. The choice is kept across relaunches.
+- A tap on the iOS seek line in the bar does not seek; seek by a drag on the sheet's `Position` bar.
+- The checker reads the tree without touching the app (`--observe-only`); any other driver acting on the simulator during its run counts as a touch it cannot see. Run nothing else until it prints.
+- A load above 12 delays the snapshots: read a run with `missed` lines under such load as no claim and run it again.
+- The checker keeps no words: its JSON holds each line's selected state and frame only. Snapshots from `sim snapshot` hold the hymn's words, as the app renders them.
