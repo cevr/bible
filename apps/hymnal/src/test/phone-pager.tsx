@@ -282,7 +282,7 @@ const starPlaces = (host: HTMLElement) =>
 
 // The home list with the reader's lists: Recent above the first topic, and
 // each favourite starred in its rows, Recent's and its topic's; a row's
-// press in Recent hands the pager Recent.
+// press in Recent hands the pager every hymn, as any home row does.
 {
   const shown = app();
   const of = (numbers: ReadonlyArray<number>) =>

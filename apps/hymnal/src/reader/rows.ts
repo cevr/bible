@@ -10,8 +10,9 @@
  *
  * A row's place comes from the hymns' own order alone: a topic that comes
  * back after another gets a second row, keyed by its own first hymn. A hymn
- * row carries the hymns a press on it pages through (`source`): its shelf's,
- * or every hymn of the list under the topics. A hymn row of one of the
+ * row carries the hymns a press on it pages through (`source`): every hymn
+ * of the list under the topics, in its order, a shelf's rows too (a shelf
+ * pages through its own hymns only from its own screen). A hymn row of one of the
  * reader's `favourites` is starred (`favourite`), wherever it shows.
  */
 
@@ -44,8 +45,8 @@ export const rowsOf = <Hymn extends { readonly number: number; readonly topic: s
 ): Rows<Hymn> => {
   const rows: Array<Row<Hymn>> = [];
   const sticky: Array<number> = [];
+  const source = hymns.map((hymn) => hymn.number);
   for (const shelf of shelves.filter((s) => s.hymns.length > 0)) {
-    const source = shelf.hymns.map((hymn) => hymn.number);
     rows.push({ kind: 'shelf', key: `list:${shelf.name}`, name: shelf.name, href: shelf.href });
     for (const hymn of shelf.hymns)
       rows.push({
@@ -56,7 +57,6 @@ export const rowsOf = <Hymn extends { readonly number: number; readonly topic: s
         favourite: favourites.has(hymn.number),
       });
   }
-  const source = hymns.map((hymn) => hymn.number);
   hymns.forEach((hymn, i) => {
     if (hymns[i - 1]?.topic !== hymn.topic) {
       sticky.push(rows.length);

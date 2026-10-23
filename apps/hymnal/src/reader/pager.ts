@@ -2,9 +2,9 @@
  * The hymn pager's arithmetic: which hymns a swipe moves through, where it
  * opens, and which hymn a settled offset shows.
  *
- * A swipe moves through the list the reader came from: the home list, a
- * search's results or Recent, as the row they pressed recorded it
- * (`place.ts`, `pageSource`). A hymn opened any other way (a deep link, the
+ * A swipe moves through the list the reader came from: the home list (its
+ * Recent rows too), a search's results or the Recent screen, as the row they
+ * pressed recorded it (`place.ts`, `pageSource`). A hymn opened any other way (a deep link, the
  * now-playing bar) pages through every hymn in number order. The ends do
  * not wrap.
  */

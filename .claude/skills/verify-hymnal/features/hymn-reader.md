@@ -16,7 +16,7 @@ later rows sit one indent right of its first.
 - `reader-words`: stanzas in order, each a group named `Stanza <n>`, the refrain a group named `Refrain` after each stanza.
 - `reader-scroll`: the words scroll to the last stanza and back.
 - `reader-back`: the header's back button returns to the list or the search it came from, in one press however many pages were swiped, and the list is at its place.
-- `reader-pager`: on a phone, a swipe left or right turns to the next or previous hymn of the list the hymn was opened from (the home list, a search's results, the home list's Recent five, the Recent screen's whole list; every hymn in number order for a link); the header and the page head name the hymn shown. A pan from the left edge goes back on any hymn, after a list press and after a swipe; a pan from mid-screen turns the page.
+- `reader-pager`: on a phone, a swipe left or right turns to the next or previous hymn of the list the hymn was opened from (the home list in number order, its Recent rows too; a search's results; the Recent screen's whole list; every hymn in number order for a link); the header and the page head name the hymn shown. A pan from the left edge goes back on any hymn, after a list press and after a swipe; a pan from mid-screen turns the page.
 - `reader-text`: `Aa` opens the reading sheet; `Larger text` and `Smaller text` step the size (each disabled at its end), `Font` and `Line spacing` are radio groups, and the page behind follows at once, chords included.
 - `reader-indent`: a wrapped line's later rows start at least one indent (1.25 times the words' size) right of its first.
 - `reader-awake`: with `Keep screen on` on, the screen stays on while a hymn page is shown.

@@ -159,7 +159,7 @@ describe('the reader’s shelves above the topics', () => {
     expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
   });
 
-  it('hand a row’s press its own shelf to page through, and a topic’s row every hymn', () => {
+  it('hand every row’s press the list under the topics to page through, a shelf’s rows too', () => {
     const { rows } = rowsOf(list, [
       { name: 'Favourites', hymns: [...at(1), ...at(3)], href: '/favourites' },
       { name: 'Recent', hymns: [...at(3), ...at(2)], href: '/recent' },
@@ -168,15 +168,7 @@ describe('the reader’s shelves above the topics', () => {
       if (row.kind === 'hymn') return [row.source];
       return [];
     });
-    expect(sources).toEqual([
-      [1, 3],
-      [1, 3],
-      [3, 2],
-      [3, 2],
-      [1, 2, 3],
-      [1, 2, 3],
-      [1, 2, 3],
-    ]);
+    expect(sources).toEqual(Array.from({ length: 7 }, () => [1, 2, 3]));
   });
 
   it('show no header for an empty shelf', () => {

@@ -248,8 +248,8 @@ describe('the reader’s lists', () => {
     }
   });
 
-  it('a press on a Recent row hands the pager Recent to page through', () => {
-    expect(seen.recentSource).toEqual([30, 4, 3]);
+  it('a press on a home Recent row hands the pager every hymn, in number order', () => {
+    expect(seen.recentSource).toEqual(Array.from({ length: 695 }, (_, i) => i + 1));
   });
 
   it('Recent’s header is a button that shows See all and opens the Recent screen', () => {

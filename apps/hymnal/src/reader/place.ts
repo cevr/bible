@@ -24,8 +24,8 @@ export const recentOffset = Atom.make(0).pipe(Atom.keepAlive);
 
 /**
  * The hymns the pager swipes through next (`pager.ts`): the list a row was
- * pressed in (the home list, a search's results or Recent), in
- * its order, as that row's press records it. The hymn screen takes it once,
+ * pressed in (the home list, its Recent rows too, a search's results or the
+ * Recent screen), in its order, as that row's press records it. The hymn screen takes it once,
  * as it opens, and clears it, so a hymn opened any other way (a deep link)
  * pages through every hymn.
  */

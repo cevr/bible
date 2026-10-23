@@ -298,8 +298,8 @@ function ShelfHeader({
 
 /**
  * One hymn's row: a link the router opens in the app. Its press first hands
- * the pager the list it sits in (`source`: its shelf's, or the list's), so a
- * swipe on the hymn moves through that list. A favourite's row ends with a
+ * the pager the hymns of the list it sits in (`source`, `rows.ts`), so a
+ * swipe on the hymn moves through them. A favourite's row ends with a
  * star at the number's size, after its title, so a long title's ellipsis
  * comes before the star; its name ends `, favourite`.
  */
