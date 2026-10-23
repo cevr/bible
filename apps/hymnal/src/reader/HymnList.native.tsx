@@ -18,7 +18,9 @@
  * and reuses a row's view for the next row it shows (`recycleItems`).
  *
  * A phone never mounts the list anew under a pushed hymn or a sheet, so it
- * keeps its own place, and `offset` is the web's alone.
+ * keeps its own place, and `offset` is the web's alone. Rows added above
+ * (a hymn joining Recent) keep the rows in view where they were, unless the
+ * list is at its top.
  */
 
 import { useAtomSet } from '@effect/atom-react';
@@ -144,6 +146,14 @@ export function HymnList({
   );
   const own = useSharedValue(0);
   const scroll = pullDown?.scroll ?? own;
+  const rest = pullDown?.rest ?? 0;
+  // When the rows change under a reader scrolled into the list (a hymn opened
+  // from it joins Recent above), the rows in view keep their place. At the
+  // list's top nothing holds, so a list that gains a hymn shows it.
+  const anchoring = useMemo(
+    () => ({ data: true, shouldRestorePosition: () => scroll.value > rest + 1 }),
+    [scroll, rest],
+  );
   return (
     <View style={styles.fill}>
       <AnimatedLegendList
@@ -166,6 +176,7 @@ export function HymnList({
         initialScrollOffset={pullDown?.rest}
         snapToOffsets={pullDown && [0, pullDown.rest]}
         snapToEnd={false}
+        maintainVisibleContentPosition={anchoring}
         sharedValues={{ scrollOffset: scroll }}
         contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
