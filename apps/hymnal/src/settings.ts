@@ -48,6 +48,12 @@ export const settingsOn = (store: Layer.Layer<KeyValueStore.KeyValueStore>) => {
     chordStyle: setting('chords.style', ChordStyle, 'simple'),
     appearance: setting('appearance', Appearance, 'system'),
     /**
+     * Whether Play sounds the recording, the switch beside Play: the same
+     * for every hymn, on until the reader turns it off. Off, Play runs the
+     * score clock (`src/player/sound.ts`) and nothing sounds.
+     */
+    sound: setting('sound', Schema.Boolean, true),
+    /**
      * Each hymn's transpose and capo, by its number: a move fits one hymn's
      * key and the singers' range for it, so it never reaches another hymn.
      */

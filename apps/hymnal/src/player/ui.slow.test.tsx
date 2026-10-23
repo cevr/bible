@@ -721,7 +721,7 @@ describe('the bottom bar', () => {
         page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
         yield* page.until(Player.$is('Playing'));
         const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
-        expect(bar.textContent).toBe(`100${morning.title}Pause`);
+        expect(bar.textContent).toBe(`100${morning.title}Sound onPause`);
 
         page.press('Open player');
         expect(opened).toEqual(['/player?hymn=100']);
@@ -736,7 +736,7 @@ describe('the bottom bar', () => {
       page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
       expect(Option.getOrThrow(page.find('[aria-label="Player"]')).textContent).toBe(
-        `100${morning.title}Play 1Pause`,
+        `100${morning.title}Play 1Sound onPause`,
       );
 
       page.press('Pause hymn 100');
@@ -744,7 +744,7 @@ describe('the bottom bar', () => {
       expect(page.device.now.state).toBe('paused');
       // A paused hymn is not sounding: the bar acts on the page's hymn again.
       expect(Option.getOrThrow(page.find('[aria-label="Player"]')).textContent).toBe(
-        `1${praise.title}Play`,
+        `1${praise.title}Sound onPlay`,
       );
     }),
   );
@@ -802,7 +802,7 @@ describe('the hymn page with the bottom bar', () => {
       ).toBe(true);
       const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
       expect(bar.querySelector('[aria-label="Play hymn 3"]')).not.toBeNull();
-      expect(bar.textContent).toBe(`3${three.title}Play`);
+      expect(bar.textContent).toBe(`3${three.title}Sound onPlay`);
 
       page.press('Play hymn 3');
       yield* page.until(Player.$is('Loading'));

@@ -6,18 +6,20 @@
  * screens. While it holds none, the hymn page draws the bar as its own
  * (`PageBar`), so the bar comes in with the page's push and goes out with
  * its back, frame for frame. It holds the hymn's number and title, a button
- * that opens the full player on the bar's hymn (`/player?hymn=<n>`), the player's button, and, while
+ * that opens the full player on the bar's hymn (`/player?hymn=<n>`), the
+ * Sound switch and the player's button, and, while
  * another hymn sounds over a page, a compact Play for the page's hymn. A thin
  * seek line along its top edge shows the part played; it takes no touch, as
  * seeking is the full player's.
  */
 
-import { useAtomSet, useAtomValue } from '@effect/atom-react';
+import { useAtom, useAtomSet, useAtomValue } from '@effect/atom-react';
 import { Option } from 'effect';
 import { Link, useLinkTo, useSafeAreaInsets } from 'one';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
+import { settings } from '~/store';
 
 import { Bar, dockedBar, pageBar, playedShare, toldPlace } from './bar';
 import { usePlayer } from './context';
@@ -72,6 +74,7 @@ function Drawn({ bar, player }: { readonly bar: Bar; readonly player: HymnPlayer
             onNone: () => <></>,
             onSome: (shown) => <PlayPage track={shown} send={send} />,
           })}
+          <Sound />
           <Toggle track={track} state={state} send={send} />
         </View>
       </View>
@@ -128,6 +131,28 @@ function PlayPage({
   );
 }
 
+/**
+ * Whether Play sounds the recording: on, the accent; off, muted, and the
+ * score clock runs (`sound.ts`). It sits left of the player's button, so
+ * Play keeps its place at the bar's end.
+ */
+function Sound() {
+  const [on, setOn] = useAtom(settings.sound);
+  const accent = useAccent();
+  const tint = [color.muted, accent][Number(on)];
+  return (
+    <Pressable
+      role="button"
+      aria-label="Sound"
+      aria-checked={on}
+      onPress={() => setOn(!on)}
+      style={styles.compact}
+    >
+      <Text style={[styles.sound, { color: tint }]}>{['Sound off', 'Sound on'][Number(on)]}</Text>
+    </Pressable>
+  );
+}
+
 /** The part played, along the bar's top edge, over a hairline of the rest; it takes no touch. */
 function SeekLine({ state }: { readonly state: Player }) {
   const accent = useAccent();
@@ -157,4 +182,5 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 15, color: color.ink },
   compact: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 4 },
   compactText: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  sound: { fontSize: 13, fontWeight: '600', minWidth: 64, textAlign: 'center' },
 });

@@ -1,21 +1,31 @@
 /**
- * The app's one player, over the device's playback (`playback.live.ts`).
+ * The app's one player, over the device's playback (`playback.live.ts`)
+ * under the score clock (`sound.ts`), which the Sound setting switches.
  * It follows the lock screen and Control Center while the app shows it.
  */
 
-import { useAtomMount } from '@effect/atom-react';
-import { Option } from 'effect';
-import type { ReactNode } from 'react';
+import { useAtomMount, useAtomValue } from '@effect/atom-react';
+import { Effect, Option, SubscriptionRef } from 'effect';
+import { type ReactNode, useEffect } from 'react';
+
+import { book } from '~/follow/book';
+import { settings } from '~/store';
 
 import { PlayerContext } from './context';
 import { playbackLive } from './playback.live';
 import { playerOn, statusEvery } from './player';
+import { soundOn } from './sound';
 
-const player = playerOn(playbackLive, statusEvery);
+/** Whether the recording sounds, as the score clock reads it: the Sound setting, set at mount. */
+const sound = Effect.runSync(SubscriptionRef.make(true));
+const player = playerOn(soundOn(playbackLive, book.of, sound), statusEvery);
 
 export function LivePlayer({ children }: { readonly children: ReactNode }) {
   // The commands run for as long as the app does, whichever screen shows.
   useAtomMount(player.send);
   useAtomMount(player.remote);
+  const on = useAtomValue(settings.sound);
+  // The setting is the app's; the score clock is outside React, so it is told each change.
+  useEffect(() => Effect.runSync(SubscriptionRef.set(sound, on)), [on]);
   return <PlayerContext value={Option.some(player)}>{children}</PlayerContext>;
 }

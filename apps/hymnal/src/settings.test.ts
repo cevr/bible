@@ -54,6 +54,24 @@ describe('the appearance setting', () => {
   });
 });
 
+describe('the sound switch', () => {
+  it('is on the first time', () => {
+    const { settings, registry } = launch(new Map());
+    expect(registry.get(settings.sound)).toBe(true);
+  });
+
+  it('stays off under its key when the app is opened again', () => {
+    const device = new Map<string, string>();
+    const first = launch(device);
+    first.registry.set(first.settings.sound, false);
+    first.registry.dispose();
+    expect(device.get('sound')).toBe('false');
+
+    const again = launch(device);
+    expect(again.registry.get(again.settings.sound)).toBe(false);
+  });
+});
+
 describe('the chord style', () => {
   it('is Simple until the reader picks Advanced', () => {
     const { settings, registry } = launch(new Map());
