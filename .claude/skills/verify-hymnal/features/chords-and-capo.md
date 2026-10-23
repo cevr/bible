@@ -1,7 +1,7 @@
 # Chords and capo
 
 A reader turns chords on with the `Chords` button at the header's top right
-(a guitar's head: on iOS the SF Symbol `guitars`, filled while on), and
+(an acoustic guitar's head with its tuning pegs, the same on every platform, filled while on), and
 each guitar chord shows above the syllable where it changes, in the words'
 own font, the lines wrapping between words. While chords are on, the reader
 transposes the hymn and sets a capo fret, and the chords follow: a

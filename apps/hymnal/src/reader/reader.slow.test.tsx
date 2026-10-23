@@ -199,11 +199,12 @@ const withButton = (n: number, reader: ReturnType<typeof readerOn>) => (
   </>
 );
 
-/** The `Chords` button: a button, and whether it is selected. */
+/** The `Chords` button: a button, whether it is selected, and whether it draws the guitar's head. */
 const chordsButton = (host: HTMLElement) =>
   Option.map(Option.fromNullishOr(host.querySelector('[aria-label="Chords"]')), (button) => ({
     role: button.getAttribute('role'),
     selected: button.getAttribute('aria-selected'),
+    head: Option.isSome(Option.fromNullishOr(button.querySelector('[data-testid="guitar-head"]'))),
   }));
 
 const chordRows = (host: HTMLElement) => host.querySelectorAll('[data-testid^="chord-"]').length;
@@ -213,14 +214,20 @@ describe('the header’s Chords button', () => {
     const device = new Map<string, string>();
     {
       using app = mount(withButton(3, readerOn(device)));
-      expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+      expect(chordsButton(app.host)).toEqual(
+        Option.some({ role: 'button', selected: 'false', head: true }),
+      );
       expect(chordRows(app.host)).toBe(0);
       press(app.host, 'Chords');
-      expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+      expect(chordsButton(app.host)).toEqual(
+        Option.some({ role: 'button', selected: 'true', head: true }),
+      );
       expect(chordRows(app.host)).toBeGreaterThan(0);
     }
     using app = mount(withButton(5, readerOn(device)));
-    expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+    expect(chordsButton(app.host)).toEqual(
+      Option.some({ role: 'button', selected: 'true', head: true }),
+    );
     expect(chordRows(app.host)).toBeGreaterThan(0);
   });
 
@@ -243,7 +250,9 @@ describe('the header’s Chords button', () => {
     expect(controls.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     press(app.host, 'Chords');
-    expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+    expect(chordsButton(app.host)).toEqual(
+      Option.some({ role: 'button', selected: 'false', head: true }),
+    );
     expect(text()).not.toContain('Transpose');
     expect(text()).not.toContain('Capo');
     expect(chordRows(app.host)).toBe(0);
@@ -251,7 +260,9 @@ describe('the header’s Chords button', () => {
 
   it('opens selected, chords shown, over a store that kept chords on', () => {
     using app = mount(withButton(3, readerOn(chordsOn())));
-    expect(chordsButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+    expect(chordsButton(app.host)).toEqual(
+      Option.some({ role: 'button', selected: 'true', head: true }),
+    );
     expect(chordRows(app.host)).toBeGreaterThan(0);
   });
 });
@@ -284,9 +295,13 @@ describe('a hymn page with chords on', () => {
     })();
     using app = mount(withButton(100, readerOn(chordsOn())));
     const { host } = app;
-    expect(chordsButton(host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+    expect(chordsButton(host)).toEqual(
+      Option.some({ role: 'button', selected: 'true', head: true }),
+    );
     press(host, 'Chords');
-    expect(chordsButton(host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+    expect(chordsButton(host)).toEqual(
+      Option.some({ role: 'button', selected: 'false', head: true }),
+    );
     expect(host.querySelector('[data-testid^="chord-"]')).toBeNull();
     expect(textOf(host.innerHTML)).not.toContain('Transpose');
     expect(sectionTexts(host)).toEqual(words);
