@@ -53,7 +53,7 @@ source seams out.
 
 | Feature                               | Id                                                            | Deep link (iOS / web)               | Proof                                                                                    |
 | ------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| [Hymn list](hymn-list.md)             | `hymn-list`                                                   | `hymnal://` / `/`                   | rows by number, scroll, open a row; a favourite starred in its rows, Recent at most 5    |
+| [Hymn list](hymn-list.md)             | `hymn-list`                                                   | `hymnal://` / `/`                   | rows by number, open a row; a favourite starred; Recent 5 on home, See all opens all     |
 | [Hymn reader](hymn-reader.md)         | `hymn-reader`                                                 | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll; swipe to the next hymn, a left-edge pan goes back |
 | [Chords and capo](chords-and-capo.md) | `chords`, `capo`, `transpose`, `chords-levels`, `chords-kept` | `hymnal://hymns/100` / `/hymns/100` | `chord-1-1-1` reads `Db`, then follows transpose and capo; kept per hymn                 |
 | [Player](player.md)                   | `player`                                                      | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control; the bar docked under the stack               |
