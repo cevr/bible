@@ -139,6 +139,28 @@ const seen = (shown: App) => {
     paging: scrolls.sideways.at(-1)?.['pagingEnabled'] === true,
     opened: [...opened],
     paramsSet: paramsSet.map((set) => Number(set['number'])),
+    backEdge: edgeOf(shown),
+  };
+};
+
+/**
+ * The strip at the left edge whose pans go back: how many there are, whether
+ * it comes after the pager among its siblings (so it lies over it), and where
+ * it is laid.
+ */
+const edgeOf = (shown: App) => {
+  const edges = [...shown.host.querySelectorAll('[data-testid="back-edge"]')];
+  const edge = edges[0];
+  const style = edge === undefined ? undefined : getComputedStyle(edge);
+  return {
+    count: edges.length,
+    overPager:
+      (edge?.previousElementSibling?.querySelector('[data-testid="hymn-name"]') ?? null) !== null,
+    position: style?.position ?? '',
+    left: style?.left ?? '',
+    top: style?.top ?? '',
+    bottom: style?.bottom ?? '',
+    width: style?.width ?? '',
   };
 };
 

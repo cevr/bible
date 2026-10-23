@@ -9,6 +9,8 @@
 
 import { describe, expect, it } from 'bun:test';
 
+import { backEdge } from './pager';
+
 interface Seen {
   readonly pages: ReadonlyArray<number>;
   readonly headers: number;
@@ -19,6 +21,15 @@ interface Seen {
   readonly paging: boolean;
   readonly opened: ReadonlyArray<string>;
   readonly paramsSet: ReadonlyArray<number>;
+  readonly backEdge: {
+    readonly count: number;
+    readonly overPager: boolean;
+    readonly position: string;
+    readonly left: string;
+    readonly top: string;
+    readonly bottom: string;
+    readonly width: string;
+  };
 }
 
 interface Run {
@@ -115,6 +126,21 @@ describe('a settle', () => {
       expect(shown.headerNames).toEqual([hymn]);
       expect(shown.rightItems).toEqual([1]);
     }
+  });
+});
+
+describe('the left edge', () => {
+  it('lies over the pager on every page, the back zone’s width from top to bottom, so its pans go back', () => {
+    for (const shown of [seen.open3, seen.settle4, seen.open30, seen.open600, seen.settle601])
+      expect(shown.backEdge).toEqual({
+        count: 1,
+        overPager: true,
+        position: 'absolute',
+        left: '0px',
+        top: '0px',
+        bottom: '0px',
+        width: `${backEdge}px`,
+      });
   });
 });
 

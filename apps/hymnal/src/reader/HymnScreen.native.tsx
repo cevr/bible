@@ -17,6 +17,11 @@
  * (`hymnHeader`), and the screen, not its pages, tells the bottom bar the
  * page shown (`Shown`): a neighbour page sets nothing, and a swipe never
  * touches the player.
+ *
+ * A pan that starts at the screen's left edge pops the screen, as on every
+ * other pushed screen: a strip `backEdge` points wide lies over the pager
+ * there, so the pager's scroll view never gets that touch, and the stack's
+ * back gesture does. A pan that starts anywhere else turns the page.
  */
 
 import { useAtomSet, useAtomValue } from '@effect/atom-react';
@@ -35,7 +40,7 @@ import {
 import { hymnAt, type HymnText, hymns } from '~/hymns/hymns';
 
 import { HymnPage, NoHymn } from './HymnPage';
-import { onPage, pageSource, settledAt } from './pager';
+import { backEdge, onPage, pageSource, settledAt } from './pager';
 import { pagesFrom } from './place';
 import { reader, Shown } from './screen';
 
@@ -80,7 +85,7 @@ function Pager({ shown }: { readonly shown: HymnText }) {
       { onNone: () => {}, onSome: settle },
     );
   return (
-    <>
+    <View style={styles.screen}>
       <Shown hymn={shown} />
       <LegendList
         data={pages.list}
@@ -98,7 +103,8 @@ function Pager({ shown }: { readonly shown: HymnText }) {
         renderItem={drawPage}
         style={styles.pager}
       />
-    </>
+      <View testID="back-edge" style={styles.backEdge} />
+    </View>
   );
 }
 
@@ -113,6 +119,8 @@ const drawPage = ({ item, extraData }: { readonly item: number; readonly extraDa
 );
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   pager: { flex: 1 },
+  backEdge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: backEdge },
   page: { flex: 1 },
 });

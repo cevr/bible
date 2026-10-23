@@ -48,3 +48,9 @@ export const settledAt = (
  */
 export const onPage = (offset: number, width: number): boolean =>
   Math.abs(offset - Math.round(offset / Math.max(width, 1)) * width) <= 0.5;
+
+/**
+ * The width of the strip at the left edge whose pans go back, not to the
+ * hymn before: iOS's back zone. The page's words start past it.
+ */
+export const backEdge = 20;
