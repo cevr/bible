@@ -51,11 +51,11 @@ source seams out.
 
 ## Features
 
-| Feature                               | Id                                                            | Deep link (iOS / web)               | Proof                                                                    |
-| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
-| [Hymn list](hymn-list.md)             | `hymn-list`                                                   | `hymnal://` / `/`                   | rows by number, scroll, open a row                                       |
-| [Hymn reader](hymn-reader.md)         | `hymn-reader`                                                 | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll                                    |
-| [Chords and capo](chords-and-capo.md) | `chords`, `capo`, `transpose`, `chords-levels`, `chords-kept` | `hymnal://hymns/100` / `/hymns/100` | `chord-1-1-1` reads `Db`, then follows transpose and capo; kept per hymn |
-| [Player](player.md)                   | `player`                                                      | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control                               |
-| [Settings and about](settings.md)     | `settings`, `about`                                           | `hymnal://settings` / `/settings`   | appearance kept after leaving; About's credits                           |
-| [Search](search.md)                   | `search`                                                      | `hymnal://search` / `/search`       | one match for "great is thy", open it                                    |
+| Feature                               | Id                                                            | Deep link (iOS / web)               | Proof                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| [Hymn list](hymn-list.md)             | `hymn-list`                                                   | `hymnal://` / `/`                   | rows by number, scroll, open a row; a favourite starred in its rows, Recent at most 5    |
+| [Hymn reader](hymn-reader.md)         | `hymn-reader`                                                 | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll; swipe to the next hymn, a left-edge pan goes back |
+| [Chords and capo](chords-and-capo.md) | `chords`, `capo`, `transpose`, `chords-levels`, `chords-kept` | `hymnal://hymns/100` / `/hymns/100` | `chord-1-1-1` reads `Db`, then follows transpose and capo; kept per hymn                 |
+| [Player](player.md)                   | `player`                                                      | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control; the bar docked under the stack               |
+| [Settings and about](settings.md)     | `settings`, `about`                                           | `hymnal://settings` / `/settings`   | appearance kept after leaving; About's credits                                           |
+| [Search](search.md)                   | `search`                                                      | `hymnal://search` / `/search`       | one match for "great is thy", open it                                                    |
