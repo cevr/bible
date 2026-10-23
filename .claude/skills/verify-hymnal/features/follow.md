@@ -17,7 +17,7 @@ brings the sung line back and follows again. The marked line is
 - `follow-play-recording`: with sound on (web, muted browser), the marks follow the recording.
 - `follow-line`: exactly one line is marked at a time, in order, never back, each line longer than 1 s seen, and the marked line and the next line's top inside the page's scroll.
 - `follow-word`: the sung word in the accent colour, the rest of the marked line muted.
-- `follow-sound`: with `Sound off`, Play sounds nothing and the marks run on the score's clock.
+- `follow-sound`: with `Sound off`, Play sounds nothing and the marks run on the score's clock. One Play tap is enough: the player shows Playing from the first sung line, which is marked, with no seek. While a recording is still loading, `Sound off`, Pause and Stop answer at once, and a load that never answers is given up after 15 s.
 - `follow-hand`: a drag of the page while it plays shows `Resume follow` and stops the scroll; a tap on it brings the marked line back into view.
 - `follow-seek`: a seek on the player's `Position` bar shows the line sung there and follows again.
 

@@ -10,9 +10,25 @@
  * the status the device would. A switch mid-play hands the place over: off
  * pauses the device and runs the clock from the device's place; on plays
  * the recording from the clock's place.
+ *
+ * Every call and every switch takes one lock while it reads and sets what
+ * the clock holds, but a play the device has not answered holds no lock: the
+ * player's reads, Pause, Stop and the switch go on while it loads. A hand-over
+ * meanwhile (a switch, a new play, a stop) answers that play at once with the
+ * place as it stands, and the device's late answer is dropped.
  */
 
-import { Clock, Effect, Layer, Option, Stream, SubscriptionRef } from 'effect';
+import {
+  Clock,
+  Data,
+  Deferred,
+  Effect,
+  type Exit,
+  Layer,
+  Option,
+  Stream,
+  SubscriptionRef,
+} from 'effect';
 import * as Semaphore from 'effect/Semaphore';
 
 import { type Clock as Run, clockAt, placeOf } from '../follow/clock';
@@ -38,6 +54,22 @@ const clockStatus = (run: Run, end: number, now: number): Status => {
 /** Whether the device moves, or is about to. */
 const moving = (status: Status) => status.state === 'playing' || status.state === 'loading';
 
+/**
+ * What a call does once it has set what the clock holds: answer with a
+ * status, or ask the device to play `uri` from `at` (outside the lock), as
+ * hand-over `turn`, which ends early once `over` is done.
+ */
+type Step = Data.TaggedEnum<{
+  Answer: { readonly status: Status };
+  Sound: {
+    readonly uri: string;
+    readonly at: number;
+    readonly turn: number;
+    readonly over: Deferred.Deferred<number>;
+  };
+}>;
+const Step = Data.taggedEnum<Step>();
+
 /** What the score clock holds across the calls. */
 interface Held {
   uri: Option.Option<string>;
@@ -48,6 +80,10 @@ interface Held {
   recorded: Option.Option<number>;
   /** Whether the device holds a recording this clock asked it to play. */
   sounding: boolean;
+  /** How many times the place was handed over; a device play answers only its own turn. */
+  turn: number;
+  /** Done with the next turn at the next hand-over: a device play still loading answers then. */
+  over: Deferred.Deferred<number>;
 }
 
 /**
@@ -68,9 +104,18 @@ export const scoreClock = (
       clock: Option.none(),
       recorded: Option.none(),
       sounding: false,
+      turn: 0,
+      over: yield* Deferred.make<number>(),
     };
     const end = () => Option.match(held.timeline, { onNone: () => 0, onSome: (t) => t.end });
     const first = () => Option.match(held.timeline, { onNone: () => 0, onSome: (t) => t.first });
+
+    /** The place changes hands: a device play still loading answers now, and its own answer is dropped. */
+    const handOver = Effect.gen(function* () {
+      held.turn += 1;
+      yield* Deferred.succeed(held.over, held.turn);
+      held.over = yield* Deferred.make<number>();
+    });
 
     /** Run the clock from `at`, playing or held. */
     const run = (at: number, playing: boolean) =>
@@ -97,20 +142,59 @@ export const scoreClock = (
       );
     };
 
+    /** The status now: the silent clock's while it runs, else the device's. */
+    const current = Effect.gen(function* () {
+      const now = yield* Clock.currentTimeMillis;
+      if (Option.isSome(held.clock)) return clockStatus(held.clock.value, end(), now);
+      return yield* fromDevice(yield* device.status);
+    });
+
     /** Whether the recording holds place `at`, as far as the device has told. */
     const recordedAt = (at: number) =>
       at < end() && Option.match(held.recorded, { onNone: () => true, onSome: (ms) => at < ms });
 
-    /** Hand the place to the device: it plays the recording from `at`. */
+    /** Hand the place to the device: it is to play the recording from `at`. */
     const sounded = (uri: string, at: number) =>
       Effect.gen(function* () {
+        yield* handOver;
         held.clock = Option.none();
         held.sounding = true;
-        return yield* fromDevice(yield* device.play(uri, at));
+        return Step.Sound({ uri, at, turn: held.turn, over: held.over });
       });
+
+    const answer = (status: Effect.Effect<Status, PlaybackError>) =>
+      Effect.map(status, (it) => Step.Answer({ status: it }));
+
+    /**
+     * The device's answer to the play of `turn`, or none when the place was
+     * handed over first. A play handed over answers with the place as it
+     * stands; the clock runs then, so a device that starts late is paused.
+     */
+    const played = (turn: number, told: Option.Option<Exit.Exit<Status, PlaybackError>>) =>
+      Effect.gen(function* () {
+        if (held.turn === turn && Option.isSome(told)) return yield* fromDevice(yield* told.value);
+        if (Option.isSome(held.clock) && held.sounding) yield* Effect.ignore(device.pause);
+        return yield* current;
+      });
+
+    /** Carry a step out: a device play runs outside the lock, and its answer is taken under it. */
+    const settle = (step: Step): Effect.Effect<Status, PlaybackError> =>
+      Step.$match(step, {
+        Answer: ({ status }) => Effect.succeed(status),
+        Sound: ({ uri, at, turn, over }) =>
+          Effect.raceFirst(
+            Effect.asSome(Effect.exit(device.play(uri, at))),
+            Effect.as(Deferred.await(over), Option.none()),
+          ).pipe(Effect.flatMap((told) => lock.withPermit(played(turn, told)))),
+      });
+
+    /** `step` under the lock, then carried out. */
+    const locked = (step: Effect.Effect<Step, PlaybackError>) =>
+      Effect.flatMap(lock.withPermit(step), settle);
 
     const play = (uri: string, fromMs: number) =>
       Effect.gen(function* () {
+        yield* handOver;
         held.uri = Option.some(uri);
         held.timeline = Option.flatMap(hymnOf(uri), timelineFor);
         held.recorded = Option.none();
@@ -119,7 +203,7 @@ export const scoreClock = (
           return yield* PlaybackError.make({ operation: 'play', message: `no timing for ${uri}` });
         if (held.sounding) yield* device.stop;
         held.sounding = false;
-        return yield* run(Math.max(fromMs, 0) || first(), true);
+        return yield* answer(run(Math.max(fromMs, 0) || first(), true));
       });
 
     /** The clock's place and whether it plays, at `now`. */
@@ -135,10 +219,10 @@ export const scoreClock = (
         const uri = Option.getOrElse(held.uri, () => '');
         if (at >= end()) {
           if (on) return yield* sounded(uri, 0);
-          return yield* run(first(), true);
+          return yield* answer(run(first(), true));
         }
         if (on && recordedAt(at)) return yield* sounded(uri, at);
-        return yield* run(at, true);
+        return yield* answer(run(at, true));
       });
 
     const seekClock = (clock: Run, ms: number) =>
@@ -146,7 +230,7 @@ export const scoreClock = (
         const on = yield* SubscriptionRef.get(sound);
         const uri = Option.getOrElse(held.uri, () => '');
         if (on && clock.playing && recordedAt(ms)) return yield* sounded(uri, ms);
-        return yield* run(Math.min(ms, end()), clock.playing);
+        return yield* answer(run(Math.min(ms, end()), clock.playing));
       });
 
     /** A seek while the device plays: past the recording's end, the silent clock takes it. */
@@ -159,32 +243,41 @@ export const scoreClock = (
         return yield* run(ms, moving(before));
       });
 
-    /** On a switch of `sound`: hand the place over. */
+    /** On a switch of `sound`: hand the place over; on, the device's play to carry out. */
     const switchTo = (on: boolean) =>
       Effect.gen(function* () {
         const uri = Option.getOrElse(held.uri, () => '');
-        if (Option.isNone(held.uri)) return;
+        if (Option.isNone(held.uri)) return Option.none<Step>();
         if (!on && Option.isNone(held.clock)) {
+          yield* handOver;
           const status = yield* device.status;
           yield* device.pause;
           yield* run(status.positionMs, moving(status));
-          return;
+          return Option.none<Step>();
         }
         const now = yield* Clock.currentTimeMillis;
         const clock = Option.filter(held.clock, (c) => on && c.playing);
-        const at = Option.map(clock, (c) => placed(c, now).at);
-        if (Option.isSome(at) && recordedAt(at.value)) yield* sounded(uri, at.value);
+        const at = Option.filter(
+          Option.map(clock, (c) => placed(c, now).at),
+          recordedAt,
+        );
+        if (Option.isNone(at)) return Option.none<Step>();
+        return Option.some(yield* sounded(uri, at.value));
       });
 
     yield* SubscriptionRef.changes(sound).pipe(
       Stream.changes,
       Stream.drop(1),
       Stream.runForEach((on) =>
-        lock.withPermit(
-          switchTo(on).pipe(
-            Effect.catch((error) =>
-              Effect.logWarning(`[sound] switch.failed on=${on} message=${error.message}`),
-            ),
+        lock.withPermit(switchTo(on)).pipe(
+          Effect.flatMap(
+            Option.match({
+              onNone: () => Effect.void,
+              onSome: (step) => Effect.asVoid(settle(step)),
+            }),
+          ),
+          Effect.catch((error) =>
+            Effect.logWarning(`[sound] switch.failed on=${on} message=${error.message}`),
           ),
         ),
       ),
@@ -192,7 +285,7 @@ export const scoreClock = (
     );
 
     const api: PlaybackApi = {
-      play: (uri, fromMs) => lock.withPermit(play(uri, fromMs)),
+      play: (uri, fromMs) => locked(play(uri, fromMs)),
       pause: lock.withPermit(
         Effect.gen(function* () {
           const now = yield* Clock.currentTimeMillis;
@@ -200,28 +293,23 @@ export const scoreClock = (
           return yield* fromDevice(yield* device.pause);
         }),
       ),
-      resume: lock.withPermit(
+      resume: locked(
         Effect.gen(function* () {
           if (Option.isSome(held.clock)) return yield* resumeClock(held.clock.value);
-          return yield* fromDevice(yield* device.resume);
+          return yield* answer(Effect.flatMap(device.resume, fromDevice));
         }),
       ),
       seek: (ms) =>
-        lock.withPermit(
+        locked(
           Effect.gen(function* () {
             if (Option.isSome(held.clock)) return yield* seekClock(held.clock.value, ms);
-            return yield* seekDevice(ms);
+            return yield* answer(seekDevice(ms));
           }),
         ),
-      status: lock.withPermit(
-        Effect.gen(function* () {
-          const now = yield* Clock.currentTimeMillis;
-          if (Option.isSome(held.clock)) return clockStatus(held.clock.value, end(), now);
-          return yield* fromDevice(yield* device.status);
-        }),
-      ),
+      status: lock.withPermit(current),
       stop: lock.withPermit(
         Effect.gen(function* () {
+          yield* handOver;
           held.uri = Option.none();
           held.timeline = Option.none();
           held.clock = Option.none();

@@ -705,6 +705,25 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             Effect.annotateLogs({ operation: error.operation, message: error.message }),
             Effect.as(true),
           );
+        /**
+         * The place a play asked at `asked` from `fromMs` started at, by its answer `status`: past
+         * 0, `fromMs`. From 0 (a start), where the playback says the recording starts: the
+         * device's 0:00, the score clock's first sung line (`sound.ts`). A start moves the load's
+         * own pending act to that place, so the answer lands it.
+         */
+        const startedAt = (asked: number, fromMs: number, status: Status) =>
+          Effect.sync(() => {
+            if (fromMs > 0) return fromMs;
+            const start = status.positionMs;
+            held.proof = {
+              ...held.proof,
+              pending: Option.map(held.proof.pending, (it) => {
+                if (it.known !== asked || it.target !== fromMs) return it;
+                return { ...it, target: start };
+              }),
+            };
+            return start;
+          });
         /** A load: Loading at once, the device asked to play from `fromMs`, its status read while it loads. */
         const load = (track: Track, fromMs: number) =>
           Effect.gen(function* () {
@@ -717,12 +736,14 @@ export const playerOn = (playback: Layer.Layer<Playback>, every: Duration.Input)
             held.seeking = Option.liftPredicate(seeking, () => fromMs > 0);
             yield* show(Player.Loading({ track }));
             // The play's answer lands it: past 0, the adapter answers with its seek's answer.
-            const played = device
-              .play(audioUrl(track.number), fromMs)
-              .pipe(
-                Effect.tap(answeredAt(asked, fromMs)),
-                Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
-              );
+            const played = device.play(audioUrl(track.number), fromMs).pipe(
+              Effect.tap((status) =>
+                Effect.flatMap(startedAt(asked, fromMs, status), (to) =>
+                  answeredAt(asked, to)(status),
+                ),
+              ),
+              Effect.ensuring(Effect.sync(() => (seeking.asking = false))),
+            );
             yield* ask(
               track,
               played,
