@@ -23,9 +23,10 @@ import { ChordsButton, HeaderButtons, ReadingButton } from './HeaderButtons';
 import type { ChordReader } from './HymnPage';
 import { visited } from './lists';
 
-/** The page's chords: the stored switch and moves, and every hymn's chords, each decoded on first view; and how the page is set. */
+/** The page's chords: the stored switch, chord style and moves, and every hymn's chords, each decoded on first view; and how the page is set. */
 export const reader: ChordReader = {
   chords: settings.chords,
+  style: settings.chordStyle,
   move: settings.move,
   book: chordBook(bundled),
   reading: settings.reading,

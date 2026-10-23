@@ -25,19 +25,25 @@ const radiosOf = (page: string) =>
   ].map(([, checked, label]) => ({ label, checked: checked === 'true' }));
 
 describe('the Settings route', () => {
-  it('shows its heading and the Appearance choices as one radio group, System checked at first', () => {
+  it('shows its heading, the Appearance choices with System checked, then the Chord style choices with Simple checked, at first', () => {
     const page = html();
     expect({
       heading: page.includes('>Settings<'),
-      group: page.includes('role="radiogroup"') && page.includes('aria-label="Appearance"'),
+      groups: [
+        ...page.matchAll(/<div (?=[^>]*role="radiogroup")(?=[^>]*aria-label="([^"]+)")/g),
+      ].map(([, label]) => label),
+      chords: page.includes('>Chords<'),
       radios: radiosOf(page),
     }).toEqual({
       heading: true,
-      group: true,
+      groups: ['Appearance', 'Chord style'],
+      chords: true,
       radios: [
         { label: 'System', checked: true },
         { label: 'Light', checked: false },
         { label: 'Dark', checked: false },
+        { label: 'Simple', checked: true },
+        { label: 'Advanced', checked: false },
       ],
     });
   });

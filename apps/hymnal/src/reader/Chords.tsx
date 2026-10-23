@@ -224,7 +224,7 @@ function SyllableLine({
             <SyllableBox
               key={k}
               box={box}
-              id={`chord-${at}-${(starts[w] ?? 0) + k + 1}`}
+              place={`${at}-${(starts[w] ?? 0) + k + 1}`}
               joinsNext={k < word.length - 1}
               style={style}
             />
@@ -244,21 +244,22 @@ const wordStarts = (words: ReadonlyArray<Word>): ReadonlyArray<number> =>
 
 function SyllableBox({
   box,
-  id,
+  place,
   joinsNext,
   style,
 }: {
   readonly box: Box;
-  readonly id: string;
+  /** The syllable's place, `p-l-s`: its chords are `chord-p-l-s`, its text `syllable-p-l-s`. */
+  readonly place: string;
   readonly joinsNext: boolean;
   readonly style: StyleProp<TextStyle>;
 }) {
   const { words } = usePageText();
   return (
     <View style={styles.box}>
-      <BoxChords chords={box.chords} id={id} />
+      <BoxChords chords={box.chords} id={`chord-${place}`} />
       <View style={styles.syllable}>
-        <Text style={[style, words]} dynamicTypeRamp="body">
+        <Text testID={`syllable-${place}`} style={[style, words]} dynamicTypeRamp="body">
           {box.text}
         </Text>
         {joinsNext && (

@@ -11,7 +11,8 @@
  *
  * With chords off the page is the words alone and the hymn's chords are not
  * decoded. With chords on, each section is drawn under its chords
- * (`Chords.tsx`) in the key the hymn's own move reaches.
+ * (`Chords.tsx`) in the key the hymn's own move reaches: Simple chords
+ * (`simple.ts`) unless the reader chose Advanced in Settings.
  */
 
 import { useAtom, useAtomValue } from '@effect/atom-react';
@@ -38,6 +39,7 @@ import {
   sectionsOf,
 } from '~/hymns/chords';
 import type { HymnText, Section } from '~/hymns/hymns';
+import { type ChordStyle, styled } from '~/hymns/simple';
 import type { ReadingSettings } from '~/settings';
 import { color, useAccent } from '~/color';
 
@@ -50,11 +52,12 @@ import { readingStyle } from './reading';
 
 /**
  * What the page reads its chords and its setting from: the stored chords
- * choice, each hymn's move, the bundled chords, the reading settings, and
+ * choice and chord style, each hymn's move, the bundled chords, the reading settings, and
  * the reader's Favourites.
  */
 export interface ChordReader {
   readonly chords: Atom.Writable<boolean>;
+  readonly style: Atom.Atom<ChordStyle>;
   readonly move: (number: number) => Atom.Writable<Move>;
   readonly book: ChordBook;
   readonly reading: ReadingSettings;
@@ -71,6 +74,7 @@ export function HymnPage({
 }) {
   const accent = useAccent();
   const on = useAtomValue(reader.chords);
+  const style = useAtomValue(reader.style);
   const [move, setMove] = useAtom(reader.move(hymn.number));
   const chords = useMemo(
     () =>
@@ -78,8 +82,9 @@ export function HymnPage({
         Option.filter(Boolean),
         Option.flatMap(() => reader.book.of(hymn.number)),
         Option.filter(hasChords),
+        Option.map((c) => styled(c, style)),
       ),
-    [on, reader.book, hymn.number],
+    [on, reader.book, hymn.number, style],
   );
   const printed = Option.match(chords, { onNone: () => 'none' as const, onSome: (c) => c.key });
   const played = Option.match(chords, {

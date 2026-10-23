@@ -1,53 +1,84 @@
 import { useAtom } from '@effect/atom-react';
+import type * as Atom from 'effect/reactivity/Atom';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { About } from '~/about';
+import type { ChordStyle } from '~/hymns/simple';
 import type { Appearance } from '~/settings';
 import { settings } from '~/store';
 import { color, useAccent } from '~/color';
 
-const choices: ReadonlyArray<{ readonly value: Appearance; readonly label: string }> = [
+interface Choice<A extends string> {
+  readonly value: A;
+  readonly label: string;
+}
+
+const appearances: ReadonlyArray<Choice<Appearance>> = [
   { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
 ];
 
+const chordStyles: ReadonlyArray<Choice<ChordStyle>> = [
+  { value: 'simple', label: 'Simple' },
+  { value: 'advanced', label: 'Advanced' },
+];
+
 /** Settings, a sheet over the home screen on a phone: it draws its own heading, the sheet no header. */
 export default function Settings() {
-  const [appearance, setAppearance] = useAtom(settings.appearance);
-  const accent = useAccent();
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <Text role="heading" aria-level={1} style={styles.title}>
         Settings
       </Text>
-      <Text role="heading" aria-level={2} style={styles.heading} dynamicTypeRamp="footnote">
-        Appearance
-      </Text>
-      <View role="radiogroup" aria-label="Appearance" style={styles.group}>
-        {choices.map(({ value, label }, k) => (
-          <Pressable
-            key={value}
-            role="radio"
-            aria-checked={appearance === value}
-            onPress={() => setAppearance(value)}
-            style={({ pressed }) => [
-              styles.row,
-              k > 0 && styles.divided,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.label} dynamicTypeRamp="body">
-              {label}
-            </Text>
-            <Text style={[styles.check, { color: accent }]} aria-hidden>
-              {appearance === value && '✓'}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <Heading>Appearance</Heading>
+      <Choices label="Appearance" value={settings.appearance} choices={appearances} />
+      <Heading>Chords</Heading>
+      <Choices label="Chord style" value={settings.chordStyle} choices={chordStyles} />
       <About />
     </ScrollView>
+  );
+}
+
+function Heading({ children }: { readonly children: string }) {
+  return (
+    <Text role="heading" aria-level={2} style={styles.heading} dynamicTypeRamp="footnote">
+      {children}
+    </Text>
+  );
+}
+
+/** A radio group: one row per choice, the chosen one checked. */
+function Choices<A extends string>({
+  label,
+  value,
+  choices,
+}: {
+  readonly label: string;
+  readonly value: Atom.Writable<A>;
+  readonly choices: ReadonlyArray<Choice<A>>;
+}) {
+  const [chosen, choose] = useAtom(value);
+  const accent = useAccent();
+  return (
+    <View role="radiogroup" aria-label={label} style={styles.group}>
+      {choices.map((choice, k) => (
+        <Pressable
+          key={choice.value}
+          role="radio"
+          aria-checked={chosen === choice.value}
+          onPress={() => choose(choice.value)}
+          style={({ pressed }) => [styles.row, k > 0 && styles.divided, pressed && styles.pressed]}
+        >
+          <Text style={styles.label} dynamicTypeRamp="body">
+            {choice.label}
+          </Text>
+          <Text style={[styles.check, { color: accent }]} aria-hidden>
+            {chosen === choice.value && '✓'}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 

@@ -4,14 +4,16 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { RegistryProvider } from '@effect/atom-react';
+import { RegistryProvider, useAtomSet } from '@effect/atom-react';
 import { Option } from 'effect';
+import type * as Atom from 'effect/reactivity/Atom';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { hymnAt, hymns } from '~/hymns/hymns';
+import type { ChordStyle } from '~/hymns/simple';
 
 import { readerOn } from '../test/reader';
 import { ChordsButton } from './HeaderButtons';
@@ -365,4 +367,107 @@ describe('the page head’s Favourite button', () => {
     using app = mount(<HymnPage hymn={hymn(30)} reader={readerOn(device)} />);
     expect(favouriteButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
   });
+});
+
+/** Two buttons that set the chord style, as the Settings sheet does. */
+function StylePicker({ style }: { readonly style: Atom.Writable<ChordStyle> }) {
+  const set = useAtomSet(style);
+  return (
+    <>
+      <Pressable aria-label="Pick Simple" onPress={() => set('simple')} />
+      <Pressable aria-label="Pick Advanced" onPress={() => set('advanced')} />
+    </>
+  );
+}
+
+/** Hymn 3's first line's chords over its 1st and 5th syllables, and whether its 6th has any. */
+const lineOne = (host: HTMLElement) => ({
+  first: chordAt(host, 'chord-1-1-1'),
+  fifth: chordAt(host, 'chord-1-1-5'),
+  sixth: chordAt(host, 'chord-1-1-6'),
+});
+
+const hasControl = (host: HTMLElement, label: string) =>
+  Option.isSome(Option.fromNullishOr(host.querySelector(`[aria-label="${label}"]`)));
+
+describe('the chord style', () => {
+  it('shows Simple chords at first: one plain chord where the harmony changes, none over a sus’s resolution', () => {
+    using app = mount(<HymnPage hymn={hymn(3)} reader={readerOn(chordsOn())} />);
+    expect(lineOne(app.host)).toEqual({
+      first: Option.some('G'),
+      fifth: Option.some('D'),
+      sixth: Option.none(),
+    });
+  });
+
+  it('shows every chord as compiled once the reader picks Advanced', () => {
+    const device = new Map([...chordsOn(), ['chords.style', '"advanced"']]);
+    using app = mount(<HymnPage hymn={hymn(3)} reader={readerOn(device)} />);
+    expect(lineOne(app.host)).toEqual({
+      first: Option.some('G'),
+      fifth: Option.some('Dsus4 Dsus2'),
+      sixth: Option.some('D'),
+    });
+  });
+
+  it('draws the open page again when the style changes, keeping its move', () => {
+    const reader = readerOn(chordsOn());
+    using app = mount(
+      <>
+        <StylePicker style={reader.style} />
+        <HymnPage hymn={hymn(3)} reader={reader} />
+      </>,
+    );
+    const { host } = app;
+    press(host, 'Transpose up');
+    expect(textOf(host.innerHTML)).toContain('Key Ab');
+    expect(lineOne(host)).toEqual({
+      first: Option.some('Ab'),
+      fifth: Option.some('Eb'),
+      sixth: Option.none(),
+    });
+    press(host, 'Pick Advanced');
+    expect(textOf(host.innerHTML)).toContain('Key Ab');
+    expect(lineOne(host)).toEqual({
+      first: Option.some('Ab'),
+      fifth: Option.some('Ebsus4 Ebsus2'),
+      sixth: Option.some('Eb'),
+    });
+    press(host, 'Pick Simple');
+    expect(lineOne(host)).toEqual({
+      first: Option.some('Ab'),
+      fifth: Option.some('Eb'),
+      sixth: Option.none(),
+    });
+    expect(reader.book.decodes()).toBe(1);
+  });
+
+  for (const style of ['simple', 'advanced'] as const) {
+    it(`keeps the key controls in ${style}: transpose and capo move the chords shown`, () => {
+      const device = new Map([['chords.style', `"${style}"`]]);
+      using app = mount(withButton(3, readerOn(device)));
+      const { host } = app;
+      press(host, 'Chords');
+      const controls = ['Transpose up', 'Transpose down', 'Capo up', 'Capo down'].map((label) => ({
+        label,
+        shown: hasControl(host, label),
+      }));
+      expect(controls.filter(({ shown }) => !shown)).toEqual([]);
+      expect(textOf(host.innerHTML)).toContain('Key G');
+      expect(textOf(host.innerHTML)).toContain('No capo');
+      press(host, 'Transpose up');
+      press(host, 'Capo up');
+      expect(textOf(host.innerHTML)).toContain('Capo 1, G shapes');
+      const fifth = { simple: 'D', advanced: 'Dsus4 Dsus2' }[style];
+      expect({
+        style,
+        first: chordAt(host, 'chord-1-1-1'),
+        fifth: chordAt(host, 'chord-1-1-5'),
+      }).toEqual({
+        style,
+        first: Option.some('G'),
+        fifth: Option.some(fifth),
+      });
+    });
+  }
 });
