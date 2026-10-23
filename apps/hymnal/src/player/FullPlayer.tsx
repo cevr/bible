@@ -1,22 +1,26 @@
 /**
- * The full player, a sheet over the stack (`/player`) that the bottom bar
- * opens: the hymn the bar shows, its number and title, what the player is
+ * The full player, a sheet over the stack that the bottom bar opens on its
+ * hymn (`/player?hymn=<n>`): the hymn its route names, or the hymn held when
+ * it names none, as the bar gives it (`barFor`, the route's hymn as the
+ * page). The route is its one source on every platform: the web keeps no
+ * page mounted under it, a phone does. Its number and title, what the player is
  * doing, its button, and a bar to drag to any place in the recording with
  * the time gone and the whole length. The bar shows in every state, still
  * while the length is not known. A recording that cannot play says why and
  * offers Retry.
  */
 
-import { useAtomSet } from '@effect/atom-react';
+import { useAtomSet, useAtomValue } from '@effect/atom-react';
 import { Option } from 'effect';
+import { useParams } from 'one';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
+import { hymnAt } from '~/hymns/hymns';
 
-import { Bar, placeOf } from './bar';
+import { Bar, barFor, placeOf } from './bar';
 import { usePlayer } from './context';
 import { Command, type HymnPlayer, Player, type Track } from './player';
-import { useBar } from './PlayerBar';
 import { Scrubber } from './Scrubber';
 import { clock } from './time';
 import { Toggle } from './Toggle';
@@ -44,8 +48,12 @@ const caption: (player: Player) => string = Player.$match({
     }),
 });
 
+/** The hymn the route names (`?hymn=<n>`), if it names one there is. */
+const useRouteHymn = (): Option.Option<Track> =>
+  Option.flatMap(Option.fromNullishOr(useParams<{ hymn: string }>().hymn), hymnAt);
+
 function Sheet({ player }: { readonly player: HymnPlayer }) {
-  const bar = useBar(player);
+  const bar = barFor(useAtomValue(player.state), useRouteHymn());
   const send = useAtomSet(player.send);
   return Bar.$match(bar, {
     Hidden: () => <Nothing />,
@@ -96,7 +104,7 @@ function Held({
   );
 }
 
-/** The sheet opened with no hymn to play: a deep link, with no page under it. */
+/** The sheet opened with no hymn to play: a link that names none, with nothing held. */
 function Nothing() {
   return (
     <ScrollView contentContainerStyle={styles.page}>

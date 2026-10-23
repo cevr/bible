@@ -11,6 +11,7 @@
  * `paramsSet`).
  */
 
+import { Match } from 'effect';
 import { type MouseEvent, type ReactNode, useEffect, useId } from 'react';
 import { View } from 'react-native';
 
@@ -38,8 +39,18 @@ export function useLinkTo({ href }: { readonly href: string }) {
   return { href, role: 'link' as const, onPress };
 }
 
-/** One's `Link` as the screens under test use it: its href resolver (a typed route is its own path). */
-export const Link = { resolveHref: (href: string) => href };
+/** One's `Link` as the screens under test use it: its href resolver (a path, or a path with its params as a query). */
+export const Link = {
+  resolveHref: (
+    href: string | { readonly pathname: string; readonly params: Record<string, string> },
+  ): string =>
+    Match.value(href).pipe(
+      Match.when(Match.string, (path) => path),
+      Match.orElse(({ pathname, params: query }) =>
+        [pathname, String(new URLSearchParams(query))].filter(Boolean).join('?'),
+      ),
+    ),
+};
 
 /** The safe-area insets the screens read, in points: a test sets them, as a phone's would be. */
 export const safeArea = { top: 0, right: 0, bottom: 0, left: 0 };

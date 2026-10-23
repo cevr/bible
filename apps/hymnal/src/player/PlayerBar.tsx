@@ -6,7 +6,7 @@
  * screens. While it holds none, the hymn page draws the bar as its own
  * (`PageBar`), so the bar comes in with the page's push and goes out with
  * its back, frame for frame. It holds the hymn's number and title, a button
- * that opens the full player (`/player`), the player's button, and, while
+ * that opens the full player on the bar's hymn (`/player?hymn=<n>`), the player's button, and, while
  * another hymn sounds over a page, a compact Play for the page's hymn. A thin
  * seek line along its top edge shows the part played; it takes no touch, as
  * seeking is the full player's.
@@ -19,7 +19,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
 
-import { Bar, barFor, dockedBar, pageBar, playedShare, toldPlace } from './bar';
+import { Bar, dockedBar, pageBar, playedShare, toldPlace } from './bar';
 import { usePlayer } from './context';
 import { useShownPage } from './page';
 import { Command, type HymnPlayer, type Player, type Track } from './player';
@@ -40,9 +40,6 @@ export function PageBar({ track }: { readonly track: Track }) {
     onSome: (player) => <OnPage player={player} track={track} />,
   });
 }
-
-/** The bar the player's state and the page shown give, wherever it is drawn: the full player's. */
-export const useBar = (player: HymnPlayer) => barFor(useAtomValue(player.state), useShownPage());
 
 /** The docked bar the player's state and the page shown give: the stack's bottom follows it. */
 export const useDockedBar = (player: HymnPlayer) =>
@@ -82,10 +79,16 @@ function Drawn({ bar, player }: { readonly bar: Bar; readonly player: HymnPlayer
   });
 }
 
-/** The bar's body: the hymn's number and title, a button that opens the full player. */
+/**
+ * The bar's body: the hymn's number and title, a button that opens the full
+ * player on the bar's hymn (`/player?hymn=<n>`), so the player shows what the
+ * bar showed whether or not the page under it stays mounted.
+ */
 function Opener({ track, state }: { readonly track: Track; readonly state: Player }) {
   const accent = useAccent();
-  const link = useLinkTo({ href: Link.resolveHref('/player') });
+  const link = useLinkTo({
+    href: Link.resolveHref({ pathname: '/player', params: { hymn: String(track.number) } }),
+  });
   return (
     <Pressable
       {...link}

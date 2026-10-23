@@ -1,8 +1,9 @@
 /**
  * The hymn page the reader sees, for the bottom bar: each hymn page says
  * so while it is mounted (`useShowsPage`), and the last one mounted is the
- * one on top of the stack. A sheet over a page (the full player, Settings)
- * leaves it mounted, so the bar keeps acting on it there.
+ * one on top of the stack. A phone's sheet over a page (Settings, the
+ * reading sheet) leaves it mounted, so the docked bar keeps acting on it
+ * there. The full player does not read it: its route names its hymn.
  */
 
 import { useAtomSet, useAtomValue } from '@effect/atom-react';

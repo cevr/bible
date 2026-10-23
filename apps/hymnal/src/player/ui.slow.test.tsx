@@ -9,7 +9,7 @@ import { RegistryContext } from '@effect/atom-react';
 import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Duration, Effect, Match, Option, Stream } from 'effect';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import { act, type ReactNode } from 'react';
+import { act, type ReactNode, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { createRoot } from 'react-dom/client';
 
@@ -22,7 +22,7 @@ import { audioUrl } from '~/remote';
 import { theme } from '~/theme';
 
 import { fakeDevice } from '../test/device';
-import { opened, params, safeArea } from '../test/one';
+import { opened, opening, params, safeArea } from '../test/one';
 import { PlayerContext } from './context';
 import { FullPlayer } from './FullPlayer';
 import { useShowsPage } from './page';
@@ -65,14 +65,20 @@ function Shows({ track }: { readonly track: Track }) {
   return <></>;
 }
 
-/** The full player over `track`'s page, with the bottom bar. */
-const sheetOver = (track: Track) => (
-  <>
-    <Shows track={track} />
-    <FullPlayer />
-    <PlayerBar />
-  </>
-);
+/**
+ * The full player over `track`'s page, opened on it (`/player?hymn=<n>`), as
+ * a phone's sheet leaves the page mounted under it, with the bottom bar.
+ */
+const sheetOver = (track: Track) => {
+  params['hymn'] = String(track.number);
+  return (
+    <>
+      <Shows track={track} />
+      <FullPlayer />
+      <PlayerBar />
+    </>
+  );
+};
 
 /** The bottom bar over `page`'s page, or over no hymn page. */
 const barOver = (page: Option.Option<Track>) => (
@@ -94,6 +100,11 @@ const route = (n: number) => {
       <PlayerBar />
     </>
   );
+};
+
+/** The route's params set back to none, as a test that set them ends. */
+const clearParams = () => {
+  for (const key of Object.keys(params)) delete params[key];
 };
 
 const schemes = ['light', 'dark'] as const;
@@ -276,6 +287,7 @@ const mount = (screen: ReactNode = sheetOver(morning)) => {
       act(() => root.unmount());
       host.remove();
       registry.dispose();
+      clearParams();
     },
   };
 };
@@ -637,7 +649,7 @@ describe('the bottom bar', () => {
         expect(bar.textContent).toBe(`100${morning.title}Pause`);
 
         page.press('Open player');
-        expect(opened).toEqual(['/player']);
+        expect(opened).toEqual(['/player?hymn=100']);
       }),
   );
 
@@ -781,7 +793,7 @@ describe('the hymn page with the bottom bar', () => {
     Effect.sync(() => {
       using page = mount(route(3));
       page.press('Open player');
-      expect(opened).toEqual(['/player']);
+      expect(opened).toEqual(['/player?hymn=3']);
     }),
   );
 
@@ -800,6 +812,90 @@ describe('the hymn page with the bottom bar', () => {
       expect(page.device.played).toEqual([audioUrl(3), audioUrl(4)]);
       expect(bar.querySelector('[aria-label="Open player"]')?.textContent).toBe(`4${four.title}`);
     }),
+  );
+});
+
+/**
+ * The web's stack as One draws it (`WebStackHeader`): the focused screen
+ * alone. It starts on the hymn route at `/hymns/<from>`; a link the app
+ * opens becomes the focused screen, with the params its href gives, and the
+ * hymn page under it is gone, as no screen is kept mounted.
+ */
+function WebStack({ from }: { readonly from: number }) {
+  const [href, setHref] = useState(`/hymns/${from}`);
+  useEffect(() => {
+    const open = (next: string) => {
+      const url = new URL(next, 'https://hymnal.test');
+      clearParams();
+      Object.assign(params, Object.fromEntries(url.searchParams));
+      setHref(url.pathname);
+    };
+    opening.add(open);
+    return () => void opening.delete(open);
+  }, []);
+  return Match.value(href).pipe(
+    Match.when('/player', () => <FullPlayer />),
+    Match.orElse(() => <HymnScreen />),
+  );
+}
+
+describe('the full player on the web’s stack', () => {
+  const three = Option.getOrThrow(hymnAt('3'));
+  /** `/hymns/<from>` on the web's stack, with the docked bar under it. */
+  const stack = (from: number) => {
+    params['number'] = String(from);
+    return (
+      <>
+        <WebStack from={from} />
+        <PlayerBar />
+      </>
+    );
+  };
+  const heading = (page: ReturnType<typeof mount>) =>
+    Option.map(
+      page.find('[role="group"][aria-label="Recording"] [role="heading"]'),
+      (found) => found.textContent,
+    );
+
+  it.live('opened from hymn 3’s page with nothing held, shows hymn 3 with Play and its bar', () =>
+    Effect.sync(() => {
+      using page = mount(stack(3));
+      page.press('Open player');
+      expect(Option.isNone(page.find('[aria-label="Open player"]'))).toBe(true);
+      expect(heading(page)).toEqual(Option.some(`3 ${three.title}`));
+      expect(Option.isSome(page.find('[aria-label="Play hymn 3"]'))).toBe(true);
+      expect(page.bar().getAttribute('aria-label')).toBe('Position');
+    }),
+  );
+
+  it.live('opened from hymn 3’s page while hymn 100 is held paused, shows hymn 3', () =>
+    Effect.gen(function* () {
+      using page = mount(stack(3));
+      page.send(Command.Start({ track: morning }));
+      page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
+      yield* page.until(Player.$is('Playing'));
+      page.send(Command.Pause());
+      yield* page.until(Player.$is('Paused'));
+      page.press('Open player');
+      expect(heading(page)).toEqual(Option.some(`3 ${three.title}`));
+      expect(Option.isSome(page.find('[aria-label="Play hymn 3"]'))).toBe(true);
+    }),
+  );
+
+  it.live(
+    'opened while hymn 100 sounds over hymn 3’s page, shows hymn 100 and keeps it paused',
+    () =>
+      Effect.gen(function* () {
+        using page = mount(stack(3));
+        page.send(Command.Start({ track: morning }));
+        page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
+        yield* page.until(Player.$is('Playing'));
+        page.press('Open player');
+        expect(heading(page)).toEqual(Option.some(`100 ${morning.title}`));
+        page.press('Pause hymn 100');
+        yield* page.until(Player.$is('Paused'));
+        expect(heading(page)).toEqual(Option.some(`100 ${morning.title}`));
+      }),
   );
 });
 
