@@ -1,8 +1,11 @@
 # Player
 
-One bottom bar, docked in the hymnal's layout, holds the player on every
-screen. On a hymn page it offers `Play hymn <n>` for that hymn; once a hymn
-sounds, the bar holds that hymn on every page, with its `Play`/`Pause`
+One bottom bar holds the player. While the player holds no hymn, a hymn
+page draws the bar as its own, offering `Play hymn <n>` for that hymn: it
+comes in with the page's push and goes out with its back, frame for frame,
+and a cancelled edge pan leaves it in place. Once a hymn is held, the bar is
+docked in the hymnal's layout under the stack and holds that hymn on every
+page, with its `Play`/`Pause`
 button and a thin seek line that shows the part played and takes no touch.
 A tap on the bar (`Open player`) opens the full player, a sheet at
 `/player`: the hymn's number and title, what the player is doing, its
@@ -13,7 +16,8 @@ length is not known).
 
 - `player-play`: `Play hymn <n>` starts the recording; the button becomes `Pause hymn <n>`.
 - `player-pause`: `Pause hymn <n>` pauses; the button becomes `Play hymn <n>` again.
-- `player-bar`: the bar (region `Player`) shows on a hymn page and on every screen while a hymn sounds; its `Open player` button tells the place (`0:30 of 2:00`).
+- `player-bar`: the bar (region `Player`) shows on a hymn page and on every screen while the player holds a hymn; its `Open player` button tells the place (`0:30 of 2:00`).
+- `player-bar-page`: while the player holds no hymn, the bar is the hymn page's own: on a back (the header's button or a pan from the left edge) it slides out with the page, never left on the screen after the page has gone; on a push it slides in with it.
 - `player-full`: `Open player` opens the sheet `/player`, with the group `Recording` and the `Position` bar in every state.
 - `player-line`: the iOS `Position` bar draws one track, with no line of ticks under it (a column of the sheet's still crosses one line).
 - `player-fail`: a recording that cannot load offers `Retry hymn <n>`.

@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'bun:test';
 import { Option } from 'effect';
 
-import { Bar, barFor, playedShare, stackBottom, toldPlace } from './bar';
+import { Bar, barFor, dockedBar, pageBar, playedShare, stackBottom, toldPlace } from './bar';
 import { Player, type Track } from './player';
 
 const three: Track = { number: 3, title: 'Three' };
@@ -67,6 +67,22 @@ describe('barFor', () => {
   });
 });
 
+describe('where the bar is drawn', () => {
+  it('is the page’s own while the player holds no hymn, so it comes and goes with the page', () => {
+    expect(pageBar(Player.Idle(), four)).toEqual(barFor(Player.Idle(), Option.some(four)));
+    expect(dockedBar(Player.Idle(), Option.some(four))).toEqual(Bar.Hidden());
+    expect(dockedBar(Player.Idle(), Option.none())).toEqual(Bar.Hidden());
+  });
+
+  it('is docked under the stack, as barFor gives it, while the player holds a hymn in any state', () => {
+    for (const state of [...Object.values(holding(three)), ...Object.values(holding(four))]) {
+      expect(pageBar(state, four)).toEqual(Bar.Hidden());
+      for (const page of [Option.none(), Option.some(four)])
+        expect(dockedBar(state, page)).toEqual(barFor(state, page));
+    }
+  });
+});
+
 describe('the seek line', () => {
   it('fills the share played while the length is known, and nothing before', () => {
     const track = three;
@@ -101,6 +117,7 @@ describe('stackBottom', () => {
     for (const state of Object.values(holding(three))) {
       expect(stackBottom(barFor(state, Option.none()), 34)).toBe(0);
     }
-    expect(stackBottom(barFor(Player.Idle(), Option.some(four)), 34)).toBe(0);
+    // A hymn page's own bar lies in the page: the stack reaches the window's edge.
+    expect(stackBottom(dockedBar(Player.Idle(), Option.some(four)), 34)).toBe(34);
   });
 });

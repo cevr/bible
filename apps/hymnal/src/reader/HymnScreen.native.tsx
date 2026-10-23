@@ -16,7 +16,9 @@
  * header follows the route's number where the stack is laid out
  * (`hymnHeader`), and the screen, not its pages, tells the bottom bar the
  * page shown (`Shown`): a neighbour page sets nothing, and a swipe never
- * touches the player.
+ * touches the player. While the player holds no hymn, the screen draws the
+ * bar as its own under the pager (`PageBar`), so a back takes it out with the
+ * screen, frame for frame, and a push brings it in.
  *
  * A pan that starts at the screen's left edge pops the screen, as on every
  * other pushed screen: a strip `backEdge` points wide lies over the pager
@@ -44,6 +46,7 @@ import {
 } from 'react-native';
 
 import { hymnAt, type HymnText, hymns } from '~/hymns/hymns';
+import { PageBar } from '~/player/PlayerBar';
 
 import { HymnPage, NoHymn } from './HymnPage';
 import { backEdge, onPage, pageSource, settledAt } from './pager';
@@ -94,25 +97,28 @@ function Pager({ shown }: { readonly shown: HymnText }) {
       { onNone: () => {}, onSome: settle },
     );
   return (
-    <View style={styles.screen} onLayout={onLayout}>
+    <View style={styles.screen}>
       <Shown hymn={shown} />
-      <LegendList
-        data={pages.list}
-        keyExtractor={String}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        getFixedItemSize={() => width}
-        estimatedItemSize={width}
-        initialScrollIndex={pages.index}
-        drawDistance={width}
-        extraData={{ width, height }}
-        onMomentumScrollEnd={onMomentumScrollEnd}
-        onScrollEndDrag={onScrollEndDrag}
-        renderItem={drawPage}
-        style={styles.pager}
-      />
-      <View testID="back-edge" style={styles.backEdge} />
+      <View style={styles.pages} onLayout={onLayout}>
+        <LegendList
+          data={pages.list}
+          keyExtractor={String}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          getFixedItemSize={() => width}
+          estimatedItemSize={width}
+          initialScrollIndex={pages.index}
+          drawDistance={width}
+          extraData={{ width, height }}
+          onMomentumScrollEnd={onMomentumScrollEnd}
+          onScrollEndDrag={onScrollEndDrag}
+          renderItem={drawPage}
+          style={styles.pager}
+        />
+        <View testID="back-edge" style={styles.backEdge} />
+      </View>
+      <PageBar track={shown} />
     </View>
   );
 }
@@ -142,6 +148,7 @@ const drawPage = ({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  pages: { flex: 1 },
   pager: { flex: 1 },
   backEdge: { position: 'absolute', left: 0, top: 0, bottom: 0, width: backEdge },
   page: { flex: 1 },

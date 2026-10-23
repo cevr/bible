@@ -87,7 +87,11 @@ export function HymnPage({
     onSome: (c) => playedKey(c.key, move),
   });
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.page}>
+    <ScrollView
+      testID="hymn-scroll"
+      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={styles.page}
+    >
       <KeepAwake on={reader.reading.awake} />
       <View style={styles.head}>
         <Text testID="hymn-topic" style={styles.topic} dynamicTypeRamp="footnote">

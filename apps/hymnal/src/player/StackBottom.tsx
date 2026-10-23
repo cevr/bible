@@ -1,7 +1,8 @@
 /**
  * The bottom inset the stack's screens meet (`stackBottom`), given by the
  * layout around its stack: none while the bar docked under the stack shows,
- * the device's inset while it is hidden. A list's end space and a page's
+ * the device's inset while it is hidden (a hymn page's own bar lies in the
+ * page, which ends on that bar's top edge). A list's end space and a page's
  * bottom space read it, so they follow the bar. Outside the layout (a test
  * of one screen) a screen meets the device's inset.
  */
@@ -13,7 +14,7 @@ import { createContext, type ReactNode, use, useMemo } from 'react';
 import { stackBottom } from './bar';
 import { usePlayer } from './context';
 import type { HymnPlayer } from './player';
-import { useBar } from './PlayerBar';
+import { useDockedBar } from './PlayerBar';
 
 const Bottom = createContext<Option.Option<number>>(Option.none());
 
@@ -39,7 +40,7 @@ function WithBar({
   readonly inset: number;
   readonly children: ReactNode;
 }) {
-  return <Meets bottom={stackBottom(useBar(player), inset)}>{children}</Meets>;
+  return <Meets bottom={stackBottom(useDockedBar(player), inset)}>{children}</Meets>;
 }
 
 /** Hands `bottom` down; its readers draw again only when the number changes. */

@@ -8,7 +8,7 @@
  * that holds a hymn (`shelves`: Recent) is a run of its own under a header
  * naming it, a button that opens the list's own screen (`See all`); it is
  * not pinned, so it scrolls away with its hymns. A row of one of the reader's
- * `favourites` carries a small star before its title, in every run, and
+ * `favourites` carries a star at its end, after its title, in every run, and
  * VoiceOver reads it as a favourite. The pin follows the scroll offset on the UI
  * thread from the topics' fixed places (`pin.ts`), not the list's sticky
  * headers: those wait on the JS thread at each handoff, and a fast drag
@@ -299,8 +299,9 @@ function ShelfHeader({
 /**
  * One hymn's row: a link the router opens in the app. Its press first hands
  * the pager the list it sits in (`source`: its shelf's, or the list's), so a
- * swipe on the hymn moves through that list. A favourite's row draws a
- * small star before its title, and its name ends `, favourite`.
+ * swipe on the hymn moves through that list. A favourite's row ends with a
+ * star at the number's size, after its title, so a long title's ellipsis
+ * comes before the star; its name ends `, favourite`.
  */
 function HymnRow({
   hymn,
@@ -327,17 +328,17 @@ function HymnRow({
     <Pressable {...link} onPress={onPress} aria-label={nameOf(hymn, favourite)}>
       {({ pressed }) => (
         <View style={[styles.row, { height }, pressed && styles.pressed]}>
-          <Text style={[styles.number, { color: accent }]} numberOfLines={1}>
+          <Text testID="row-number" style={[styles.number, { color: accent }]} numberOfLines={1}>
             {hymn.number}
           </Text>
-          <Text style={styles.title} numberOfLines={1}>
-            {favourite && (
-              <Text testID="row-star" style={[styles.star, { color: accent }]}>
-                {'★\u2009'}
-              </Text>
-            )}
+          <Text testID="row-title" style={styles.title} numberOfLines={1}>
             {hymn.title}
           </Text>
+          {favourite && (
+            <Text testID="row-star" style={[styles.star, { color: accent }]}>
+              ★
+            </Text>
+          )}
           <View style={styles.separator} />
         </View>
       )}
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   title: { flex: 1, fontSize: 17, lineHeight: line, color: color.ink },
-  star: { fontSize: 13 },
+  star: { fontSize: 17, lineHeight: line },
   topic: {
     justifyContent: 'center',
     paddingHorizontal: 16,

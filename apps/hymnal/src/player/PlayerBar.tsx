@@ -1,12 +1,15 @@
 /**
- * The bottom bar, docked under the stack on every screen (the hymnal's
- * layout). On a hymn page it is that hymn's player, unless another hymn
- * sounds; off a page it shows only while the player holds a hymn (`barFor`).
- * It holds the hymn's number and title, a button that opens the full player
- * (`/player`), the player's button, and, while another hymn sounds over a
- * page, a compact Play for the page's hymn. A thin seek line along its top
- * edge shows the part played; it takes no touch, as seeking is the full
- * player's.
+ * The bottom bar. On a hymn page it is that hymn's player, unless another
+ * hymn sounds; off a page it shows only while the player holds a hymn
+ * (`barFor`). While the player holds a hymn, the bar is docked under the
+ * stack (`PlayerBar`, in the hymnal's layout), as the player plays on across
+ * screens. While it holds none, the hymn page draws the bar as its own
+ * (`PageBar`), so the bar comes in with the page's push and goes out with
+ * its back, frame for frame. It holds the hymn's number and title, a button
+ * that opens the full player (`/player`), the player's button, and, while
+ * another hymn sounds over a page, a compact Play for the page's hymn. A thin
+ * seek line along its top edge shows the part played; it takes no touch, as
+ * seeking is the full player's.
  */
 
 import { useAtomSet, useAtomValue } from '@effect/atom-react';
@@ -16,12 +19,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
 
-import { Bar, barFor, playedShare, toldPlace } from './bar';
+import { Bar, barFor, dockedBar, pageBar, playedShare, toldPlace } from './bar';
 import { usePlayer } from './context';
 import { useShownPage } from './page';
 import { Command, type HymnPlayer, type Player, type Track } from './player';
 import { Toggle } from './Toggle';
 
+/** The bar docked under the stack, while the player holds a hymn. */
 export function PlayerBar() {
   return Option.match(usePlayer(), {
     onNone: () => <></>,
@@ -29,11 +33,31 @@ export function PlayerBar() {
   });
 }
 
-/** The bar the player's state and the page shown give: nothing, or the bar in its frame. */
+/** The bar `track`'s page draws as its own, while the player holds no hymn. */
+export function PageBar({ track }: { readonly track: Track }) {
+  return Option.match(usePlayer(), {
+    onNone: () => <></>,
+    onSome: (player) => <OnPage player={player} track={track} />,
+  });
+}
+
+/** The bar the player's state and the page shown give, wherever it is drawn: the full player's. */
 export const useBar = (player: HymnPlayer) => barFor(useAtomValue(player.state), useShownPage());
 
+/** The docked bar the player's state and the page shown give: the stack's bottom follows it. */
+export const useDockedBar = (player: HymnPlayer) =>
+  dockedBar(useAtomValue(player.state), useShownPage());
+
 function Docked({ player }: { readonly player: HymnPlayer }) {
-  const bar = useBar(player);
+  return <Drawn bar={useDockedBar(player)} player={player} />;
+}
+
+function OnPage({ player, track }: { readonly player: HymnPlayer; readonly track: Track }) {
+  return <Drawn bar={pageBar(useAtomValue(player.state), track)} player={player} />;
+}
+
+/** `bar` drawn: nothing, or the bar in its frame over the home indicator. */
+function Drawn({ bar, player }: { readonly bar: Bar; readonly player: HymnPlayer }) {
   const send = useAtomSet(player.send);
   const insets = useSafeAreaInsets();
   return Bar.$match(bar, {

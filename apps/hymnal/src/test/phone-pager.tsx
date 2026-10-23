@@ -145,8 +145,15 @@ const seen = (shown: App) => {
     pageHeights: [...shown.host.querySelectorAll('[data-testid="pager-page"]')].map(
       (page) => getComputedStyle(page).height,
     ),
+    bar: barPlace(shown),
   };
 };
+
+/** Where the bottom bar is drawn: how many there are, and how many lie in the hymn's screen. */
+const barPlace = (shown: App) => ({
+  bars: shown.host.querySelectorAll('[aria-label="Player"]').length,
+  inScreen: shown.host.querySelectorAll('[data-testid="page"] [aria-label="Player"]').length,
+});
 
 /**
  * The strip at the left edge whose pans go back: how many there are, whether
@@ -253,6 +260,26 @@ const rowsDrawn = (host: HTMLElement) =>
       /^\d+/.exec(row.getAttribute('aria-label') ?? '')?.[0] ?? row.getAttribute('aria-label'),
   );
 
+/**
+ * Where each favourite's star sits in its row: inside the title or not, after
+ * the title, and drawn at the number's size.
+ */
+const starPlaces = (host: HTMLElement) =>
+  [...host.querySelectorAll('[role="link"]')]
+    .filter((row) => (row.getAttribute('aria-label') ?? '').endsWith(', favourite'))
+    .map((row) => {
+      const star = row.querySelector('[data-testid="row-star"]');
+      const title = row.querySelector('[data-testid="row-title"]');
+      const number = row.querySelector('[data-testid="row-number"]');
+      if (star === null || title === null || number === null) return 'missing';
+      return {
+        inTitle: title.contains(star),
+        afterTitle: (title.compareDocumentPosition(star) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+        size: getComputedStyle(star).fontSize,
+        numberSize: getComputedStyle(number).fontSize,
+      };
+    });
+
 // The home list with the reader's lists: Recent above the first topic, and
 // each favourite starred in its rows, Recent's and its topic's; a row's
 // press in Recent hands the pager Recent.
@@ -278,6 +305,7 @@ const rowsDrawn = (host: HTMLElement) =>
     .filter((label) => label.endsWith(', favourite'))
     .map((label) => Number(/^\d+/.exec(label)?.[0]));
   out['stars'] = shown.host.querySelectorAll('[data-testid="row-star"]').length;
+  out['starPlaces'] = starPlaces(shown.host);
   await press(shown, '30');
   out['recentSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
   const header = shown.host.querySelector('[role="button"][aria-label^="Recent"]');
@@ -306,6 +334,7 @@ const rowsDrawn = (host: HTMLElement) =>
     .map((row) => row.getAttribute('aria-label') ?? '')
     .filter((label) => label.endsWith(', favourite'))
     .map((label) => Number(/^\d+/.exec(label)?.[0]));
+  out['recentStarPlaces'] = starPlaces(shown.host);
   await press(shown, '7');
   out['recentScreenOpened'] = [...opened];
   out['recentScreenSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
@@ -372,6 +401,7 @@ const rowsDrawn = (host: HTMLElement) =>
     playFour: bar?.querySelector('[aria-label="Play hymn 4"]') !== null,
     route: params['number'],
     header: seen(shown).headerNames,
+    place: barPlace(shown),
   };
   shown.close();
 }

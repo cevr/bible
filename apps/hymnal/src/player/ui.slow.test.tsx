@@ -265,6 +265,8 @@ const mount = (screen: ReactNode = sheetOver(morning)) => {
     device,
     until,
     find,
+    /** Every element `selector` matches. */
+    all: (selector: string) => [...host.querySelectorAll(selector)],
     bar,
     press,
     /** A command from elsewhere in the app: another hymn's page, or the lock screen. */
@@ -704,8 +706,13 @@ describe('the hymn page with the bottom bar', () => {
   it.live('holds no player in the page; the bar holds hymn 3 and plays it', () =>
     Effect.gen(function* () {
       using page = mount(route(3));
-      expect(Option.isNone(inPage(page, '[aria-label="Play hymn 3"]'))).toBe(true);
-      expect(Option.isNone(inPage(page, '[aria-label="Recording"]'))).toBe(true);
+      // The page's scrolling words hold no player; the bar under them does.
+      expect(
+        Option.isNone(inPage(page, '[data-testid="hymn-scroll"] [aria-label="Play hymn 3"]')),
+      ).toBe(true);
+      expect(
+        Option.isNone(inPage(page, '[data-testid="hymn-scroll"] [aria-label="Recording"]')),
+      ).toBe(true);
       const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
       expect(bar.querySelector('[aria-label="Play hymn 3"]')).not.toBeNull();
       expect(bar.textContent).toBe(`3${three.title}Play`);
@@ -714,6 +721,25 @@ describe('the hymn page with the bottom bar', () => {
       yield* page.until(Player.$is('Loading'));
       expect(page.device.played).toEqual([audioUrl(3)]);
     }),
+  );
+
+  it.live(
+    'draws the bar in the page while nothing is held, and docks it under the stack once a hymn is',
+    () =>
+      Effect.gen(function* () {
+        // The owner, 2026-10-22: on a back the bar goes out with the page, not after it.
+        using page = mount(route(3));
+        const bars = () => page.all('[aria-label="Player"]');
+        expect(bars()).toHaveLength(1);
+        expect(Option.isSome(inPage(page, '[aria-label="Player"]'))).toBe(true);
+
+        page.press('Play hymn 3');
+        yield* page.until(Player.$is('Loading'));
+        // The player plays on across screens, so its bar is the stack's, not the page's.
+        expect(bars()).toHaveLength(1);
+        expect(Option.isNone(inPage(page, '[aria-label="Player"]'))).toBe(true);
+        expect(bars()[0]?.querySelector('[aria-label="Loading hymn 3"]')).not.toBeNull();
+      }),
   );
 
   it.live(

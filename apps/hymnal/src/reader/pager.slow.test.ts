@@ -31,7 +31,24 @@ interface Seen {
     readonly width: string;
   };
   readonly pageHeights: ReadonlyArray<string>;
+  readonly bar: BarPlace;
 }
+
+/** Where the bottom bar is drawn: how many there are, and how many lie in the hymn's screen. */
+interface BarPlace {
+  readonly bars: number;
+  readonly inScreen: number;
+}
+
+/** Where a favourite's star sits in its row, as the phone stand-in drew it. */
+type StarPlace =
+  | 'missing'
+  | {
+      readonly inTitle: boolean;
+      readonly afterTitle: boolean;
+      readonly size: string;
+      readonly numberSize: string;
+    };
 
 interface Run {
   readonly homeSource: { readonly length: number; readonly first: number };
@@ -49,6 +66,8 @@ interface Run {
   readonly shelfFirstTopic: string;
   readonly starred: ReadonlyArray<number>;
   readonly stars: number;
+  readonly starPlaces: ReadonlyArray<StarPlace>;
+  readonly recentStarPlaces: ReadonlyArray<StarPlace>;
   readonly recentSource: ReadonlyArray<number>;
   readonly shelfHeader: { readonly label: string; readonly text: string };
   readonly shelfOpened: ReadonlyArray<string>;
@@ -68,6 +87,7 @@ interface Run {
     readonly playFour: boolean;
     readonly route: string;
     readonly header: ReadonlyArray<number>;
+    readonly place: BarPlace;
   };
 }
 
@@ -183,6 +203,18 @@ describe('a settle while a hymn sounds', () => {
   });
 });
 
+describe('the bottom bar', () => {
+  it('lies in the hymn’s screen while nothing is held, on every way in, so a back takes it out with the screen', () => {
+    // The owner, 2026-10-22: the bar goes away with the page, not after it.
+    for (const shown of [seen.open3, seen.settle4, seen.open30, seen.open600, seen.settle601])
+      expect(shown.bar).toEqual({ bars: 1, inScreen: 1 });
+  });
+
+  it('is docked under the stack, out of the screen, while a hymn plays', () => {
+    expect(seen.playing.place).toEqual({ bars: 1, inScreen: 0 });
+  });
+});
+
 describe('the reader’s lists', () => {
   it('Recent gains a hymn as it opens, and the hymn a settle shows, the latest first', () => {
     expect(seen.recentOpen3).toEqual([3]);
@@ -198,6 +230,24 @@ describe('the reader’s lists', () => {
     // 30 under its topic lies past the rows drawn at the top.
     expect(seen.starred.slice(0, 3)).toEqual([30, 3, 3]);
     expect(seen.stars).toBe(seen.starred.length);
+  });
+
+  it('a favourite’s star sits after its title, out of it, at the number’s size, so the title’s ellipsis comes before it', () => {
+    // The owner, 2026-10-22: the star at the row's end, about the number's size.
+    for (const places of [seen.starPlaces, seen.recentStarPlaces]) {
+      expect(places.length).toBeGreaterThan(0);
+      expect(places).not.toContain('missing');
+      for (const place of places.filter(
+        (p): p is Exclude<StarPlace, 'missing'> => p !== 'missing',
+      )) {
+        expect({ inTitle: place.inTitle, afterTitle: place.afterTitle }).toEqual({
+          inTitle: false,
+          afterTitle: true,
+        });
+        expect(place.size).toBe(place.numberSize);
+        expect(place.size).not.toBe('');
+      }
+    }
   });
 
   it('a press on a Recent row hands the pager Recent to page through', () => {

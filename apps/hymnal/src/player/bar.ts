@@ -6,6 +6,10 @@
  * hymn that is not sounding (paused, ended, stopped, failed) gives way to the
  * page's hymn. Off a hymn page the bar shows only while the player holds a
  * hymn.
+ *
+ * Where it is drawn: while the player holds a hymn, docked under the stack
+ * (`dockedBar`); while it holds none, in the hymn page itself (`pageBar`), so
+ * a back moves it out with the page.
  */
 
 import { Data, Option, Predicate } from 'effect';
@@ -54,6 +58,27 @@ export const barFor = (state: Player, page: Option.Option<Track>): Bar =>
           onSome: (held) => Bar.Shown({ track: held, state, page: Option.some(shown) }),
         }),
       ),
+  });
+
+/**
+ * The bar docked under the stack: `barFor`'s bar while the player holds a
+ * hymn, which plays on across screens, and nothing while it holds none.
+ */
+export const dockedBar = (state: Player, page: Option.Option<Track>): Bar =>
+  Option.match(trackOf(state), {
+    onNone: () => Bar.Hidden(),
+    onSome: () => barFor(state, page),
+  });
+
+/**
+ * The bar a hymn page draws as its own, while the player holds no hymn: it
+ * lies in the page, so it comes in and goes out with the page's push and pop.
+ * While the player holds a hymn the docked bar shows instead.
+ */
+export const pageBar = (state: Player, track: Track): Bar =>
+  Option.match(trackOf(state), {
+    onNone: () => barFor(state, Option.some(track)),
+    onSome: () => Bar.Hidden(),
   });
 
 /** The reader's place in the recording and its length, in seconds, while the player has a place. */
