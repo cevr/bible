@@ -18,6 +18,10 @@
 // its asks' page lock, the agents' "doing now" lines) is called on the lab at
 // `FILM_LAB_URL` through its MCP (`lab-client.ts`). A field the terminal
 // knows (`films`: this checkout's films folder) is filled when not given.
+// A command of the lab's that answers a job's handle before the job is done
+// (`critique`) has `film lab <name> wait <handle>`: it asks again with the
+// handle until the answer is done, then prints it, for an agent to run in
+// the background as it runs `film ask wait`.
 
 import {
   Array as Arr,
@@ -30,7 +34,7 @@ import {
   Schema,
 } from 'effect';
 import { Tool } from 'effect/ai';
-import { Command, Flag } from 'effect/cli';
+import { Argument, Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import { localLink } from './api-server.ts';
 import { labPhone } from './lab.ts';
@@ -178,11 +182,7 @@ const cliCommand = <E extends { readonly _tag: string; readonly message: string 
       function* ({ fields: given, input, json }) {
         const raw = yield* rawInput(name, fields, given, input, context);
         const answered = yield* answer(raw);
-        yield* Bool.match(json, {
-          onTrue: () => Console.log(jsonText(answered.json)),
-          onFalse: () =>
-            Effect.forEach(answered.lines, (line) => Console.log(line), { discard: true }),
-        });
+        yield* printed(answered, json);
       },
       (effect, { json }) =>
         Effect.tapError(effect, (error) =>
@@ -216,6 +216,52 @@ const askedOfLab = (command: LabCommand<unknown>) => (raw: Schema.JsonObject) =>
     }),
   );
 
+/** How a command's answer is printed: one line of JSON, or its plain lines. */
+const printed = (answered: Answered, json: boolean) =>
+  Bool.match(json, {
+    onTrue: () => Console.log(jsonText(answered.json)),
+    onFalse: () => Effect.forEach(answered.lines, (line) => Console.log(line), { discard: true }),
+  });
+
+/**
+ * `film lab <name> wait <handle>`: `command` asked of the lab with the
+ * handle until `done` holds of its answer (each ask waits on the lab's
+ * side), then printed.
+ */
+const waitOf = (
+  command: LabCommand<unknown>,
+  done: (json: Schema.Json) => boolean,
+  context: CliContext,
+) =>
+  Command.make(
+    'wait',
+    {
+      handle: Argument.String('handle').pipe(
+        Argument.withDescription(`the job, by the handle \`${command.name}\` answered`),
+      ),
+      json: Flag.Boolean('json').pipe(
+        Flag.withDefault(false),
+        Flag.withDescription('print the answer as one line of JSON'),
+      ),
+    },
+    Effect.fn(`film.lab.${command.name}.wait`)(
+      function* ({ handle, json }) {
+        const answered = yield* askedOfLab(command)({ films: context.films, handle }).pipe(
+          Effect.repeat({ until: (one) => done(one.json) }),
+        );
+        yield* printed(answered, json);
+      },
+      (effect, { json }) =>
+        Effect.tapError(effect, (error) =>
+          Effect.when(Console.log(failureLine(error)), Effect.succeed(json)),
+        ),
+    ),
+  ).pipe(
+    Command.withDescription(
+      `Wait until the job \`${command.name}\` answered a handle for is done on the running lab (FILM_LAB_URL), then print its answer and exit 0: run it in the background and act when it exits`,
+    ),
+  );
+
 /** The lab's own links as a terminal reaches it: `FILM_LAB_URL` on this machine, and `FILM_LAB_PHONE_URL`. */
 const addressFromConfig = Layer.effect(
   LabAddress,
@@ -231,7 +277,8 @@ const addressFromConfig = Layer.effect(
 
 /**
  * The set as `film lab`'s subcommands: `here` run in this process over
- * `RHere`, the ones only the lab holds asked of it.
+ * `RHere`, the ones only the lab holds asked of it; each of those named in
+ * `jobs` (its answer done when the predicate holds) with its `wait`.
  */
 export const labCliCommands = <RHere>(
   set: {
@@ -239,15 +286,22 @@ export const labCliCommands = <RHere>(
     readonly inLab: ReadonlyArray<LabCommand<unknown>>;
   },
   context: CliContext,
+  jobs: Readonly<Record<string, (json: Schema.Json) => boolean>> = {},
 ) => [
   ...set.here.map((command) =>
     cliCommand(command.tool, (raw) => command.call(raw), context).pipe(
       Command.provide(addressFromConfig),
     ),
   ),
-  ...set.inLab.map((command) =>
-    cliCommand(command.tool, askedOfLab(command), context).pipe(
-      Command.provide(FetchHttpClient.layer),
-    ),
-  ),
+  ...set.inLab.map((command) => {
+    const asked = cliCommand(command.tool, askedOfLab(command), context);
+    return Option.match(Option.fromUndefinedOr(jobs[command.name]), {
+      onNone: () => asked.pipe(Command.provide(FetchHttpClient.layer)),
+      onSome: (done) =>
+        asked.pipe(
+          Command.withSubcommands([waitOf(command, done, context)]),
+          Command.provide(FetchHttpClient.layer),
+        ),
+    });
+  }),
 ];

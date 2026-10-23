@@ -40,6 +40,7 @@ import {
 import { Command, Flag } from 'effect/cli';
 import { FetchHttpClient } from 'effect/http';
 import { HeardChange, LAB_EVENTS, isKnownChange } from '../core/lab-events.ts';
+import { critiqueDone } from './easel-mcp.ts';
 import { failureLine, labCliCommands } from './lab-cli.ts';
 import { hereCommands, inLabCommands } from './lab-commands.ts';
 import { isLostLab, labClient, labUrl } from './lab-client.ts';
@@ -257,6 +258,10 @@ const labEventsAt = (pace: StreamPace) =>
 
 /** Every `film lab` subcommand over the films in `films`: each lab command (`lab-cli.ts`), and `film lab events` at a terminal's pace. */
 export const labSubcommands = (films: string) => [
-  ...labCliCommands({ here: hereCommands, inLab: inLabCommands }, { films }),
+  ...labCliCommands(
+    { here: hereCommands, inLab: inLabCommands },
+    { films },
+    { critique: critiqueDone },
+  ),
   labEventsAt(STREAM_PACE),
 ];

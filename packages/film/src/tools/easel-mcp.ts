@@ -10,7 +10,10 @@
 //   (`Easel.match`): per figure its table and its side-by-side.
 // - `critique`: the same match, then each figure's two crops shown at 1:1 to
 //   a fresh model (`Critic`): per figure its findings, a skip said and never
-//   a refusal.
+//   a refusal. The counsel takes minutes and an MCP client cuts a call at
+//   60 s, so it runs as the critic's job: a call waits on it at most
+//   `CRITIQUE_WAIT`, then answers its handle, and a call with the handle
+//   waits on it again (`film lab critique wait <handle>` until it is done).
 // - `cues`: each scene's placement, marks and named cues (`film read cues`).
 // - `check`: scenes checked as drawn (`film check --draw`).
 // - `journal`, `journal_note`: the film's journal read, and an observation
@@ -32,7 +35,16 @@
 // `scene`), so asking again with it reads on in the same answer; a refusal
 // is a tool error in the film's own words, its tag first (`FilmRefused`).
 
-import { Array as Arr, Boolean as Bool, Effect, FileSystem, Option, Path, Schema } from 'effect';
+import {
+  Array as Arr,
+  Boolean as Bool,
+  Duration,
+  Effect,
+  FileSystem,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
 import { type McpSchema, Tool } from 'effect/ai';
 import { PartId } from '../core/address-schema.ts';
 import { ServerFailed } from '../core/api.ts';
@@ -77,6 +89,13 @@ const LOOK_MAX_BYTES = 15_000_000;
 /** The most characters of a refusal's words an answer keeps (a page that does not build says a lot). */
 const REFUSAL_CHARS = 4_000;
 
+/**
+ * The longest a `critique` call waits on its job before it answers the
+ * job's handle: Claude Code's MCP client cuts a tool call at 60 s, and the
+ * match before the wait takes seconds of that.
+ */
+const CRITIQUE_WAIT = Duration.seconds(40);
+
 /** How many entries `journal` reads at most. */
 const JOURNAL_MAX_LAST = 200;
 
@@ -87,6 +106,13 @@ class FilmRefused extends Schema.TaggedError<FilmRefused>()('FilmRefused', {
 }) {
   override get message() {
     return `${this.tag}: ${this.text}`;
+  }
+}
+
+/** A critique asked of no scene and no running job. */
+class CritiqueUnplaced extends Schema.TaggedError<CritiqueUnplaced>()('CritiqueUnplaced', {}) {
+  override get message() {
+    return 'critique a scene (film, scene and at), or read a critique already started (handle)';
   }
 }
 
@@ -209,11 +235,38 @@ const MatchParams = Schema.Struct({
 type MatchParams = typeof MatchParams.Type;
 
 /** The `critique` tool as the lab lists it: its answer is each figure's findings, as text. */
-const CRITIQUE_DESCRIPTION = `Match a scene's figures at one place (as \`match\` does), then show each figure's concept crop and scene crop at 1:1 to a fresh Opus (headless Claude at max effort, sandboxed, Read its one tool) beside the match's flagged rows and the app's figure rules (the K1 look, the grammar every figure shares, figures and faces, the look): it names each difference in head angle and turn, face shape and features, pose, proportion (never height in heads: that is the cast's band), palette and artifacts. One counsel run answers every figure at the place; the answer is kept by the hash of the prompt and the crops, so the same prompt over the same crops is never asked twice. Answers per figure its findings, written beside the match's table (<stem>.critique.md under out/<film>/match/<scene>/), and each finding rejected (one that does not read, or names no figure asked about). It fails open: a counsel that fails or dies, or answers no json block, is a skip, said and logged, never a refusal. Before a figure is called done, and before an owner look, critique it; a finding is fixed or said why not (\`film review\`).`;
+const CRITIQUE_DESCRIPTION = `Match a scene's figures at one place (as \`match\` does), then show each figure's concept crop and scene crop at 1:1 to a fresh Opus (headless Claude at max effort, sandboxed, Read its one tool) beside the match's flagged rows, the app's figure rules (the K1 look, the grammar every figure shares, figures and faces, the look) and the place's staging (its Board panel and the script's picture: design is held to the concept, what a figure wears, holds and does to the staging): it names each difference in head angle and turn, face shape and features, pose, proportion (never height in heads: that is the cast's band), palette and artifacts. One counsel run answers every figure at the place, and takes minutes: the critique runs as a job in the lab, and a call waits on it at most ${Duration.format(CRITIQUE_WAIT)}. Not done by then, it answers the job's \`handle\` and no \`critique\`: keep painting, and call \`critique\` again with \`films\` and \`handle\` alone for its answer (each call waits ${Duration.format(CRITIQUE_WAIT)} more); a start of the same figures over the same crops while one runs answers that job. The answer is kept by the hash of the prompt and the crops, so the same prompt over the same crops is never asked twice. Answers per figure its findings, written beside the match's table (<stem>.critique.md under out/<film>/match/<scene>/), and each finding rejected (one that does not read, or names no figure asked about). It fails open: a counsel that fails or dies, or answers no json block, is a skip, said and logged, never a refusal. Before a figure is called done, and before an owner look, critique it; a finding is fixed or said why not (\`film review\`).`;
 
-/** A critique's answer: the match it critiqued, and the critique. */
-const Critiqued = Schema.Struct({ match: MatchTaken, critique: CritiqueTaken });
+/** A critique's answer: its job's handle, the match it critiques, and the critique once the counsel has answered. */
+const Critiqued = Schema.Struct({
+  handle: Schema.String,
+  match: MatchTaken,
+  critique: Schema.optionalKey(CritiqueTaken),
+});
 type Critiqued = typeof Critiqued.Type;
+
+const readCritiqued = Schema.decodeUnknownOption(Critiqued);
+
+/** Whether a critique's JSON answer holds the critique, not only its handle. Pure. */
+export const critiqueDone = (json: Schema.Json): boolean =>
+  Option.exists(readCritiqued(json), (taken) =>
+    Option.isSome(Option.fromUndefinedOr(taken.critique)),
+  );
+
+const CritiqueParams = Schema.Struct({
+  films: Films,
+  film: Schema.optionalKey(FilmParam),
+  scene: Schema.optionalKey(SceneParam),
+  at: Schema.optionalKey(MatchParams.fields.at),
+  figure: MatchParams.fields.figure,
+  handle: Schema.optionalKey(
+    Schema.String.annotate({
+      description:
+        'A critique already started, by the handle it answered: waited on again (film, scene, at and figure are not read). Without it, film, scene and at start one',
+    }),
+  ),
+});
+type CritiqueParams = typeof CritiqueParams.Type;
 
 const JournalNoted = Schema.Struct({
   file: Schema.String,
@@ -327,7 +380,7 @@ const MatchTool = Tool.make('match', {
 
 const CritiqueTool = Tool.make('critique', {
   description: CRITIQUE_DESCRIPTION,
-  parameters: MatchParams,
+  parameters: CritiqueParams,
   success: Critiqued,
   failure: FilmRefused,
 }).annotate(Tool.Readonly, true);
@@ -464,30 +517,52 @@ const matchContent = Effect.fn('EaselMcp.matchContent')(function* (taken: MatchT
   ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
 });
 
-const critiqued = Effect.fn('EaselMcp.critique')(function* (params: MatchParams) {
-  const match = yield* matched(params);
-  const staging = yield* stagingAt(yield* served(params.films, params.film), match);
-  return { match, critique: yield* (yield* Critic).critique(match, staging) };
+/** The critique's job started over the match `params` place: its handle. */
+const started = Effect.fn('EaselMcp.critiqueStart')(function* (params: CritiqueParams) {
+  const place = Option.all({
+    film: Option.fromUndefinedOr(params.film),
+    scene: Option.fromUndefinedOr(params.scene),
+    at: Option.fromUndefinedOr(params.at),
+  });
+  if (Option.isNone(place)) return yield* CritiqueUnplaced.make();
+  const { film } = place.value;
+  const match = yield* matched({ ...params, ...place.value });
+  const staging = yield* stagingAt(yield* served(params.films, film), match);
+  return yield* (yield* Critic).start(match, staging);
 });
 
-/** A critique's first line. Pure. */
-const critiqueHead = ({ match, critique }: Critiqued): string =>
-  `critique scene=${match.scene} at=${match.at} t=${match.time.toFixed(2)} build=${match.build} cached=${critique.cached}`;
+const critiqued = Effect.fn('EaselMcp.critique')(function* (params: CritiqueParams) {
+  const handle = yield* Option.match(Option.fromUndefinedOr(params.handle), {
+    onSome: Effect.succeed,
+    onNone: () => started(params),
+  });
+  const job = yield* (yield* Critic).job(handle, CRITIQUE_WAIT);
+  return {
+    handle,
+    match: job.match,
+    ...Option.match(job.critique, { onNone: () => ({}), onSome: (critique) => ({ critique }) }),
+  } satisfies Critiqued;
+});
+
+/** A critique's first line: the critique's, or the job's while it runs. Pure. */
+const critiqueHead = ({ handle, match, critique }: Critiqued): string => {
+  const place = `scene=${match.scene} at=${match.at} t=${match.time.toFixed(2)} build=${match.build}`;
+  return Option.match(Option.fromUndefinedOr(critique), {
+    onNone: () =>
+      `critique ${place} handle=${handle} running: keep painting, then call critique with handle=${handle} for its answer`,
+    onSome: (done) =>
+      `critique ${place} cached=${done.cached}${Option.match(Option.fromUndefinedOr(done.skipped), { onNone: () => '', onSome: (why) => `\nskipped: ${why}` })}`,
+  });
+};
 
 /** A critique's answer as MCP shows it: its head, then each figure's findings as its file says them. */
 const critiqueContent = Effect.fn('EaselMcp.critiqueContent')(function* (taken: Critiqued) {
   const fs = yield* FileSystem.FileSystem;
-  const head = [
-    critiqueHead(taken),
-    ...Option.toArray(
-      Option.map(Option.fromUndefinedOr(taken.critique.skipped), (why) => `skipped: ${why}`),
-    ),
-  ].join('\n');
-  const read = yield* Effect.forEach(taken.critique.figures, (one) =>
+  const read = yield* Effect.forEach(taken.critique?.figures ?? [], (one) =>
     Effect.map(fs.readFileString(one.file), (words) => `${one.file}\n${words}`),
   );
   return [
-    { type: 'text', text: head },
+    { type: 'text', text: critiqueHead(taken) },
     ...read.map((text): McpSchema.ContentBlock => ({ type: 'text', text })),
     ...unmatchedLines(taken.match).map((text): McpSchema.ContentBlock => ({ type: 'text', text })),
   ] satisfies ReadonlyArray<McpSchema.ContentBlock>;
@@ -566,12 +641,12 @@ export const easelInLab = [
   labCommand(CritiqueTool, {
     run: (params) => Effect.mapError(critiqued(params), refusedAs),
     lines: (taken) => [
-      `${critiqueHead(taken)}${Option.match(Option.fromUndefinedOr(taken.critique.skipped), { onNone: () => '', onSome: (why) => ` skipped="${why}"` })}`,
-      ...taken.critique.figures.flatMap((one) => [
+      ...critiqueHead(taken).split('\n'),
+      ...(taken.critique?.figures ?? []).flatMap((one) => [
         `${one.figure}: ${one.file}`,
         ...one.findings.map((f) => `  ${f.aspect}: ${f.what}`),
       ]),
-      ...taken.critique.rejected.map((why) => `rejected: ${why}`),
+      ...(taken.critique?.rejected ?? []).map((why) => `rejected: ${why}`),
       ...unmatchedLines(taken.match),
     ],
     content: (taken) => Effect.mapError(critiqueContent(taken), refusedAs),

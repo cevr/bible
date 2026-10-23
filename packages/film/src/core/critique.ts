@@ -73,8 +73,8 @@ export interface CritiqueFigure {
  * Where a scene stages its figures at the place critiqued: the Board panel
  * shown there (its id and its shown try's image) and the script's picture
  * of the beat. A concept is a model sheet, so what a figure wears, holds and
- * does there is the panel's and the picture's, never the concept's (16 of 61
- * RBF findings, 2026-10-22, were a staged robe or seed held to the sheet).
+ * does there is the panel's and the picture's, never the concept's: a robe
+ * or a held thing the place stages is no finding against the sheet.
  */
 export interface CritiqueStaging {
   readonly panel: Option.Option<{ readonly id: string; readonly image: string }>;

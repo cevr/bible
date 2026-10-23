@@ -13,11 +13,23 @@
 // and a scene the film lacks refused.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, type FileSystem, Layer, Logger, Option, type Path, Schema } from 'effect';
+import {
+  Deferred,
+  Effect,
+  Fiber,
+  type FileSystem,
+  Layer,
+  Logger,
+  Option,
+  type Path,
+  Schema,
+} from 'effect';
+import { TestClock } from 'effect/testing';
 import { Base64 } from 'effect/encoding';
 import { BoardFileJson, BoardName } from '../core/board.ts';
 import { PagesBroken, type LookPost, type LookTaken } from '../core/easel.ts';
 import { UnknownScene } from '../core/errors.ts';
+import { CounselFailed } from '../core/judge.ts';
 import { Segment } from '../core/segment.ts';
 import { MatchFigureUnknown, type MatchPost } from '../core/match.ts';
 import type { CheckLine } from '../core/schema.ts';
@@ -406,53 +418,101 @@ describe("the easel's tools on the MCP", () => {
     },
   );
 
+  /** Film `f` as a critique reads it: the look's rules, scene roof's Board panel, its script's picture. */
+  const critiqueFiles = () => {
+    const files = filmFiles();
+    files.set('/rules.md', text('# Rules\n\n## The look\n\nOne silhouette outline.\n'));
+    const panelImage = text('the roof panel');
+    files.set('/films/f/board/roof.start.1.png', panelImage);
+    files.set(
+      '/films/f/board.json',
+      text(
+        Schema.encodeSync(BoardFileJson)({
+          film: 'f',
+          panels: [
+            {
+              id: 'roof.start',
+              beat: BoardName.make('roof'),
+              at: BoardName.make('start'),
+              tries: [
+                {
+                  n: 1,
+                  file: Segment.make('roof.start.1.png'),
+                  sha256: sha256Hex(panelImage),
+                  made: 'generate',
+                  prompt: 'p',
+                  refs: [],
+                  at: '2026-10-14T00:00:00.000Z',
+                },
+              ],
+            },
+          ],
+          approvals: [],
+        }),
+      ),
+    );
+    return files;
+  };
+  const critiqueScript: FreshFilmService['script'] = () =>
+    Effect.succeed([{ id: 'roof', picture: 'The lead, in a robe, on the roof.', cite: [] }]);
+  const ROOF_ANSWER = [
+    'The lead turns away.',
+    '```json',
+    '{"findings": [{"figure": "lead", "aspect": "head angle", "what": "front, the concept three-quarter"}]}',
+    '```',
+  ].join('\n');
+  const ROOF_FINDINGS = [
+    '/out/f/match/roof/lead.t0003.00.bs.7.critique.md',
+    '### lead: critique (roof mark:see, t=3.00, build s.7)',
+    '',
+    '- **head angle**: front, the concept three-quarter',
+    '',
+  ].join('\n');
+  /** The lab over `critiqueFiles`, its critic asking `counsel`. */
+  const critiqueLab = (
+    files: Map<string, Uint8Array>,
+    counsel: Layer.Layer<Counsel, never, FileSystem.FileSystem | Path.Path>,
+    lines: Array<string>,
+  ) =>
+    Layer.merge(
+      labOver(
+        files,
+        [],
+        { script: critiqueScript },
+        [],
+        Option.some(
+          Critic.layer([{ file: '/rules.md', heading: '## The look' }]).pipe(
+            Layer.provide(counsel),
+            Layer.orDie,
+          ),
+        ),
+      ),
+      mcpLinesIn(lines),
+    );
+  /** A counsel that answers once `answer` is completed: `asked` is done as soon as it is asked, and it counts its runs. */
+  const heldCounsel = (
+    asked: Deferred.Deferred<boolean>,
+    answer: Deferred.Deferred<string, CounselFailed>,
+    runs: { n: number },
+  ) =>
+    Layer.succeed(
+      Counsel,
+      Counsel.of({
+        ask: (_prompt, dir) =>
+          Effect.gen(function* () {
+            runs.n += 1;
+            yield* Deferred.succeed(asked, true);
+            const words = yield* Deferred.await(answer);
+            return { file: `${dir}/claude.md`, text: words };
+          }),
+      }),
+    );
+
   it.effect(
     "a critique answers each figure's findings as text, from one counsel run over the match's crops and the scene's staging",
     () => {
-      const files = filmFiles();
-      files.set('/rules.md', text('# Rules\n\n## The look\n\nOne silhouette outline.\n'));
-      const panelImage = text('the roof panel');
-      files.set('/films/f/board/roof.start.1.png', panelImage);
-      files.set(
-        '/films/f/board.json',
-        text(
-          Schema.encodeSync(BoardFileJson)({
-            film: 'f',
-            panels: [
-              {
-                id: 'roof.start',
-                beat: BoardName.make('roof'),
-                at: BoardName.make('start'),
-                tries: [
-                  {
-                    n: 1,
-                    file: Segment.make('roof.start.1.png'),
-                    sha256: sha256Hex(panelImage),
-                    made: 'generate',
-                    prompt: 'p',
-                    refs: [],
-                    at: '2026-10-14T00:00:00.000Z',
-                  },
-                ],
-              },
-            ],
-            approvals: [],
-          }),
-        ),
-      );
-      const script: FreshFilmService['script'] = () =>
-        Effect.succeed([{ id: 'roof', picture: 'The lead, in a robe, on the roof.', cite: [] }]);
+      const files = critiqueFiles();
       const asked: Array<string> = [];
-      const answer = [
-        'The lead turns away.',
-        '```json',
-        '{"findings": [{"figure": "lead", "aspect": "head angle", "what": "front, the concept three-quarter"}]}',
-        '```',
-      ].join('\n');
-      const critic = Critic.layer([{ file: '/rules.md', heading: '## The look' }]).pipe(
-        Layer.provide(Counsel.layerTest(() => answer, asked)),
-        Layer.orDie,
-      );
       const lines: Array<string> = [];
       return Effect.gen(function* () {
         const { lab } = yield* labWithMcp;
@@ -464,15 +524,7 @@ describe("the easel's tools on the MCP", () => {
         expect(first.content[0].text).toBe(
           'critique scene=roof at=mark:see t=3.00 build=s.7 cached=false',
         );
-        expect(first.content[1].text).toBe(
-          [
-            '/out/f/match/roof/lead.t0003.00.bs.7.critique.md',
-            '### lead: critique (roof mark:see, t=3.00, build s.7)',
-            '',
-            '- **head angle**: front, the concept three-quarter',
-            '',
-          ].join('\n'),
-        );
+        expect(first.content[1].text).toBe(ROOF_FINDINGS);
         expect(first.content[2].text).toBe('judge: unmatched (its rig declares no concept)');
         const again = yield* critique({ scene: 'roof', at: 'mark:see' });
         expect(again.content[0].text).toMatch(/cached=true$/);
@@ -485,8 +537,91 @@ describe("the easel's tools on the MCP", () => {
       }).pipe(
         Effect.scoped,
         Effect.provide(
-          Layer.merge(labOver(files, [], { script }, [], Option.some(critic)), mcpLinesIn(lines)),
+          critiqueLab(
+            files,
+            Counsel.layerTest(() => ROOF_ANSWER, asked),
+            lines,
+          ),
         ),
+      );
+    },
+  );
+
+  it.effect(
+    'a critique the counsel has not answered in 40 s answers its handle; the same place again answers the same handle; the handle answers its findings once the counsel has',
+    () => {
+      const lines: Array<string> = [];
+      const runs = { n: 0 };
+      const asked = Deferred.makeUnsafe<boolean>();
+      const answer = Deferred.makeUnsafe<string, CounselFailed>();
+      return Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { call } = yield* mcpSession(lab);
+        const critique = (args: Args) =>
+          call('tools/call', {
+            name: 'critique',
+            arguments: { films: FILMS, film: 'f', ...args },
+          });
+        const first = yield* Effect.forkChild(critique({ scene: 'roof', at: 'mark:see' }));
+        yield* Deferred.await(asked);
+        yield* TestClock.adjust('40 seconds');
+        const running = yield* Fiber.join(first);
+        expect(running.isError).toBeUndefined();
+        const head = running.content[0].text;
+        const handle = /handle=([0-9a-f]+) /.exec(head)?.[1] ?? '';
+        expect(handle).toMatch(/^[0-9a-f]{16}$/);
+        expect(head).toBe(
+          `critique scene=roof at=mark:see t=3.00 build=s.7 handle=${handle} running: keep painting, then call critique with handle=${handle} for its answer`,
+        );
+        const twice = yield* Effect.forkChild(critique({ scene: 'roof', at: 'mark:see' }));
+        yield* TestClock.adjust('40 seconds');
+        expect((yield* Fiber.join(twice)).content[0].text).toBe(head);
+        yield* Deferred.succeed(answer, ROOF_ANSWER);
+        const done = yield* critique({ handle });
+        expect(done.content[0].text).toBe(
+          'critique scene=roof at=mark:see t=3.00 build=s.7 cached=false',
+        );
+        expect(done.content[1].text).toBe(ROOF_FINDINGS);
+        expect(runs.n).toBe(1);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(critiqueLab(critiqueFiles(), heldCounsel(asked, answer, runs), lines)),
+      );
+    },
+  );
+
+  it.effect(
+    "a critique's handle answers the counsel's failure as its skip; a handle the lab never gave is refused",
+    () => {
+      const lines: Array<string> = [];
+      const runs = { n: 0 };
+      const asked = Deferred.makeUnsafe<boolean>();
+      const answer = Deferred.makeUnsafe<string, CounselFailed>();
+      return Effect.gen(function* () {
+        const { lab } = yield* labWithMcp;
+        const { call } = yield* mcpSession(lab);
+        const critique = (args: Args) =>
+          call('tools/call', {
+            name: 'critique',
+            arguments: { films: FILMS, film: 'f', ...args },
+          });
+        const first = yield* Effect.forkChild(critique({ scene: 'roof', at: 'mark:see' }));
+        yield* Deferred.await(asked);
+        yield* TestClock.adjust('40 seconds');
+        const head = (yield* Fiber.join(first)).content[0].text;
+        const handle = /handle=([0-9a-f]+) /.exec(head)?.[1] ?? '';
+        yield* Deferred.fail(answer, CounselFailed.make({ reason: 'the run timed out' }));
+        const failed = yield* critique({ handle });
+        expect(failed.isError).toBeUndefined();
+        expect(failed.content[0].text).toBe(
+          'critique scene=roof at=mark:see t=3.00 build=s.7 cached=false\nskipped: the counsel run failed (the run timed out)',
+        );
+        const unknown = yield* critique({ handle: '0000000000000000' });
+        expect(unknown.isError).toBe(true);
+        expect(unknown.content[0].text).toContain('0000000000000000');
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(critiqueLab(critiqueFiles(), heldCounsel(asked, answer, runs), lines)),
       );
     },
   );

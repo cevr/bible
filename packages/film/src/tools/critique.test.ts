@@ -297,6 +297,36 @@ describe('the critique', () => {
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
+  it.effect(
+    "a Board panel's image that cannot be read leaves out that panel alone: the figures and the script's picture are asked",
+    () =>
+      Effect.gen(function* () {
+        const path = yield* Path.Path;
+        const { taken, rules, dir } = yield* written;
+        const asked: Array<string> = [];
+        const built = yield* Layer.build(
+          Critic.layer([{ file: rules, heading: '## The look' }]).pipe(
+            Layer.provide(Counsel.layerTest(() => ANSWER, asked)),
+          ),
+        );
+        const staging: CritiqueStaging = {
+          panel: Option.some({ id: 'sower.scatter', image: path.join(dir, 'gone.png') }),
+          picture: Option.some('The sower holds the seed.'),
+        };
+        const answered = yield* Context.get(built, Critic).critique(taken, staging);
+        expect(answered.skipped).toBeUndefined();
+        expect(answered.figures.map((f) => [f.figure, f.findings.length])).toEqual([
+          ['farmer', 1],
+          ['christ', 0],
+        ]);
+        expect(asked).toHaveLength(1);
+        expect(asked[0]).not.toContain('The Board panel shown here');
+        expect(asked[0]).toContain(
+          "- The script's picture of this beat: The sower holds the seed.",
+        );
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
   it.effect('fails open: an answer with no json block is a skip, said in the file', () =>
     Effect.gen(function* () {
       const { first, file } = yield* critiqued(Counsel.layerTest(() => 'They match.'));

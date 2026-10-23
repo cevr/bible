@@ -19,16 +19,21 @@
 
 import {
   Array as Arr,
+  Cache,
   Cause,
   Clock,
   Context,
+  Deferred,
+  Duration,
   Effect,
+  Exit,
   FileSystem,
   Layer,
   Option,
   Path,
   Result,
   Schema,
+  Semaphore,
 } from 'effect';
 import {
   type CritiqueDrawn,
@@ -105,9 +110,36 @@ interface SheetCritique {
   readonly views: ReadonlyArray<SheetView>;
 }
 
+/** A critique job as read: the match it critiques, and its answer once the counsel has given it. */
+export interface CritiqueJob {
+  readonly match: MatchTaken;
+  readonly critique: Option.Option<CritiqueTaken>;
+}
+
+/** A job the critic does not keep: never started, dropped past its time or count, or the lab restarted since. */
+export class CritiqueJobUnknown extends Schema.TaggedError<CritiqueJobUnknown>()(
+  'CritiqueJobUnknown',
+  { handle: Schema.String },
+) {
+  override get message() {
+    return `no critique ${this.handle} is kept (one is kept ${Duration.format(JOB_KEPT_FOR)} after it starts, and a lab restarted keeps none): start it again with the scene and the place`;
+  }
+}
+
 interface CriticService {
   /** The figures `taken` matched, critiqued against their concepts in design and against `staging` in state: never fails, a skip is said and logged. */
   readonly critique: (taken: MatchTaken, staging: CritiqueStaging) => Effect.Effect<CritiqueTaken>;
+  /**
+   * The same critique as a job in the critic's scope, answered by its
+   * handle at once: the same figures over the same packet while one runs
+   * are that job's handle, not a second run.
+   */
+  readonly start: (taken: MatchTaken, staging: CritiqueStaging) => Effect.Effect<string>;
+  /** The job `handle`, waited on at most `within`: its answer when given by then. */
+  readonly job: (
+    handle: string,
+    within: Duration.Duration,
+  ) => Effect.Effect<CritiqueJob, CritiqueJobUnknown>;
   /** A cast sheet try's views, each critiqued against its concept: never fails, a skip is said and logged. */
   readonly critiqueSheet: (sheet: SheetCritique) => Effect.Effect<CritiqueTaken>;
 }
@@ -130,6 +162,87 @@ interface CritiqueAsk {
     readonly boundary: Option.Option<string>;
   }>;
 }
+
+/** An ask as it is asked: the ask (a Board image that cannot be read left out), the hash of its prompt and crops, and its kept answer's file. */
+interface Prepared {
+  readonly ask: CritiqueAsk;
+  readonly hash: string;
+  readonly kept: string;
+}
+
+/** How many jobs the critic keeps, running or done: past it the one read least recently is dropped. */
+const JOBS_KEPT = 32;
+
+/** How long a job is kept from its start: past the counsel's own limit (30 min), so the slowest is read for half an hour after. */
+const JOB_KEPT_FOR = Duration.hours(1);
+
+/** A job's handle: the first 16 hex of the hash of what names it. Pure. */
+const handleOf = (names: ReadonlyArray<string>): string => sha256Hex(names.join('\n')).slice(0, 16);
+
+/** A job as kept: the match it critiques, and the answer its fiber gives. */
+interface Job {
+  readonly match: MatchTaken;
+  readonly done: Deferred.Deferred<CritiqueTaken>;
+}
+
+/** The skip a job whose fiber ended without an answer is read as. */
+const diedAs = (why: string): CritiqueTaken => ({
+  figures: [],
+  cached: false,
+  skipped: `the critique died: ${why}`,
+  rejected: [],
+});
+
+/**
+ * The critic's jobs, in the scope of the layer that makes them: each a
+ * critique running in its own fiber and the answer it gives, by handle, at
+ * most `JOBS_KEPT` of them each for `JOB_KEPT_FOR`. A start whose handle
+ * names a running job answers it; a done one is started again (its kept
+ * answer makes that quick).
+ */
+const jobsIn = Effect.gen(function* () {
+  const scope = yield* Effect.scope;
+  const kept = yield* Cache.makeWith<string, Job, CritiqueJobUnknown>(
+    (handle) => Effect.fail(CritiqueJobUnknown.make({ handle })),
+    {
+      capacity: JOBS_KEPT,
+      timeToLive: Exit.match({ onSuccess: () => JOB_KEPT_FOR, onFailure: () => Duration.zero }),
+    },
+  );
+  const starting = yield* Semaphore.make(1);
+  const start = (handle: string, match: MatchTaken, work: Effect.Effect<CritiqueTaken>) =>
+    Semaphore.withPermits(
+      starting,
+      1,
+    )(
+      Effect.gen(function* () {
+        const before = yield* Cache.getSuccess(kept, handle);
+        if (Option.isSome(before) && !(yield* Deferred.isDone(before.value.done))) return handle;
+        const done = yield* Deferred.make<CritiqueTaken>();
+        yield* Effect.forkIn(
+          Effect.flatMap(Effect.exit(work), (exit) =>
+            Deferred.succeed(
+              done,
+              Exit.match(exit, {
+                onSuccess: (answer) => answer,
+                onFailure: (cause) => diedAs(Cause.pretty(cause)),
+              }),
+            ),
+          ),
+          scope,
+        );
+        yield* Cache.set(kept, handle, { match, done });
+        return handle;
+      }),
+    );
+  const job = (handle: string, within: Duration.Duration) =>
+    Effect.gen(function* () {
+      const one = yield* Cache.get(kept, handle);
+      const critique = yield* Effect.timeoutOption(Deferred.await(one.done), within);
+      return { match: one.match, critique } satisfies CritiqueJob;
+    });
+  return { start, job };
+});
 
 /** The rows a figure's table flagged, as `matchLines` says them. */
 const flaggedOf = (m: MatchTaken['figures'][number]): ReadonlyArray<string> =>
@@ -341,8 +454,13 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
             Effect.option,
           );
 
-        /** The ask's findings, kept by the hash of its prompt (but the place) and its crops, or asked. */
-        const answered = (ask: CritiqueAsk) =>
+        /**
+         * The ask as it is asked: its crops read and hashed with the prompt
+         * (but the place), where its answer is kept. A Board panel whose image
+         * cannot be read is left out, logged (`critique.unstaged`): the rest
+         * is critiqued unstaged.
+         */
+        const prepared = (ask: CritiqueAsk): Effect.Effect<Prepared, string> =>
           Effect.gen(function* () {
             const crops = yield* Effect.forEach(ask.figures, (f) =>
               Effect.all([fs.readFile(f.concept), fs.readFile(f.drawnCrop)]).pipe(
@@ -350,39 +468,70 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
                 Effect.mapError((error) => `${f.figure}'s crops cannot be read: ${error.message}`),
               ),
             );
-            const board = yield* Effect.forEach(Option.toArray(ask.staging.panel), (p) =>
-              fs.readFile(p.image).pipe(
-                Effect.map(sha256Hex),
-                Effect.mapError((error) => `the Board panel cannot be read: ${error.message}`),
-              ),
-            );
+            const staged = yield* Option.match(ask.staging.panel, {
+              onNone: () => Effect.succeed({ ask, board: [] }),
+              onSome: (p) =>
+                fs.readFile(p.image).pipe(
+                  Effect.map((bytes) => ({ ask, board: [sha256Hex(bytes)] })),
+                  Effect.catch((error) =>
+                    Effect.as(
+                      Effect.logWarning(
+                        `critique.unstaged ${ask.logged} part=board reason=${error.message}`,
+                      ),
+                      {
+                        ask: { ...ask, staging: { ...ask.staging, panel: Option.none() } },
+                        board: [],
+                      },
+                    ),
+                  ),
+                ),
+            });
             // The prompt as sent, but the place (a scene's build and time change with every build).
             const hash = sha256Hex(
               [
-                critiquePacket(ask.drawn, '', figuresOf(ask), sections, ask.staging),
+                critiquePacket(ask.drawn, '', figuresOf(staged.ask), sections, staged.ask.staging),
                 ...crops.flat(),
-                ...board,
+                ...staged.board,
               ].join('\n'),
             );
-            const kept = path.join(ask.keptDir, `${hash.slice(0, 32)}.json`);
             yield* fs
               .makeDirectory(ask.keptDir, { recursive: true })
               .pipe(Effect.mapError((error) => error.message));
-            const before = yield* keptAnswer(kept);
-            if (Option.isSome(before)) return { read: before.value, cached: true };
-            return { read: yield* asked(ask, kept), cached: false };
+            return {
+              ask: staged.ask,
+              hash,
+              kept: path.join(ask.keptDir, `${hash.slice(0, 32)}.json`),
+            };
           }).pipe(
-            Effect.result,
             Effect.catchDefect((defect) =>
-              Effect.succeed(Result.fail(`the critique died: ${Cause.pretty(Cause.die(defect))}`)),
+              Effect.fail(`the critique died: ${Cause.pretty(Cause.die(defect))}`),
             ),
           );
 
-        const critiqued = Effect.fn('Critic.critiqued')(function* (ask: CritiqueAsk) {
+        /** The prepared ask's findings, kept from before or asked. */
+        const answered = (ready: Prepared) =>
+          Effect.gen(function* () {
+            const before = yield* keptAnswer(ready.kept);
+            if (Option.isSome(before)) return { read: before.value, cached: true };
+            return { read: yield* asked(ready.ask, ready.kept), cached: false };
+          }).pipe(
+            Effect.catchDefect((defect) =>
+              Effect.fail(`the critique died: ${Cause.pretty(Cause.die(defect))}`),
+            ),
+          );
+
+        /** The ask critiqued from what `prepared` read of it: each figure's file written, the run logged. */
+        const critiquedFrom = Effect.fn('Critic.critiqued')(function* (
+          ask: CritiqueAsk,
+          ready: Result.Result<Prepared, string>,
+        ) {
           if (ask.figures.length === 0)
             return { figures: [], cached: false, rejected: [] } satisfies CritiqueTaken;
           const started = yield* Clock.currentTimeMillis;
-          const read = yield* answered(ask);
+          const read = yield* Result.match(ready, {
+            onFailure: (why) => Effect.succeed(Result.fail(why)),
+            onSuccess: (p) => Effect.result(answered(p)),
+          });
           const findings = Result.map(read, (r) => r.read);
           const figures = yield* Effect.forEach(ask.figures, (f) =>
             Effect.gen(function* () {
@@ -418,8 +567,25 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
           });
         });
 
+        const critiqued = (ask: CritiqueAsk) =>
+          Effect.flatMap(Effect.result(prepared(ask)), (ready) => critiquedFrom(ask, ready));
+
+        const jobs = yield* jobsIn;
+
         return Critic.of({
           critique: (taken, staging) => critiqued(askOfMatch(taken, staging, path)),
+          start: (taken, staging) =>
+            Effect.gen(function* () {
+              const ask = askOfMatch(taken, staging, path);
+              const ready = yield* Effect.result(prepared(ask));
+              // One job per film, scene, figures and packet: the scene's match folder names the first two.
+              const handle = handleOf([
+                Result.match(ready, { onFailure: () => 'unread', onSuccess: (p) => p.hash }),
+                ...ask.figures.map((f) => `${path.dirname(f.file)} ${f.figure}`),
+              ]);
+              return yield* jobs.start(handle, taken, critiquedFrom(ask, ready));
+            }),
+          job: jobs.job,
           critiqueSheet: (sheet) => critiqued(askOfSheet(sheet)),
         });
       }),
@@ -427,13 +593,27 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
 
   /** A critic that skips every critique, saying `reason`: a lab that runs no counsel (a harness, a test). */
   static readonly skipping = (reason: string) =>
-    Layer.succeed(
+    Layer.effect(
       Critic,
-      Critic.of({
-        critique: () =>
-          Effect.succeed({ figures: [], cached: false, skipped: reason, rejected: [] }),
-        critiqueSheet: () =>
-          Effect.succeed({ figures: [], cached: false, skipped: reason, rejected: [] }),
+      Effect.gen(function* () {
+        const skipped: CritiqueTaken = {
+          figures: [],
+          cached: false,
+          skipped: reason,
+          rejected: [],
+        };
+        const jobs = yield* jobsIn;
+        return Critic.of({
+          critique: () => Effect.succeed(skipped),
+          start: (taken) =>
+            jobs.start(
+              handleOf([taken.scene, ...taken.figures.map((f) => f.figure)]),
+              taken,
+              Effect.succeed(skipped),
+            ),
+          job: jobs.job,
+          critiqueSheet: () => Effect.succeed(skipped),
+        });
       }),
     );
 }

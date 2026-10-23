@@ -687,8 +687,12 @@ export const serveApi = <
 /**
  * How long a connection stays open with nothing sent: Bun's longest. A
  * film's first mix renders the whole film before it answers; a take's import
- * answers within the studio's wait (`STUDIO_IMPORT_WAIT_S`), which is
- * shorter, so the page stops waiting before the socket closes.
+ * answers within the studio's wait (`STUDIO_IMPORT_WAIT_S`, 210 s), which is
+ * shorter, so the page stops waiting before the socket closes. `changes`
+ * waits at most 120 s. A critique's counsel runs for minutes, but no request
+ * holds it: the critique is a job, and a call waits on it at most
+ * `CRITIQUE_WAIT` (40 s), inside the 60 s Claude Code's MCP client gives a
+ * tool call (`easel-mcp.ts`).
  */
 export const LAB_IDLE_SECONDS = 255;
 
