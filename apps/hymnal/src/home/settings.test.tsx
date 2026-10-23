@@ -47,4 +47,13 @@ describe('the Settings route', () => {
       ],
     });
   });
+
+  it('names each radio by its label, so a tap by label finds it on the web', () => {
+    const page = html();
+    expect(
+      [...page.matchAll(/<div (?=[^>]*role="radio")(?=[^>]*aria-label="([^"]+)")/g)].map(
+        ([, label]) => label,
+      ),
+    ).toEqual(['System', 'Light', 'Dark', 'Simple', 'Advanced']);
+  });
 });

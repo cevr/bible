@@ -66,6 +66,7 @@ function Choices<A extends string>({
         <Pressable
           key={choice.value}
           role="radio"
+          aria-label={choice.label}
           aria-checked={chosen === choice.value}
           onPress={() => choose(choice.value)}
           style={({ pressed }) => [styles.row, k > 0 && styles.divided, pressed && styles.pressed]}
