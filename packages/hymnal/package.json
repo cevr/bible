@@ -20,7 +20,8 @@
     "compile": "bun scripts/compile.ts",
     "golden": "bun scripts/golden.ts",
     "render": "bun scripts/render/render.ts",
-    "split": "bun scripts/split.ts"
+    "split": "bun scripts/split.ts",
+    "sync-check": "bun scripts/sync-check.ts"
   },
   "dependencies": {
     "cmu-pronouncing-dictionary": "3.0.0",
