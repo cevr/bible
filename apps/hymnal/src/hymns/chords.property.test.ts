@@ -28,6 +28,7 @@ import {
   still,
 } from './chords';
 import { hymns } from './hymns';
+import { simple } from './simple';
 import type { HymnText, Section } from './text';
 
 const book = chordBook(readChords());
@@ -322,5 +323,215 @@ describe('the chords over every compiled hymn', () => {
         chords: true,
       });
     }
+  });
+});
+
+// ----------------------------------------------------------------------------
+// Simple chords (`simple.ts`) over the same hymns
+// ----------------------------------------------------------------------------
+
+/** Each hymn's Simple chords beside its Advanced ones, from the reads above. */
+const simpleCases = cases.map((c) => {
+  const chords = simple(c.chords);
+  return { ...c, advanced: c.chords, chords, sections: sectionsOf(c.text, chords) };
+});
+
+type Parts = HymnChords['stanzas'];
+const partsOf = (chords: HymnChords): Parts => [
+  ...chords.stanzas,
+  ...Option.toArray(chords.refrain),
+];
+
+/** Each sung line of a hymn, Advanced and Simple side by side, with a name for its faults. */
+const linesOf = (c: (typeof simpleCases)[number]) => {
+  const advanced = partsOf(c.advanced);
+  return partsOf(c.chords).flatMap((part, p) => {
+    const before = advanced[p];
+    if (part._tag !== 'Sung' || before?._tag !== 'Sung') return [];
+    return part.lines.map((line, l) => ({
+      id: `${c.text.number} part ${p + 1} line ${l + 1}`,
+      shown: line.flat(),
+      advanced: (before.lines[l] ?? []).flat(),
+    }));
+  });
+};
+
+/** Decided 2's plain form, a sus read alone: the semitones the root moves and the quality kept. */
+const PLAIN: Record<Chord.Quality, readonly [number, Chord.Quality]> = {
+  '': [0, ''],
+  m: [0, 'm'],
+  '7': [0, '7'],
+  m7: [0, 'm'],
+  m6: [0, 'm'],
+  maj7: [0, ''],
+  '6': [0, ''],
+  aug: [0, ''],
+  dim: [-4, '7'],
+  dim7: [-4, '7'],
+  m7b5: [3, 'm'],
+  sus4: [0, ''],
+  sus2: [0, ''],
+  '7sus4': [0, '7'],
+};
+const SUSPENDED = new Set<Chord.Quality>(['sus4', 'sus2', '7sus4']);
+const plainOf = (chord: Chord.Chord): string => {
+  const [by, quality] = PLAIN[chord.quality];
+  return Chord.format({ root: mod12(chord.root + by), quality }, C_MAJOR);
+};
+
+/**
+ * The plain form of the chord at `k` of a line's chords, `none` when there
+ * is none: a sus takes the quality of the next non-sus chord when it is on
+ * the same root.
+ */
+const plainAt = (chords: ReadonlyArray<Chord.Chord>, k: number): string =>
+  Option.match(Option.fromUndefinedOr(chords[k]), {
+    onNone: () => 'none',
+    onSome: (chord) => plainResolved(chords, k, chord),
+  });
+
+const plainResolved = (chords: ReadonlyArray<Chord.Chord>, k: number, chord: Chord.Chord) => {
+  if (!SUSPENDED.has(chord.quality)) return plainOf(chord);
+  const next = chords.slice(k + 1).find((c) => !SUSPENDED.has(c.quality));
+  return Option.match(
+    Option.filter(Option.fromUndefinedOr(next), (n) => n.root === chord.root),
+    {
+      onNone: () => plainOf(chord),
+      onSome: (n) => Chord.format({ root: chord.root, quality: PLAIN[n.quality][1] }, C_MAJOR),
+    },
+  );
+};
+
+/** Each box's Advanced chord sounding as its syllable starts, as an index into the line's chords. */
+const soundingAt = (boxes: ReadonlyArray<{ readonly chords: ReadonlyArray<unknown> }>) => {
+  let seen = 0;
+  return boxes.map((box) => {
+    const at = seen - Number(box.chords.length === 0);
+    seen += box.chords.length;
+    return at;
+  });
+};
+
+describe('the Simple chords over every compiled hymn', () => {
+  it('shows at most one plain chord over a syllable, with no bass (A1.1, A1.2)', () => {
+    const faults = simpleCases.flatMap((c) =>
+      linesOf(c).flatMap(({ id, shown }) =>
+        shown.flatMap((box, s) => {
+          const wrong = box.chords.filter(
+            (chord) => !['', 'm', '7'].includes(chord.quality) || 'bass' in chord,
+          );
+          if (box.chords.length > 1 || wrong.length > 0)
+            return [
+              `${id} syllable ${s + 1}: ${box.chords.length} chords, ${wrong.length} not plain`,
+            ];
+          return [];
+        }),
+      ),
+    );
+    expect(faults).toEqual([]);
+  });
+
+  it('keeps the parts, lines, words and boxes of the Advanced chords (A1.3)', () => {
+    const outline = (chords: HymnChords) => ({
+      number: chords.number,
+      key: chords.key,
+      refrain: Option.isSome(chords.refrain),
+      parts: partsOf(chords).map((part) => {
+        if (part._tag === 'Plain') return 'Plain';
+        return {
+          level: part.level,
+          lines: part.lines.map((l) => l.map((w) => w.map((b) => b.text))),
+        };
+      }),
+    });
+    const faults = simpleCases
+      .filter((c) => !Bun.deepEquals(outline(c.chords), outline(c.advanced)))
+      .map((c) => c.text.number);
+    expect(faults).toEqual([]);
+  });
+
+  it('shows the plain form of the chord sounding as a syllable starts, never twice in a row (A1.4)', () => {
+    const faults = simpleCases.flatMap((c) =>
+      linesOf(c).flatMap(({ id, shown, advanced }) => {
+        const chords = advanced.flatMap((box) => box.chords);
+        const at = soundingAt(advanced);
+        const symbols = shown.flatMap((box, s) =>
+          box.chords.map((chord) => ({ s, symbol: Chord.format(chord, C_MAJOR) })),
+        );
+        return symbols.flatMap(({ s, symbol }, k) => {
+          const found: Array<string> = [];
+          const expected = plainAt(chords, at[s] ?? -1);
+          if (symbol !== expected) found.push(`${id} syllable ${s + 1}: ${symbol} not ${expected}`);
+          if (k > 0 && symbols[k - 1]?.symbol === symbol)
+            found.push(`${id} syllable ${s + 1}: ${symbol} shown again`);
+          return found;
+        });
+      }),
+    );
+    expect(faults).toEqual([]);
+  });
+
+  it('shows no more chords than Advanced, and none before a line’s first chord (A1.5, A1.6)', () => {
+    const faults = simpleCases.flatMap((c) =>
+      linesOf(c).flatMap(({ id, shown, advanced }) => {
+        const count = (boxes: typeof shown) => boxes.reduce((n, b) => n + b.chords.length, 0);
+        const found: Array<string> = [];
+        if (count(shown) > count(advanced))
+          found.push(`${id}: ${count(shown)} chords over ${count(advanced)}`);
+        const first = advanced.findIndex((box) => box.chords.length > 0);
+        const before = shown.filter((_, s) => first < 0 || s < first);
+        if (count(before) > 0) found.push(`${id}: a chord before the line's first`);
+        return found;
+      }),
+    );
+    expect(faults).toEqual([]);
+  });
+
+  it('shows no passing chord: one syllable long between two of the same chord (A1.9)', () => {
+    const faults = simpleCases.flatMap((c) =>
+      linesOf(c).flatMap(({ id, shown }) => {
+        const symbols = shown.flatMap((box, s) =>
+          box.chords.map((chord) => ({ s, symbol: Chord.format(chord, C_MAJOR) })),
+        );
+        return symbols.flatMap((here, k) => {
+          const around = Option.all([
+            Option.fromUndefinedOr(symbols[k - 1]),
+            Option.fromUndefinedOr(symbols[k + 1]),
+          ]);
+          const passes = Option.exists(
+            around,
+            ([before, after]) => after.s === here.s + 1 && after.symbol === before.symbol,
+          );
+          return Option.toArray(
+            Option.liftPredicate(
+              `${id} syllable ${here.s + 1}: ${here.symbol} passes`,
+              () => passes,
+            ),
+          );
+        });
+      }),
+    );
+    expect(faults).toEqual([]);
+  });
+
+  it('moves as the Advanced chords do: twelve, rest, capo and spelling (P2, P3, P4 on Simple)', () => {
+    const faults: Array<string> = [];
+    for (const { hymn, chords, sections } of simpleCases) {
+      const at = movesOf(sections, hymn.key);
+      for (const transpose of range(-12, 12))
+        for (const capo of range(0, 11))
+          if (at(transpose + 12, capo) !== at(transpose, capo))
+            faults.push(`${hymn.number} at ${transpose}, ${capo}`);
+      if (shownIn(sections, chords.key).join(' ') !== at(0, 0))
+        faults.push(`${hymn.number}: not spelled in its printed key at rest`);
+      for (const n of range(0, 11))
+        if (at(n, n) !== at(0, 0)) faults.push(`${hymn.number} capo ${n}`);
+      const keys = keysOf(hymn.key, chords.key);
+      faults.push(
+        ...keys.faults.map((fault) => `${hymn.number}: ${fault}`),
+        ...spellingFaults(hymn, keys.reached, sections),
+      );
+    }
+    expect(faults).toEqual([]);
   });
 });
