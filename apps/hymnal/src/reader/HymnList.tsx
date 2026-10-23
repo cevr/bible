@@ -50,6 +50,8 @@ export interface HymnListProps {
   readonly byTopic?: boolean;
   /** Phones only, with `byTopic`: the reader's own lists, each above the topics under its name. The web draws none. */
   readonly shelves?: ReadonlyArray<Shelf<HymnText>>;
+  /** Phones only: the reader's favourites, each starred in its rows. The web draws no star in a row. */
+  readonly favourites?: ReadonlySet<number>;
   /** Phones only: what the list holds above its rows, and where it rests (`PullDown`). */
   readonly pullDown?: PullDown;
 }

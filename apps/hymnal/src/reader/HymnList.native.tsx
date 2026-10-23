@@ -5,8 +5,10 @@
  * With `byTopic`, a row names each run of hymns in one topic (`rowsOf`), and
  * a copy of it stays pinned at the list's top while that run's hymns scroll
  * under it (`PinnedTopic`). Above the topics, each of the reader's lists
- * that holds a hymn (`shelves`: Favourites, then Recent) is a run of its own
- * under a row naming it, pinned as a topic's is. The pin follows the scroll offset on the UI
+ * that holds a hymn (`shelves`: Recent) is a run of its own under a row
+ * naming it, pinned as a topic's is. A row of one of the reader's
+ * `favourites` carries a small star before its title, in every run, and
+ * VoiceOver reads it as a favourite. The pin follows the scroll offset on the UI
  * thread from the topics' fixed places (`pin.ts`), not the list's sticky
  * headers: those wait on the JS thread at each handoff, and a fast drag
  * showed the row missing or out of place for a frame.
@@ -51,7 +53,7 @@ import { ListEnd } from './ListEnd';
 import { dismissal } from './keyboard';
 import { pinnedAt, topicStarts } from './pin';
 import { pagesFrom } from './place';
-import { type Row, rowsOf } from './rows';
+import { plainRowsOf, type Row, rowsOf } from './rows';
 
 /** A hymn row's line of text, and the space above and below it, at the reader's usual text size. */
 const line = 22;
@@ -65,19 +67,6 @@ const topicPadding = 8;
 const heightOf = (kind: Row<HymnText>['kind'], fontScale: number) => {
   if (kind === 'topic') return Math.ceil(topicLine * fontScale) + 2 * topicPadding;
   return Math.ceil(line * fontScale) + 2 * padding;
-};
-
-const hymnRows = (hymns: ReadonlyArray<HymnText>) => {
-  const source = hymns.map((hymn) => hymn.number);
-  return {
-    rows: hymns.map((hymn): Row<HymnText> => ({
-      kind: 'hymn',
-      key: `hymn:${hymn.number}`,
-      hymn,
-      source,
-    })),
-    sticky: [],
-  };
 };
 
 /**
@@ -105,6 +94,7 @@ const drawRow = ({
       hymn={item.hymn}
       href={extraData.hrefOf(item.hymn.number)}
       source={item.source}
+      favourite={item.favourite}
       height={extraData.hymnHeight}
       accent={extraData.accent}
     />
@@ -117,14 +107,15 @@ export function HymnList({
   empty,
   byTopic = false,
   shelves,
+  favourites,
   pullDown,
 }: HymnListProps) {
   const { fontScale } = useWindowDimensions();
   const accent = useAccent();
   const { rows, sticky } = useMemo(() => {
-    if (byTopic) return rowsOf(hymns, shelves);
-    return hymnRows(hymns);
-  }, [hymns, byTopic, shelves]);
+    if (byTopic) return rowsOf(hymns, shelves, favourites);
+    return plainRowsOf(hymns, favourites);
+  }, [hymns, byTopic, shelves, favourites]);
   const hymnHeight = heightOf('hymn', fontScale);
   const topicHeight = heightOf('topic', fontScale);
   const look = useMemo(
@@ -262,18 +253,21 @@ function Topic({ name, height }: { readonly name: string; readonly height: numbe
 /**
  * One hymn's row: a link the router opens in the app. Its press first hands
  * the pager the list it sits in (`source`: its shelf's, or the list's), so a
- * swipe on the hymn moves through that list.
+ * swipe on the hymn moves through that list. A favourite's row draws a
+ * small star before its title, and its name ends `, favourite`.
  */
 function HymnRow({
   hymn,
   href,
   source,
+  favourite,
   height,
   accent,
 }: {
   readonly hymn: HymnText;
   readonly href: Href;
   readonly source: ReadonlyArray<number>;
+  readonly favourite: boolean;
   readonly height: number;
   readonly accent: ColorValue;
 }) {
@@ -284,13 +278,18 @@ function HymnRow({
     link.onPress(event);
   };
   return (
-    <Pressable {...link} onPress={onPress} aria-label={`${hymn.number}, ${hymn.title}`}>
+    <Pressable {...link} onPress={onPress} aria-label={nameOf(hymn, favourite)}>
       {({ pressed }) => (
         <View style={[styles.row, { height }, pressed && styles.pressed]}>
           <Text style={[styles.number, { color: accent }]} numberOfLines={1}>
             {hymn.number}
           </Text>
           <Text style={styles.title} numberOfLines={1}>
+            {favourite && (
+              <Text testID="row-star" style={[styles.star, { color: accent }]}>
+                {'★\u2009'}
+              </Text>
+            )}
             {hymn.title}
           </Text>
           <View style={styles.separator} />
@@ -299,6 +298,12 @@ function HymnRow({
     </Pressable>
   );
 }
+
+/** A hymn row's name as VoiceOver reads it: its number and title, and `favourite` when it is one. */
+const nameOf = (hymn: HymnText, favourite: boolean) => {
+  if (favourite) return `${hymn.number}, ${hymn.title}, favourite`;
+  return `${hymn.number}, ${hymn.title}`;
+};
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
@@ -321,6 +326,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   title: { flex: 1, fontSize: 17, lineHeight: line, color: color.ink },
+  star: { fontSize: 13 },
   topic: {
     justifyContent: 'center',
     paddingHorizontal: 16,

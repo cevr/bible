@@ -252,8 +252,9 @@ const rowsDrawn = (host: HTMLElement) =>
       /^\d+/.exec(row.getAttribute('aria-label') ?? '')?.[0] ?? row.getAttribute('aria-label'),
   );
 
-// The home list with the reader's lists: Favourites, then Recent, above the
-// first topic; a row's press there hands the pager that list.
+// The home list with the reader's lists: Recent above the first topic, and
+// each favourite starred in its rows, Recent's and its topic's; a row's
+// press in Recent hands the pager Recent.
 {
   const shown = app();
   const of = (numbers: ReadonlyArray<number>) =>
@@ -264,21 +265,24 @@ const rowsDrawn = (host: HTMLElement) =>
       hrefOf: (n: number) => `/hymns/${n}`,
       offset,
       byTopic: true,
-      shelves: [
-        { name: 'Favourites', hymns: of([3, 30]) },
-        { name: 'Recent', hymns: of([30, 4, 3]) },
-      ],
+      shelves: [{ name: 'Recent', hymns: of([30, 4, 3]) }],
+      favourites: new Set([3, 30]),
     }),
     listed,
   );
-  out['shelfRows'] = rowsDrawn(shown.host).slice(0, 8);
+  out['shelfRows'] = rowsDrawn(shown.host).slice(0, 5);
   out['shelfFirstTopic'] = hymns[0]?.topic;
+  out['starred'] = [...shown.host.querySelectorAll('[role="link"]')]
+    .map((row) => row.getAttribute('aria-label') ?? '')
+    .filter((label) => label.endsWith(', favourite'))
+    .map((label) => Number(/^\d+/.exec(label)?.[0]));
+  out['stars'] = shown.host.querySelectorAll('[data-testid="row-star"]').length;
   await press(shown, '30');
-  out['favouritesSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
+  out['recentSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
   shown.close();
 }
 
-// The home list with no hymn in either of the reader's lists: no shelf at all.
+// The home list with no hymn in Recent: no shelf at all.
 {
   const shown = app();
   await shown.show(
@@ -287,10 +291,7 @@ const rowsDrawn = (host: HTMLElement) =>
       hrefOf: (n: number) => `/hymns/${n}`,
       offset,
       byTopic: true,
-      shelves: [
-        { name: 'Favourites', hymns: [] },
-        { name: 'Recent', hymns: [] },
-      ],
+      shelves: [{ name: 'Recent', hymns: [] }],
     }),
     listed,
   );

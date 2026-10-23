@@ -10,7 +10,7 @@ import { describe, expect, it } from 'bun:test';
 
 import { hymns } from '~/hymns/hymns';
 
-import { type Row, rowsOf } from './rows';
+import { type Row, plainRowsOf, rowsOf } from './rows';
 
 /** A seeded generator in [0, 1) (mulberry32), as the player's world draws. */
 const rng = (seed: number) => () => {
@@ -186,6 +186,51 @@ describe('the reader’s shelves above the topics', () => {
       { kind: 'topic', name: 'Recent' },
       { kind: 'hymn', number: 2 },
       { kind: 'topic', name: 'A' },
+    ]);
+  });
+});
+
+describe('a favourite’s rows', () => {
+  it(`are starred wherever the hymn shows, Recent and its topic alike, and no row is added (seed ${seed})`, () => {
+    const r = rng(seed);
+    for (let k = 0; k < cases; k++) {
+      const list = draw(r, k);
+      const favourites = new Set(list.filter(() => r() < 0.2).map((hymn) => hymn.number));
+      const recent = list.filter(() => r() < 0.01).slice(0, 5);
+      const shelves = [{ name: 'Recent', hymns: recent }];
+      const starred = rowsOf(list, shelves, favourites);
+      const plain = rowsOf(list, shelves);
+      expect(starred.rows.map((row) => row.key)).toEqual(plain.rows.map((row) => row.key));
+      expect(starred.sticky).toEqual(plain.sticky);
+      expect(starred.rows.length).toBe(
+        rowsOf(list).rows.length + recent.length + Math.min(1, recent.length),
+      );
+      for (const row of starred.rows) {
+        if (row.kind === 'hymn')
+          expect({ k, n: row.hymn.number, favourite: row.favourite }).toEqual({
+            k,
+            n: row.hymn.number,
+            favourite: favourites.has(row.hymn.number),
+          });
+      }
+      for (const row of plain.rows) if (row.kind === 'hymn') expect(row.favourite).toBe(false);
+    }
+  });
+
+  it('are starred in a list with no topics too, such as a search’s results', () => {
+    const { rows, sticky } = plainRowsOf(
+      [
+        { number: 4, topic: 'A' },
+        { number: 9, topic: 'B' },
+      ],
+      new Set([9]),
+    );
+    expect(sticky).toEqual([]);
+    expect(
+      rows.map((row) => row.kind === 'hymn' && [row.hymn.number, row.favourite, row.source]),
+    ).toEqual([
+      [4, false, [4, 9]],
+      [9, true, [4, 9]],
     ]);
   });
 });

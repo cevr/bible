@@ -1,6 +1,6 @@
 /**
  * The reader's lists as plain values: Favourites toggled, Recent visited,
- * and both read as the home list's shelves against the hymns there are.
+ * and Recent read as the home list's shelf against the hymns there are.
  */
 
 import { describe, expect, it } from 'bun:test';
@@ -23,7 +23,7 @@ describe('visited', () => {
 
   it(`keeps at most ${RECENT}`, () => {
     const opened = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].reduce(visited, []);
-    expect(opened).toEqual([10, 9, 8, 7, 6, 5, 4, 3]);
+    expect(opened).toEqual([10, 9, 8, 7, 6]);
   });
 });
 
@@ -31,17 +31,12 @@ describe('visited', () => {
 const hymnOf = (n: number) => Option.liftPredicate(n, (m) => m >= 1 && m <= 695);
 
 describe('shelvesOf', () => {
-  it('reads Favourites, then Recent, each in its stored order', () => {
-    expect(shelvesOf({ favourites: [3, 30], recent: [30, 4] }, hymnOf)).toEqual([
-      { name: 'Favourites', hymns: [3, 30] },
-      { name: 'Recent', hymns: [30, 4] },
-    ]);
+  it('reads Recent alone, in its stored order: Favourites is no shelf, its hymns are starred in the rows', () => {
+    expect(shelvesOf([30, 4], hymnOf)).toEqual([{ name: 'Recent', hymns: [30, 4] }]);
   });
 
   it('drops numbers no hymn has, keeping the order', () => {
-    expect(shelvesOf({ favourites: [700, 3, 0, 5], recent: [9999] }, hymnOf)).toEqual([
-      { name: 'Favourites', hymns: [3, 5] },
-      { name: 'Recent', hymns: [] },
-    ]);
+    expect(shelvesOf([700, 3, 0, 5], hymnOf)).toEqual([{ name: 'Recent', hymns: [3, 5] }]);
+    expect(shelvesOf([9999], hymnOf)).toEqual([{ name: 'Recent', hymns: [] }]);
   });
 });

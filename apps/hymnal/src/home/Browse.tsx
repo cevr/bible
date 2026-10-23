@@ -1,9 +1,10 @@
 /**
  * Every hymn in number order, each opening at `/hymns/<n>`: the home
  * screen's list while no search is typed. On a phone a row names each topic
- * over its hymns (`byTopic`), the reader's Favourites and Recent sit above
- * the topics while they hold a hymn (`shelves`), and `pullDown` holds the
- * search field above the rows; the web draws none of them.
+ * over its hymns (`byTopic`), the reader's Recent sits above the topics
+ * while it holds a hymn (`shelves`), each of the reader's Favourites is
+ * starred in its rows (`favourites`), and `pullDown` holds the search field
+ * above the rows; the web draws none of them.
  */
 
 import { useAtomValue } from '@effect/atom-react';
@@ -25,7 +26,8 @@ const hymnOf = (n: number) => hymnAt(String(n));
 export function Browse({ pullDown }: { readonly pullDown?: PullDown }) {
   const favourites = useAtomValue(settings.lists.favourites);
   const recent = useAtomValue(settings.lists.recent);
-  const shelves = useMemo(() => shelvesOf({ favourites, recent }, hymnOf), [favourites, recent]);
+  const shelves = useMemo(() => shelvesOf(recent, hymnOf), [recent]);
+  const starred = useMemo(() => new Set(favourites), [favourites]);
   return (
     <HymnList
       hymns={hymns}
@@ -33,6 +35,7 @@ export function Browse({ pullDown }: { readonly pullDown?: PullDown }) {
       offset={hymnsOffset}
       byTopic
       shelves={shelves}
+      favourites={starred}
       pullDown={pullDown}
     />
   );

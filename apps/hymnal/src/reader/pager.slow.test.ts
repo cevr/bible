@@ -47,7 +47,9 @@ interface Run {
   readonly recentSettle4: ReadonlyArray<number>;
   readonly shelfRows: ReadonlyArray<string>;
   readonly shelfFirstTopic: string;
-  readonly favouritesSource: ReadonlyArray<number>;
+  readonly starred: ReadonlyArray<number>;
+  readonly stars: number;
+  readonly recentSource: ReadonlyArray<number>;
   readonly emptyHeadings: ReadonlyArray<string>;
   readonly playing: {
     readonly playing: boolean;
@@ -180,21 +182,19 @@ describe('the reader’s lists', () => {
     expect(seen.recentSettle4).toEqual([4, 3]);
   });
 
-  it('the home list shows Favourites, then Recent, above its first topic, each with its hymns in order', () => {
-    expect(seen.shelfRows).toEqual([
-      'Favourites',
-      '3',
-      '30',
-      'Recent',
-      '30',
-      '4',
-      '3',
-      seen.shelfFirstTopic,
-    ]);
+  it('the home list shows Recent above its first topic, its hymns in order, and no Favourites section', () => {
+    expect(seen.shelfRows).toEqual(['Recent', '30', '4', '3', seen.shelfFirstTopic]);
   });
 
-  it('a press on a Favourites row hands the pager Favourites to page through', () => {
-    expect(seen.favouritesSource).toEqual([3, 30]);
+  it('a favourite’s rows carry a star and are read as a favourite, in Recent and under its topic', () => {
+    // Recent's 30 and 3 come first, then hymn 3 under its topic, in list order;
+    // 30 under its topic lies past the rows drawn at the top.
+    expect(seen.starred.slice(0, 3)).toEqual([30, 3, 3]);
+    expect(seen.stars).toBe(seen.starred.length);
+  });
+
+  it('a press on a Recent row hands the pager Recent to page through', () => {
+    expect(seen.recentSource).toEqual([30, 4, 3]);
   });
 
   it('a list with no hymn shows no section: the first topic comes first', () => {

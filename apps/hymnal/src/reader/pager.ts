@@ -3,7 +3,7 @@
  * opens, and which hymn a settled offset shows.
  *
  * A swipe moves through the list the reader came from: the home list, a
- * search's results, Favourites or Recent, as the row they pressed recorded it
+ * search's results or Recent, as the row they pressed recorded it
  * (`place.ts`, `pageSource`). A hymn opened any other way (a deep link, the
  * now-playing bar) pages through every hymn in number order. The ends do
  * not wrap.
