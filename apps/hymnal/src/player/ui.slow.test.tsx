@@ -22,7 +22,7 @@ import { audioUrl } from '~/remote';
 import { theme } from '~/theme';
 
 import { fakeDevice } from '../test/device';
-import { opened, opening, params, safeArea } from '../test/one';
+import { opened, opening, params, routed, safeArea, stack } from '../test/one';
 import { PlayerContext } from './context';
 import { FullPlayer } from './FullPlayer';
 import { useShowsPage } from './page';
@@ -78,6 +78,12 @@ const sheetOver = (track: Track) => {
       <PlayerBar />
     </>
   );
+};
+
+/** The full player opened on `track` over no hymn page, as the web's sheet is over the home list. */
+const sheetOn = (track: Track) => {
+  params['hymn'] = String(track.number);
+  return <FullPlayer />;
 };
 
 /** The bottom bar over `page`'s page, or over no hymn page. */
@@ -283,6 +289,8 @@ const mount = (screen: ReactNode = sheetOver(morning)) => {
     /** A command from elsewhere in the app: another hymn's page, or the lock screen. */
     send: (command: Command) => act(() => registry.set(player.send, command)),
     text: () => host.textContent,
+    /** The player's state now. */
+    player: () => registry.get(player.state),
     [Symbol.dispose]: () => {
       act(() => root.unmount());
       host.remove();
@@ -589,6 +597,64 @@ describe('the full player', () => {
           line,
         ]);
       }
+    }),
+  );
+});
+
+describe('the full player’s title', () => {
+  /** The stack under the sheet: `under`, then the sheet on hymn 100, shown. */
+  const over = (under: ReadonlyArray<{ readonly name: string; readonly params?: object }>) => {
+    stack.state = {
+      routes: [...under, { name: 'player', params: { hymn: '100' } }],
+      index: under.length,
+    };
+    routed.splice(0);
+  };
+  const title = `100, ${morning.title}`;
+
+  it.live(
+    'is a button named by its hymn that closes the sheet over that hymn’s page, the track playing on',
+    () =>
+      Effect.gen(function* () {
+        over([{ name: 'index' }, { name: 'hymns/[number]', params: { number: '100' } }]);
+        using page = mount();
+        page.press('Play hymn 100');
+        page.device.now = { state: 'playing', positionMs: 30_000, durationMs: 151_000 };
+        yield* page.until(Player.$is('Playing'));
+        const button = Option.getOrThrow(page.find(`[aria-label="${title}"]`));
+        expect(button.getAttribute('role')).toBe('button');
+        expect(button.textContent).toBe(`100 ${morning.title}`);
+        page.press(title);
+        expect(routed).toEqual(['back']);
+        yield* page.device.reads(2);
+        expect(page.device.played).toEqual([audioUrl(100)]);
+        expect(Player.$is('Playing')(page.player())).toBe(true);
+      }),
+  );
+
+  it.live(
+    'opens that hymn’s page in the sheet’s place over the home list, paused, the track kept',
+    () =>
+      Effect.gen(function* () {
+        over([{ name: 'index' }]);
+        using page = mount(sheetOn(morning));
+        page.press('Play hymn 100');
+        page.device.now = { state: 'playing', positionMs: 30_000, durationMs: 151_000 };
+        yield* page.until(Player.$is('Playing'));
+        page.press('Pause hymn 100');
+        yield* page.until(Player.$is('Paused'));
+        page.press(title);
+        expect(routed).toEqual(['replace /hymns/100']);
+        expect(Player.$is('Paused')(page.player())).toBe(true);
+      }),
+  );
+
+  it.live('opens that hymn’s page over another hymn’s page', () =>
+    Effect.sync(() => {
+      over([{ name: 'index' }, { name: 'hymns/[number]', params: { number: '3' } }]);
+      using page = mount();
+      page.press(title);
+      expect(routed).toEqual(['replace /hymns/100']);
     }),
   );
 });

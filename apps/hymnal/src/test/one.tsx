@@ -15,6 +15,8 @@ import { Match } from 'effect';
 import { type MouseEvent, type ReactNode, useEffect, useId } from 'react';
 import { View } from 'react-native';
 
+import type { StackState } from '~/player/title';
+
 /** The hrefs opened inside the app, oldest first. */
 export const opened: Array<string> = [];
 
@@ -67,12 +69,37 @@ export const useParams = <T,>() => params as T;
 /** Each change of the shown route's params, oldest first: a change in place, not a screen pushed. */
 export const paramsSet: Array<Record<string, string>> = [];
 
-/** One's `useRouter`, for a screen that changes its own route's params: the change is recorded and made. */
+/**
+ * The stack the shown screen is in, as a test sets it (`useNavigation().getState()`):
+ * its screens, oldest first, and the one shown.
+ */
+export const stack: Shown = { state: { routes: [], index: 0 } };
+
+/** The stack a test shows the screen in. */
+interface Shown {
+  state: StackState;
+}
+
+/** Each step the router was told to take, oldest first: `back`, or `replace <href>`. */
+export const routed: Array<string> = [];
+
+/**
+ * One's `useRouter`: a screen that changes its own route's params has the
+ * change recorded and made; Back and a replace are recorded in `routed`.
+ */
 export const useRouter = () => ({
   setParams: (next: Record<string, string>) => {
     paramsSet.push(next);
     Object.assign(params, next);
   },
+  back: () => void routed.push('back'),
+  replace: (href: string) => void routed.push(`replace ${href}`),
+});
+
+/** One's `useNavigation`, as the screens use it: the stack a test set, and the screen focused. */
+export const useNavigation = () => ({
+  getState: () => stack.state,
+  isFocused: () => true,
 });
 
 /** A header from a screen's options: named by its title, holding its right items. */

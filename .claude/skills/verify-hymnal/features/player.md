@@ -20,6 +20,8 @@ length is not known).
 - `player-bar`: the bar (region `Player`) shows on a hymn page and on every screen while the player holds a hymn; its `Open player` button tells the place (`0:30 of 2:00`).
 - `player-bar-page`: while the player holds no hymn, the bar is the hymn page's own: on a back (the header's button or a pan from the left edge) it slides out with the page, never left on the screen after the page has gone; on a push it slides in with it.
 - `player-full`: `Open player` opens the sheet `/player?hymn=<n>` on the bar's hymn, with the group `Recording`, that hymn's heading and the `Position` bar in every state, on the web too (where the page under it unmounts). A paused held hymn gives way to the page's, as on the bar.
+- `player-title`: the sheet's hymn number and title is a button named `<n>, <title>` (hint: opens the hymn's page). A press closes the sheet and opens that hymn's page, in the sheet's place in the stack; over that hymn's own page the sheet only closes. The player is not told: a track plays or stays paused as it was.
+- `player-seek-hold`: on iOS, while a finger drags the sheet's `Position` bar, in any direction, the sheet does not move; once the finger lifts, a drag elsewhere on the sheet moves it again.
 - `player-line`: the iOS `Position` bar draws one track, with no line of ticks under it (a column of the sheet's still crosses one line).
 - `player-fail`: a recording that cannot load offers `Retry hymn <n>`.
 
@@ -39,7 +41,9 @@ length is not known).
 3. **Play (web).** `sim tap "label=Play hymn 100"`. → `ok`; `sim snapshot playing` holds `Pause hymn 100` once loading ends (or `Loading hymn 100` before it).
 4. **The bar elsewhere (web).** `sim tap label=Search`, then `sim snapshot bar`. → the region `Player` still holds `Pause hymn 100`, and `Open player` tells the place.
 5. **Pause (web).** `sim tap "label=Pause hymn 100"`. → `ok`; the button reads `Play hymn 100` again.
-6. **Proof.** `sim shot` after steps 2 to 5, and `sim log` for the page's console.
+6. **Title (web, then iOS with the player idle).** `sim tap "label=Open player"`, then `sim tap "role=button label=100, <title>"`. → the sheet closes on hymn 100's page, and the bar still reads `Pause hymn 100` (web). From the home list, with the bar's hymn held, open the sheet and press the title. → hymn 100's page, the bar unchanged.
+7. **Seek holds the sheet (iOS).** Open the sheet, read the heading's `y` (`agent-device snapshot --json`), then pan from the `Position` bar's middle down and across (`agent-device gesture pan <x> <y> 120 250 700`). → the heading's `y` is unchanged, and the sheet is still open. Pan from the heading down (`agent-device gesture pan <x> <y> 0 250 700`). → the sheet moves: it closes or drops to its lower detent.
+8. **Proof.** `sim shot` after steps 2 to 5, and `sim log` for the page's console.
 
 ## Gotchas
 

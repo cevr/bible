@@ -3,7 +3,8 @@
  * hymn (`/player?hymn=<n>`): the hymn its route names, or the hymn held when
  * it names none, as the bar gives it (`barFor`, the route's hymn as the
  * page). The route is its one source on every platform: the web keeps no
- * page mounted under it, a phone does. Its number and title, what the player is
+ * page mounted under it, a phone does. Its number and title, a button that
+ * goes to the hymn's page (`title.ts`), what the player is
  * doing, its button, and a bar to drag to any place in the recording with
  * the time gone and the whole length. The bar shows in every state, still
  * while the length is not known. A recording that cannot play says why and
@@ -12,10 +13,11 @@
 
 import { useAtomSet, useAtomValue } from '@effect/atom-react';
 import { Option } from 'effect';
-import { useParams } from 'one';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation, useParams, useRouter } from 'one';
+import { type ColorValue, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
+import { hymnHref } from '~/home/Browse';
 import { hymnAt } from '~/hymns/hymns';
 
 import { Bar, barFor, placeOf } from './bar';
@@ -23,6 +25,7 @@ import { usePlayer } from './context';
 import { Command, type HymnPlayer, Player, type Track } from './player';
 import { Scrubber } from './Scrubber';
 import { clock } from './time';
+import { TitleGo, titleGoes } from './title';
 import { Toggle } from './Toggle';
 
 export function FullPlayer() {
@@ -78,10 +81,7 @@ function Held({
   return (
     <ScrollView contentContainerStyle={styles.page}>
       <View role="group" aria-label="Recording" style={styles.control}>
-        <Text role="heading" aria-level={1} style={styles.head}>
-          <Text style={[styles.number, { color: accent }]}>{`${track.number} `}</Text>
-          <Text style={styles.title}>{track.title}</Text>
-        </Text>
+        <Title track={track} accent={accent} />
         <Text aria-live="polite" style={styles.caption} dynamicTypeRamp="subheadline">
           {caption(state)}
         </Text>
@@ -104,6 +104,36 @@ function Held({
   );
 }
 
+/**
+ * The hymn's number and title: a button that goes to its page, closing the
+ * sheet (`titleGoes`, from the stack as it is at the press). The player is
+ * not told, so the track plays on.
+ */
+function Title({ track, accent }: { readonly track: Track; readonly accent: ColorValue }) {
+  const navigation = useNavigation();
+  const router = useRouter();
+  const go = () =>
+    TitleGo.$match(titleGoes(navigation.getState(), track.number), {
+      Close: () => router.back(),
+      Open: ({ number }) => router.replace(hymnHref(number)),
+    });
+  return (
+    <Pressable
+      role="button"
+      aria-label={`${track.number}, ${track.title}`}
+      accessibilityHint="Opens the hymn's page."
+      onPress={go}
+    >
+      {({ pressed }) => (
+        <Text role="heading" aria-level={1} style={[styles.head, pressed && styles.pressed]}>
+          <Text style={[styles.number, { color: accent }]}>{`${track.number} `}</Text>
+          <Text style={styles.title}>{track.title}</Text>
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
 /** The sheet opened with no hymn to play: a link that names none, with nothing held. */
 function Nothing() {
   return (
@@ -122,6 +152,7 @@ const styles = StyleSheet.create({
   page: { padding: 24, gap: 16 },
   control: { gap: 16 },
   head: { fontSize: 22, fontWeight: '700', color: color.ink },
+  pressed: { opacity: 0.6 },
   number: { fontVariant: ['tabular-nums'] },
   title: { color: color.ink },
   caption: { fontSize: 15, color: color.muted },
