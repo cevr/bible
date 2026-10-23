@@ -4613,16 +4613,16 @@
     },
     {
       "number": 220,
-      "row": "unsettled",
-      "source": "sdahimages",
-      "pages": ["220.png", "When_He_Comes2.png"],
+      "row": "matches",
+      "source": "photo",
+      "pages": ["220.jpg", "220-p2.jpg"],
       "readings": {
         "reader": 0,
         "ocr": 1
       },
       "rulings": {
-        "all": 84,
-        "changes": 19
+        "all": 25,
+        "changes": 0
       },
       "stanzas": 3,
       "refrain": true,
@@ -4630,8 +4630,7 @@
       "witness": {
         "hunks": 24,
         "digest": "6d132c8355526de7"
-      },
-      "note": "the engraving prints \"\" where the row has \"to\" (unit 1, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 1, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 1, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to\" (unit 1, 220-1244.jpg, 220-1245.jpg, When_He_Comes2-0-326.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 1, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 1, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"With the alleluias ringing to the sky,\" where the row has \"with the alleluias ringing to the sky to the sky\" (unit 1, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 1, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 2, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 2, When_He_Comes2-0-326.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 2, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to\" (unit 3, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 3, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 3, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to\" (unit 3, 220-1244.jpg, 220-1245.jpg, When_He_Comes2-0-326.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 3, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"sky\" (unit 3, When_He_Comes2-0-326.jpg, 220-1244.jpg, 220-1245.jpg); an engraving never fixes a row; the engraving prints \"With the alleluias ringing to the sky,\" where the row has \"with the alleluias ringing to the sky to the sky\" (unit 3, When_He_Comes2-356-458.jpg); an engraving never fixes a row; the engraving prints \"\" where the row has \"to the sky\" (unit 3, When_He_Comes2-356-458.jpg); an engraving never fixes a row"
+      }
     },
     {
       "number": 221,
