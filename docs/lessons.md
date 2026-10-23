@@ -3316,3 +3316,23 @@ The form of an entry, each field on its own line:
 - **Wrong:** With the home list showing five recents, the hymns opened before them could not be reached from Recent.
 - **Cause:** Recent kept only what the home list showed. It now keeps 50; the home list shows 5, and the Recent header opens the Recent screen with all of them.
 - **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `Recent’s header is a button that shows See all and opens the Recent screen`, `apps/hymnal/src/reader/pager.slow.test.ts` `the Recent screen lists every hymn Recent keeps, the latest first, a favourite starred, an unknown number dropped`
+
+### hymn-row-star-at-the-end
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "one problem here is the star here looks kind of out of place. Maybe we can just make it here. And make it a bit bigger, around the same size as the number, and then it'll just shift the ellipses to the left, right? The cutoff point."
+- **Source:** the owner's look on his iPhone at 146556d91, tmp/orchestrate/hymnapp/notes/owner/2026-10-22-star-scrawl.png (run hymnapp, unit uibulk)
+- **Wrong:** A favourite's star sat inside the title's text, before the title, smaller than the hymn's number, so it looked out of place and was cut with the title.
+- **Cause:** The star was drawn as a nested text of the title (option A's first form). It is now its own text after the title, at the row's end and the number's size, so the title's ellipsis comes before it and a row without a star keeps the whole width.
+- **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `a favourite’s star sits after its title, out of it, at the number’s size, so the title’s ellipsis comes before it`
+
+### hymn-bar-leaves-with-the-page
+
+- **Date:** 2026-10-22
+- **Kind:** owner
+- **Said:** "When we go back, it just stays there for a while and then unmounts. It should unmount immediately. It should just be part of the whole sheet. So rather than unmounting after the sheet fully unmounts, it should just kind of transition away alongside the whole page."
+- **Source:** the owner's look on his iPhone at 146556d91, tmp/orchestrate/hymnapp/notes/owner/2026-10-22-bar-pop-scrawl.png (run hymnapp, unit uibulk)
+- **Wrong:** On a back from a hymn page with nothing playing, the bottom bar stayed docked while the page slid away, then vanished with a jump once the page had gone.
+- **Cause:** The bar was docked under the whole stack and shown from the page the stack showed, so it changed only once the pop had ended. While the player holds no hymn, the hymn screen now draws the bar as its own (`PageBar`, `pageBar`), so it moves with the page; the docked bar shows only while a hymn is held (`dockedBar`).
+- **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `lies in the hymn’s screen while nothing is held, on every way in, so a back takes it out with the screen`, `apps/hymnal/src/player/bar.test.ts` `is the page’s own while the player holds no hymn, so it comes and goes with the page`
