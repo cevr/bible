@@ -18,7 +18,7 @@
  * `even`, its syllables' starts, in seconds through the timing's tempo map
  * (`secondsAt`, the app's own math), are cross-correlated with the
  * recording's onset envelope (spectral flux: 22050 Hz, window 1024, hop 128,
- * each frame timed at its window's centre) over ±300 ms; the lag at the best
+ * each frame timed at its window's centre) over ±200 ms; the lag at the best
  * match is the line's error. Other lines are counted as skipped. It prints a
  * line per hymn, then the set's summary:
  *
@@ -139,8 +139,17 @@ const RATE = 22050;
 const WIN = 1024;
 const HOP = 128;
 const HOP_S = HOP / RATE;
-/** How far either way a line's best match is looked for. */
-const MAX_LAG_S = 0.3;
+/**
+ * How far either way a line's best match is looked for: past the follow's
+ * 150 ms tolerance, and short of a step to the next note for most lines. A
+ * line whose notes lie a regular step apart matches nearly as well one note
+ * over, and with ±300 ms six lines on warm-1 (in hymns 47, 251, 336, 442 and
+ * 525, notes 238-313 ms apart) settled there although their neighbours and
+ * the MIDI's clock agree within 12 ms; ±200 ms finds each of them at 0-12 ms.
+ * Of the 15 014 measured lines, 3 479 have two notes under 300 ms apart and
+ * 1 299 under 200 ms.
+ */
+const MAX_LAG_S = 0.2;
 
 /** An array's value at an index, 0 past its end. */
 const v = (array: ArrayLike<number>, i: number) => array[i] ?? 0;
