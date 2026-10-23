@@ -23,7 +23,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | uibulk    | chords, shell, playstall       |                           |                   | merged 2f7de2e1d    |
 | chordsimp | chords, uibulk                 | removed                   |                   | merged d34ce0021    |
 | h220      | pagerows                       | removed                   |                   | merged 5ffd09c2e    |
-| worship   | uibulk, render                 | .rifts/manna/worship      | a3eca13e7ff48484b |                     |
+| worship   | uibulk, render                 | .rifts/manna/worship      | a454c54eeec07a736 |                     |
 | tempo     | worship                        |                           |                   |                     |
 | keys      | render                         |                           |                   | merged 8be940a53    |
 | hymnbar   | shell, playstall               |                           |                   | folded into uibulk  |
@@ -212,6 +212,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - The app's unit tests were over the 1 s budget at base under load (1.13 to 1.19 s at load 8, measured by worship r1; 1.29 s at load 14 by its planner). worship does not fix the base overage: it keeps pure tests in the fast suite and moves page renders and real timers to `*.slow.test.*`, and its request gives the budget with and without its tests at one load. The base overage is a follow-up unit for the gate (orchestrator, 2026-10-23, principle never-block-on-the-human). (worship)
 
 - worship r1 blocked on disk: the iOS drive (A8, A10, A11) needs a Debug simulator build (about 8 GB) and the disk had 6.1 GB free. Decided: review r1 now (reviewer at medium, no deep); the verifier runs the iOS rows. Freed by the orchestrator, regenerable only: the verify-hymnal simulator erased (9.6 GB of data, the skill recreates it) and hymnapp-main ios/Pods removed; 10 GB free at 07:50 EDT. hymnal-try is left whole, since it serves 8095. Follow-up: verify-hymnal states the disk a cold build needs and the sim helper refuses below it (guard: a check in sim.ts). (orchestrator, 2026-10-23, never-block-on-the-human, worship)
+
+- worship r1 review: changes on one Blocker, B1 (Play with Sound off stays Loading: the score clock starts at the first sung line, the Player confirms a load only at 0 ms). Decided: round 2 by a fresh implementor; player.ts may change at its load-confirmation and status-lock seam only, structurally (Player and clock agree on a confirmed start), with a full-Player test red on 787d0beb7; m3, m4 (checker label), m1 (checker timing), m2, o1 ride along; m5, m6, m7 are follow-ups. (orchestrator, 2026-10-23, exit rule, worship)
 
 ## Owner questions
 
