@@ -4,8 +4,8 @@
  *
  * Run from `apps/hymnal`, on a booted simulator whose app shows hymn `<n>`'s
  * page with sound off (`sim open hymns/<n>`, then `sim tap label=Sound`
- * until the page reads `Sound off`): it refuses to press Play with sound
- * on. It presses `Play hymn <n>` once and touches nothing else. It records
+ * until the `Sound` button's value reads `unchecked`): it refuses to press
+ * Play with sound on. It presses `Play hymn <n>` once and touches nothing else. It records
  * the screen (`<out>/follow-<n>.mp4`) and reads the accessibility tree
  * (`agent-device snapshot --json`) about every `--every` ms until the
  * player ends, or until the hymn's timeline has run a minute over. Each
@@ -32,7 +32,7 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 
 import { timelineOf } from '../src/follow/timeline.ts';
 import { readTiming } from '../vite/timing.ts';
-import { judge, type Sample, sampleOf } from './follow/samples.ts';
+import { judge, type Sample, sampleOf, soundOff } from './follow/samples.ts';
 import { succeed } from './sim/tools.ts';
 
 const RectSchema = Schema.Struct({
@@ -47,8 +47,11 @@ const Snapshot = Schema.Struct({
   data: Schema.Struct({
     nodes: Schema.Array(
       Schema.Struct({
+        index: Schema.optional(Schema.Int),
+        parentIndex: Schema.optional(Schema.Int),
         identifier: Schema.optional(Schema.String),
         label: Schema.optional(Schema.String),
+        value: Schema.optional(Schema.String),
         selected: Schema.optional(Schema.Boolean),
         rect: Schema.optional(RectSchema),
       }),
@@ -70,6 +73,8 @@ const Verdict = Schema.Struct({
   outside: Schema.Int,
   doubled: Schema.Int,
   mismatched: Schema.Int,
+  adrift: Schema.Int,
+  early: Schema.Boolean,
   ended: Schema.Boolean,
   touches: Schema.Int,
   holds: Schema.Boolean,
@@ -201,7 +206,7 @@ const follow = Command.make(
       const before = yield* nodesNow(flags.session);
       if (!before.some((node) => node.label === `Play hymn ${flags.hymn}`))
         return yield* FollowFailed.make({ reason: `the page shows no Play hymn ${flags.hymn}` });
-      if (!before.some((node) => node.label === 'Sound off'))
+      if (!soundOff(before))
         return yield* FollowFailed.make({ reason: 'sound is not off: Play is not pressed' });
       const limit = timeline.end - timeline.first + Duration.toMillis(OVER);
       const samples = yield* recording(
@@ -209,8 +214,7 @@ const follow = Command.make(
         path.join(flags.out, `follow-${flags.hymn}.mp4`),
         play(flags.session, flags.hymn, flags.every, limit),
       );
-      const lengths = timeline.lines.map((line) => line.until - line.start);
-      const verdict = judge(flags.hymn, lengths, samples, 1);
+      const verdict = judge(flags.hymn, timeline, samples, 1);
       yield* fs.writeFileString(
         path.join(flags.out, `follow-${flags.hymn}.json`),
         encodeRecord({ verdict, samples }),

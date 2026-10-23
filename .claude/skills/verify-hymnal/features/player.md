@@ -24,7 +24,7 @@ length is not known).
 - `player-seek-hold`: on iOS, while a finger drags the sheet's `Position` bar, in any direction, the sheet does not move; once the finger lifts, a drag elsewhere on the sheet moves it again.
 - `player-line`: the iOS `Position` bar draws one track, with no line of ticks under it (a column of the sheet's still crosses one line).
 - `player-fail`: a recording that cannot load offers `Retry hymn <n>`.
-- `player-sound`: the button `Sound`, left of Play in the bar, reads `Sound on` (the default) or `Sound off`; a press turns it. Off, Play sounds nothing and the bar's place runs on the score's clock (follow, [follow.md](follow.md)). The choice is kept after a relaunch.
+- `player-sound`: the button `Sound`, left of Play in the bar, reads `Sound on` (the default) or `Sound off`; a press turns it. On iOS its accessibility element is labelled `Sound` and says its state in its value, `checked` (on) or `unchecked` (off). Off, Play sounds nothing and the bar's place runs on the score's clock (follow, [follow.md](follow.md)). The choice is kept after a relaunch.
 
 ## How to get to it (user POV)
 
@@ -49,7 +49,7 @@ length is not known).
 ## Gotchas
 
 - The simulator plays through the Mac's speakers. Never press Play on iOS with sound on; the web browser is muted by `sim boot`, so play there with sound on.
-- On iOS, press Play only once `sim snapshot` reads `Sound off`: `sim tap label=Sound` turns it, and the choice is kept, so a relaunch (or another drive's) may have left it on. Put it back to `Sound on` at the end of a drive, after a relaunch, when the player holds no hymn.
+- On iOS, press Play only once the `Sound` button reads off. The presented `sim snapshot` shows only `[button] "Sound"`; read its value with `agent-device snapshot --json --raw --observe-only --force-full --session verify-hymnal` (`checked` is on, `unchecked` is off). `sim tap label=Sound` turns it, and the choice is kept, so a relaunch (or another drive's) may have left it on. Put it back to `Sound on` at the end of a drive, after a relaunch, when the player holds no hymn.
 - Step 7 needs a known length, which only a play gives. On iOS, point `audioUrl` (`src/remote.ts`) at a silent local file for the drive alone (`ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 120 silent.mp3`, as `file:///<path>`: One's iOS audio takes `file://` or `https://` only), press Play in the sheet, then Pause. Revert the edit before any commit.
 - The recording streams from the app's host: offline, Play ends in `Retry hymn <n>`. That is the error state, not a defect of the drive.
 - Loading shows a spinner named `Loading hymn <n>`, not a button: wait for `Pause hymn <n>`, never a fixed sleep.
