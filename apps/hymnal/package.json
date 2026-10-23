@@ -16,6 +16,7 @@
     "test:browser": "bun test ./test/browser --timeout 30000",
     "test:infra": "bun test --path-ignore-patterns='**/*.slow.test.*' infra scripts vite",
     "test:slow": "bun test --preload ./src/test/setup.ts ./src/player/bar.property.slow.test.tsx ./src/player/ui.slow.test.tsx ./src/player/world.property.slow.test.ts ./src/reader/HymnList.native.slow.test.ts ./src/reader/pager.slow.test.ts ./src/reader/reader.slow.test.tsx ./src/reader/reading.slow.test.tsx && bun test --preload ./src/test/setup.ts ./src/follow/follow.slow.test.tsx && bun test ./infra/audio/adapters.slow.test.ts ./scripts/sim/sim.slow.test.ts && bun run test:browser",
+    "icon": "bun scripts/icon.ts",
     "sim": "bun scripts/sim.ts",
     "follow": "bun scripts/follow.ts",
     "plan": "alchemy plan alchemy.run.ts --stage prod",
@@ -52,6 +53,7 @@
     "alchemy": "2.0.0-beta.83",
     "effect-bun-test": "catalog:",
     "rolldown": "1.2.13",
+    "sharp": "0.35.4",
     "vite": "8.3.4"
   },
   "reanimated": {

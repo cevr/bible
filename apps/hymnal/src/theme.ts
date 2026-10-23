@@ -16,7 +16,7 @@
  * so the pressed state keeps AA too.
  */
 
-const wada167 = {
+export const wada167 = {
   ecru: '#c2ae93',
   paleKingsBlue: '#a7d4e4',
   vandarPoelsBlue: '#064f6e',
