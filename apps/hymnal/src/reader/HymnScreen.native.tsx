@@ -22,6 +22,11 @@
  * other pushed screen: a strip `backEdge` points wide lies over the pager
  * there, so the pager's scroll view never gets that touch, and the stack's
  * back gesture does. A pan that starts anywhere else turns the page.
+ *
+ * LegendList lays each item of a sideways list in a box as tall as the
+ * item's own content, so a page given only `flex: 1` grows to its words'
+ * full height and its scroll view has nothing to scroll. Each page is
+ * therefore given the pager's measured height (`onLayout`).
  */
 
 import { useAtomSet, useAtomValue } from '@effect/atom-react';
@@ -30,6 +35,7 @@ import { Option } from 'effect';
 import { useParams, useRouter } from 'one';
 import { useEffect, useState } from 'react';
 import {
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   StyleSheet,
@@ -67,6 +73,9 @@ function Pager({ shown }: { readonly shown: HymnText }) {
   // a link pages through every hymn.
   useEffect(() => taken(Option.none()), [taken]);
   const { width } = useWindowDimensions();
+  const [height, setHeight] = useState(Option.none<number>());
+  const onLayout = (event: LayoutChangeEvent) =>
+    setHeight(Option.some(event.nativeEvent.layout.height));
   const router = useRouter();
   const settle = (offset: number) =>
     Option.match(
@@ -85,7 +94,7 @@ function Pager({ shown }: { readonly shown: HymnText }) {
       { onNone: () => {}, onSome: settle },
     );
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} onLayout={onLayout}>
       <Shown hymn={shown} />
       <LegendList
         data={pages.list}
@@ -97,7 +106,7 @@ function Pager({ shown }: { readonly shown: HymnText }) {
         estimatedItemSize={width}
         initialScrollIndex={pages.index}
         drawDistance={width}
-        extraData={width}
+        extraData={{ width, height }}
         onMomentumScrollEnd={onMomentumScrollEnd}
         onScrollEndDrag={onScrollEndDrag}
         renderItem={drawPage}
@@ -109,8 +118,21 @@ function Pager({ shown }: { readonly shown: HymnText }) {
 }
 
 /** One hymn's page, a screen wide. */
-const drawPage = ({ item, extraData }: { readonly item: number; readonly extraData: number }) => (
-  <View style={[styles.page, { width: extraData }]}>
+const drawPage = ({
+  item,
+  extraData,
+}: {
+  readonly item: number;
+  readonly extraData: { readonly width: number; readonly height: Option.Option<number> };
+}) => (
+  <View
+    testID="pager-page"
+    style={[
+      styles.page,
+      { width: extraData.width },
+      Option.match(extraData.height, { onNone: () => ({}), onSome: (height) => ({ height }) }),
+    ]}
+  >
     {Option.match(hymnAt(String(item)), {
       onNone: () => <NoHymn number={String(item)} />,
       onSome: (hymn) => <HymnPage hymn={hymn} reader={reader} />,

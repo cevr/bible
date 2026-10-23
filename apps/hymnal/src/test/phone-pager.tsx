@@ -141,6 +141,9 @@ const seen = (shown: App) => {
     opened: [...opened],
     paramsSet: paramsSet.map((set) => Number(set['number'])),
     backEdge: edgeOf(shown),
+    pageHeights: [...shown.host.querySelectorAll('[data-testid="pager-page"]')].map(
+      (page) => getComputedStyle(page).height,
+    ),
   };
 };
 

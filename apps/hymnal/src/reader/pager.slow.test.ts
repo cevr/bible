@@ -30,6 +30,7 @@ interface Seen {
     readonly bottom: string;
     readonly width: string;
   };
+  readonly pageHeights: ReadonlyArray<string>;
 }
 
 interface Run {
@@ -131,6 +132,16 @@ describe('a settle', () => {
       expect(shown.headers).toBe(1);
       expect(shown.headerNames).toEqual([hymn]);
       expect(shown.rightItems).toEqual([1]);
+    }
+  });
+});
+
+describe('a page', () => {
+  it('is as tall as the pager, not as its words, so the words scroll inside it on every way in', () => {
+    // The phone stand-in measures every view 800 points tall.
+    for (const shown of [seen.open3, seen.settle4, seen.open30, seen.open600, seen.settle601]) {
+      expect(shown.pageHeights.length).toBeGreaterThan(0);
+      for (const height of shown.pageHeights) expect(height).toBe('800px');
     }
   });
 });
