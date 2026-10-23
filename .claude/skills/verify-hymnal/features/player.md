@@ -31,7 +31,7 @@ length is not known).
 
 - **Preconditions:** the hymn reader open (`sim open hymns/100 --expect "label=Play hymn 100"`). Web only for steps that play (Gotchas).
 - **States:** default, loading. Error (`Retry`) needs the recording's host down and is n/a on a normal run.
-- **Regression:** `apps/hymnal/src/player/player.test.ts`, `apps/hymnal/src/player/ui.slow.test.tsx`, `apps/hymnal/src/player/bar.property.slow.test.tsx`, `apps/hymnal/src/player/world.property.slow.test.ts`.
+- **Regression:** `apps/hymnal/src/player/player.test.ts`, `apps/hymnal/src/player/bar.test.ts`, `apps/hymnal/src/reader/pager.slow.test.ts` (the bottom bar), `apps/hymnal/src/player/ui.slow.test.tsx`, `apps/hymnal/src/player/bar.property.slow.test.tsx`, `apps/hymnal/src/player/world.property.slow.test.ts`.
 
 1. **The bar.** `sim snapshot reader`. → the tree holds `Play hymn 100` and `Open player` in the region `Player`, and no group `Recording` in the page.
 2. **The full player.** `sim tap "label=Open player"`. → the sheet holds the group `Recording` and `Position` (disabled while Idle). On iOS, take a still, crop it to the `Position` band (no hymn words), and read one column across it: one line run, the track. Then close the sheet; on iOS stop here.
