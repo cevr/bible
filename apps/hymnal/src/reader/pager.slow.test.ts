@@ -9,8 +9,6 @@
 
 import { describe, expect, it } from 'bun:test';
 
-import { backEdge } from './pager';
-
 interface Seen {
   readonly pages: ReadonlyArray<number>;
   readonly headers: number;
@@ -185,7 +183,7 @@ describe('the left edge', () => {
         left: '0px',
         top: '0px',
         bottom: '0px',
-        width: `${backEdge}px`,
+        width: '20px',
       });
   });
 });
