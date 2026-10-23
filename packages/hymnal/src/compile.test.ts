@@ -568,6 +568,15 @@ describe('compile: trust', () => {
         ['syllable', ['reused']],
       ]);
       expect(parts[2]?.lines).toEqual(parts[1]?.lines);
+      // Its times are its last verse's, moved to start at the file's end.
+      const timing = hymn.timing;
+      const lines = timing?.lines ?? [];
+      expect(lines.map((line) => line.played)).toEqual([true, true, true, true, false, false]);
+      const move = (timing?.end ?? 0) - (lines[2]?.start ?? 0);
+      expect(lines.slice(4).map((line) => line.syllables)).toEqual(
+        lines.slice(2, 4).map((line) => line.syllables.map((at) => at + move)),
+      );
+      expect(timing?.intro).toBe(lines[0]?.start);
     }),
   );
 
@@ -655,21 +664,24 @@ describe('compile: trust', () => {
           placed(each, sung(each.refrain?.part)),
         );
         // Sung after the last stanza alone (1 2 R): laid as first and last; before each: as after each.
+        // The timing follows the sung order, so it alone differs.
         const last = yield* compile(
           source(stepsFile(2), stanzas, { ...refrain, order: 'after-last' }),
         );
         expect(last.refrain?.order).toBe('after-last');
-        expect({ ...last, refrain: last.refrain?.part }).toEqual({
+        expect({ ...last, refrain: last.refrain?.part, timing: undefined }).toEqual({
           ...ends,
           refrain: ends.refrain?.part,
+          timing: undefined,
         });
         const before = yield* compile(
           source(stepsFile(2), stanzas, { ...refrain, order: 'before-each' }),
         );
         expect(before.refrain?.order).toBe('before-each');
-        expect({ ...before, refrain: before.refrain?.part }).toEqual({
+        expect({ ...before, refrain: before.refrain?.part, timing: undefined }).toEqual({
           ...each,
           refrain: each.refrain?.part,
+          timing: undefined,
         });
       }),
   );

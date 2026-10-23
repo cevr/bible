@@ -27,6 +27,9 @@
  *   one shown (a short chord folded away that runs on into it).
  * - A syllable sharing the note before it carries none.
  *
+ * Each hymn carries its timing (`timing.ts`): the file's tempo map and when
+ * each sung line and syllable starts, from the notes each stanza was laid on.
+ *
  * Pure: no file, Bun or Node access.
  */
 
@@ -39,6 +42,7 @@ import * as Harmony from './harmony.js';
 import type { Fit, Hymn, Order, Part, Plain, Reason, Syllable } from './hymn.js';
 import * as Midi from './midi.js';
 import * as Score from './score.js';
+import * as Timing from './timing.js';
 
 interface Source {
   readonly book: 'sdah-1985';
@@ -151,7 +155,29 @@ interface Laid {
   readonly fit: Fit | undefined;
   /** Each line of syllables, the stanza's and then the refrain's. */
   readonly lines: Syllable[][];
+  /** Each line's syllable starts in ticks, as `lines`; absent when laid as words alone. */
+  readonly starts: number[][] | undefined;
 }
+
+/**
+ * Each laid line's syllable starts, in ticks: a syllable's first note's
+ * start, or for one sharing the note before it, its predecessor's start. A
+ * line that opens on a note shared with the line before starts at its own
+ * first note instead, so each line's syllables come before the next line's.
+ */
+const startsOf = (alignment: Align.Alignment, span: Score.Span): number[][] => {
+  let before = span.start;
+  return alignment.lines.map((line) => {
+    const own = line.map((s) => (s.notes === 0 ? undefined : alignment.melody[s.note]?.start));
+    let last = own.find((start) => start !== undefined) ?? before;
+    const starts = own.map((start) => {
+      last = start ?? last;
+      return last;
+    });
+    before = starts.at(-1) ?? before;
+    return starts;
+  });
+};
 
 /** Judges a placement: words alone, chords per line, or chords on syllables. */
 const judge = (
@@ -199,7 +225,7 @@ const lay = (score: Score.Score, n: number, lines: readonly string[]): Laid => {
       }
     : undefined;
   const { level, why } = judge(fit, info);
-  if (level === 'text') return { level, why, fit, lines: [] };
+  if (level === 'text') return { level, why, fit, lines: [], starts: undefined };
   const full = place(score, span, alignment, 'full');
   const guitar = place(score, span, alignment, 'guitar');
   const tpb = score.ticksPerBeat;
@@ -219,7 +245,7 @@ const lay = (score: Score.Score, n: number, lines: readonly string[]): Laid => {
       return syllable;
     }),
   );
-  return { level, why, fit, lines: out };
+  return { level, why, fit, lines: out, starts: startsOf(alignment, span) };
 };
 
 /** A part from a placement's lines in [from, to), or the text's own lines when it is plain. */
@@ -294,7 +320,26 @@ export const compile = (
 ): Effect.Effect<Hymn, Midi.MidiParseError | VerseLayoutError> =>
   Effect.gen(function* () {
     const { stanzas, refrain } = yield* versesOf(source);
-    const score = Score.fromMidi(yield* Midi.parse(source.midi), stanzas.length);
+    const midi = yield* Midi.parse(source.midi);
+    const score = Score.fromMidi(midi, stanzas.length);
+    // The stanza the refrain is laid after and stored from: the last alone when it is sung after the last only.
+    const lastOnly = refrain?.order === 'first-and-last' || refrain?.order === 'after-last';
+    const from = lastOnly ? stanzas.length - 1 : 0;
+    const tail = (n: number) =>
+      refrain === undefined || (lastOnly && n !== from) ? [] : refrain.lines;
+    const spans = score.verses.spans;
+    /** The hymn with its timing: each stanza on its verse (its last when the file plays fewer). */
+    const timed = (hymn: Mutable<Hymn>, starts: (n: number) => number[][] | undefined): Hymn => {
+      const layings = stanzas.map((lines, n): Timing.Laying => ({
+        played: n < spans.length,
+        span: spans[Math.min(n, spans.length - 1)] ?? { start: 0, end: midi.lastTick },
+        stanza: lines.length,
+        tail: tail(n).length,
+        starts: starts(n),
+      }));
+      hymn.timing = Timing.timingOf(hymn, midi, layings);
+      return hymn;
+    };
     const head = {
       version: 1,
       book: source.book,
@@ -312,13 +357,8 @@ export const compile = (
       const plain: Mutable<Hymn> = { ...head, stanzas: Arr.map(stanzas, held) };
       if (refrain !== undefined)
         plain.refrain = { order: refrain.order, part: held(refrain.lines) };
-      return plain;
+      return timed(plain, () => undefined);
     }
-    // The stanza the refrain is laid after and stored from: the last alone when it is sung after the last only.
-    const lastOnly = refrain?.order === 'first-and-last' || refrain?.order === 'after-last';
-    const from = lastOnly ? stanzas.length - 1 : 0;
-    const tail = (n: number) =>
-      refrain === undefined || (lastOnly && n !== from) ? [] : refrain.lines;
     const laid = Arr.map(stanzas, (lines, n) => lay(score, n, [...lines, ...tail(n)]));
     const parts = Arr.map(laid, (one, n) => {
       const lines = stanzas[n] ?? [];
@@ -331,5 +371,5 @@ export const compile = (
       const part = partOf(stored, refrain.lines, start, start + refrain.lines.length);
       hymn.refrain = { order: refrain.order, part };
     }
-    return hymn;
+    return timed(hymn, (n) => laid[n]?.starts);
   });

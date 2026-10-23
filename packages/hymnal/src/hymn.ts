@@ -118,6 +118,44 @@ export type Order = typeof Order.Type;
 /** The refrain, stored once, and where it is sung. */
 const Refrain = Schema.Struct({ order: Order, part: Part });
 
+/** Every time in `Timing` is a whole count of this part of a quarter beat. */
+export const PER_BEAT = 96;
+
+const Time = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
+/**
+ * One sung line's times: `start` and `until` (the next sung line's start, or
+ * the timeline's end), and each syllable's start (none for a `Plain` line).
+ * `played` is false for a line the file does not play (a stanza past its
+ * verses, laid after its end; a refrain sung first, laid in the intro);
+ * `even` is true when its times are even shares, not its notes'.
+ */
+const LineTime = Schema.Struct({
+  start: Time,
+  until: Time,
+  syllables: Schema.Array(Time),
+  played: Schema.Boolean,
+  even: Schema.Boolean,
+});
+export type LineTime = typeof LineTime.Type;
+
+/**
+ * When each sung line and syllable comes, read from the file the
+ * recordings are rendered from: its tempo map (from each beat on, a quarter
+ * lasts so many microseconds), the first played sung note (`intro`), the
+ * file's end, and one entry per line of `sung(hymn)`, in that order. Times
+ * are in 1/`PER_BEAT` quarter beats; `secondsAt` (`timing.ts`) turns them
+ * into seconds.
+ */
+export const Timing = Schema.Struct({
+  perBeat: Schema.Literal(PER_BEAT),
+  tempos: Schema.Array(Schema.Tuple([Time, Schema.Int.check(Schema.isGreaterThan(0))])),
+  intro: Time,
+  end: Time,
+  lines: Schema.Array(LineTime),
+});
+export type Timing = typeof Timing.Type;
+
 export const Hymn = Schema.Struct({
   version: Schema.Literal(1),
   book: Schema.Literals(['sdah-1985']),
@@ -131,6 +169,7 @@ export const Hymn = Schema.Struct({
   /** In order: stanza n is `stanzas[n - 1]`. */
   stanzas: Schema.NonEmptyArray(Part),
   refrain: Schema.optionalKey(Refrain),
+  timing: Schema.optionalKey(Timing),
 });
 export type Hymn = typeof Hymn.Type;
 
