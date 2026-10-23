@@ -14,10 +14,11 @@ recipe.
   "→" is its observable result: the JSON line's `ok`, and what the
   snapshot or screenshot shows.
 - The app has no seed: its 695 hymns are compiled in, and its stored
-  choices are the appearance setting, the `Chords` choice, each hymn's
-  transpose and capo, and the reading sheet's choices. A drive that changes
-  one puts it back at the end (`System`; chords off, no transpose, no capo;
-  text size 100%, `System` font, `Normal` spacing, keep screen on off).
+  choices are the appearance setting, the `Chords` choice, the chord
+  style, each hymn's transpose and capo, and the reading sheet's choices. A
+  drive that changes one puts it back at the end (`System`; chords off,
+  chord style `Simple`, no transpose, no capo; text size 100%, `System`
+  font, `Normal` spacing, keep screen on off).
 
 ## Proof and skip reporting
 
@@ -51,11 +52,11 @@ source seams out.
 
 ## Features
 
-| Feature                               | Id                                                            | Deep link (iOS / web)               | Proof                                                                                    |
-| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| [Hymn list](hymn-list.md)             | `hymn-list`                                                   | `hymnal://` / `/`                   | rows by number, open a row; a favourite starred; Recent 5 on home, See all opens all     |
-| [Hymn reader](hymn-reader.md)         | `hymn-reader`                                                 | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll; swipe to the next hymn, a left-edge pan goes back |
-| [Chords and capo](chords-and-capo.md) | `chords`, `capo`, `transpose`, `chords-levels`, `chords-kept` | `hymnal://hymns/100` / `/hymns/100` | `chord-1-1-1` reads `Db`, then follows transpose and capo; kept per hymn                 |
-| [Player](player.md)                   | `player`                                                      | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control; the bar the page's own, docked once held     |
-| [Settings and about](settings.md)     | `settings`, `about`                                           | `hymnal://settings` / `/settings`   | appearance kept after leaving; About's credits                                           |
-| [Search](search.md)                   | `search`                                                      | `hymnal://search` / `/search`       | one match for "great is thy", open it                                                    |
+| Feature                               | Id                                                                             | Deep link (iOS / web)               | Proof                                                                                                                  |
+| ------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [Hymn list](hymn-list.md)             | `hymn-list`                                                                    | `hymnal://` / `/`                   | rows by number, open a row; a favourite starred; Recent 5 on home, See all opens all                                   |
+| [Hymn reader](hymn-reader.md)         | `hymn-reader`                                                                  | `hymnal://hymns/100` / `/hymns/100` | stanzas and refrains in order, scroll; swipe to the next hymn, a left-edge pan goes back                               |
+| [Chords and capo](chords-and-capo.md) | `chords`, `capo`, `transpose`, `chords-levels`, `chords-kept`, `chords-simple` | `hymnal://hymns/100` / `/hymns/100` | `chord-1-1-1` reads `Db`, then follows transpose and capo; kept per hymn; Simple on hymn 3: `G`, `D`, no `chord-1-1-6` |
+| [Player](player.md)                   | `player`                                                                       | `hymnal://hymns/100` / `/hymns/100` | Play turns to Pause, the Recording control; the bar the page's own, docked once held                                   |
+| [Settings and about](settings.md)     | `settings`, `settings-chords`, `about`                                         | `hymnal://settings` / `/settings`   | appearance kept after leaving; chord style kept after a relaunch; About's credits                                      |
+| [Search](search.md)                   | `search`                                                                       | `hymnal://search` / `/search`       | one match for "great is thy", open it                                                                                  |

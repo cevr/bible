@@ -10,7 +10,7 @@ title. On a phone the list falls under sticky rows that name the hymnal's
 topical sections (each hymn's topic is joined from the compiled
 `topics.json` through `topicOf` when the app is bundled), and a pull down
 shows a search field (number, title or first line) that opens a search
-over the list. A gear in the title row opens Settings (appearance) as a
+over the list. A gear in the title row opens Settings (appearance, chord style) as a
 sheet. A hymn opens pushed over the home screen. A hymn shows its words in the order they are sung: each stanza
 under its number, and the refrain written out each time it is sung.
 
@@ -71,7 +71,7 @@ under its number, and the refrain written out each time it is sung.
 
 ## Chords
 
-A `Chords` switch under a hymn's title (the stored `chords` setting, off by
+The `Chords` button in a hymn's header (the stored `chords` setting, off by
 default) draws the hymn's guitar chords over its words. Each sung syllable
 is a box with its chords above it in the body's own font, a word's boxes
 stay together, and a line wraps between words; a chord wider than its
@@ -83,6 +83,21 @@ the twelve keys, and `Capo down`/`Capo up` set a capo fret, 0 to 11, the
 chords then shown as the shapes that fret plays (`Capo <n>, <key> shapes`).
 Each hymn keeps its own move (`move.<number>` in the settings store).
 
+Settings → Chords chooses how the chords are shown (`Chord style`, stored
+as `chords.style`, the same for every hymn):
+
+- `Simple`, the default, for a beginner: each syllable shows at most one
+  plain chord (major, minor or seventh), only where the harmony changes, so
+  a line keeps its words' spacing. `src/hymns/simple.ts` derives it from
+  the full harmony as the page draws it: a seventh-family chord becomes its
+  triad or seventh, a diminished chord the seventh it stands for, a sus the
+  chord it resolves to, a stack its first chord, and a one-syllable passing
+  chord between two of the same goes.
+- `Advanced`: every chord as compiled, stacks and all.
+
+Both styles follow the transpose and capo, and a change of style keeps the
+hymn's move.
+
 - The chords come in a module of their own, `virtual:hymnal-chords`,
   derived from the compiled set when the app is bundled (`vite/chords.ts`,
   served by the same plugin as the words): one compact string per hymn,
@@ -93,7 +108,8 @@ Each hymn keeps its own move (`move.<number>` in the settings store).
   `@bible/hymnal/chord` in the key the move reaches: the printed key at rest
   and after a whole octave, else the key a signature names on that pitch.
 - `src/hymns/chords.property.test.ts` walks every hymn, section and syllable
-  at every transpose and capo.
+  at every transpose and capo; its Simple cases hold every hymn's Simple
+  chords to the rules above and to the same transpose and capo.
 
 ## The player
 
