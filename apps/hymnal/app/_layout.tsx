@@ -30,7 +30,10 @@ export default function Layout() {
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
           <meta name="color-scheme" content="light dark" />
           <title>Hymnal</title>
-          <link rel="icon" href="/favicon.svg" />
+          <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <link rel="manifest" href="/manifest.webmanifest" />
           <style>{webColors}</style>
         </head>
         <body>
