@@ -48,5 +48,6 @@ length is not known).
 ## Gotchas
 
 - The simulator plays through the Mac's speakers. Never press Play on iOS during a drive; the web browser is muted by `sim boot`, so play there.
+- Step 7 needs a known length, which only a play gives. On iOS, point `audioUrl` (`src/remote.ts`) at a silent local file for the drive alone (`ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 120 silent.mp3`, as `file:///<path>`: One's iOS audio takes `file://` or `https://` only), press Play in the sheet, then Pause. Revert the edit before any commit.
 - The recording streams from the app's host: offline, Play ends in `Retry hymn <n>`. That is the error state, not a defect of the drive.
 - Loading shows a spinner named `Loading hymn <n>`, not a button: wait for `Pause hymn <n>`, never a fixed sleep.

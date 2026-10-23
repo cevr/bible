@@ -3,12 +3,13 @@
 /**
  * The app's tests run its screens under Bun, rendered to HTML as the web
  * build renders them, or mounted in a browser's document (happy-dom) where a
- * test presses and types. Three boundaries stand in, as the bundler and the
+ * test presses and types. Four boundaries stand in, as the bundler and the
  * router would provide them:
  * - `react-native` is react-native-web, as on the web;
  * - `virtual:hymnal` is the same words the bundler plugin derives (`vite/words.ts`),
  *   and `virtual:hymnal-chords` the same chords (`vite/chords.ts`);
- * - `one` is `src/test/one.tsx`: a link opens its href in the app, a screen's options are dropped.
+ * - `one` is `src/test/one.tsx`: a link opens its href in the app, a screen's options are dropped;
+ * - `react-native-gesture-handler` is `src/test/gesture.tsx`: a test plays a gesture's touch.
  */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -35,6 +36,11 @@ plugin({
     const one = Bun.resolveSync('./one.tsx', import.meta.dir);
     build.module('one', () => ({
       contents: `export * from ${JSON.stringify(one)};`,
+      loader: 'js',
+    }));
+    const gesture = Bun.resolveSync('./gesture.tsx', import.meta.dir);
+    build.module('react-native-gesture-handler', () => ({
+      contents: `export * from ${JSON.stringify(gesture)};`,
       loader: 'js',
     }));
     build.module('virtual:hymnal', () => ({
