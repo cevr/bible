@@ -33,6 +33,8 @@ export type ManifestHymn = typeof ManifestHymn.Type;
 export const RecordingManifest = Schema.Struct({
   set: Schema.String,
   style: Schema.String,
+  /** Semitones every hymn of the set is moved from its printed key (`keySet`); absent for the printed key. */
+  transpose: Schema.optional(Schema.Int),
   /** Where it was rendered: `darwin-arm64`. */
   platform: Schema.String,
   /** The sha256 of what shapes the sound besides a hymn's MIDI file (`configOf` in `scripts/render/run.ts`): what every hymn's resume key shares. */

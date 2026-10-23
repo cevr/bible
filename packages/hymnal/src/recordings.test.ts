@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 
-import { creditText, RECORDING_SET, recordingKey } from './recordings.js';
+import { creditText, KEY_TRANSPOSES, keySet, RECORDING_SET, recordingKey } from './recordings.js';
 
 describe('recordings', () => {
   it.effect('keys a hymn by its unpadded number inside the set', () =>
@@ -30,6 +30,17 @@ describe('recordings', () => {
           'Piano: Salamander Grand Piano V3 by Alexander Holm, CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). ' +
           'Strings: VS Chamber Orchestra 2: Community Edition by Versilian Studios, CC0 1.0.',
       );
+    }),
+  );
+
+  it.effect('names each other key a set of its own, up or down, with no plus sign', () =>
+    Effect.sync(() => {
+      expect(keySet(2)).toBe('warm-1-up2');
+      expect(keySet(-3)).toBe('warm-1-down3');
+      expect(keySet(6)).toBe('warm-1-up6');
+      expect(keySet(0)).toBe('warm-1');
+      expect(KEY_TRANSPOSES).toEqual([1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6]);
+      expect(KEY_TRANSPOSES.map(keySet).filter((set) => set.includes('+'))).toEqual([]);
     }),
   );
 });

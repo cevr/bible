@@ -71,6 +71,20 @@ describe('stemNotes', () => {
       ]);
     }),
   );
+
+  it.effect("folds a note outside the stem's range by octaves into it, and leaves the rest", () =>
+    Effect.sync(() => {
+      const voices: Voices = {
+        S: [note(0, 384, 40), note(384, 768, 60), note(768, 1152, 90)],
+        A: [],
+        T: [],
+        B: [],
+      };
+      const ranged = { ...stem({ S: 80 }), range: { low: 48, high: 86 } };
+      expect(stemNotes(voices, ranged, 'seed', 0).map((n) => n.key)).toEqual([52, 60, 78]);
+      expect(stemNotes(voices, stem({ S: 80 }), 'seed', 0).map((n) => n.key)).toEqual([40, 60, 90]);
+    }),
+  );
 });
 
 describe('stemMidi', () => {
