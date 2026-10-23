@@ -27,7 +27,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | tuner     | chordbulk                      |                           |                   |                     |
 | tempo     | worship                        |                           |                   |                     |
 | follow2   | worship                        |                           |                   |                     |
-| appicon   | worship                        |                           |                   |                     |
+| appicon   | worship                        | .rifts/manna/appicon      | a4d3e2ed97ddb4ba8 |                     |
 | chordbulk | chordsimp, worship             |                           |                   |                     |
 | keys      | render                         |                           |                   | merged 8be940a53    |
 | hymnbar   | shell, playstall               |                           |                   | folded into uibulk  |
