@@ -161,6 +161,12 @@ describe('a drawn figure', () => {
   });
 });
 
+describe('a beardless face whose beard band falls below the head', () => {
+  test('reads no beard, so no hair against beard', () => {
+    expect(measured({ ...PLAIN, eyeBelow: 35 }).hairBeard).toBeUndefined();
+  });
+});
+
 describe('long dark hair, a lit band painted on it inside the ink', () => {
   const W = headWidth(PLAIN);
   const drawnHeight = (2 * (PLAIN.ry + PLAIN.line)) / W;

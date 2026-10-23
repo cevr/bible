@@ -1772,7 +1772,7 @@ const skinOf = (read: Read, head: Head): ((c: Rgb) => boolean) => {
   };
 };
 
-/** A beard reads when this share of the band under the mouth, between the eyes' outer edges and off the outline, is neither skin nor ink. */
+/** A beard reads when this share of the band under the mouth, between the eyes' outer edges and off the outline, is neither skin nor ink; a band with no pixel inside the head (it falls below the chin) reads none. */
 const BEARD_SHARE = 0.3;
 /** Each side's edge is read when the beard meets fill past it on this many rows. */
 const EDGE_ROWS = 3;
@@ -1824,7 +1824,8 @@ const hairBeardOf = (read: Read, head: Head): Option.Option<HairBeard> => {
   const [beardTop, beardBottom] = [head.eyeY + 0.8 * spacing, head.eyeY + 2.2 * spacing];
   const hair = fillIn(outer.x0, outer.x0 + outer.bw - 1, outer.y0, head.eyeY + 0.5 * spacing);
   const beard = fillIn(a.x0, b.x1, beardTop, beardBottom);
-  if (hair.fill.length === 0 || beard.fill.length < BEARD_SHARE * beard.all) return Option.none();
+  if (hair.fill.length === 0 || beard.all === 0 || beard.fill.length < BEARD_SHARE * beard.all)
+    return Option.none();
   const line = Math.max(2, Math.round(read.line));
   const valueAt = (x: number, y: number) => hsvOf(rgbAt(read.r, y * read.w + x)).value;
   const rowEdge = (y: number, x0: number, step: 1 | -1): Option.Option<number> => {
