@@ -229,7 +229,7 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - census2: rows the page contradicts, each `unsettled` with its row unchanged: 3, 18, 58, 162, 207, 214, 220, 243, 398, 402 (table and crops in census2's `blocked.md`). Recommendation: one ask after census2 merges, each row a choice (change the row to the page / keep the row), the page's crop beside it. Answer: asked in chat 2026-10-22 (B recommended: the page wins on the line-break rows 3, 18, 162, 207, 214, 402; the word rows 58, 220, 243, 398 keep the source, 220 to a second judge). Answer (owner, 2026-10-22: "Let's go with your recommendation."): B. Unit `pagerows` applies it.
 
-- chordsimp (2026-10-23): Simple shows the first chord of each stack, so 1,171 stacks lose a final seventh (for example a G then G7 over one syllable shows G). Options: (1, recommended) keep the first chord, as merged, since the seventh is a passing colour and Advanced keeps it; (2) show the last chord of the stack in Simple; (3) keep a seventh when it is the last chord of the stack. Answer: pending.
+- chordsimp (2026-10-23): Simple shows the first chord of each stack, so 1,171 stacks lose a final seventh (for example a G then G7 over one syllable shows G). Options: (1, recommended) keep the first chord, as merged, since the seventh is a passing colour and Advanced keeps it; (2) show the last chord of the stack in Simple; (3) keep a seventh when it is the last chord of the stack. Answer: (1), as merged. The owner checked build d34ce0021 on the phone (hymn 3 in Simple among the four checks) and said "It all looks good." (2026-10-23); read as keeping the merged behaviour, reversible.
 
 ## Follow-ups
 
