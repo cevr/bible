@@ -1,6 +1,6 @@
 import { useAtom } from '@effect/atom-react';
 import type * as Atom from 'effect/reactivity/Atom';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, type TextStyle, View } from 'react-native';
 
 import { About } from '~/about';
 import type { ChordStyle } from '~/hymns/simple';
@@ -33,16 +33,17 @@ export default function Settings() {
       </Text>
       <Heading>Appearance</Heading>
       <Choices label="Appearance" value={settings.appearance} choices={appearances} />
-      <Heading>Chords</Heading>
+      <Heading style={styles.section}>Chords</Heading>
       <Choices label="Chord style" value={settings.chordStyle} choices={chordStyles} />
       <About />
     </ScrollView>
   );
 }
 
-function Heading({ children }: { readonly children: string }) {
+/** A group's heading; a heading below another group stands apart from it, as About's does. */
+function Heading({ children, style }: { readonly children: string; readonly style?: TextStyle }) {
   return (
-    <Text role="heading" aria-level={2} style={styles.heading} dynamicTypeRamp="footnote">
+    <Text role="heading" aria-level={2} style={[styles.heading, style]} dynamicTypeRamp="footnote">
       {children}
     </Text>
   );
@@ -92,6 +93,7 @@ const styles = StyleSheet.create({
     color: color.muted,
     textTransform: 'uppercase',
   },
+  section: { marginTop: 16 },
   group: {
     borderRadius: 12,
     overflow: 'hidden',
