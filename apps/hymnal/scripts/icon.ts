@@ -4,7 +4,8 @@
  *
  * Each row of `icons` is one PNG: its size, its layout (how large the wheat
  * sits on the square), the wheat's colour, and its ground, or none for the
- * Android layers a launcher puts on its own ground. `svgFor` writes the row
+ * Android layers and the launch screen's artwork, which the launcher or the
+ * launch screen puts on its own ground. `svgFor` writes the row
  * as an SVG and sharp renders it (`draw`). An icon with a ground is opaque,
  * with no alpha channel. An icon with no ground is the wheat's colour in
  * every pixel, with the shape in the alpha channel alone. The run also writes
@@ -74,6 +75,11 @@ export const icons: ReadonlyArray<Icon> = [
     wheat: white,
     ground: clear,
   },
+  // The launch screen's artwork, on the ground `vite/app.ts` names: One's
+  // prebuild trims an opaque ground away and draws what is left `width`
+  // points wide, so the square keeps its size only with a transparent ground.
+  { file: 'public/splash.png', size: 1024, layout: 'full', wheat: blue, ground: clear },
+  { file: 'public/splash-dark.png', size: 1024, layout: 'full', wheat: ecru, ground: clear },
   { file: 'public/apple-touch-icon.png', size: 180, layout: 'full', wheat: blue, ground: on(ecru) },
   { file: 'public/icon-192.png', size: 192, layout: 'full', wheat: blue, ground: on(ecru) },
   { file: 'public/icon-512.png', size: 512, layout: 'full', wheat: blue, ground: on(ecru) },

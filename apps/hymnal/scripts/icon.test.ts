@@ -314,6 +314,63 @@ describe('the app icon', () => {
       }),
     ));
 
+  test('draws the launch screen as the wheat on its token ground, light and dark', () => {
+    const { splash } = app;
+    const screens: ReadonlyArray<readonly [string, string, string, string]> = [
+      [splash.source, splash.backgroundColor, ecru, blue],
+      [splash.dark.source, splash.dark.backgroundColor, blue, ecru],
+    ];
+    return Effect.forEach(
+      screens,
+      ([file, background, groundHex, wheatHex]) =>
+        Effect.all(
+          [
+            sideOf(file),
+            decode(file),
+            // The launch screen as shown: the artwork over its configured ground.
+            Effect.promise(() =>
+              sharp(`${ROOT}/${file}`)
+                .flatten({ background })
+                .raw()
+                .toBuffer({ resolveWithObject: true }),
+            ),
+          ],
+          { concurrency: 3 },
+        ).pipe(
+          Effect.map(([side, artwork, { data, info }]) => {
+            const shown: Pixels = { data, ...info };
+            const ground = rgb(groundHex);
+            const drawn = blends(shown, ground, rgb(wheatHex));
+            return {
+              file,
+              background,
+              side,
+              cornerAlpha: corners(artwork).map((i) => artwork.data.readUInt8(i + 3)),
+              groundCorners: corners(shown).every((i) => exact(shown.data, i, ground)),
+              offBlend: drawn.off,
+              solidWheat: drawn.exactly >= 0.02 * shown.width * shown.height,
+            };
+          }),
+        ),
+      { concurrency: 2 },
+    ).pipe(
+      Effect.map((rows) => {
+        expect(splash.width).toBe(200);
+        expect(rows).toEqual(
+          screens.map(([file, , groundHex]) => ({
+            file,
+            background: groundHex,
+            side: { format: 'png', square: true, side: 1024 },
+            cornerAlpha: [0, 0, 0, 0],
+            groundCorners: true,
+            offBlend: 'none',
+            solidWheat: true,
+          })),
+        );
+      }),
+    );
+  });
+
   test('commits what bun run icon draws from the wheat now', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;

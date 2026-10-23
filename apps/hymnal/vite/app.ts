@@ -16,7 +16,14 @@ export const app = {
     dark: { source: './assets/icon/ios-dark.png', backgroundColor: wada167.vandarPoelsBlue },
     tinted: { source: './assets/icon/ios-tinted.png', backgroundColor: '#000000' },
   },
-  splash: { source: './public/splash.png', backgroundColor: '#000000', width: 200 },
+  // The wheat, drawn by `bun run icon`, centred 200 points wide on the token
+  // ground; the dark launch screen reverses it.
+  splash: {
+    source: './public/splash.png',
+    backgroundColor: wada167.ecru,
+    width: 200,
+    dark: { source: './public/splash-dark.png', backgroundColor: wada167.vandarPoelsBlue },
+  },
   ios: { bundleId: 'im.cvr.hymnal', deploymentTarget: '17.0' },
   // A recording plays on with the screen locked, under the lock
   // screen's and Control Center's controls (iOS `UIBackgroundModes`
