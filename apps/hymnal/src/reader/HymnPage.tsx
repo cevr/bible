@@ -301,7 +301,11 @@ export function NoHymn({ number }: { readonly number: string }) {
 }
 
 const styles = StyleSheet.create({
-  frame: { flex: 1 },
+  // A pager page is drawn before the pager's height is known, at its words'
+  // height; once the page takes the pager's height, iOS keeps this frame at
+  // the words' height unless it is bounded by its page, and a frame as tall as
+  // its words has nothing to scroll.
+  frame: { flex: 1, maxHeight: '100%' },
   page: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48, gap: 24 },
   head: { gap: 4 },
   topic: { fontSize: 13, color: color.muted },

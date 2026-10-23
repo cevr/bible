@@ -14,7 +14,7 @@ later rows sit one indent right of its first.
 
 - `reader-head`: the topic above, then the number and the title side by side, the number left of the title.
 - `reader-words`: stanzas in order, each a group named `Stanza <n>`, the refrain a group named `Refrain` after each stanza.
-- `reader-scroll`: the words scroll to the last stanza and back.
+- `reader-scroll`: the words scroll to the last stanza and back, inside a page as tall as the pager on every page, the open one and its neighbours.
 - `reader-back`: the header's back button returns to the list or the search it came from, in one press however many pages were swiped, and the list is at its place.
 - `reader-pager`: on a phone, a swipe left or right turns to the next or previous hymn of the list the hymn was opened from (the home list in number order, its Recent rows too; a search's results; the Recent screen's whole list; every hymn in number order for a link); the header and the page head name the hymn shown. A pan from the left edge goes back on any hymn, after a list press and after a swipe; a pan from mid-screen turns the page.
 - `reader-text`: `Aa` opens the reading sheet; `Larger text` and `Smaller text` step the size (each disabled at its end), `Font` and `Line spacing` are radio groups, and the page behind follows at once, chords included.
@@ -36,7 +36,7 @@ later rows sit one indent right of its first.
 
 1. **Open by deep link.** `sim open hymns/100 --expect "label=Stanza 1"`. → `ok`; on iOS `detail.prompts` is 0 or 1; the snapshot holds `100`, `Great Is Thy Faithfulness`, `Stanza 1`, `Refrain`.
 2. **The head.** `sim open hymns/15 --expect "label=Stanza 1"`, then on iOS read the frames with `agent-device snapshot --json` (the `rect` of the topic, the number and the title). → the frames give `number.x + number.width <= title.x`, the number's and the title's vertical centres within half a line, and the topic's frame above both. Read the frames only; the snapshot holds the words, so trash it after.
-3. **Scroll to the end.** `sim open hymns/100 --expect "label=Stanza 1"`, then `sim scroll "label=Stanza 3" down`. → `ok`; `Stanza 3` is on screen (`sim shot`).
+3. **Scroll to the end.** `sim open hymns/100 --expect "label=Stanza 1"`, then on iOS read the `rect` of every `hymn-scroll` with `agent-device snapshot --json --raw --observe-only --force-full --session verify-hymnal`. → each is as tall as its `pager-page` (670 pt on a 402 pt wide simulator with the bar under the pager), not as its words; a `hymn-scroll` taller than its page cannot scroll. Then `sim scroll "label=Stanza 3" down`. → `ok`; `Stanza 3` is on screen (`sim shot`).
 4. **Scroll back.** `sim scroll screen up` twice. → `ok`; `Stanza 1` is on screen again.
 5. **Back.** `sim back`. → `ok`; the Hymns list.
 6. **Proof.** `sim snapshot` and `sim shot` after each step.
