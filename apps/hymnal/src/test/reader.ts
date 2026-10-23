@@ -35,5 +35,6 @@ export const readerOn = (device: Map<string, string> = new Map()): ChordReader =
     move: settings.move,
     book: chordBook(bundled),
     reading: settings.reading,
+    favourites: settings.lists.favourites,
   };
 };

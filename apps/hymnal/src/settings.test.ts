@@ -124,3 +124,35 @@ describe('the reading settings', () => {
     expect(registry.get(settings.reading.awake)).toBe(false);
   });
 });
+
+describe('the reader’s lists', () => {
+  it('start empty', () => {
+    const { settings, registry } = launch(new Map());
+    expect(registry.get(settings.lists.favourites)).toEqual([]);
+    expect(registry.get(settings.lists.recent)).toEqual([]);
+  });
+
+  it('are kept under their lists keys, apart from every other setting, when the app is opened again', () => {
+    const device = new Map<string, string>();
+    const first = launch(device);
+    first.registry.set(first.settings.lists.favourites, [3, 30]);
+    first.registry.set(first.settings.lists.recent, [30, 4, 3]);
+    first.registry.dispose();
+    expect([...device.keys()].toSorted()).toEqual(['lists.favourites', 'lists.recent']);
+
+    const again = launch(device);
+    expect(again.registry.get(again.settings.lists.favourites)).toEqual([3, 30]);
+    expect(again.registry.get(again.settings.lists.recent)).toEqual([30, 4, 3]);
+  });
+
+  it('read a stored list they cannot decode as empty', () => {
+    const { settings, registry } = launch(
+      new Map([
+        ['lists.favourites', '"3"'],
+        ['lists.recent', '[1.5]'],
+      ]),
+    );
+    expect(registry.get(settings.lists.favourites)).toEqual([]);
+    expect(registry.get(settings.lists.recent)).toEqual([]);
+  });
+});

@@ -4,7 +4,9 @@
  *
  * With `byTopic`, a row names each run of hymns in one topic (`rowsOf`), and
  * a copy of it stays pinned at the list's top while that run's hymns scroll
- * under it (`PinnedTopic`). The pin follows the scroll offset on the UI
+ * under it (`PinnedTopic`). Above the topics, each of the reader's lists
+ * that holds a hymn (`shelves`: Favourites, then Recent) is a run of its own
+ * under a row naming it, pinned as a topic's is. The pin follows the scroll offset on the UI
  * thread from the topics' fixed places (`pin.ts`), not the list's sticky
  * headers: those wait on the JS thread at each handoff, and a fast drag
  * showed the row missing or out of place for a frame.
@@ -63,10 +65,18 @@ const heightOf = (kind: Row<HymnText>['kind'], fontScale: number) => {
   return Math.ceil(line * fontScale) + 2 * padding;
 };
 
-const hymnRows = (hymns: ReadonlyArray<HymnText>) => ({
-  rows: hymns.map((hymn): Row<HymnText> => ({ kind: 'hymn', key: `hymn:${hymn.number}`, hymn })),
-  sticky: [],
-});
+const hymnRows = (hymns: ReadonlyArray<HymnText>) => {
+  const source = hymns.map((hymn) => hymn.number);
+  return {
+    rows: hymns.map((hymn): Row<HymnText> => ({
+      kind: 'hymn',
+      key: `hymn:${hymn.number}`,
+      hymn,
+      source,
+    })),
+    sticky: [],
+  };
+};
 
 /**
  * What a row reads from outside its item. The list draws a row again only
@@ -78,8 +88,6 @@ interface Look {
   readonly hymnHeight: number;
   readonly topicHeight: number;
   readonly hrefOf: HymnListProps['hrefOf'];
-  /** The hymns a row's press hands the pager: this list's, in its order. */
-  readonly source: ReadonlyArray<number>;
 }
 
 const drawRow = ({
@@ -94,20 +102,27 @@ const drawRow = ({
     <HymnRow
       hymn={item.hymn}
       href={extraData.hrefOf(item.hymn.number)}
-      source={extraData.source}
+      source={item.source}
       height={extraData.hymnHeight}
       accent={extraData.accent}
     />
   );
 };
 
-export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: HymnListProps) {
+export function HymnList({
+  hymns,
+  hrefOf,
+  empty,
+  byTopic = false,
+  shelves,
+  pullDown,
+}: HymnListProps) {
   const { fontScale } = useWindowDimensions();
   const accent = useAccent();
   const { rows, sticky } = useMemo(() => {
-    if (byTopic) return rowsOf(hymns);
+    if (byTopic) return rowsOf(hymns, shelves);
     return hymnRows(hymns);
-  }, [hymns, byTopic]);
+  }, [hymns, byTopic, shelves]);
   const hymnHeight = heightOf('hymn', fontScale);
   const topicHeight = heightOf('topic', fontScale);
   const look = useMemo(
@@ -116,9 +131,8 @@ export function HymnList({ hymns, hrefOf, empty, byTopic = false, pullDown }: Hy
       hymnHeight,
       topicHeight,
       hrefOf,
-      source: hymns.map((hymn) => hymn.number),
     }),
-    [accent, hymnHeight, topicHeight, hrefOf, hymns],
+    [accent, hymnHeight, topicHeight, hrefOf],
   );
   const header = pullDown?.height ?? 0;
   const topics = useMemo(
@@ -236,8 +250,8 @@ function Topic({ name, height }: { readonly name: string; readonly height: numbe
 
 /**
  * One hymn's row: a link the router opens in the app. Its press first hands
- * the pager the list it sits in (`source`), so a swipe on the hymn moves
- * through that list.
+ * the pager the list it sits in (`source`: its shelf's, or the list's), so a
+ * swipe on the hymn moves through that list.
  */
 function HymnRow({
   hymn,

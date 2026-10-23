@@ -312,3 +312,42 @@ describe('a hymn page with chords on', () => {
     }
   });
 });
+
+/** The page head's `Favourite` button: a button in the number's row, and whether it is selected. */
+const favouriteButton = (host: HTMLElement) =>
+  Option.map(
+    Option.fromNullishOr(host.querySelector('[data-testid="hymn-name"] [aria-label="Favourite"]')),
+    (button) => ({
+      role: button.getAttribute('role'),
+      selected: button.getAttribute('aria-selected'),
+    }),
+  );
+
+describe('the page head’s Favourite button', () => {
+  it('sits in the number’s row; a press keeps the hymn under lists.favourites, a second press takes it out', () => {
+    const device = new Map<string, string>();
+    using app = mount(<HymnPage hymn={hymn(3)} reader={readerOn(device)} />);
+    expect(favouriteButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+    press(app.host, 'Favourite');
+    expect(favouriteButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+    expect(device.get('lists.favourites')).toBe('[3]');
+    press(app.host, 'Favourite');
+    expect(favouriteButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'false' }));
+    expect(device.get('lists.favourites')).toBe('[]');
+  });
+
+  it('keeps Favourites in number order, and shows a favourite selected when the app is opened again', () => {
+    const device = new Map<string, string>();
+    {
+      using app = mount(<HymnPage hymn={hymn(30)} reader={readerOn(device)} />);
+      press(app.host, 'Favourite');
+    }
+    {
+      using app = mount(<HymnPage hymn={hymn(3)} reader={readerOn(device)} />);
+      press(app.host, 'Favourite');
+    }
+    expect(device.get('lists.favourites')).toBe('[3,30]');
+    using app = mount(<HymnPage hymn={hymn(30)} reader={readerOn(device)} />);
+    expect(favouriteButton(app.host)).toEqual(Option.some({ role: 'button', selected: 'true' }));
+  });
+});

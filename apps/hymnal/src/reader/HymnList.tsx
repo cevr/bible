@@ -31,6 +31,7 @@ import type { HymnText } from '~/hymns/hymns';
 import { color, useAccent } from '~/color';
 
 import { dismissal } from './keyboard';
+import type { Shelf } from './lists';
 import { scrolled, told } from './scrolled';
 
 /** A row's line of text, and the space above and below it, at the reader's usual text size. */
@@ -47,6 +48,8 @@ export interface HymnListProps {
   readonly empty?: string;
   /** Phones only: a row per topic over its hymns, pinned while they scroll. The web draws none. */
   readonly byTopic?: boolean;
+  /** Phones only, with `byTopic`: the reader's own lists, each above the topics under its name. The web draws none. */
+  readonly shelves?: ReadonlyArray<Shelf<HymnText>>;
   /** Phones only: what the list holds above its rows, and where it rests (`PullDown`). */
   readonly pullDown?: PullDown;
 }

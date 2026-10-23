@@ -23,6 +23,7 @@ const { HymnScreen } = await import('../reader/HymnScreen.native');
 const { StackHeader } = await import('./stack');
 const { HymnList } = await import('../reader/HymnList.native');
 const { pagesFrom } = await import('../reader/place');
+const { settings } = await import('../store');
 const { hymnAt, hymns } = await import('../hymns/hymns');
 const { PlayerContext } = await import('../player/context');
 const { PlayerBar } = await import('../player/PlayerBar');
@@ -214,8 +215,10 @@ const out: Record<string, unknown> = {};
   await route(shown, 3);
   out['open3'] = seen(shown);
   out['sourceAfterOpen'] = Option.isSome(shown.registry.get(pagesFrom));
+  out['recentOpen3'] = shown.registry.get(settings.lists.recent);
   await settle(shown, 3);
   out['settle4'] = seen(shown);
+  out['recentSettle4'] = shown.registry.get(settings.lists.recent);
   shown.close();
 }
 
@@ -232,6 +235,63 @@ const out: Record<string, unknown> = {};
   out['open30'] = seen(shown);
   await settle(shown, 2);
   out['settle300'] = seen(shown);
+  shown.close();
+}
+
+/** The named rows (shelves and topics) the list draws, in its order: each heading's label. */
+const headings = (host: HTMLElement) =>
+  [...host.querySelectorAll('[role="heading"]')].map((row) => row.getAttribute('aria-label'));
+
+/** The rows the list draws, in its order: each row's hymn number, or its heading's label. */
+const rowsDrawn = (host: HTMLElement) =>
+  [...host.querySelectorAll('[role="heading"], [role="link"]')].map(
+    (row) =>
+      /^\d+/.exec(row.getAttribute('aria-label') ?? '')?.[0] ?? row.getAttribute('aria-label'),
+  );
+
+// The home list with the reader's lists: Favourites, then Recent, above the
+// first topic; a row's press there hands the pager that list.
+{
+  const shown = app();
+  const of = (numbers: ReadonlyArray<number>) =>
+    numbers.map((n) => Option.getOrThrow(hymnAt(String(n))));
+  await shown.show(
+    h(HymnList, {
+      hymns,
+      hrefOf: (n: number) => `/hymns/${n}`,
+      offset,
+      byTopic: true,
+      shelves: [
+        { name: 'Favourites', hymns: of([3, 30]) },
+        { name: 'Recent', hymns: of([30, 4, 3]) },
+      ],
+    }),
+    listed,
+  );
+  out['shelfRows'] = rowsDrawn(shown.host).slice(0, 8);
+  out['shelfFirstTopic'] = hymns[0]?.topic;
+  await press(shown, '30');
+  out['favouritesSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
+  shown.close();
+}
+
+// The home list with no hymn in either of the reader's lists: no shelf at all.
+{
+  const shown = app();
+  await shown.show(
+    h(HymnList, {
+      hymns,
+      hrefOf: (n: number) => `/hymns/${n}`,
+      offset,
+      byTopic: true,
+      shelves: [
+        { name: 'Favourites', hymns: [] },
+        { name: 'Recent', hymns: [] },
+      ],
+    }),
+    listed,
+  );
+  out['emptyHeadings'] = headings(shown.host).slice(0, 1);
   shown.close();
 }
 

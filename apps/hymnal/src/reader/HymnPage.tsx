@@ -1,6 +1,7 @@
 /**
  * A hymn's words in the order it is sung: its topic as a quiet line, its
- * number and title in one row (the number first), the key controls while
+ * number and title in one row (the number first, the `Favourite` button
+ * last), the key controls while
  * chords are on, then each stanza under its number and the refrain, marked,
  * each time it is sung. The theme's ink on its ground, set as the reader
  * chose in the "Aa" sheet (`reading.ts`) and scaled by the system's text
@@ -41,6 +42,7 @@ import type { ReadingSettings } from '~/settings';
 import { color, useAccent } from '~/color';
 
 import { ChordControls, ChordLines, PlayedKeyProvider } from './Chords';
+import { FavouriteButton } from './FavouriteButton';
 import { HangingLine } from './HangingLine';
 import { KeepAwake } from './KeepAwake';
 import { PageTextProvider, pageTextOf } from './pageText';
@@ -48,13 +50,15 @@ import { readingStyle } from './reading';
 
 /**
  * What the page reads its chords and its setting from: the stored chords
- * choice, each hymn's move, the bundled chords, and the reading settings.
+ * choice, each hymn's move, the bundled chords, the reading settings, and
+ * the reader's Favourites.
  */
 export interface ChordReader {
   readonly chords: Atom.Writable<boolean>;
   readonly move: (number: number) => Atom.Writable<Move>;
   readonly book: ChordBook;
   readonly reading: ReadingSettings;
+  readonly favourites: Atom.Writable<ReadonlyArray<number>>;
 }
 
 /** The hymn's words under its number and title. */
@@ -96,6 +100,7 @@ export function HymnPage({
           <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
             {hymn.title}
           </Text>
+          <FavouriteButton number={hymn.number} favourites={reader.favourites} />
         </View>
       </View>
       <ChordControls on={on} printed={printed} move={move} onMove={setMove} />

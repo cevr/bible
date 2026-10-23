@@ -15,6 +15,7 @@ import type * as KeyValueStore from 'effect/persistence/KeyValueStore';
 import * as Atom from 'effect/reactivity/Atom';
 
 import { Move, still } from './hymns/chords';
+import { Numbers } from './reader/lists';
 import { DEFAULT_SIZE, Font, Size, Spacing } from './reader/reading';
 
 /** How the app is shown: as the system is set, or always light, or always dark. */
@@ -54,6 +55,15 @@ export const settingsOn = (store: Layer.Layer<KeyValueStore.KeyValueStore>) => {
       font: setting('reading.font', Font, 'system'),
       spacing: setting('reading.spacing', Spacing, 'normal'),
       awake: setting('reading.awake', Schema.Boolean, false),
+    },
+    /**
+     * The reader's own lists of hymn numbers (`src/reader/lists.ts`), kept
+     * apart from the hymn text: Favourites in number order, and Recent, the
+     * hymns last opened, the latest first.
+     */
+    lists: {
+      favourites: setting('lists.favourites', Numbers, []),
+      recent: setting('lists.recent', Numbers, []),
     },
   };
 };

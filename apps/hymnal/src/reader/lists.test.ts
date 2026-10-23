@@ -1,11 +1,12 @@
 /**
  * The reader's lists as plain values: Favourites toggled, Recent visited,
- * a stored list read against the hymns there are.
+ * and both read as the home list's shelves against the hymns there are.
  */
 
 import { describe, expect, it } from 'bun:test';
+import { Option } from 'effect';
 
-import { known, RECENT, toggleFavourite, visited } from './lists';
+import { RECENT, shelvesOf, toggleFavourite, visited } from './lists';
 
 describe('toggleFavourite', () => {
   it('adds a hymn in number order, and removes it on a second toggle', () => {
@@ -26,8 +27,21 @@ describe('visited', () => {
   });
 });
 
-describe('known', () => {
+/** Hymns 1 to 695, each as its number. */
+const hymnOf = (n: number) => Option.liftPredicate(n, (m) => m >= 1 && m <= 695);
+
+describe('shelvesOf', () => {
+  it('reads Favourites, then Recent, each in its stored order', () => {
+    expect(shelvesOf({ favourites: [3, 30], recent: [30, 4] }, hymnOf)).toEqual([
+      { name: 'Favourites', hymns: [3, 30] },
+      { name: 'Recent', hymns: [30, 4] },
+    ]);
+  });
+
   it('drops numbers no hymn has, keeping the order', () => {
-    expect(known([700, 3, 0, 5], (n) => n >= 1 && n <= 695)).toEqual([3, 5]);
+    expect(shelvesOf({ favourites: [700, 3, 0, 5], recent: [9999] }, hymnOf)).toEqual([
+      { name: 'Favourites', hymns: [3, 5] },
+      { name: 'Recent', hymns: [] },
+    ]);
   });
 });

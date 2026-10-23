@@ -125,3 +125,67 @@ describe('the hymn rows', () => {
     expect(sticky.length).toBe(runsOf(hymns).length);
   });
 });
+
+describe('the reader’s shelves above the topics', () => {
+  const list: ReadonlyArray<Fixture> = [
+    { number: 1, topic: 'A' },
+    { number: 2, topic: 'A' },
+    { number: 3, topic: 'B' },
+  ];
+  const at = (n: number) => list.filter((hymn) => hymn.number === n);
+
+  it('come first, each under a row naming it, its hymns in its order', () => {
+    const { rows, sticky } = rowsOf(list, [
+      { name: 'Favourites', hymns: [...at(1), ...at(3)] },
+      { name: 'Recent', hymns: [...at(3), ...at(2)] },
+    ]);
+    expect(rows.map(seenOf)).toEqual([
+      { kind: 'topic', name: 'Favourites' },
+      { kind: 'hymn', number: 1 },
+      { kind: 'hymn', number: 3 },
+      { kind: 'topic', name: 'Recent' },
+      { kind: 'hymn', number: 3 },
+      { kind: 'hymn', number: 2 },
+      { kind: 'topic', name: 'A' },
+      { kind: 'hymn', number: 1 },
+      { kind: 'hymn', number: 2 },
+      { kind: 'topic', name: 'B' },
+      { kind: 'hymn', number: 3 },
+    ]);
+    expect(sticky).toEqual([0, 3, 6, 9]);
+    // A hymn on a shelf and under its topic is two rows, each keyed apart.
+    expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
+  });
+
+  it('hand a row’s press its own shelf to page through, and a topic’s row every hymn', () => {
+    const { rows } = rowsOf(list, [
+      { name: 'Favourites', hymns: [...at(1), ...at(3)] },
+      { name: 'Recent', hymns: [...at(3), ...at(2)] },
+    ]);
+    const sources = rows.flatMap((row) => {
+      if (row.kind === 'hymn') return [row.source];
+      return [];
+    });
+    expect(sources).toEqual([
+      [1, 3],
+      [1, 3],
+      [3, 2],
+      [3, 2],
+      [1, 2, 3],
+      [1, 2, 3],
+      [1, 2, 3],
+    ]);
+  });
+
+  it('show no row for an empty shelf', () => {
+    const { rows } = rowsOf(list, [
+      { name: 'Favourites', hymns: [] },
+      { name: 'Recent', hymns: at(2) },
+    ]);
+    expect(rows.slice(0, 3).map(seenOf)).toEqual([
+      { kind: 'topic', name: 'Recent' },
+      { kind: 'hymn', number: 2 },
+      { kind: 'topic', name: 'A' },
+    ]);
+  });
+});

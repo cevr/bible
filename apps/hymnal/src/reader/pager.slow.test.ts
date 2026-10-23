@@ -42,6 +42,12 @@ interface Run {
   readonly settle300: Seen;
   readonly open600: Seen;
   readonly settle601: Seen;
+  readonly recentOpen3: ReadonlyArray<number>;
+  readonly recentSettle4: ReadonlyArray<number>;
+  readonly shelfRows: ReadonlyArray<string>;
+  readonly shelfFirstTopic: string;
+  readonly favouritesSource: ReadonlyArray<number>;
+  readonly emptyHeadings: ReadonlyArray<string>;
   readonly playing: {
     readonly playing: boolean;
     readonly playedBefore: number;
@@ -154,5 +160,33 @@ describe('a settle while a hymn sounds', () => {
     expect(seen.playing.track).toBe(3);
     expect(seen.playing.barHymn).toBe(3);
     expect(seen.playing.playFour).toBe(true);
+  });
+});
+
+describe('the reader’s lists', () => {
+  it('Recent gains a hymn as it opens, and the hymn a settle shows, the latest first', () => {
+    expect(seen.recentOpen3).toEqual([3]);
+    expect(seen.recentSettle4).toEqual([4, 3]);
+  });
+
+  it('the home list shows Favourites, then Recent, above its first topic, each with its hymns in order', () => {
+    expect(seen.shelfRows).toEqual([
+      'Favourites',
+      '3',
+      '30',
+      'Recent',
+      '30',
+      '4',
+      '3',
+      seen.shelfFirstTopic,
+    ]);
+  });
+
+  it('a press on a Favourites row hands the pager Favourites to page through', () => {
+    expect(seen.favouritesSource).toEqual([3, 30]);
+  });
+
+  it('a list with no hymn shows no section: the first topic comes first', () => {
+    expect(seen.emptyHeadings).toEqual([seen.shelfFirstTopic]);
   });
 });
