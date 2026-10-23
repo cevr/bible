@@ -115,7 +115,11 @@ function Title({ track, accent }: { readonly track: Track; readonly accent: Colo
   const go = () =>
     TitleGo.$match(titleGoes(navigation.getState(), track.number), {
       Close: () => router.back(),
-      Open: ({ number }) => router.replace(hymnHref(number)),
+      Open: ({ number }) => {
+        router.back();
+        router.push(hymnHref(number));
+      },
+      Replace: ({ number }) => router.replace(hymnHref(number)),
     });
   return (
     <Pressable

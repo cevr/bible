@@ -153,7 +153,7 @@ a press on it opens the hymn. Playing another hymn replaces the first.
   only then; an end leaves no place, so a Resume from Ended plays from 0:00, or follows a phone that
   already plays the recording again (the lock screen's play acts before
   the page hears of it).
-- The full player (`/player?hymn=<n>`, `src/player/FullPlayer.tsx`) shows the hymn its route names (the bar's, as `barFor` gives it), or the held hymn when it names none. Its number and title is a button to the hymn's page (`src/player/title.ts`): the page takes the sheet's place in the stack, or the sheet only closes over that page; the track plays on. It says each state in a line under it:
+- The full player (`/player?hymn=<n>`, `src/player/FullPlayer.tsx`) shows the hymn its route names (the bar's, as `barFor` gives it), or the held hymn when it names none. Its number and title is a button to the hymn's page (`src/player/title.ts`): the sheet closes and the page is pushed where it was (on iOS a page put in a form sheet's place by a replace has no back button), or the sheet only closes over that page; the track plays on. It says each state in a line under it:
   Loading and Buffering read "Loading the recording…" with Pause; Failed
   reads "The recording needs a connection." offline, else "The recording
   could not be played."; Stopped reads Paused. Retry (Resume) shows in

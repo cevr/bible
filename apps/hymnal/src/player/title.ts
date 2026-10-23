@@ -1,9 +1,12 @@
 /**
  * Where a press on the full player's title goes: to its hymn's page. The
  * sheet only closes when that page is the screen right under it; else the
- * hymn's page takes the sheet's place in the stack, so the sheet closes and
- * the page opens in one step, and Back from the page goes where Back from
- * the sheet went. The player is not told: the track plays on.
+ * sheet closes and the hymn's page is pushed where it was, so Back from the
+ * page goes where Back from the sheet went. The sheet is closed, then the
+ * page pushed, not the sheet replaced: on iOS a page put in a form sheet's
+ * place by a replace shows no back button and takes no back pan. Only a
+ * sheet with no screen under it (a link straight to it) is replaced. The
+ * player is not told: the track plays on.
  */
 
 import { Data, Option, Schema } from 'effect';
@@ -19,8 +22,10 @@ export interface StackState {
 export type TitleGo = Data.TaggedEnum<{
   /** The hymn's page is right under the sheet: the sheet closes. */
   Close: {};
-  /** The page of hymn `number` takes the sheet's place. */
+  /** The sheet closes, and the page of hymn `number` is pushed in its place. */
   Open: { readonly number: number };
+  /** No screen is under the sheet: the page of hymn `number` replaces it. */
+  Replace: { readonly number: number };
 }>;
 
 export const TitleGo = Data.taggedEnum<TitleGo>();
@@ -41,10 +46,15 @@ const hymnOf = (route: StackRoute): Option.Option<string> =>
 /** Where a press on the title of hymn `hymn` goes, from the sheet shown in `state`. */
 export const titleGoes = (state: StackState, hymn: number): TitleGo =>
   Option.fromNullishOr(state.routes[state.index - 1]).pipe(
-    Option.flatMap(hymnOf),
-    Option.filter((under) => under === String(hymn)),
     Option.match({
-      onNone: () => TitleGo.Open({ number: hymn }),
-      onSome: () => TitleGo.Close(),
+      onNone: () => TitleGo.Replace({ number: hymn }),
+      onSome: (under) =>
+        hymnOf(under).pipe(
+          Option.filter((shown) => shown === String(hymn)),
+          Option.match({
+            onNone: () => TitleGo.Open({ number: hymn }),
+            onSome: () => TitleGo.Close(),
+          }),
+        ),
     }),
   );

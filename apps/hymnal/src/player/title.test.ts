@@ -1,7 +1,8 @@
 /**
  * Where a press on the full player's title goes (`titleGoes`), from every
  * screen the sheet can lie over: the sheet only closes over its hymn's own
- * page, and else the hymn's page takes the sheet's place.
+ * page; else it closes and the hymn's page is pushed, or, with no screen
+ * under it, the page replaces it.
  */
 
 import { describe, expect, it } from 'bun:test';
@@ -37,8 +38,10 @@ describe('titleGoes', () => {
     ).toEqual(TitleGo.Open({ number: 100 }));
   });
 
-  it('opens the hymn’s page when the sheet is the only screen (a link straight to it)', () => {
-    expect(titleGoes({ routes: [player('5')], index: 0 }, 5)).toEqual(TitleGo.Open({ number: 5 }));
+  it('replaces the sheet with the hymn’s page when the sheet is the only screen (a link straight to it)', () => {
+    expect(titleGoes({ routes: [player('5')], index: 0 }, 5)).toEqual(
+      TitleGo.Replace({ number: 5 }),
+    );
   });
 
   it('reads the screen right under the sheet, not the last of the stack', () => {

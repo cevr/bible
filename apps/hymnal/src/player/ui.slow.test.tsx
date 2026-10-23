@@ -633,7 +633,7 @@ describe('the full player’s title', () => {
   );
 
   it.live(
-    'opens that hymn’s page in the sheet’s place over the home list, paused, the track kept',
+    'closes the sheet and pushes that hymn’s page over the home list, paused, the track kept',
     () =>
       Effect.gen(function* () {
         over([{ name: 'index' }]);
@@ -644,14 +644,23 @@ describe('the full player’s title', () => {
         page.press('Pause hymn 100');
         yield* page.until(Player.$is('Paused'));
         page.press(title);
-        expect(routed).toEqual(['replace /hymns/100']);
+        expect(routed).toEqual(['back', 'push /hymns/100']);
         expect(Player.$is('Paused')(page.player())).toBe(true);
       }),
   );
 
-  it.live('opens that hymn’s page over another hymn’s page', () =>
+  it.live('closes the sheet and pushes that hymn’s page over another hymn’s page', () =>
     Effect.sync(() => {
       over([{ name: 'index' }, { name: 'hymns/[number]', params: { number: '3' } }]);
+      using page = mount();
+      page.press(title);
+      expect(routed).toEqual(['back', 'push /hymns/100']);
+    }),
+  );
+
+  it.live('replaces the sheet with that hymn’s page when no screen is under it', () =>
+    Effect.sync(() => {
+      over([]);
       using page = mount();
       page.press(title);
       expect(routed).toEqual(['replace /hymns/100']);

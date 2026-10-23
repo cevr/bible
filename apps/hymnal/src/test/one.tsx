@@ -80,12 +80,12 @@ interface Shown {
   state: StackState;
 }
 
-/** Each step the router was told to take, oldest first: `back`, or `replace <href>`. */
+/** Each step the router was told to take, oldest first: `back`, `push <href>` or `replace <href>`. */
 export const routed: Array<string> = [];
 
 /**
  * One's `useRouter`: a screen that changes its own route's params has the
- * change recorded and made; Back and a replace are recorded in `routed`.
+ * change recorded and made; Back, a push and a replace are recorded in `routed`.
  */
 export const useRouter = () => ({
   setParams: (next: Record<string, string>) => {
@@ -93,6 +93,7 @@ export const useRouter = () => ({
     Object.assign(params, next);
   },
   back: () => void routed.push('back'),
+  push: (href: string) => void routed.push(`push ${href}`),
   replace: (href: string) => void routed.push(`replace ${href}`),
 });
 
