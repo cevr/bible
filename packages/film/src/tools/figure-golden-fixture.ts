@@ -128,8 +128,14 @@ const goldenRows = (set: GoldenSet) =>
     return { rows, names };
   });
 
-/** The full measure as the lean read gives it: no rims, no shading, no artifacts, and what it lacks less the rims. */
-const leanOf = ({ headShading: _h, bodyShading: _b, artifacts: _a, ...rest }: FigureMeasure) => ({
+/** The full measure as the lean read gives it: no rims, no shading, no artifacts, no hair and beard, and what it lacks less the rims. */
+const leanOf = ({
+  headShading: _h,
+  bodyShading: _b,
+  artifacts: _a,
+  hairBeard: _hb,
+  ...rest
+}: FigureMeasure) => ({
   ...rest,
   ratios: rest.ratios.filter((r) => r.ratio !== 'innerRim'),
   missing: rest.missing.filter((m) => m.ratio !== 'innerRim'),

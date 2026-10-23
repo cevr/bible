@@ -2755,7 +2755,11 @@ as nothing), classed by what lies either side: a `seam` (two fills), a
 `sliver` (the outline's ink and a fill, the fill's luma off the line's by
 more than the house rim's lift), or `weather` (one fill, over the face's
 box from the eyes to the chin: rain across the face). Its pixels join into
-marks, and a mark shorter than two of the head's lines is grain.
+marks, and a mark shorter than two of the head's lines is grain. Where
+the hair meets the beard (`hairBeard`, left out where no beard reads): each
+part's median colour, and the edge, the darkest band a beard row walks
+through from the eyes' outer edge out to the fill past it, as a value drop
+under the darker side.
 
 **The table** (`compareFigures`, `matchTable`). A row per measure, the
 concept's and the scene's numbers and their difference: a ratio is flagged
@@ -2769,7 +2773,11 @@ face's opening from the concept's, and its roll past 6° and the grain of
 each side's eye line (a concept's head angle is design, never information:
 owner, 2026-10-17, ask `aab16c0cb70`); and any seam, sliver or weather on
 the scene's head (the owner's rule is none; a concept is painted, so its
-side is not read). Two kinds of row are information,
+side is not read); and `hair/beard: parted`, where either side reads a
+beard, flagged when the concept parts the hair from the beard (an edge or a
+value step of 0.1 or more) and the scene, reading a beard, does not (owner,
+2026-10-18, on Christ's render), its note each side's edge and step, beside
+the edge, step and hue rows, never flagged alone. Two kinds of row are information,
 never flagged: the height in heads (a figure's height comes from the cast's
 height band, and a concept is a design sketch:
 `.claude/skills/film/reference/character-design.md`, "One height band for

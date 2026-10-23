@@ -83,8 +83,10 @@ export interface FigureSpec {
   readonly wall?: boolean;
   /** How far the eyes sit right of the face's middle, in pixels (a head turned to the viewer's right; negative, to the left). */
   readonly eyeShift?: number;
-  /** Long dark hair: the cap and a lock down each side of the face to the chin, 14 px wide inside the head's line. */
+  /** Long dark hair: the cap and a lock down each side of the face to the chin, 14 px wide inside the head's line (`lockWidth`). */
   readonly longHair?: boolean;
+  /** How wide each lock is inside the head's line, in pixels; 14 when not given. */
+  readonly lockWidth?: number;
   /** A dark beard over the lower face between the locks, the mouth inside it: parted from the locks by a line, or running into them. */
   readonly beard?: { readonly parted: boolean };
   /** A front light's lit band on the long hair: a crescent 10 px wide along the cap's left edge, inside the head's line, on the dark hair with no ink between, 8 px of it between the band and the face. */
@@ -348,7 +350,8 @@ const drawHair = (c: Canvas, spec: FigureSpec) => {
   const cap = within(box, (x, y) => head(x, y) && y < hairLine);
   const short = (spec.darkHair === true && HAIR_DARK) || HAIR;
   c.fill(cap, (spec.longHair === true && LOCKS) || short);
-  const inLock = within(box, (x, y) => head(x, y) && y >= hairLine && Math.abs(x - cx) > rx - 14);
+  const lock = spec.lockWidth ?? 14;
+  const inLock = within(box, (x, y) => head(x, y) && y >= hairLine && Math.abs(x - cx) > rx - lock);
   if (spec.longHair === true) c.fill(inLock, LOCKS);
   if (spec.beard !== undefined) {
     const beardTop = cy + spec.eyeBelow + 16;
@@ -361,8 +364,8 @@ const drawHair = (c: Canvas, spec: FigureSpec) => {
       (x, y) =>
         head(x, y) &&
         y >= beardTop &&
-        Math.abs(x - cx) > rx - 14 - line &&
-        Math.abs(x - cx) <= rx - 14,
+        Math.abs(x - cx) > rx - lock - line &&
+        Math.abs(x - cx) <= rx - lock,
     );
     if (spec.beard.parted) c.fill(seam, INK);
   }

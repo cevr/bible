@@ -6,12 +6,13 @@
 // (`tools/easel.ts`). Not a gate: a concept is painted, so the table guides
 // a painter and fails nothing. Pure.
 
-import { Array as Arr, Match, Option, Order, Schema } from 'effect';
+import { Array as Arr, Boolean as Bool, Match, Option, Order, Schema } from 'effect';
 import { ARTIFACT_KINDS, type ArtifactKind, type ArtifactMark } from './render-artifacts.ts';
 import {
   type FigureMeasure,
   type FigureSilhouette,
   HEAD_RADII,
+  type HairBeard,
   RATIO_LABELS,
   RATIOS,
   type Ratio,
@@ -670,7 +671,119 @@ const artifactNote = (marks: ReadonlyArray<ArtifactMark>): string => {
   return `${marks.length} in the scene crop at ${at}${more}: the owner rule is none`;
 };
 
-/** The concept's measure against the scene's, row by row: every ratio, the facing, the outlines, the artifacts, then the head's and the body's shading. */
+/**
+ * The hair and the beard parted (`HairBeard`): by a dark band between them
+ * (its edge, a value drop) or by tone (the beard's value off the hair's), at
+ * least this much either way. Christ's concept parts them by a band; a
+ * render that runs the beard into the hair reads near 0 on both (owner,
+ * 2026-10-18: "Jesus's render confuses parts of his hair with his beard").
+ */
+const PARTED = { edge: 0.1, step: 0.1 } as const;
+
+/** The rule row of the hair and the beard: its note says each side, parted or merged, by its edge and step. */
+const HAIR_BEARD_RULE = 'hair/beard: parted';
+
+/** The value step from the hair to the beard, either way. */
+const stepOf = (hb: HairBeard) => Math.abs(hb.hair.value - hb.beard.value);
+
+/** The beard's hue turn from the hair's, the short way round (degrees, 0 to 180). */
+const hueGapOf = (hb: HairBeard) => Math.abs(((hb.beard.hue - hb.hair.hue + 540) % 360) - 180);
+
+/** Whether a side's hair and beard part, by its edge or its step. */
+const partedOf = (hb: HairBeard) =>
+  Option.exists(Option.fromUndefinedOr(hb.edge), (edge) => edge >= PARTED.edge) ||
+  stepOf(hb) >= PARTED.step;
+
+/**
+ * The hair/beard rows, where either side reads a beard: the edge, the value
+ * step and the hue turn between them, never flagged alone, then the rule,
+ * flagged where the concept parts them and the scene, reading a beard, does
+ * not. A figure with no beard on either side has none.
+ */
+const hairBeardRows = (concept: FigureMeasure, scene: FigureMeasure): ReadonlyArray<MatchRow> => {
+  const [c, s] = [
+    Option.fromUndefinedOr(concept.hairBeard),
+    Option.fromUndefinedOr(scene.hairBeard),
+  ];
+  if (Option.isNone(c) && Option.isNone(s)) return [];
+  const noBeard = (side: Option.Option<HairBeard>) =>
+    Option.match(side, {
+      onNone: () => Option.some('no beard read'),
+      onSome: () => Option.none<string>(),
+    });
+  const why = { concept: noBeard(c), scene: noBeard(s) };
+  const noEdge = (side: Option.Option<HairBeard>) =>
+    Option.match(side, {
+      onNone: () => Option.some('no beard read'),
+      onSome: (hb) =>
+        Option.match(Option.fromUndefinedOr(hb.edge), {
+          onNone: () => Option.some('no row meets fill past the beard'),
+          onSome: () => Option.none<string>(),
+        }),
+    });
+  const by = (f: (hb: HairBeard) => Option.Option<number>) =>
+    [Option.flatMap(c, f), Option.flatMap(s, f)] as const;
+  const quiet = (row: MatchRow): MatchRow => ({ ...row, flagged: false });
+  const told = (side: Option.Option<HairBeard>) =>
+    Option.getOrElse(
+      Option.map(side, (hb) => {
+        const parted = Bool.match(partedOf(hb), {
+          onTrue: () => 'parted',
+          onFalse: () => 'merged',
+        });
+        const edge = Option.getOrElse(
+          Option.map(Option.fromUndefinedOr(hb.edge), (e) => e.toFixed(3)),
+          () => '–',
+        );
+        return `${parted} (edge ${edge}, step ${stepOf(hb).toFixed(3)})`;
+      }),
+      () => 'no beard',
+    );
+  return [
+    quiet(
+      rowOf(
+        'hair/beard: edge',
+        'value',
+        ...by((hb) => Option.fromUndefinedOr(hb.edge)),
+        { concept: noEdge(c), scene: noEdge(s) },
+        Infinity,
+      ),
+    ),
+    quiet(
+      rowOf(
+        'hair/beard: value step',
+        'value',
+        ...by((hb) => Option.some(stepOf(hb))),
+        why,
+        Infinity,
+      ),
+    ),
+    quiet(
+      rowOf(
+        'hair/beard: hue turn',
+        'degrees',
+        ...by((hb) => Option.some(hueGapOf(hb))),
+        why,
+        Infinity,
+      ),
+    ),
+    {
+      name: HAIR_BEARD_RULE,
+      unit: 'rule',
+      flagged: Option.exists(c, partedOf) && Option.exists(s, (hb) => !partedOf(hb)),
+      note: `concept ${told(c)}, scene ${told(s)}`,
+    },
+  ];
+};
+
+/** Where the hair meets the beard, as a match's rule row says it (`hairBeardRows`): none where neither side reads a beard. */
+export const hairBeardLine = (rows: ReadonlyArray<MatchRow>): Option.Option<string> =>
+  Option.flatMap(
+    Arr.findFirst(rows, (r) => r.name === HAIR_BEARD_RULE),
+    (r) => Option.fromUndefinedOr(r.note),
+  );
+
+/** The concept's measure against the scene's, row by row: every ratio, the facing, the outlines, the artifacts, the hair and the beard, then the head's and the body's shading. */
 export const compareFigures = (
   concept: FigureMeasure,
   scene: FigureMeasure,
@@ -679,6 +792,7 @@ export const compareFigures = (
   ...facingRows(concept, scene),
   ...silhouetteRows(concept, scene),
   ...artifactRows(scene),
+  ...hairBeardRows(concept, scene),
   ...shadeRows(
     'head',
     Option.fromUndefinedOr(concept.headShading),

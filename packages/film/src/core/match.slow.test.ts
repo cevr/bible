@@ -35,6 +35,12 @@ const plain = figure(PLAIN);
 const inked = figure({ ...PLAIN, hairInk: true });
 const wide = figure({ ...PLAIN, rx: 70 });
 const EAR = { ...PLAIN, eyeGap: 30 };
+// Long locks wide enough that a beard row walks through the beard to the lock past it.
+const BEARDED = { ...EAR, longHair: true, lockWidth: 24 };
+const [beardParted, beardMerged] = [
+  figure({ ...BEARDED, beard: { parted: true } }),
+  figure({ ...BEARDED, beard: { parted: false } }),
+];
 const [bare, rimmed] = [
   figure({ ...EAR, ear: { rim: false } }),
   figure({ ...EAR, ear: { rim: true } }),
@@ -96,6 +102,33 @@ describe('compareFigures', () => {
     expect(row(posed, 'mouth width').note).toContain('the expression differs');
     expect(row(posed, 'face: its mouth').note).toBe('concept open, scene closed');
     expect(row(compareFigures(line.measure, wideLine.measure), 'mouth width').flagged).toBe(true);
+  });
+
+  test('a concept that parts the hair from the beard, drawn with them run together, is flagged', () => {
+    const rows = compareFigures(beardParted.measure, beardMerged.measure);
+    const parted = row(rows, 'hair/beard: parted');
+    expect(parted.flagged).toBe(true);
+    expect(parted.note).toMatch(
+      /^concept parted \(edge 0\.\d{3}, step 0\.000\), scene merged \(edge 0\.\d{3}, step 0\.000\)$/,
+    );
+    expect(row(rows, 'hair/beard: edge').concept).toBeGreaterThan(0.1);
+    expect(row(rows, 'hair/beard: edge').scene).toBeLessThan(0.1);
+    expect(row(rows, 'hair/beard: edge').flagged).toBe(false);
+  });
+
+  test('a concept and a scene that both part the hair from the beard are not flagged', () => {
+    const parted = row(
+      compareFigures(beardParted.measure, beardParted.measure),
+      'hair/beard: parted',
+    );
+    expect(parted.flagged).toBe(false);
+    expect(parted.note).toMatch(/^concept parted \(.*\), scene parted \(.*\)$/);
+  });
+
+  test('a figure with no beard either side has no hair/beard rows', () => {
+    expect(
+      compareFigures(plain.measure, plain.measure).filter((r) => r.name.startsWith('hair/beard')),
+    ).toEqual([]);
   });
 
   test('the table and the CLI lines carry each flagged row', () => {

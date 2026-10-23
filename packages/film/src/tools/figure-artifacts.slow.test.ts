@@ -1,4 +1,4 @@
-// The figure measure's render artifacts and facing, on crops of RBF's frames
+// The figure measure's render artifacts, facing, and hair against beard, on crops of RBF's frames
 // as the owner saw them on 2026-10-18 (the lab's look at 1:1):
 // Christ at court 16.51 s, the farmer at rain's mark (14.19 s) and at 16.49 s,
 // against the figures he locked (cold's lead at 24 s, its judge and
@@ -128,5 +128,23 @@ describe("a head's facing against its concept", () => {
         prosecutor: { turn: false, roll: false },
       });
     }),
+  );
+});
+
+describe('the hair and the beard against the concept', () => {
+  it.effect(
+    'Christ at court 16.51 s, his beard run into his hair where his concept parts them by a dark band: flagged (owner, 2026-10-18)',
+    () =>
+      Effect.gen(function* () {
+        const [c, s] = yield* Effect.all([
+          measured('court-12-christ-concept.png'),
+          measured('rbf-court-christ-head-1651.png'),
+        ]);
+        const parted = compareFigures(c, s).find((row) => row.name === 'hair/beard: parted');
+        expect(parted).toMatchObject({
+          flagged: true,
+          note: 'concept parted (edge 0.146, step 0.020), scene merged (edge 0.063, step 0.004)',
+        });
+      }),
   );
 });

@@ -206,6 +206,21 @@ const Facing = Schema.Struct({
 });
 type Facing = typeof Facing.Type;
 
+/**
+ * Where the hair meets the beard (`hairBeardOf`): each part's fill (its
+ * median colour) and `edge`, the darkest band between the beard and the fill
+ * past it, as a value drop under the darker side (left out where no row of
+ * the beard meets fill past it). The house parts them by a dark band or by
+ * tone (owner, 2026-10-18: "Jesus's render confuses parts of his hair with
+ * his beard, look more closely to the concept").
+ */
+const HairBeard = Schema.Struct({
+  hair: Hsv,
+  beard: Hsv,
+  edge: Schema.optionalKey(Schema.Finite),
+});
+export type HairBeard = typeof HairBeard.Type;
+
 export const FigureMeasure = Schema.Struct({
   head: PixelBox,
   ink: Schema.Tuple([Schema.Int, Schema.Int, Schema.Int]),
@@ -221,6 +236,8 @@ export const FigureMeasure = Schema.Struct({
   chin: Schema.optionalKey(Schema.Literal('open')),
   /** The head's render artifacts (`render-artifacts.ts`): thin lines of a third colour inside its outline. */
   artifacts: Schema.Array(ArtifactMark),
+  /** Where the hair meets the beard (`HairBeard`); left out with no beard. */
+  hairBeard: Schema.optionalKey(HairBeard),
   missing: Schema.Array(Unmeasured),
 });
 export type FigureMeasure = typeof FigureMeasure.Type;
@@ -1755,6 +1772,97 @@ const skinOf = (read: Read, head: Head): ((c: Rgb) => boolean) => {
   };
 };
 
+/** A beard reads when this share of the band under the mouth, between the eyes' outer edges and off the outline, is neither skin nor ink. */
+const BEARD_SHARE = 0.3;
+/** Each side's edge is read when the beard meets fill past it on this many rows. */
+const EDGE_ROWS = 3;
+
+/**
+ * Where the hair meets the beard (`HairBeard`), or none when no beard reads.
+ * The hair is the head's fill above the cheek (from the head's top to half
+ * an eye spacing under the eyes), the beard the band from 0.8 to 2.2 eye
+ * spacings under the eyes between the eyes' outer edges: each off the ink,
+ * the skin and the outline's own width inside the head's edge, its median
+ * colour. The edge walks each beard row out from the eyes' outer edge on
+ * each side, through the beard to the fill past it (a row that meets the
+ * cheek's skin first holds no edge): at each step, how far the darkest pixel
+ * within a line of it lies under the darker of the fills a line either side;
+ * the row's edge is the largest, a side's the median of its rows, the
+ * head's the larger side's.
+ */
+const hairBeardOf = (read: Read, head: Head): Option.Option<HairBeard> => {
+  const { a, b, outer } = head;
+  const spacing = cxOf(b) - cxOf(a);
+  const skin = skinOf(read, head);
+  const off = Math.ceil(head.outline);
+  const inside = (x: number, y: number) => {
+    const [ox, oy] = [x - outer.x0, y - outer.y0];
+    return (
+      ox >= 0 && oy >= 0 && ox < outer.bw && oy < outer.bh && outer.mask[oy * outer.bw + ox] === 1
+    );
+  };
+  // A pixel the outline's width inside the head's edge: the ink's soft side is neither part.
+  const deep = (x: number, y: number) =>
+    inside(x, y) &&
+    inside(x - off, y) &&
+    inside(x + off, y) &&
+    inside(x, y - off) &&
+    inside(x, y + off);
+  const fillIn = (x0: number, x1: number, y0: number, y1: number) => {
+    const fill: Array<Rgb> = [];
+    let all = 0;
+    for (let y = Math.max(0, Math.round(y0)); y <= Math.min(read.h - 1, Math.round(y1)); y++)
+      for (let x = Math.max(0, Math.round(x0)); x <= Math.min(read.w - 1, Math.round(x1)); x++) {
+        if (!deep(x, y)) continue;
+        all++;
+        const i = y * read.w + x;
+        const c = rgbAt(read.r, i);
+        if (read.ink[i] === 0 && !skin(c)) fill.push(c);
+      }
+    return { fill, all };
+  };
+  const [beardTop, beardBottom] = [head.eyeY + 0.8 * spacing, head.eyeY + 2.2 * spacing];
+  const hair = fillIn(outer.x0, outer.x0 + outer.bw - 1, outer.y0, head.eyeY + 0.5 * spacing);
+  const beard = fillIn(a.x0, b.x1, beardTop, beardBottom);
+  if (hair.fill.length === 0 || beard.fill.length < BEARD_SHARE * beard.all) return Option.none();
+  const line = Math.max(2, Math.round(read.line));
+  const valueAt = (x: number, y: number) => hsvOf(rgbAt(read.r, y * read.w + x)).value;
+  const rowEdge = (y: number, x0: number, step: 1 | -1): Option.Option<number> => {
+    const values: Array<number> = [];
+    for (let x = x0; deep(x, y); x += step) {
+      if (skin(rgbAt(read.r, y * read.w + x))) return Option.none();
+      values.push(valueAt(x, y));
+    }
+    const mean = (i0: number, i1: number) =>
+      values.slice(i0, i1).reduce((s, v) => s + v, 0) / (i1 - i0);
+    let edge = 0;
+    for (let i = 2 * line; i + 2 * line <= values.length; i++) {
+      const darkest = Math.min(...values.slice(i - line, i + line));
+      edge = Math.max(
+        edge,
+        Math.min(mean(i - 2 * line, i - line), mean(i + line, i + 2 * line)) - darkest,
+      );
+    }
+    return values.length < 4 * line ? Option.none() : Option.some(edge);
+  };
+  const sideEdge = (x0: number, step: 1 | -1): Option.Option<number> => {
+    const rows: Array<number> = [];
+    for (let y = Math.max(0, Math.round(beardTop)); y <= Math.min(read.h - 1, beardBottom); y++)
+      rows.push(...Option.toArray(rowEdge(y, Math.round(x0), step)));
+    rows.sort((p, q) => p - q);
+    return Option.filter(
+      Option.fromUndefinedOr(rows[Math.floor(rows.length / 2)]),
+      () => rows.length >= EDGE_ROWS,
+    );
+  };
+  const edges = [...Option.toArray(sideEdge(a.x0, -1)), ...Option.toArray(sideEdge(b.x1, 1))];
+  return Option.some({
+    hair: hsvOf(medianRgb(hair.fill)),
+    beard: hsvOf(medianRgb(beard.fill)),
+    ...((edges.length > 0 && { edge: Math.max(...edges) }) || {}),
+  });
+};
+
 /**
  * The head's inner parts: the face, the hair and what lies across one line
  * from either (an ear), within a third of a head of the head's box.
@@ -2089,8 +2197,11 @@ const handRatios = (read: Read, head: Head, lowest: number, sink: Sink) => {
     );
 };
 
-/** A figure read without its light rims, its shading or its render artifacts: what a cast sheet's view needs when no concept is held to it. */
-export type FigureRead = Omit<FigureMeasure, 'headShading' | 'bodyShading' | 'artifacts'>;
+/** A figure read without its light rims, its shading, its render artifacts or its hair and beard: what a cast sheet's view needs when no concept is held to it. */
+export type FigureRead = Omit<
+  FigureMeasure,
+  'headShading' | 'bodyShading' | 'artifacts' | 'hairBeard'
+>;
 
 /** The figure in `crop` read, its rims read or not, with what the full measure reads on from. */
 const readWith = (crop: Raster, rims: boolean) => {
@@ -2176,6 +2287,10 @@ export const measureFigure = (crop: Raster): Result.Result<FigureMeasure, Figure
       }),
       facing,
       artifacts: artifactsOf(read, head),
+      ...Option.match(hairBeardOf(read, head), {
+        onNone: () => ({}),
+        onSome: (hairBeard) => ({ hairBeard }),
+      }),
       missing,
     };
   });

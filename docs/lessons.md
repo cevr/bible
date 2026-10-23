@@ -3376,3 +3376,13 @@ The form of an entry, each field on its own line:
 - **Wrong:** On a back from a hymn page with nothing playing, the bottom bar stayed docked while the page slid away, then vanished with a jump once the page had gone.
 - **Cause:** The bar was docked under the whole stack and shown from the page the stack showed, so it changed only once the pop had ended. While the player holds no hymn, the hymn screen now draws the bar as its own (`PageBar`, `pageBar`), so it moves with the page; the docked bar shows only while a hymn is held (`dockedBar`).
 - **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `lies in the hymn’s screen while nothing is held, on every way in, so a back takes it out with the screen`, `apps/hymnal/src/player/bar.test.ts` `is the page’s own while the player holds no hymn, so it comes and goes with the page`
+
+### match-misses-hair-beard-merge
+
+- **Date:** 2026-10-18
+- **Kind:** owner
+- **Said:** "Jesus's render confuses parts of his hair with his beard, look more closely to the concept"
+- **Source:** ask ae44af894e1
+- **Wrong:** The match measured no boundary between the hair and the beard, so a render that ran them together passed where the concept parts them by a dark band.
+- **Cause:** The measure read the hair and the face, never the edge between the hair and the beard.
+- **Guard:** code: `packages/film/src/core/match.ts` `hairBeardRows` (`hair/beard: parted`, held on Christ's court 16.51 s crop in `tools/figure-artifacts.test.ts`)
