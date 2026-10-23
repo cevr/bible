@@ -37,6 +37,7 @@ import { settings } from '~/store';
 import { book } from './book';
 import { followerOf, type Report } from './follower';
 import { handOf } from './hand';
+import { introOf } from './intro';
 import { type Marks, marksOf, OFF } from './marks';
 import { seekCount } from './seeks';
 
@@ -44,10 +45,12 @@ interface Follow {
   readonly marks: Marks;
   /** Keeps line `index`'s view for measuring; the returned function lets it go. */
   readonly keep: (index: number, view: HostInstance) => () => void;
+  /** The page's hymn and its first sung line's start, ms, when it has a timeline: its intro (`IntroLine.tsx`). */
+  readonly intro: Option.Option<{ readonly number: number; readonly first: number }>;
 }
 
 /** A page no player follows: no line is ever marked. */
-const still: Follow = { marks: marksOf(), keep: () => () => {} };
+const still: Follow = { marks: marksOf(), keep: () => () => {}, intro: Option.none() };
 
 const FollowContext = createContext<Follow>(still);
 
@@ -137,11 +140,23 @@ const reportOf = (number: number, state: Player): Report => {
 
 const dev = typeof __DEV__ !== 'undefined' && __DEV__;
 
+/** The player's state, or Idle when no player is provided. */
+const usePlayerState = () =>
+  useAtomValue(Option.match(usePlayer(), { onNone: () => idle, onSome: (player) => player.state }));
+
+/** The page's intro as the player stands (`intro.ts`), and whether it runs on (Playing). */
+export const useIntro = () => {
+  const { intro } = use(FollowContext);
+  const state = usePlayerState();
+  return {
+    intro: Option.flatMap(intro, ({ number, first }) => introOf(number, first, state)),
+    running: Player.$is('Playing')(state),
+  };
+};
+
 /** The page's follow: its marks for the lines and the scroll's handlers. */
 export const useFollow = (number: number) => {
-  const state = useAtomValue(
-    Option.match(usePlayer(), { onNone: () => idle, onSome: (player) => player.state }),
-  );
+  const state = usePlayerState();
   const registry = use(RegistryContext);
   /** The page's scroll, once drawn: React hands a ref over as nothing until then. */
   const scroll = useRef<Option.Option<ScrollViewInstance>>(Option.none());
@@ -220,6 +235,7 @@ export const useFollow = (number: number) => {
         onNone: () => still,
         onSome: ({ marks }) => ({
           marks,
+          intro: Option.map(book.of(number), ({ first }) => ({ number, first })),
           keep: (index, view) => {
             views.current.set(index, view);
             return () => {
@@ -228,7 +244,7 @@ export const useFollow = (number: number) => {
           },
         }),
       }),
-    [follower],
+    [follower, number],
   );
 
   const subscribeHeld = useCallback(

@@ -16,6 +16,7 @@ import { type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-na
 
 import { currentOf } from '~/follow/current';
 import { useLineFollow } from '~/follow/follow';
+import { WithIntro } from '~/follow/IntroLine';
 
 import { usePageText } from './pageText';
 
@@ -38,25 +39,27 @@ export function HangingLine({
   const { words, indent } = usePageText();
   const { marked, ref, wordsStyle } = useLineFollow(index);
   return (
-    <View
-      ref={ref}
-      accessible
-      aria-label={line}
-      aria-selected={marked}
-      {...currentOf(marked)}
-      testID="line"
-      style={[styles.row, { paddingLeft: indent }]}
-    >
-      {wordsOf(line).map((word, k) => (
-        <Text
-          key={k}
-          style={[style, words, k === 0 && { marginLeft: -indent }, wordsStyle]}
-          dynamicTypeRamp="body"
-        >
-          {word}
-        </Text>
-      ))}
-    </View>
+    <WithIntro index={index}>
+      <View
+        ref={ref}
+        accessible
+        aria-label={line}
+        aria-selected={marked}
+        {...currentOf(marked)}
+        testID="line"
+        style={[styles.row, { paddingLeft: indent }]}
+      >
+        {wordsOf(line).map((word, k) => (
+          <Text
+            key={k}
+            style={[style, words, k === 0 && { marginLeft: -indent }, wordsStyle]}
+            dynamicTypeRamp="body"
+          >
+            {word}
+          </Text>
+        ))}
+      </View>
+    </WithIntro>
   );
 }
 

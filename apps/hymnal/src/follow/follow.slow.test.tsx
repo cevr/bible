@@ -163,6 +163,7 @@ const mount = (number: number, chords: boolean = false) => {
     press,
     scrolled,
     lines,
+    host,
     [Symbol.dispose]: () => {
       act(() => root.unmount());
       host.remove();
@@ -197,6 +198,43 @@ describe('the follow on a hymn page', () => {
           if (other !== k) expect(page.colours(other)).not.toContain(ACCENT);
       }
     }
+  });
+
+  it('shows the intro over line 0 until the first line, and takes no room (F3b)', () => {
+    const first = timelineOf(100).first;
+    expect(first).toBe(18928);
+    using page = mount(100);
+    const intro = () => [...page.host.querySelectorAll<HTMLElement>('[data-testid="intro"]')];
+    const lineZero = () => Option.getOrThrow(Arr.get(page.lines(), 0));
+    expect(intro()).toEqual([]);
+    const parent = lineZero().parentElement;
+
+    page.at(5000, 'Playing');
+    const [shown, ...more] = intro();
+    expect(more).toEqual([]);
+    const bar = Option.getOrThrow(Option.fromNullishOr(shown));
+    expect(bar.getAttribute('role')).toBe('progressbar');
+    expect(bar.getAttribute('aria-label')).toBe('Introduction');
+    expect(bar.getAttribute('aria-valuenow')).toBe('26');
+    expect(bar.getAttribute('aria-valuetext')).toBe('14 seconds to the first line');
+    expect(page.selected()).toEqual([]);
+    // Drawn absolutely in a box of no height, beside line 0 in a box that is there either way.
+    expect(getComputedStyle(bar).position).toBe('absolute');
+    expect(
+      getComputedStyle(Option.getOrThrow(Option.fromNullishOr(bar.parentElement))).height,
+    ).toBe('0px');
+    expect(lineZero().parentElement).toBe(parent);
+
+    page.at(first, 'Playing');
+    expect(intro()).toEqual([]);
+    expect(page.selected()).toEqual([0]);
+    expect(lineZero().parentElement).toBe(parent);
+  });
+
+  it('shows no intro while the player is idle', () => {
+    using page = mount(100);
+    expect(page.host.querySelector('[data-testid="intro"]')).toBeNull();
+    expect(page.selected()).toEqual([]);
   });
 
   it('marks a line with no syllable times but lights none of its words', () => {

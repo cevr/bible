@@ -35,6 +35,7 @@ import type { Box, Word } from '~/hymns/chords';
 
 import { currentOf } from '~/follow/current';
 import { useLineFollow } from '~/follow/follow';
+import { WithIntro } from '~/follow/IntroLine';
 
 import { usePageText } from './pageText';
 
@@ -63,53 +64,55 @@ export function SyllableLine({
   const starts = wordStarts(words);
   const boxed = Option.isSome(over);
   return (
-    <View
-      ref={ref}
-      {...readAs(boxed, label)}
-      aria-selected={marked}
-      {...currentOf(marked)}
-      testID="line"
-      style={[
-        styles.line,
-        boxed && [styles.boxed, { columnGap: 5 * fontScale }],
-        { paddingLeft: text.indent },
-      ]}
-    >
-      {words.map((word, w) => (
-        <View key={w} style={[styles.word, w === 0 && { marginLeft: -text.indent }]}>
-          {word.map((box, k) => {
-            const s = (starts[w] ?? 0) + k;
-            const place = `${at}-${s + 1}`;
-            return (
-              <View key={k} style={styles.box}>
-                {Option.match(over, { onNone: () => [], onSome: (draw) => draw(box, place) })}
-                <View style={styles.syllable}>
-                  <Text
-                    testID={`syllable-${place}`}
-                    style={[style, text.words, syllableStyle(s)]}
-                    dynamicTypeRamp="body"
-                  >
-                    {box.text}
-                  </Text>
-                  {k < word.length - 1 && (
-                    <View style={styles.hyphen} aria-hidden>
-                      <Text style={[style, text.words, styles.muted]} dynamicTypeRamp="body">
-                        -
-                      </Text>
-                    </View>
-                  )}
+    <WithIntro index={index}>
+      <View
+        ref={ref}
+        {...readAs(boxed, label)}
+        aria-selected={marked}
+        {...currentOf(marked)}
+        testID="line"
+        style={[
+          styles.line,
+          boxed && [styles.boxed, { columnGap: 5 * fontScale }],
+          { paddingLeft: text.indent },
+        ]}
+      >
+        {words.map((word, w) => (
+          <View key={w} style={[styles.word, w === 0 && { marginLeft: -text.indent }]}>
+            {word.map((box, k) => {
+              const s = (starts[w] ?? 0) + k;
+              const place = `${at}-${s + 1}`;
+              return (
+                <View key={k} style={styles.box}>
+                  {Option.match(over, { onNone: () => [], onSome: (draw) => draw(box, place) })}
+                  <View style={styles.syllable}>
+                    <Text
+                      testID={`syllable-${place}`}
+                      style={[style, text.words, syllableStyle(s)]}
+                      dynamicTypeRamp="body"
+                    >
+                      {box.text}
+                    </Text>
+                    {k < word.length - 1 && (
+                      <View style={styles.hyphen} aria-hidden>
+                        <Text style={[style, text.words, styles.muted]} dynamicTypeRamp="body">
+                          -
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
-          {!boxed && w < words.length - 1 && (
-            <Text style={[style, text.words]} dynamicTypeRamp="body" aria-hidden>
-              {' '}
-            </Text>
-          )}
-        </View>
-      ))}
-    </View>
+              );
+            })}
+            {!boxed && w < words.length - 1 && (
+              <Text style={[style, text.words]} dynamicTypeRamp="body" aria-hidden>
+                {' '}
+              </Text>
+            )}
+          </View>
+        ))}
+      </View>
+    </WithIntro>
   );
 }
 
