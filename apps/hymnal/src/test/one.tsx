@@ -3,10 +3,10 @@
  * the parts the screens use, as One's web build has them. A link press
  * opens its href inside the app (recorded in `opened`, and told to each
  * listener in `opening`), and keeps the browser from following it; a click
- * with a modifier key, or not the main button, is left to the browser. A
- * screen's options configure the native header, which a web render has none
- * of, except its title and its right items, which a test finds in `header`
- * as a reader finds them in the header. A screen that changes its own
+ * with a modifier key, or not the main button, is left to the browser.
+ * `Stack.Screen` draws a header from its options, its title and its right
+ * items, which a test finds in `header` as a reader finds them in the
+ * header; the hymn route's comes from the stack's options (`stack.tsx`). A screen that changes its own
  * route's params does so in place (`useRouter().setParams`, kept in
  * `paramsSet`).
  */
@@ -64,7 +64,7 @@ export const useRouter = () => ({
   },
 });
 
-/** A screen's options: the header, named by its title, holding its right items. */
+/** A header from a screen's options: named by its title, holding its right items. */
 export const Stack = {
   Screen: ({
     options,

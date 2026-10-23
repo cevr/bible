@@ -20,6 +20,7 @@ const { Duration, Effect, Option } = await import('effect');
 const Atom = await import('effect/reactivity/Atom');
 const AtomRegistry = await import('effect/reactivity/AtomRegistry');
 const { HymnScreen } = await import('../reader/HymnScreen.native');
+const { StackHeader } = await import('./stack');
 const { HymnList } = await import('../reader/HymnList.native');
 const { pagesFrom } = await import('../reader/place');
 const { hymnAt, hymns } = await import('../hymns/hymns');
@@ -98,7 +99,13 @@ type App = ReturnType<typeof app>;
 const route = (shown: App, n: number) => {
   params['number'] = String(n);
   return shown.show(
-    h('div', null, h('div', { 'data-testid': 'page' }, h(HymnScreen)), h(PlayerBar)),
+    h(
+      'div',
+      null,
+      h(StackHeader),
+      h('div', { 'data-testid': 'page' }, h(HymnScreen)),
+      h(PlayerBar),
+    ),
     drawn,
   );
 };

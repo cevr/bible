@@ -1,17 +1,19 @@
 /**
  * What the hymn route's screen is made of on every platform: the page's
- * chord reader, the header's buttons, the hymns the web builds a page for,
+ * chord reader, the header (`hymnHeader`), the hymns the web builds a page for,
  * and the mark that tells the bottom bar which hymn's page is shown. The web
  * shows one hymn per route (`HymnScreen.tsx`); a phone swipes between hymns
  * (`HymnScreen.native.tsx`).
  */
 
 import bundled from 'virtual:hymnal-chords';
+import { Option, Record } from 'effect';
 
 import { chordBook } from '~/hymns/chords';
-import { hymns } from '~/hymns/hymns';
+import { hymnAt, hymns } from '~/hymns/hymns';
 import { useShowsPage } from '~/player/page';
 import type { Track } from '~/player/player';
+import type { Header, Headers, RouteParams } from '~/stack';
 import { settings } from '~/store';
 
 import { ChordsButton, HeaderButtons, ReadingButton } from './HeaderButtons';
@@ -26,12 +28,30 @@ export const reader: ChordReader = {
 };
 
 /** The header's buttons on every hymn's page. */
-export const headerRight = () => (
+const headerRight = () => (
   <HeaderButtons>
     <ReadingButton />
     <ChordsButton chords={reader.chords} />
   </HeaderButtons>
 );
+
+/**
+ * The hymn route's header, from the route's number alone: the hymn's title
+ * and the page's buttons, or `No hymn <n>` for a number with no hymn. The
+ * stack reads it as it lays the screen out (`useStackOptions`), so it is
+ * right on the first frame of every way in: a list's row, a search's result,
+ * a link, a cold start, a pager's settle and an unknown number.
+ */
+export const hymnHeader = (params: RouteParams): Header => {
+  const asked = Option.getOrElse(Record.get(params, 'number'), () => '');
+  return Option.match(hymnAt(asked), {
+    onNone: () => ({ title: `No hymn ${asked}`.trim() }),
+    onSome: (hymn) => ({ title: hymn.title, headerRight }),
+  });
+};
+
+/** The stack's headers that follow their route: each hymn's, by its route's name (`app/(hymnal)/hymns/[number].tsx`). */
+export const stackHeaders: Headers = { 'hymns/[number]': hymnHeader };
 
 /** Every hymn's page is rendered when the web is built. */
 export const hymnParams = () => hymns.map((hymn) => ({ number: String(hymn.number) }));

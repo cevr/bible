@@ -15,6 +15,7 @@ import { hymnAt } from '~/hymns/hymns';
 
 import { awake, opened, params } from '../test/one';
 import { readerOn } from '../test/reader';
+import { StackHeader } from '../test/stack';
 import { HymnPage } from './HymnPage';
 import { HymnScreen } from './HymnScreen';
 import { ReadingSheet } from './ReadingSheet';
@@ -56,7 +57,12 @@ describe('the hymn page’s Aa button', () => {
   it('sits in the header before Chords, as a button, and opens the reading sheet', () => {
     opened.splice(0);
     params['number'] = '3';
-    using app = mount(<HymnScreen />);
+    using app = mount(
+      <>
+        <StackHeader />
+        <HymnScreen />
+      </>,
+    );
     const header = app.get('[data-testid="header"]');
     const buttons = [...header.querySelectorAll('[role="button"]')].map((b) =>
       b.getAttribute('aria-label'),

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { LivePlayer } from '~/player/LivePlayer';
 import { PlayerBar } from '~/player/PlayerBar';
 import { StackBottom } from '~/player/StackBottom';
+import { stackHeaders } from '~/reader/screen';
 import { useStackOptions } from '~/stack';
 import { color } from '~/color';
 import { WebStackHeader } from '~/web/WebStackHeader';
@@ -23,7 +24,7 @@ export default function HymnalLayout() {
       <View style={styles.column}>
         <View style={styles.stack}>
           <StackBottom>
-            <Stack screenOptions={useStackOptions()}>
+            <Stack screenOptions={useStackOptions(stackHeaders)}>
               {/* The title names the home screen to the back button of a hymn pushed over it. */}
               <Stack.Screen name="index" options={{ title: 'Hymns', headerShown: false }} />
               <Stack.Screen

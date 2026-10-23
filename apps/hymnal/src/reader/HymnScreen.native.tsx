@@ -12,16 +12,17 @@
  *
  * The route follows the page the pager settles on (`settledAt`), never a
  * page passed mid-swipe: the screen sets the route's number in place
- * (`setParams`, no push), so Back returns to the list in one step. The screen,
- * not its pages, sets the header's title and buttons, and tells the bottom
- * bar the page shown (`Shown`), from the route's hymn alone: a neighbour page
- * sets nothing, and a swipe never touches the player.
+ * (`setParams`, no push), so Back returns to the list in one step. The
+ * header follows the route's number where the stack is laid out
+ * (`hymnHeader`), and the screen, not its pages, tells the bottom bar the
+ * page shown (`Shown`): a neighbour page sets nothing, and a swipe never
+ * touches the player.
  */
 
 import { useAtomSet, useAtomValue } from '@effect/atom-react';
 import { LegendList } from '@legendapp/list/react-native';
 import { Option } from 'effect';
-import { Stack, useParams, useRouter } from 'one';
+import { useParams, useRouter } from 'one';
 import { useEffect, useState } from 'react';
 import {
   type NativeScrollEvent,
@@ -32,12 +33,11 @@ import {
 } from 'react-native';
 
 import { hymnAt, type HymnText, hymns } from '~/hymns/hymns';
-import { pushedOptions } from '~/stack';
 
 import { HymnPage, NoHymn } from './HymnPage';
 import { onPage, pageSource, settledAt } from './pager';
 import { pagesFrom } from './place';
-import { headerRight, reader, Shown } from './screen';
+import { reader, Shown } from './screen';
 
 export { hymnParams } from './screen';
 
@@ -48,17 +48,12 @@ export function HymnScreen() {
   const { number } = useParams<{ number: string }>();
   const asked = String(number);
   return Option.match(hymnAt(asked), {
-    onNone: () => (
-      <>
-        <Stack.Screen options={{ ...pushedOptions, title: `No hymn ${asked}` }} />
-        <NoHymn number={asked} />
-      </>
-    ),
+    onNone: () => <NoHymn number={asked} />,
     onSome: (hymn) => <Pager shown={hymn} />,
   });
 }
 
-/** The pages around `shown`, the route's hymn, and the header and the bar set from it alone. */
+/** The pages around `shown`, the route's hymn, and the bar told of it alone. */
 function Pager({ shown }: { readonly shown: HymnText }) {
   const from = useAtomValue(pagesFrom);
   const [pages] = useState(() => pageSource(from, shown.number, everyHymn));
@@ -86,7 +81,6 @@ function Pager({ shown }: { readonly shown: HymnText }) {
     );
   return (
     <>
-      <Stack.Screen options={{ ...pushedOptions, title: shown.title, headerRight }} />
       <Shown hymn={shown} />
       <LegendList
         data={pages.list}

@@ -17,6 +17,7 @@ import { hymnAt } from '~/hymns/hymns';
 import { endSpace } from '~/reader/end';
 import { ListEnd } from '~/reader/ListEnd';
 import { HymnScreen } from '~/reader/HymnScreen';
+import { StackHeader } from '~/test/stack';
 import { audioUrl } from '~/remote';
 import { theme } from '~/theme';
 
@@ -81,12 +82,13 @@ const barOver = (page: Option.Option<Track>) => (
   </>
 );
 
-/** The hymn route at `/hymns/<n>`, its screen in `page`, and the bottom bar under it. */
+/** The hymn route at `/hymns/<n>`, its header and screen in `page`, and the bottom bar under it. */
 const route = (n: number) => {
   params['number'] = String(n);
   return (
     <>
       <View testID="page">
+        <StackHeader />
         <HymnScreen />
       </View>
       <PlayerBar />
