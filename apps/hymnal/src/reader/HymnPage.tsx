@@ -13,6 +13,10 @@
  * decoded. With chords on, each section is drawn under its chords
  * (`Chords.tsx`) in the key the hymn's own move reaches: Simple chords
  * (`simple.ts`) unless the reader chose Advanced in Settings.
+ *
+ * While the player plays this hymn, the page follows it (`follow/`): the
+ * sung line and word are marked, and the page scrolls each line in before
+ * it is sung.
  */
 
 import { useAtom, useAtomValue } from '@effect/atom-react';
@@ -42,6 +46,8 @@ import type { HymnText, Section } from '~/hymns/hymns';
 import { type ChordStyle, styled } from '~/hymns/simple';
 import type { ReadingSettings } from '~/settings';
 import { color, useAccent } from '~/color';
+
+import { FollowProvider, useFollow } from '~/follow/follow';
 
 import { ChordControls, ChordLines, PlayedKeyProvider } from './Chords';
 import { FavouriteButton } from './FavouriteButton';
@@ -91,11 +97,15 @@ export function HymnPage({
     onNone: () => hymnKeyAtRest,
     onSome: (c) => playedKey(c.key, move),
   });
+  const follow = useFollow(hymn.number);
   return (
     <ScrollView
+      ref={follow.scroll}
       testID="hymn-scroll"
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={styles.page}
+      onLayout={follow.onLayout}
+      onContentSizeChange={follow.onContentSizeChange}
     >
       <KeepAwake on={reader.reading.awake} />
       <View style={styles.head}>
@@ -121,7 +131,9 @@ export function HymnPage({
       <ChordControls on={on} printed={printed} move={move} onMove={setMove} />
       <PageText reading={reader.reading}>
         <PlayedKeyProvider value={played}>
-          <Sections hymn={hymn} chords={chords} />
+          <FollowProvider value={follow.follow}>
+            <Sections hymn={hymn} chords={chords} />
+          </FollowProvider>
         </PlayedKeyProvider>
       </PageText>
     </ScrollView>
@@ -169,30 +181,41 @@ const Sections = memo(function Sections({
       }),
     [hymn, chords],
   );
+  const firsts = useMemo(() => firstLines(hymn.sections), [hymn.sections]);
   return hymn.sections.map((section, k) => (
     <SectionView
       key={k}
       section={section}
       shown={Option.getOrElse(Option.fromUndefinedOr(shown[k]), () => wordsAlone)}
       p={k + 1}
+      first={firsts[k] ?? 0}
     />
   ));
 });
+
+/** Each section's first line's place in the hymn as sung, from 0: the sections are its runs. */
+const firstLines = (sections: ReadonlyArray<Section>): ReadonlyArray<number> =>
+  sections.reduce<Array<number>>(
+    (firsts, _, k) => [...firsts, (firsts[k - 1] ?? 0) + (sections[k - 1]?.lines.length ?? 0)],
+    [],
+  );
 
 function SectionView({
   section,
   shown,
   p,
+  first,
 }: {
   readonly section: Section;
   readonly shown: SectionChords;
   readonly p: number;
+  readonly first: number;
 }) {
   if (section.kind === 'refrain') {
     return (
       <Block name="Refrain" label="Refrain">
         <View style={styles.refrain}>
-          <Body section={section} shown={shown} p={p} style={refrainStyle} />
+          <Body section={section} shown={shown} p={p} first={first} style={refrainStyle} />
         </View>
       </Block>
     );
@@ -200,7 +223,7 @@ function SectionView({
   return (
     <Block name={`Stanza ${section.n}`} label={String(section.n)}>
       <View>
-        <Body section={section} shown={shown} p={p} style={styles.line} />
+        <Body section={section} shown={shown} p={p} first={first} style={styles.line} />
       </View>
     </Block>
   );
@@ -211,15 +234,17 @@ function Body({
   section,
   shown,
   p,
+  first,
   style,
 }: {
   readonly section: Section;
   readonly shown: SectionChords;
   readonly p: number;
+  readonly first: number;
   readonly style: StyleProp<TextStyle>;
 }) {
-  if (shown._tag === 'Words') return <Lines lines={section.lines} style={style} />;
-  return <ChordLines section={section} shown={shown} p={p} style={style} />;
+  if (shown._tag === 'Words') return <Lines lines={section.lines} first={first} style={style} />;
+  return <ChordLines section={section} shown={shown} p={p} first={first} style={style} />;
 }
 
 /** A section under its label: the stanza's number, or "Refrain". */
@@ -250,12 +275,16 @@ function Block({
 
 function Lines({
   lines,
+  first,
   style,
 }: {
   readonly lines: ReadonlyArray<string>;
+  readonly first: number;
   readonly style: StyleProp<TextStyle>;
 }) {
-  return lines.map((line, k) => <HangingLine key={k} line={line} style={style} />);
+  return lines.map((line, k) => (
+    <HangingLine key={k} line={line} index={first + k} style={style} />
+  ));
 }
 
 export function NoHymn({ number }: { readonly number: string }) {

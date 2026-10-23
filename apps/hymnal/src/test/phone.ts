@@ -17,6 +17,7 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { plugin } from 'bun';
 
 import { readChords } from '../../vite/chords';
+import { readTiming } from '../../vite/timing';
 import { readWords } from '../../vite/words';
 
 /** A scroll view's last props, by whether it scrolls sideways. */
@@ -122,6 +123,10 @@ export const phone = ({ nativeList = false }: { readonly nativeList?: boolean } 
       }));
       build.module('virtual:hymnal-chords', () => ({
         contents: `export default ${JSON.stringify(readChords())};`,
+        loader: 'js',
+      }));
+      build.module('virtual:hymnal-timing', () => ({
+        contents: `export default ${JSON.stringify(readTiming())};`,
         loader: 'js',
       }));
       if (nativeList) {

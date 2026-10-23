@@ -1,0 +1,124 @@
+import { describe, expect, it } from 'bun:test';
+
+import { followerOf, type Host, LEAD, type Report } from './follower';
+import { OFF } from './marks';
+import type { TimedLine, Timeline } from './timeline';
+
+const line = (start: number, syllables: ReadonlyArray<number>): TimedLine => ({
+  start,
+  until: start + 1000,
+  played: true,
+  even: false,
+  syllables,
+  words: syllables.map((_, k) => k),
+});
+
+/** Three lines a second each from 1 s: two words, then a line-level line, then two words. */
+const timeline: Timeline = {
+  lines: [line(1000, [1000, 1500]), line(2000, []), line(3000, [3000, 3400])],
+  first: 1000,
+  end: 4000,
+};
+
+/** A follower over `timeline` on a hand-moved clock: what it scrolled to and logged. */
+const harness = () => {
+  let now = 0;
+  let timers: Array<{ at: number; run: () => void }> = [];
+  const scrolled: Array<number> = [];
+  const logged: Array<string> = [];
+  const host: Host = {
+    now: () => now,
+    wake: (ms, run) => {
+      const timer = { at: now + ms, run };
+      timers.push(timer);
+      return () => {
+        timers = timers.filter((t) => t !== timer);
+      };
+    },
+    scrollTo: (to) => scrolled.push(to),
+    log: (event) => logged.push(event),
+  };
+  const follower = followerOf(timeline, host);
+  /** Moves the clock to `to`, running each timer due on the way. */
+  const advance = (to: number) => {
+    for (;;) {
+      const due = timers.filter((t) => t.at <= to).toSorted((a, b) => a.at - b.at)[0];
+      if (!due) break;
+      timers = timers.filter((t) => t !== due);
+      now = due.at;
+      due.run();
+    }
+    now = to;
+  };
+  const marks = () => timeline.lines.map((_, k) => follower.marks.markOf(k));
+  const report = (told: Report) => follower.report(told);
+  return { advance, marks, report, scrolled, logged, follower };
+};
+
+const playing = (at: number): Report => ({ _tag: 'Here', at, state: 'playing' });
+
+describe('followerOf', () => {
+  it('marks nothing before the first sung line, then each line and word as it is sung', () => {
+    const h = harness();
+    h.report(playing(0));
+    expect(h.marks()).toEqual([OFF, OFF, OFF]);
+    h.advance(1000);
+    expect(h.marks()).toEqual([0, OFF, OFF]);
+    h.advance(1600);
+    expect(h.marks()).toEqual([1, OFF, OFF]);
+    h.advance(2100);
+    expect(h.marks()).toEqual([OFF, -1, OFF]);
+    h.advance(3500);
+    expect(h.marks()).toEqual([OFF, OFF, 1]);
+    h.advance(4100);
+    expect(h.marks()).toEqual([OFF, OFF, OFF]);
+  });
+
+  it('scrolls to each line LEAD ms before it is sung, once each', () => {
+    const h = harness();
+    h.report(playing(0));
+    h.advance(1000 - LEAD - 1);
+    expect(h.scrolled).toEqual([]);
+    h.advance(1000 - LEAD);
+    expect(h.scrolled).toEqual([0]);
+    h.advance(3000 - LEAD);
+    expect(h.scrolled).toEqual([0, 1, 2]);
+    h.advance(5000);
+    expect(h.scrolled).toEqual([0, 1, 2]);
+  });
+
+  it('holds the marks and never scrolls while paused', () => {
+    const h = harness();
+    h.report({ _tag: 'Here', at: 1600, state: 'paused' });
+    expect(h.marks()).toEqual([1, OFF, OFF]);
+    h.advance(10_000);
+    expect(h.marks()).toEqual([1, OFF, OFF]);
+    expect(h.scrolled).toEqual([]);
+  });
+
+  it('runs on between reports and is not moved back by a report a little behind', () => {
+    const h = harness();
+    h.report(playing(1000));
+    h.advance(600);
+    h.report(playing(1450));
+    expect(h.marks()).toEqual([1, OFF, OFF]);
+  });
+
+  it('moves the marks at once on a seek and scrolls to the line sung there', () => {
+    const h = harness();
+    h.report(playing(1000));
+    h.advance(1100);
+    h.report(playing(3100));
+    expect(h.marks()).toEqual([OFF, OFF, 0]);
+    expect(h.scrolled.at(-1)).toBe(2);
+  });
+
+  it('clears the marks and logs the end when the player leaves the hymn', () => {
+    const h = harness();
+    h.report(playing(1000));
+    h.report({ _tag: 'Away' });
+    expect(h.marks()).toEqual([OFF, OFF, OFF]);
+    expect(h.logged.at(-1)).toBe('end');
+    expect(h.logged[0]).toBe('line i=0 of=3 at=1000');
+  });
+});

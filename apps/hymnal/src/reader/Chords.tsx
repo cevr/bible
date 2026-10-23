@@ -42,6 +42,9 @@ import {
   transposed,
 } from '~/hymns/chords';
 
+import { currentOf } from '~/follow/current';
+import { useLineFollow } from '~/follow/follow';
+
 import { HangingLine } from './HangingLine';
 import { usePageText } from './pageText';
 
@@ -183,41 +186,58 @@ export const ChordLines = memo(function ChordLines({
   section,
   shown,
   p,
+  first,
   style,
 }: {
   readonly section: Section;
   readonly shown: Exclude<SectionChords, { readonly _tag: 'Words' }>;
   readonly p: number;
+  /** The section's first line's place in the hymn as sung, from 0. */
+  readonly first: number;
   readonly style: StyleProp<TextStyle>;
 }) {
   if (shown._tag === 'Line') {
     return section.lines.map((line, l) => (
       <View key={l} style={styles.lineLevel}>
         <ChordText chords={shown.lines[l] ?? []} testID={`chords-${p}-${l + 1}`} />
-        <HangingLine line={line} style={style} />
+        <HangingLine line={line} index={first + l} style={style} />
       </View>
     ));
   }
   return shown.lines.map((words, l) => (
-    <SyllableLine key={l} words={words} at={`${p}-${l + 1}`} style={style} />
+    <SyllableLine key={l} words={words} at={`${p}-${l + 1}`} index={first + l} style={style} />
   ));
 });
 
+/**
+ * While the line is sung (`follow/`), it is `selected` and its syllables take
+ * the muted colour, the sung word's syllables the accent.
+ */
 function SyllableLine({
   words,
   at,
+  index,
   style,
 }: {
   readonly words: ReadonlyArray<Word>;
   /** The line's place, `p-l`. */
   readonly at: string;
+  /** The line's place in the hymn as sung, from 0. */
+  readonly index: number;
   readonly style: StyleProp<TextStyle>;
 }) {
   const { fontScale } = useWindowDimensions();
   const { indent } = usePageText();
+  const { marked, ref, wordStyle } = useLineFollow(index);
   const starts = wordStarts(words);
   return (
-    <View testID="line" style={[styles.line, { columnGap: 5 * fontScale, paddingLeft: indent }]}>
+    <View
+      ref={ref}
+      testID="line"
+      aria-selected={marked}
+      {...currentOf(marked)}
+      style={[styles.line, { columnGap: 5 * fontScale, paddingLeft: indent }]}
+    >
       {words.map((word, w) => (
         <View key={w} style={[styles.word, w === 0 && { marginLeft: -indent }]}>
           {word.map((box, k) => (
@@ -226,7 +246,7 @@ function SyllableLine({
               box={box}
               place={`${at}-${(starts[w] ?? 0) + k + 1}`}
               joinsNext={k < word.length - 1}
-              style={style}
+              style={[style, wordStyle(w)]}
             />
           ))}
         </View>

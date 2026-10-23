@@ -5,9 +5,15 @@
  * its words that wraps between them; the row is indented and its first word
  * pulled back to the line's start. The row is one accessible element that
  * reads the whole line.
+ *
+ * While the line is sung (`follow/`), it is `selected` and its words take
+ * the muted colour, the sung word the accent: a change of colour only.
  */
 
 import { type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-native';
+
+import { currentOf } from '~/follow/current';
+import { useLineFollow } from '~/follow/follow';
 
 import { usePageText } from './pageText';
 
@@ -19,18 +25,30 @@ const wordsOf = (line: string): ReadonlyArray<string> => {
 
 export function HangingLine({
   line,
+  index,
   style,
 }: {
   readonly line: string;
+  /** The line's place in the hymn as sung, from 0: its mark in the follow. */
+  readonly index: number;
   readonly style: StyleProp<TextStyle>;
 }) {
   const { words, indent } = usePageText();
+  const { marked, ref, wordStyle } = useLineFollow(index);
   return (
-    <View accessible aria-label={line} testID="line" style={[styles.row, { paddingLeft: indent }]}>
+    <View
+      ref={ref}
+      accessible
+      aria-label={line}
+      aria-selected={marked}
+      {...currentOf(marked)}
+      testID="line"
+      style={[styles.row, { paddingLeft: indent }]}
+    >
       {wordsOf(line).map((word, k) => (
         <Text
           key={k}
-          style={[style, words, k === 0 && { marginLeft: -indent }]}
+          style={[style, words, k === 0 && { marginLeft: -indent }, wordStyle(k)]}
           dynamicTypeRamp="body"
         >
           {word}
