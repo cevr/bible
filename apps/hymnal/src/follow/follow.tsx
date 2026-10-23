@@ -35,6 +35,7 @@ import { settings } from '~/store';
 
 import { book } from './book';
 import { followerOf, type Report } from './follower';
+import { handOf } from './hand';
 import { type Marks, marksOf, OFF } from './marks';
 
 interface Follow {
@@ -194,9 +195,27 @@ export const useFollow = (number: number) => {
     [follower],
   );
 
+  const subscribeHeld = useCallback(
+    (listener: () => void) =>
+      Option.match(follower, {
+        onNone: () => () => {},
+        onSome: (f) => f.held.subscribe(listener),
+      }),
+    [follower],
+  );
+  const readHeld = () =>
+    Option.match(follower, { onNone: () => false, onSome: (f) => f.held.get() });
+  const held = useSyncExternalStore(subscribeHeld, readHeld, readHeld);
+
   return {
     follow,
     scroll,
+    /** Whether a hand scroll holds the follow: the page shows `Resume follow`. */
+    held,
+    /** The `Resume follow` pill's press. */
+    resume: () => Option.map(follower, (f) => f.resume()),
+    /** The scroll's handlers that tell the follow a hand scroll began (`hand.ts`). */
+    hand: handOf(() => Option.map(follower, (f) => f.drag())),
     onLayout: (event: LayoutChangeEvent) => {
       height.current = event.nativeEvent.layout.height;
     },

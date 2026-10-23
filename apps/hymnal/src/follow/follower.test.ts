@@ -113,6 +113,52 @@ describe('followerOf', () => {
     expect(h.scrolled.at(-1)).toBe(2);
   });
 
+  it('holds the scroll on a drag but keeps the marks moving; the pill scrolls to the line sung now', () => {
+    const h = harness();
+    h.report(playing(1000));
+    h.follower.drag();
+    expect(h.follower.held.get()).toBe(true);
+    expect(h.logged.at(-1)).toBe('pause reason=drag');
+    const before = h.scrolled.length;
+    // The player reported 1000 ms at host time 0, so host time 2500 is 3500 ms into the hymn.
+    h.advance(2500);
+    expect(h.marks()).toEqual([OFF, OFF, 1]);
+    expect(h.scrolled.length).toBe(before);
+    h.follower.resume();
+    expect(h.follower.held.get()).toBe(false);
+    expect(h.logged.at(-1)).toBe('resume reason=pill');
+    expect(h.scrolled.at(-1)).toBe(2);
+  });
+
+  it('ends a hand pause on a seek and scrolls to the line sung there', () => {
+    const h = harness();
+    h.report(playing(3000));
+    h.follower.drag();
+    h.advance(100);
+    h.report(playing(1100));
+    expect(h.follower.held.get()).toBe(false);
+    expect(h.logged).toContain('resume reason=seek');
+    expect(h.scrolled.at(-1)).toBe(0);
+  });
+
+  it('drops a hand pause when the player pauses or leaves, and a drag while paused holds nothing', () => {
+    const h = harness();
+    let told = 0;
+    h.follower.held.subscribe(() => (told += 1));
+    h.report(playing(1000));
+    h.follower.drag();
+    h.report({ _tag: 'Here', at: 1000, state: 'paused' });
+    expect(h.follower.held.get()).toBe(false);
+    h.follower.drag();
+    expect(h.follower.held.get()).toBe(false);
+    h.report(playing(1000));
+    h.follower.drag();
+    h.report({ _tag: 'Away' });
+    expect(h.follower.held.get()).toBe(false);
+    expect(told).toBe(4);
+    expect(h.logged.filter((event) => event.startsWith('resume'))).toEqual([]);
+  });
+
   it('clears the marks and logs the end when the player leaves the hymn', () => {
     const h = harness();
     h.report(playing(1000));

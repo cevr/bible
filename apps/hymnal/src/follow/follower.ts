@@ -10,6 +10,11 @@
  * further than `SLACK` from the running clock) moves the marks at once and
  * scrolls to the line sung there.
  *
+ * A hand scroll (`drag`) while the player is on the hymn and not paused holds
+ * the page's scroll, not the marks: the page shows a pill (`held`) until the
+ * reader taps it (`resume`, which scrolls to the line sung now), seeks, or
+ * the player pauses or leaves the hymn.
+ *
  * The host gives it the time, its timers, the scroll and the dev log, so a
  * test drives it with a hand-moved clock.
  */
@@ -45,8 +50,37 @@ export interface Host {
   readonly log: (event: string) => void;
 }
 
+/** Whether a hand scroll holds the page's scroll: the flag the page's pill reads. */
+export interface Held {
+  readonly get: () => boolean;
+  /** Calls `listener` whenever the flag changes. */
+  readonly subscribe: (listener: () => void) => () => void;
+}
+
+const heldOf = () => {
+  let held = false;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => held,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    set: (to: boolean) => {
+      if (to === held) return;
+      held = to;
+      listeners.forEach((listener) => listener());
+    },
+  };
+};
+
 export const followerOf = (timeline: Timeline, host: Host) => {
   const marks = marksOf();
+  const held = heldOf();
+  /** The player's last report on this hymn. */
+  let last: Report = { _tag: 'Away' };
   let clock: Option.Option<Clock> = Option.none();
   /** The line the page last scrolled to, `-1` for none. */
   let shown = -1;
@@ -69,7 +103,7 @@ export const followerOf = (timeline: Timeline, host: Host) => {
     // A seek shows the line sung now; playing on shows the next line LEAD ms early.
     let target = ahead.line;
     if (snap) target = place.line;
-    if ((playing || snap) && target >= 0 && target !== shown) {
+    if ((playing || snap) && !held.get() && target >= 0 && target !== shown) {
       shown = target;
       host.scrollTo(target, true);
     }
@@ -81,7 +115,9 @@ export const followerOf = (timeline: Timeline, host: Host) => {
 
   const report = (told: Report) => {
     const now = host.now();
+    last = told;
     if (told._tag === 'Away') {
+      held.set(false);
       if (Option.isNone(clock)) return;
       clock = Option.none();
       shown = -1;
@@ -90,6 +126,7 @@ export const followerOf = (timeline: Timeline, host: Host) => {
       tick();
       return;
     }
+    if (told.state === 'paused') held.set(false);
     const playing = told.state === 'playing';
     clock = Option.some(
       Option.match(clock, {
@@ -100,15 +137,39 @@ export const followerOf = (timeline: Timeline, host: Host) => {
         },
       }),
     );
+    // The reader asked for this place: a seek ends a hand pause.
+    if (snap && held.get()) {
+      held.set(false);
+      host.log('resume reason=seek');
+    }
     tick();
   };
 
   return {
     marks,
     report,
+    held: { get: held.get, subscribe: held.subscribe } satisfies Held,
+    /** A hand scroll began: hold the page's scroll while the player is on the hymn and not paused. */
+    drag: () => {
+      if (last._tag === 'Away' || last.state === 'paused' || held.get()) return;
+      held.set(true);
+      host.log('pause reason=drag');
+    },
+    /** The pill was tapped: scroll to the line sung now and follow again. */
+    resume: () => {
+      if (!held.get()) return;
+      held.set(false);
+      host.log('resume reason=pill');
+      if (Option.isNone(clock)) return;
+      const line = placeAt(timeline, placeOf(clock.value, host.now())).line;
+      if (line < 0) return;
+      shown = line;
+      host.scrollTo(line, true);
+    },
     /** The page's lines moved (chords, text size, a turn): scroll the shown line back into place. */
     relayout: () => {
-      if (Option.isSome(clock) && clock.value.playing && shown >= 0) host.scrollTo(shown, false);
+      if (Option.isSome(clock) && clock.value.playing && !held.get() && shown >= 0)
+        host.scrollTo(shown, false);
     },
     /** The page is gone: stop waking. */
     stop: () => {

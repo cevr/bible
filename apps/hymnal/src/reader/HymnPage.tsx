@@ -48,6 +48,7 @@ import type { ReadingSettings } from '~/settings';
 import { color, useAccent } from '~/color';
 
 import { FollowProvider, useFollow } from '~/follow/follow';
+import { ResumeFollow } from '~/follow/ResumeFollow';
 
 import { ChordControls, ChordLines, PlayedKeyProvider } from './Chords';
 import { FavouriteButton } from './FavouriteButton';
@@ -99,44 +100,48 @@ export function HymnPage({
   });
   const follow = useFollow(hymn.number);
   return (
-    <ScrollView
-      ref={follow.scroll}
-      testID="hymn-scroll"
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.page}
-      onLayout={follow.onLayout}
-      onContentSizeChange={follow.onContentSizeChange}
-    >
-      <KeepAwake on={reader.reading.awake} />
-      <View style={styles.head}>
-        <Text testID="hymn-topic" style={styles.topic} dynamicTypeRamp="footnote">
-          {hymn.topic}
-        </Text>
-        <View testID="hymn-name" style={styles.name}>
-          <View style={styles.words}>
-            <Text
-              testID="hymn-number"
-              style={[styles.number, { color: accent }]}
-              dynamicTypeRamp="title2"
-            >
-              {hymn.number}
-            </Text>
-            <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
-              {hymn.title}
-            </Text>
+    <View style={styles.frame}>
+      <ScrollView
+        ref={follow.scroll}
+        testID="hymn-scroll"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.page}
+        onLayout={follow.onLayout}
+        onContentSizeChange={follow.onContentSizeChange}
+        {...follow.hand}
+      >
+        <KeepAwake on={reader.reading.awake} />
+        <View style={styles.head}>
+          <Text testID="hymn-topic" style={styles.topic} dynamicTypeRamp="footnote">
+            {hymn.topic}
+          </Text>
+          <View testID="hymn-name" style={styles.name}>
+            <View style={styles.words}>
+              <Text
+                testID="hymn-number"
+                style={[styles.number, { color: accent }]}
+                dynamicTypeRamp="title2"
+              >
+                {hymn.number}
+              </Text>
+              <Text role="heading" aria-level={1} style={styles.title} dynamicTypeRamp="title2">
+                {hymn.title}
+              </Text>
+            </View>
+            <FavouriteButton number={hymn.number} favourites={reader.favourites} />
           </View>
-          <FavouriteButton number={hymn.number} favourites={reader.favourites} />
         </View>
-      </View>
-      <ChordControls on={on} printed={printed} move={move} onMove={setMove} />
-      <PageText reading={reader.reading}>
-        <PlayedKeyProvider value={played}>
-          <FollowProvider value={follow.follow}>
-            <Sections hymn={hymn} chords={chords} />
-          </FollowProvider>
-        </PlayedKeyProvider>
-      </PageText>
-    </ScrollView>
+        <ChordControls on={on} printed={printed} move={move} onMove={setMove} />
+        <PageText reading={reader.reading}>
+          <PlayedKeyProvider value={played}>
+            <FollowProvider value={follow.follow}>
+              <Sections hymn={hymn} chords={chords} />
+            </FollowProvider>
+          </PlayedKeyProvider>
+        </PageText>
+      </ScrollView>
+      {follow.held && <ResumeFollow onPress={follow.resume} />}
+    </View>
   );
 }
 
@@ -296,6 +301,7 @@ export function NoHymn({ number }: { readonly number: string }) {
 }
 
 const styles = StyleSheet.create({
+  frame: { flex: 1 },
   page: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48, gap: 24 },
   head: { gap: 4 },
   topic: { fontSize: 13, color: color.muted },
