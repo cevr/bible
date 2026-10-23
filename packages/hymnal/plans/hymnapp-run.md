@@ -23,7 +23,8 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | uibulk    | chords, shell, playstall       |                           |                   | merged 2f7de2e1d    |
 | chordsimp | chords, uibulk                 | removed                   |                   | merged d34ce0021    |
 | h220      | pagerows                       | removed                   |                   | merged 5ffd09c2e    |
-| worship   | uibulk, render                 | .rifts/manna/worship      | a15de98cf400f2c08 |                     |
+| worship   | uibulk, render                 | .rifts/manna/worship      | ab9a5867e64e41a87 |                     |
+| tempo     | worship                        |                           |                   |                     |
 | keys      | render                         |                           |                   | merged 8be940a53    |
 | hymnbar   | shell, playstall               |                           |                   | folded into uibulk  |
 | pager     | coldload, playstall            |                           |                   | folded into uibulk  |
@@ -205,6 +206,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - The full player's title opens its hymn (owner, 2026-10-22: "when we have a hymn playing or paused and we go to the back to the ... list page, when we open the sheet and we press on the title, it should bring us to the hymn ... page"). The title closes the sheet and pushes that hymn's page; the track keeps playing. It goes into uibulk round 3 with the seek drag and the Recent swipe (`uibulk/round-3-owner.md`). (uibulk)
 
 - Plan commits during a unit move main past the unit's base. When main moved only by the plan file, the orchestrator merges origin/main into the unit branch and runs the merge gate at the merged head, with no merge round: the reviewed tree differs only in a file the unit does not own (h220, 2026-10-23, orchestrator decision, principle never-block-on-the-human). (all units)
+
+- `rate` leaves worship for a follow-on unit `tempo` (worship planner, 2026-10-23, `worship/spec.md` Appendix, rows T1 to T7): tempo, tap tempo, stanza choice, intro skip, count-in and click, behind progressive disclosure. worship keeps sync, the one-tap follow and the word colour, so the owner's one-tap Done line comes first. The planner measured the premise: MIDI line starts match the warm-1 recordings within 12 ms on 366 lines over 18 hymns (median 6 ms), the same on warm-1-up1 and warm-1-down1, so the audio aligner is dropped. (worship, tempo)
 
 ## Owner questions
 
