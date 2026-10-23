@@ -45,6 +45,6 @@ later rows sit one indent right of its first.
 
 - Hymn 100 has three stanzas, so `label=Stanza 4` is a `TargetMissing`, not a defect.
 - A deep link opened while an earlier iOS prompt is unanswered stacks prompts; `sim open` answers up to three. A snapshot that shows only the alert means a prompt is still up.
-- The sheet opens at 0.6 of the screen; drag its grabber up for the rest at the largest system text size.
+- The sheet opens at 0.7 of the screen, which shows every row at the default system text size; at a larger one, drag its grabber up for the rest.
 - On iOS a chord line is not one element: its chords keep their `chord-<p>-<l>-<n>` ids. A line without chords reads as one element named by the whole line.
 - On iOS a stanza's group is read as text named `Stanza <n>`; on the web it is a `group` with that `aria-label`. `label=` matches both.

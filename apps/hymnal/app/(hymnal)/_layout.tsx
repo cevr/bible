@@ -43,7 +43,7 @@ export default function HymnalLayout() {
                   headerShown: false,
                   presentation: 'formSheet',
                   sheetGrabberVisible: true,
-                  sheetAllowedDetents: [0.6, 1],
+                  sheetAllowedDetents: [0.7, 1],
                 }}
               />
               <Stack.Screen
