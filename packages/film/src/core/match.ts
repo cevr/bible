@@ -679,6 +679,12 @@ const artifactNote = (marks: ReadonlyArray<ArtifactMark>): string => {
  * least this much either way. Christ's concept parts them by a band; a
  * render that runs the beard into the hair reads near 0 on both (owner,
  * 2026-10-18: "Jesus's render confuses parts of his hair with his beard").
+ * Measured on the figure fixtures (`core/fixtures/figure/`, crops of RBF's
+ * kept concepts and renders, and the drawn beards): the parted read an edge
+ * of 0.146 to 0.257 (drawn 0.212), the merged 0.000 to 0.070, so 0.1 falls in
+ * the gap; the step is 0.000 to 0.020 where only a band parts them (Christ)
+ * and 0.200 to 0.494 where tone does (the farmer's grey beard), so 0.1 falls
+ * in that gap too. `match.test.ts` holds the rule on those values.
  */
 const PARTED = { edge: 0.1, step: 0.1 } as const;
 
