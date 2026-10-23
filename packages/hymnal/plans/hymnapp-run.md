@@ -234,6 +234,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 
 - **The splash is in appicon** (owner, 2026-10-23: "Keep the splash in the unit"). The launch screen shows the wheat on its ground colour, light and dark, drawn by the icon script from wheat.svg; the test holds its paths, ground pixels and no drift. The `splash` follow-up is closed into the unit (spec Amendment 1). Principle: the owner's ask is the Done line. Unit: appicon.
 
+- 2026-10-23: First the Blade mark = the hymnal wheat, colourway 04 Moonlit wheat (Wada no. 60: wheat #ffefae on night #12354e). Owner: "And let's go with Moonwheat". Unit firsttheblade-mark after the Sabbath: brand.tsx, art.ts, palette, favicons, kit; site deploy stays the owner's. (owner pick, ftbmark)
+
 ## Owner questions
 
 - pagerows (2026-10-22): hymn 220. The database sings 7 places of 3 words in each stanza a second time; the re-engraved page prints them once, with no repeat sign. Two independent judges agree on the reading (`tmp/orchestrate/hymnapp/pagerows/owner-220.md`). Options: (1, recommended) the owner photographs 220 in his own 1985 hymnal, and that page decides; (2) keep the row, 220 stays unsettled; (3) follow the engraving now and remove the repeats. Answer: the owner sent photos of 220 from his 1985 hymnal (2026-10-22, `tmp/orchestrate/hymnapp/notes/owner/2026-10-22-hymn220-p1.HEIC`, `-p2.HEIC`). The 1985 page prints each repeated phrase as an echo in parentheses after the phrase, so the database is right and the re-engraving dropped the echoes. Unit `h220` settles 220 by the photos; the row keeps its words.
