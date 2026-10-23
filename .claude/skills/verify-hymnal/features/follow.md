@@ -7,7 +7,7 @@ syllable times (a Plain part, or a line the score holds even) is marked
 whole: its words turn muted and none is lit. The page scrolls each line in about 600 ms
 before it is sung, a third of the way down, so a reader never scrolls by
 hand. With sound on, the marks keep time with the recording; with sound off
-(`Sound off` beside Play), nothing sounds and they keep the score's time
+(the `Sound` switch beside Play turned off), nothing sounds and they keep the score's time
 from the first sung line. A drag of the page pauses the scroll (the marks
 go on) and shows `Resume follow`; a tap on it, or a seek in the player,
 brings the sung line back and follows again. The marked line is

@@ -14,9 +14,9 @@
  */
 
 import { useAtom, useAtomSet, useAtomValue } from '@effect/atom-react';
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 import { Link, useLinkTo, useSafeAreaInsets } from 'one';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { color, useAccent } from '~/color';
 import { settings } from '~/store';
@@ -25,7 +25,8 @@ import { Bar, dockedBar, pageBar, playedShare, toldPlace } from './bar';
 import { usePlayer } from './context';
 import { useShownPage } from './page';
 import { Command, type HymnPlayer, type Player, type Track } from './player';
-import { Toggle } from './Toggle';
+import { BarMark } from './BarMark';
+import { buttonsOf } from './button';
 
 /** The bar docked under the stack, while the player holds a hymn. */
 export function PlayerBar() {
@@ -75,7 +76,7 @@ function Drawn({ bar, player }: { readonly bar: Bar; readonly player: HymnPlayer
             onSome: (shown) => <PlayPage track={shown} send={send} />,
           })}
           <Sound />
-          <Toggle track={track} state={state} send={send} />
+          <Buttons track={track} state={state} send={send} />
         </View>
       </View>
     ),
@@ -132,26 +133,73 @@ function PlayPage({
 }
 
 /**
- * Whether Play sounds the recording: on, the accent; off, muted, and the
- * score clock runs (`sound.ts`). It sits left of the player's button, so
- * Play keeps its place at the bar's end.
+ * Whether Play sounds the recording: on, a speaker with waves in the accent;
+ * off, a speaker with a slash, muted, and the score clock runs (`sound.ts`).
+ * It sits left of the player's button, so Play keeps its place at the bar's
+ * end.
  */
 function Sound() {
   const [on, setOn] = useAtom(settings.sound);
   const accent = useAccent();
-  const tint = [color.muted, accent][Number(on)];
+  const tint = [color.muted, accent][Number(on)] ?? accent;
   return (
     <Pressable
       role="button"
       aria-label="Sound"
       aria-checked={on}
       onPress={() => setOn(!on)}
-      style={styles.compact}
+      style={pressedSoft}
     >
-      <Text style={[styles.sound, { color: tint }]}>{['Sound off', 'Sound on'][Number(on)]}</Text>
+      <BarMark mark={(['sound-off', 'sound-on'] as const)[Number(on)] ?? 'sound-on'} tint={tint} />
     </Pressable>
   );
 }
+
+/**
+ * The player's buttons for the bar's hymn (`buttonsOf`) as marks in the
+ * accent, the size of the Sound mark; a spinner in the same box while it
+ * loads.
+ */
+function Buttons({
+  track,
+  state,
+  send,
+}: {
+  readonly track: Track;
+  readonly state: Player;
+  readonly send: (command: Command) => void;
+}) {
+  const accent = useAccent();
+  return buttonsOf(state, track).map((button) =>
+    Option.match(button.command, {
+      onNone: () => (
+        <View key={button.kind} style={styles.mark}>
+          <ActivityIndicator color={accent} accessibilityLabel={button.label} />
+        </View>
+      ),
+      onSome: (command) => (
+        <Pressable
+          key={button.kind}
+          role="button"
+          aria-label={button.label}
+          onPress={() => send(command)}
+          style={pressedSoft}
+        >
+          {Match.value(button.kind).pipe(
+            Match.when('loading', () => <></>),
+            Match.orElse((kind) => <BarMark mark={kind} tint={accent} />),
+          )}
+        </Pressable>
+      ),
+    }),
+  );
+}
+
+/** A mark's target: 44 by 44, `color.soft` behind it while pressed. */
+const pressedSoft = ({ pressed }: { readonly pressed: boolean }) => [
+  styles.mark,
+  pressed && styles.pressed,
+];
 
 /** The part played, along the bar's top edge, over a hairline of the rest; it takes no touch. */
 function SeekLine({ state }: { readonly state: Player }) {
@@ -182,5 +230,12 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 15, color: color.ink },
   compact: { minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 4 },
   compactText: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  sound: { fontSize: 13, fontWeight: '600', minWidth: 64, textAlign: 'center' },
+  mark: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+  },
+  pressed: { backgroundColor: color.soft },
 });

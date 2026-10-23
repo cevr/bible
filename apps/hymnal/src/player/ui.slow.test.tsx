@@ -553,10 +553,15 @@ describe('the full player', () => {
         }
       };
       each('Play hymn 100');
+      // The full player's buttons keep their text (F2b).
+      const textOf = (label: string) =>
+        Option.map(page.find(`[aria-label="${label}"]`), (found) => found.textContent);
+      expect(textOf('Play hymn 100')).toEqual(Option.some('Play'));
       page.press('Play hymn 100');
       page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
       each('Pause hymn 100');
+      expect(textOf('Pause hymn 100')).toEqual(Option.some('Pause'));
 
       // Held down (Space, until its keyup), the button draws the pressed fill under that fill's own text.
       const held = Option.getOrThrow(page.find('[aria-label="Pause hymn 100"]'));
@@ -709,6 +714,22 @@ describe('the full player in every state', () => {
   );
 });
 
+/** The bar's button named `label`: its text, the mark it holds, and its `aria-checked`. */
+const markOf = (bar: Element, label: string) => {
+  const button = Option.getOrThrow(
+    Option.fromNullishOr(bar.querySelector(`[aria-label="${label}"]`)),
+  );
+  const mark = Option.fromNullishOr(button.querySelector('[data-testid^="mark-"]'));
+  return {
+    text: button.textContent,
+    mark: Option.match(mark, {
+      onNone: () => 'none',
+      onSome: (found) => (found.getAttribute('data-testid') ?? '').slice('mark-'.length),
+    }),
+    checked: Option.fromNullishOr(button.getAttribute('aria-checked')),
+  };
+};
+
 describe('the bottom bar', () => {
   it.live(
     'draws nothing off a hymn page until a hymn plays, then shows it and opens the player',
@@ -721,7 +742,18 @@ describe('the bottom bar', () => {
         page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
         yield* page.until(Player.$is('Playing'));
         const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
-        expect(bar.textContent).toBe(`100${morning.title}Sound onPause`);
+        expect(bar.textContent).toBe(`100${morning.title}`);
+        // Sound and Pause are marks with no text, read by their labels (F2b).
+        expect(markOf(bar, 'Sound')).toEqual({
+          text: '',
+          mark: 'sound-on',
+          checked: Option.some('true'),
+        });
+        expect(markOf(bar, 'Pause hymn 100')).toEqual({
+          text: '',
+          mark: 'pause',
+          checked: Option.none(),
+        });
 
         page.press('Open player');
         expect(opened).toEqual(['/player?hymn=100']);
@@ -736,7 +768,7 @@ describe('the bottom bar', () => {
       page.device.now = { state: 'playing', positionMs: 5_000, durationMs: 151_000 };
       yield* page.until(Player.$is('Playing'));
       expect(Option.getOrThrow(page.find('[aria-label="Player"]')).textContent).toBe(
-        `100${morning.title}Play 1Sound onPause`,
+        `100${morning.title}Play 1`,
       );
 
       page.press('Pause hymn 100');
@@ -744,7 +776,7 @@ describe('the bottom bar', () => {
       expect(page.device.now.state).toBe('paused');
       // A paused hymn is not sounding: the bar acts on the page's hymn again.
       expect(Option.getOrThrow(page.find('[aria-label="Player"]')).textContent).toBe(
-        `1${praise.title}Sound onPlay`,
+        `1${praise.title}`,
       );
     }),
   );
@@ -802,7 +834,12 @@ describe('the hymn page with the bottom bar', () => {
       ).toBe(true);
       const bar = Option.getOrThrow(page.find('[aria-label="Player"]'));
       expect(bar.querySelector('[aria-label="Play hymn 3"]')).not.toBeNull();
-      expect(bar.textContent).toBe(`3${three.title}Sound onPlay`);
+      expect(bar.textContent).toBe(`3${three.title}`);
+      expect(markOf(bar, 'Play hymn 3')).toEqual({
+        text: '',
+        mark: 'play',
+        checked: Option.none(),
+      });
 
       page.press('Play hymn 3');
       yield* page.until(Player.$is('Loading'));
