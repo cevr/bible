@@ -8,3 +8,9 @@ declare module 'virtual:hymnal-chords' {
   const chords: ReadonlyArray<readonly [number, string]>;
   export default chords;
 }
+
+declare module 'virtual:hymnal-timing' {
+  /** Each hymn's number and its timing's string (`src/follow/timeline.ts`), in number order. */
+  const timing: ReadonlyArray<readonly [number, string]>;
+  export default timing;
+}

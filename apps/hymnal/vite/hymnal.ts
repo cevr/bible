@@ -2,12 +2,15 @@
 
 /**
  * The hymnal the app carries, derived from the compiled 1985 set when the
- * app is bundled, in two modules:
+ * app is bundled, in three modules:
  * - `virtual:hymnal` exports every hymn's `HymnText` (about 700 KB of words,
- *   against 14 MB of compiled hymns), made by `words.ts`;
+ *   against 16 MB of compiled hymns), made by `words.ts`;
  * - `virtual:hymnal-chords` exports every hymn's guitar chords over its
  *   syllables, one string per hymn (about 780 KB), made by `chords.ts`, and
- *   decoded only for a hymn shown with chords on.
+ *   decoded only for a hymn shown with chords on;
+ * - `virtual:hymnal-timing` exports when each hymn's sung lines and words
+ *   come, one string per hymn (about 600 KB), made by `timing.ts`, and
+ *   decoded only for a hymn the player follows.
  * The web and the native bundle both take them from this plugin, so the app
  * reads its hymns offline and nothing derived is committed.
  *
@@ -21,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 const modules = new Map([
   ['virtual:hymnal', fileURLToPath(new URL('./words.ts', import.meta.url))],
   ['virtual:hymnal-chords', fileURLToPath(new URL('./chords.ts', import.meta.url))],
+  ['virtual:hymnal-timing', fileURLToPath(new URL('./timing.ts', import.meta.url))],
 ]);
 
 const derived = new Map<string, string>();

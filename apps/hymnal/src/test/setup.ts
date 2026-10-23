@@ -7,7 +7,8 @@
  * router would provide them:
  * - `react-native` is react-native-web, as on the web;
  * - `virtual:hymnal` is the same words the bundler plugin derives (`vite/words.ts`),
- *   and `virtual:hymnal-chords` the same chords (`vite/chords.ts`);
+ *   `virtual:hymnal-chords` the same chords (`vite/chords.ts`), and
+ *   `virtual:hymnal-timing` the same timing (`vite/timing.ts`);
  * - `one` is `src/test/one.tsx`: a link opens its href in the app, a screen's options are dropped;
  * - `react-native-gesture-handler` is `src/test/gesture.tsx`: a test plays a gesture's touch.
  */
@@ -16,6 +17,7 @@ import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import { plugin } from 'bun';
 
 import { readChords } from '../../vite/chords';
+import { readTiming } from '../../vite/timing';
 import { readWords } from '../../vite/words';
 
 GlobalRegistrator.register({
@@ -49,6 +51,10 @@ plugin({
     }));
     build.module('virtual:hymnal-chords', () => ({
       contents: `export default ${JSON.stringify(readChords())};`,
+      loader: 'js',
+    }));
+    build.module('virtual:hymnal-timing', () => ({
+      contents: `export default ${JSON.stringify(readTiming())};`,
       loader: 'js',
     }));
   },
