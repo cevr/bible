@@ -50,7 +50,7 @@ import {
   journalPage,
 } from '../core/tool-pages.ts';
 import { UnknownScene } from '../core/errors.ts';
-import { Critic, CritiqueTaken } from './critique.ts';
+import { Critic, CritiqueTaken, stagingAt } from './critique.ts';
 import { Easel, elsewhereOf, plainAbsolute } from './easel.ts';
 import { CuesLate } from './errors.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
@@ -466,7 +466,8 @@ const matchContent = Effect.fn('EaselMcp.matchContent')(function* (taken: MatchT
 
 const critiqued = Effect.fn('EaselMcp.critique')(function* (params: MatchParams) {
   const match = yield* matched(params);
-  return { match, critique: yield* (yield* Critic).critique(match) };
+  const staging = yield* stagingAt(yield* served(params.films, params.film), match);
+  return { match, critique: yield* (yield* Critic).critique(match, staging) };
 });
 
 /** A critique's first line. Pure. */

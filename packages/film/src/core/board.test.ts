@@ -12,6 +12,7 @@ import {
   cardLine,
   emptyBoard,
   nextTry,
+  panelStagedAt,
   pickTry,
   plannedAts,
   shownTry,
@@ -184,5 +185,32 @@ describe('a text panel', () => {
     expect(Result.isSuccess(approveBeat(b, COLD, '2026-10-14T00:00:00.000Z'))).toBe(true);
     const text = Schema.encodeSync(BoardFileJson)(b);
     expect(Schema.decodeSync(BoardFileJson)(text)).toEqual(b);
+  });
+});
+
+describe('panelStagedAt', () => {
+  const b = board(
+    panel('start', 1),
+    panel('job', 2, 2),
+    { ...panel('righteous', 1), tries: [] },
+    {
+      ...panel('wait', 1),
+      tries: [],
+      text: { _tag: 'Card', payoff: 'Wait.' },
+    },
+  );
+  const marks = { job: 2, righteous: 4, wait: 3 };
+  const staged = (time: number) =>
+    Option.map(panelStagedAt(b, 'cold', marks, time), ({ panel: p, shown }) => [p.id, shown.n]);
+  test('the picture panel held from the latest mark heard by then, showing its kept try', () => {
+    expect(staged(2.5)).toEqual(Option.some(['cold.job', 2]));
+    expect(staged(3.5)).toEqual(Option.some(['cold.job', 2]));
+  });
+  test("the beat's start panel before its first mark", () => {
+    expect(staged(1)).toEqual(Option.some(['cold.start', 1]));
+  });
+  test('none where the panel held has no try, or the beat has no picture panel', () => {
+    expect(staged(5)).toEqual(Option.none());
+    expect(panelStagedAt(b, 'title', marks, 1)).toEqual(Option.none());
   });
 });

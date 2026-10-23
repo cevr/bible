@@ -3377,6 +3377,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The bar was docked under the whole stack and shown from the page the stack showed, so it changed only once the pop had ended. While the player holds no hymn, the hymn screen now draws the bar as its own (`PageBar`, `pageBar`), so it moves with the page; the docked bar shows only while a hymn is held (`dockedBar`).
 - **Guard:** code: `apps/hymnal/src/reader/pager.slow.test.ts` `lies in the hymn’s screen while nothing is held, on every way in, so a back takes it out with the screen`, `apps/hymnal/src/player/bar.test.ts` `is the page’s own while the player holds no hymn, so it comes and goes with the page`
 
+### critic-holds-state-to-the-sheet
+
+- **Date:** 2026-10-18
+- **Kind:** retraction
+- **Said:** "The critic holds each figure to one concept crop: give it the Board panel each place stages and the script's state of each figure there (a locked lead given the robe, holding the seed), never his model sheet; 16 of 61 came from that."
+- **Source:** tmp/architecture-loop/pass6/triage.md, review-critic-context (1); tmp/orchestrate/p5/rbf-v3/triage-r3.md
+- **Wrong:** The critique held each figure to one concept crop alone, so a locked lead given a robe or a seed where the Board stages it was a finding: 16 of 61 RBF findings.
+- **Cause:** The packet showed the model sheet and the scene, never the Board panel or the script's picture of the place.
+- **Guard:** code: `packages/film/src/core/critique.ts` `stagingLines` (design held to the concept, state to the panel and the picture; `tools/critique.test.ts`)
+
 ### match-misses-hair-beard-merge
 
 - **Date:** 2026-10-18

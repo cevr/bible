@@ -36,15 +36,22 @@ import {
   CritiqueFinding,
   type CritiqueRead,
   type CritiqueRule,
+  type CritiqueStaging,
   type QuotedSection,
+  UNSTAGED,
+  boardFileOf,
   critiqueMarkdown,
   critiquePacket,
   findingsOf,
 } from '../core/critique.ts';
+import { panelStagedAt } from '../core/board.ts';
 import { sectionOf } from '../core/judge.ts';
-import { type MatchTaken, matchLines } from '../core/match.ts';
+import { type MatchTaken, hairBeardLine, matchLines } from '../core/match.ts';
+import { BoardStore } from './board-store.ts';
 import { Counsel } from './counsel.ts';
 import { sha256Hex } from './digest.ts';
+import { FilmName } from './film-repo.ts';
+import { FreshFilm } from './fresh-film.ts';
 
 /** One figure critiqued: its findings, the file they are written in, and whether the answer was kept from before. */
 const FigureCritiqued = Schema.Struct({
@@ -99,8 +106,8 @@ interface SheetCritique {
 }
 
 interface CriticService {
-  /** The figures `taken` matched, critiqued against their concepts: never fails, a skip is said and logged. */
-  readonly critique: (taken: MatchTaken) => Effect.Effect<CritiqueTaken>;
+  /** The figures `taken` matched, critiqued against their concepts in design and against `staging` in state: never fails, a skip is said and logged. */
+  readonly critique: (taken: MatchTaken, staging: CritiqueStaging) => Effect.Effect<CritiqueTaken>;
   /** A cast sheet try's views, each critiqued against its concept: never fails, a skip is said and logged. */
   readonly critiqueSheet: (sheet: SheetCritique) => Effect.Effect<CritiqueTaken>;
 }
@@ -111,6 +118,8 @@ interface CritiqueAsk {
   readonly place: string;
   readonly logged: string;
   readonly keptDir: string;
+  /** Where the place stages the figures (a scene's); a sheet's views are unstaged. */
+  readonly staging: CritiqueStaging;
   readonly figures: ReadonlyArray<{
     readonly figure: string;
     readonly concept: string;
@@ -118,6 +127,7 @@ interface CritiqueAsk {
     readonly flagged: ReadonlyArray<string>;
     readonly file: string;
     readonly layout: Option.Option<string>;
+    readonly boundary: Option.Option<string>;
   }>;
 }
 
@@ -135,11 +145,13 @@ const figuresOf = (ask: CritiqueAsk): ReadonlyArray<CritiqueFigure> =>
     scene: `${f.figure}-${ask.drawn}.png`,
     flagged: f.flagged,
     layout: f.layout,
+    boundary: f.boundary,
   }));
 
 /** A match's figures as a critique asks them: drawn in its scene, at its place, each written beside its table. */
-const askOfMatch = (taken: MatchTaken, path: Path.Path): CritiqueAsk => ({
+const askOfMatch = (taken: MatchTaken, staging: CritiqueStaging, path: Path.Path): CritiqueAsk => ({
   drawn: 'scene',
+  staging,
   place: `${taken.scene} ${taken.at}, t=${taken.time.toFixed(2)}, build ${taken.build}`,
   logged: `scene=${taken.scene} at=${taken.at}`,
   keptDir: Option.match(Arr.head(taken.figures), {
@@ -153,12 +165,14 @@ const askOfMatch = (taken: MatchTaken, path: Path.Path): CritiqueAsk => ({
     flagged: flaggedOf(m),
     file: `${m.table.replace(/\.md$/, '')}.critique.md`,
     layout: Option.none(),
+    boundary: hairBeardLine(m.rows),
   })),
 });
 
 /** A cast sheet try's views as a critique asks them. */
 const askOfSheet = (sheet: SheetCritique): CritiqueAsk => ({
   drawn: 'sheet',
+  staging: UNSTAGED,
   place: sheet.place,
   logged: `sheet="${sheet.place}"`,
   keptDir: sheet.kept,
@@ -169,7 +183,71 @@ const askOfSheet = (sheet: SheetCritique): CritiqueAsk => ({
     flagged: v.flagged,
     file: v.file,
     layout: v.layout,
+    boundary: Option.none(),
   })),
+});
+
+/** `found`, or none with the reason logged (`critique.unstaged`): a staging that cannot be read leaves the critique unstaged, never refused. */
+const orUnstaged = <A, E extends { readonly message: string }, R>(
+  found: Effect.Effect<Option.Option<A>, E, R>,
+  what: string,
+  taken: MatchTaken,
+) =>
+  found.pipe(
+    Effect.catch((error) =>
+      Effect.as(
+        Effect.logWarning(
+          `critique.unstaged scene=${taken.scene} at=${taken.at} part=${what} reason=${error.message}`,
+        ),
+        Option.none<A>(),
+      ),
+    ),
+  );
+
+/**
+ * Where `film` stages `taken`'s figures: the Board panel its scene's beat
+ * (a scene plays the beat of its id) shows at the match's time, by its
+ * marks, with the shown try's image as the board keeps it, and the
+ * script's picture of the beat. Fails open: a name that is no film's, or a
+ * board, an image or a script that cannot be read, is that part left out,
+ * logged.
+ */
+export const stagingAt = Effect.fn('Critic.stagingAt')(function* (name: string, taken: MatchTaken) {
+  const named = Schema.decodeOption(FilmName)(name);
+  if (Option.isNone(named)) {
+    yield* Effect.logWarning(
+      `critique.unstaged scene=${taken.scene} at=${taken.at} part=film reason=${name} is no film's name`,
+    );
+    return UNSTAGED;
+  }
+  const film = named.value;
+  const board = yield* BoardStore;
+  const fresh = yield* FreshFilm;
+  const panel = yield* orUnstaged(
+    board.read(film).pipe(
+      Effect.map((file) => panelStagedAt(file, taken.scene, taken.marks, taken.time)),
+      Effect.flatMap((staged) =>
+        Option.match(staged, {
+          onNone: () => Effect.succeedNone,
+          onSome: ({ panel: p, shown }) =>
+            Effect.map(board.image(film, shown.file), (image) => Option.some({ id: p.id, image })),
+        }),
+      ),
+    ),
+    'board',
+    taken,
+  );
+  const picture = yield* orUnstaged(
+    Effect.map(fresh.script(film), (beats) =>
+      Option.flatMap(
+        Arr.findFirst(beats, (beat) => beat.id === taken.scene),
+        (beat) => Option.fromUndefinedOr(beat.picture),
+      ),
+    ),
+    'script',
+    taken,
+  );
+  return { panel, picture } satisfies CritiqueStaging;
 });
 
 export class Critic extends Context.Service<Critic, CriticService>()('@bible/film/tools/Critic') {
@@ -213,10 +291,20 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
                   fs.copyFile(f.drawnCrop, path.join(dir, `${f.figure}-${ask.drawn}.png`)),
                 ]),
               );
+              yield* Effect.forEach(
+                Option.toArray(
+                  Option.zipWith(
+                    ask.staging.panel,
+                    boardFileOf(ask.staging),
+                    (p, file) => [p.image, file] as const,
+                  ),
+                ),
+                ([image, file]) => fs.copyFile(image, path.join(dir, file)),
+              );
               const packet = path.join(dir, 'packet.md');
               yield* fs.writeFileString(
                 packet,
-                critiquePacket(ask.drawn, ask.place, figures, sections),
+                critiquePacket(ask.drawn, ask.place, figures, sections, ask.staging),
               );
               return packet;
             }).pipe(
@@ -262,9 +350,19 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
                 Effect.mapError((error) => `${f.figure}'s crops cannot be read: ${error.message}`),
               ),
             );
+            const board = yield* Effect.forEach(Option.toArray(ask.staging.panel), (p) =>
+              fs.readFile(p.image).pipe(
+                Effect.map(sha256Hex),
+                Effect.mapError((error) => `the Board panel cannot be read: ${error.message}`),
+              ),
+            );
             // The prompt as sent, but the place (a scene's build and time change with every build).
             const hash = sha256Hex(
-              [critiquePacket(ask.drawn, '', figuresOf(ask), sections), ...crops.flat()].join('\n'),
+              [
+                critiquePacket(ask.drawn, '', figuresOf(ask), sections, ask.staging),
+                ...crops.flat(),
+                ...board,
+              ].join('\n'),
             );
             const kept = path.join(ask.keptDir, `${hash.slice(0, 32)}.json`);
             yield* fs
@@ -321,7 +419,7 @@ export class Critic extends Context.Service<Critic, CriticService>()('@bible/fil
         });
 
         return Critic.of({
-          critique: (taken) => critiqued(askOfMatch(taken, path)),
+          critique: (taken, staging) => critiqued(askOfMatch(taken, staging, path)),
           critiqueSheet: (sheet) => critiqued(askOfSheet(sheet)),
         });
       }),

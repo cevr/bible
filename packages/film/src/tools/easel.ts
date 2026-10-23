@@ -474,6 +474,7 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
           at: post.at,
           frame: moment.frame,
           time: moment.time,
+          marks: scene.marks,
           figures: matched,
           unmatched,
         } satisfies MatchTaken;

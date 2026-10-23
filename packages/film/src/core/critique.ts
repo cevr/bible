@@ -9,7 +9,7 @@
 // proportions and angles are off"). Pure: the packet it sends, the answer it
 // reads, the file it writes.
 
-import { Array as Arr, Option, Result, Schema } from 'effect';
+import { Array as Arr, Boolean as Bool, Option, Result, Schema } from 'effect';
 
 /** A section of the app's rule files the critique quotes: the file and its heading line. */
 export interface CritiqueRule {
@@ -65,7 +65,54 @@ export interface CritiqueFigure {
   readonly flagged: ReadonlyArray<string>;
   /** On a cast sheet, what its layout asks of this view (its turn, tilt and gesture); a scene's figure has none. */
   readonly layout: Option.Option<string>;
+  /** Where the hair meets the beard, as the match measured each side (`hairBeardLine`); none with no beard read. */
+  readonly boundary: Option.Option<string>;
 }
+
+/**
+ * Where a scene stages its figures at the place critiqued: the Board panel
+ * shown there (its id and its shown try's image) and the script's picture
+ * of the beat. A concept is a model sheet, so what a figure wears, holds and
+ * does there is the panel's and the picture's, never the concept's (16 of 61
+ * RBF findings, 2026-10-22, were a staged robe or seed held to the sheet).
+ */
+export interface CritiqueStaging {
+  readonly panel: Option.Option<{ readonly id: string; readonly image: string }>;
+  readonly picture: Option.Option<string>;
+}
+
+/** No staging: a cast sheet's views, or a scene whose Board and script could not be read. */
+export const UNSTAGED: CritiqueStaging = { panel: Option.none(), picture: Option.none() };
+
+/** The file the staged panel's image is copied to beside the packet: `board` with the image's extension. */
+export const boardFileOf = (staging: CritiqueStaging): Option.Option<string> =>
+  Option.map(staging.panel, ({ image }) => `board${image.slice(image.lastIndexOf('.'))}`);
+
+/** The packet's staging section: the panel and the picture, and how design and state are held; none when nothing is staged. */
+const stagingLines = (staging: CritiqueStaging): ReadonlyArray<string> =>
+  Bool.match(Option.isNone(staging.panel) && Option.isNone(staging.picture), {
+    onTrue: () => [],
+    onFalse: () => [
+      '## Where the scene stages them',
+      '',
+      ...Option.match(
+        Option.zipWith(staging.panel, boardFileOf(staging), (p, f) => [p.id, f]),
+        {
+          onNone: () => [],
+          onSome: ([id, file]) => [
+            `- The Board panel shown here (${id}): \`${file}\`. Read it with the Read tool.`,
+          ],
+        },
+      ),
+      ...Option.match(staging.picture, {
+        onNone: () => [],
+        onSome: (picture) => [`- The script's picture of this beat: ${picture}`],
+      }),
+      '',
+      "Hold each figure's design (the face, the proportion, the palette of skin and hair) to its concept, and its state (what it wears, what it holds, what it does) to the Board panel and the script's picture. The concept is a model sheet: a robe, a held thing or a gesture this place stages that the concept lacks is not a finding; a state the place stages that the scene does not draw is a finding.",
+      '',
+    ],
+  });
 
 /** What the figures were drawn in: a film's scene (a rig drawn there), or a cast sheet (a view painted from the concept, that the rigs are traced from). */
 export type CritiqueDrawn = 'scene' | 'sheet';
@@ -94,6 +141,7 @@ export const critiquePacket = (
   place: string,
   figures: ReadonlyArray<CritiqueFigure>,
   rules: ReadonlyArray<QuotedSection>,
+  staging: CritiqueStaging,
 ): string =>
   [
     '# Critique: figures against their concepts',
@@ -114,6 +162,7 @@ export const critiquePacket = (
     '## The house rules',
     '',
     ...rules.flatMap((rule) => [`From \`${rule.file}\`:`, '', rule.text, '']),
+    ...stagingLines(staging),
     '## The figures',
     '',
     ...figures.flatMap((f) => [
@@ -124,6 +173,12 @@ export const critiquePacket = (
       ...Option.match(f.layout, {
         onNone: () => [],
         onSome: (asked) => [`- What the layout asks of it: ${asked}`],
+      }),
+      ...Option.match(f.boundary, {
+        onNone: () => [],
+        onSome: (measured) => [
+          `- Where the hair meets the beard, as measured: ${measured}. Look at that edge in both crops.`,
+        ],
       }),
       '',
       ...Arr.match(f.flagged, {

@@ -196,6 +196,8 @@ export const MatchTaken = Schema.Struct({
   frame: Schema.Int,
   /** Seconds into the scene of the frame drawn. */
   time: Schema.Finite,
+  /** Each of the scene's marks, heard this many seconds into it (`SceneTimes`): where its Board panels are held from. */
+  marks: Schema.Record(Schema.String, Schema.Finite),
   figures: Schema.Array(FigureMatched),
   unmatched: Schema.Array(Unmatched),
 });

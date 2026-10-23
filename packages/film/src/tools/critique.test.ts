@@ -11,7 +11,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Cause, Context, Effect, Exit, FileSystem, Layer, Option, Path } from 'effect';
-import { critiquePacket } from '../core/critique.ts';
+import { type CritiqueStaging, UNSTAGED, critiquePacket } from '../core/critique.ts';
 import { CounselFailed } from '../core/judge.ts';
 import type { MatchTaken } from '../core/match.ts';
 import { Counsel } from './counsel.ts';
@@ -49,6 +49,7 @@ const written = Effect.gen(function* () {
     at: 'mark:rain',
     frame: 30,
     time: 1,
+    marks: { rain: 0.5 },
     figures: [
       yield* figure('farmer', [
         {
@@ -58,6 +59,12 @@ const written = Effect.gen(function* () {
           scene: 1,
           diff: 13,
           flagged: true,
+        },
+        {
+          name: 'hair/beard: parted',
+          unit: 'rule',
+          flagged: true,
+          note: 'concept parted (edge 0.146, step 0.021), scene merged (edge 0.063, step 0.000)',
         },
       ]),
       yield* figure('christ', []),
@@ -75,7 +82,10 @@ const ANSWER = [
   '```',
 ].join('\n');
 
-const critiqued = (counsel: Layer.Layer<Counsel, never, FileSystem.FileSystem | Path.Path>) =>
+const critiqued = (
+  counsel: Layer.Layer<Counsel, never, FileSystem.FileSystem | Path.Path>,
+  staging: CritiqueStaging = UNSTAGED,
+) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const { taken, rules } = yield* written;
@@ -83,7 +93,7 @@ const critiqued = (counsel: Layer.Layer<Counsel, never, FileSystem.FileSystem | 
       Layer.provide(counsel),
     );
     const built = yield* Layer.build(critic);
-    const run = Context.get(built, Critic).critique(taken);
+    const run = Context.get(built, Critic).critique(taken, staging);
     const first = yield* run;
     const second = yield* run;
     const file = yield* fs.readFileString(first.figures[0]?.file ?? '');
@@ -106,10 +116,40 @@ describe("the critique's packet", () => {
     'calls a hand floating free of the body a finding: the house hand ends an arm in its sleeve',
     () =>
       Effect.sync(() =>
-        expect(critiquePacket('scene', 's at 1', [], [])).toContain(
+        expect(critiquePacket('scene', 's at 1', [], [], UNSTAGED)).toContain(
           '- **pose**: where each hand is (raised or low, which one), the lean, the gesture. The house hand is a circle at the end of an arm in its sleeve: a hand floating free of the body, with no sleeve to it, is a finding.',
         ),
       ),
+  );
+});
+
+describe("a scene's staging in the packet", () => {
+  const staged = critiquePacket('scene', 's at 1', [], [], {
+    panel: Option.some({ id: 'sower.scatter', image: '/films/f/board/sower.scatter.2.jpg' }),
+    picture: Option.some('The sower, in his robe, holds the seed out over the field.'),
+  });
+  it.effect(
+    "names the Board panel's image beside the packet and the script's picture, design held to the concept and state to them",
+    () =>
+      Effect.sync(() => {
+        expect(staged).toContain('- The Board panel shown here (sower.scatter): `board.jpg`.');
+        expect(staged).toContain(
+          "- The script's picture of this beat: The sower, in his robe, holds the seed out over the field.",
+        );
+        expect(staged).toContain(
+          "its state (what it wears, what it holds, what it does) to the Board panel and the script's picture",
+        );
+        expect(staged).toContain(
+          'a robe, a held thing or a gesture this place stages that the concept lacks is not a finding',
+        );
+      }),
+  );
+  it.effect('says nothing of staging where nothing is staged', () =>
+    Effect.sync(() =>
+      expect(critiquePacket('scene', 's at 1', [], [], UNSTAGED)).not.toContain(
+        'Where the scene stages them',
+      ),
+    ),
   );
 });
 
@@ -124,9 +164,11 @@ describe("a cast sheet's packet", () => {
         scene: 'view-3-sheet.png',
         flagged: [],
         layout: Option.some("turned three-quarters toward the viewer's left, His head bowed"),
+        boundary: Option.none(),
       },
     ],
     [],
+    UNSTAGED,
   );
   it.effect("holds each view's angle and gesture to what its layout asks, not to the concept", () =>
     Effect.sync(() => {
@@ -195,6 +237,9 @@ describe('the critique', () => {
         expect(asked[0]).toContain('`farmer-concept.png`');
         expect(asked[0]).toContain('`christ-scene.png`');
         expect(asked[0]).toContain('head: roll (the eye line)');
+        expect(asked[0]).toContain(
+          '- Where the hair meets the beard, as measured: concept parted (edge 0.146, step 0.021), scene merged (edge 0.063, step 0.000).',
+        );
         expect(first.figures.map((f) => [f.figure, f.findings.length])).toEqual([
           ['farmer', 1],
           ['christ', 0],
@@ -205,6 +250,51 @@ describe('the critique', () => {
         });
         expect(file).toContain('**head angle**: front and level');
       }),
+  );
+
+  it.effect(
+    "shows the counsel the staged panel's image beside the packet, and asks again once the panel's image changes",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { taken, rules, dir } = yield* written;
+        const image = path.join(dir, 'sower.scatter.1.png');
+        yield* fs.writeFile(image, new Uint8Array([9]));
+        const beside: Array<boolean> = [];
+        const asked: Array<string> = [];
+        const answering = Counsel.layerTest(() => ANSWER, asked);
+        const looking = Layer.effect(
+          Counsel,
+          Effect.map(Effect.service(Counsel), (inner) =>
+            Counsel.of({
+              ask: (prompt, kept) =>
+                fs.exists(path.join(path.dirname(prompt), 'board.png')).pipe(
+                  Effect.orDie,
+                  Effect.tap((there) => Effect.sync(() => beside.push(there))),
+                  Effect.andThen(inner.ask(prompt, kept)),
+                ),
+            }),
+          ),
+        ).pipe(Layer.provide(answering));
+        const built = yield* Layer.build(
+          Critic.layer([{ file: rules, heading: '## The look' }]).pipe(Layer.provide(looking)),
+        );
+        const staging: CritiqueStaging = {
+          panel: Option.some({ id: 'sower.scatter', image }),
+          picture: Option.some('The sower holds the seed.'),
+        };
+        const run = Context.get(built, Critic).critique(taken, staging);
+        const first = yield* run;
+        yield* fs.writeFile(image, new Uint8Array([10]));
+        const second = yield* run;
+        expect(beside).toEqual([true, true]);
+        expect(asked[0]).toContain('- The Board panel shown here (sower.scatter): `board.png`.');
+        expect(asked[0]).toContain(
+          "- The script's picture of this beat: The sower holds the seed.",
+        );
+        expect([first.cached, second.cached]).toEqual([false, false]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
   it.effect('fails open: an answer with no json block is a skip, said in the file', () =>

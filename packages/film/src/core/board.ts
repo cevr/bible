@@ -9,7 +9,7 @@
 // the sounds), each checked by its sha256. The store and the image route are
 // the tools'; the lab and the CLI read these. Pure and DOM-free.
 
-import { Array as Arr, Boolean as Bool, Option, Predicate, Result, Schema } from 'effect';
+import { Array as Arr, Boolean as Bool, Option, Order, Predicate, Result, Schema } from 'effect';
 import { parse, readsWord } from './narration.ts';
 import { repoJson } from './schema.ts';
 import { Segment } from './segment.ts';
@@ -192,6 +192,38 @@ export const shownTry = (panel: Panel): Option.Option<BoardTry> =>
     Option.flatMap(Option.fromUndefinedOr(panel.kept), (n) => tryOf(panel, n)),
     () => Arr.head(panel.tries),
   );
+
+/**
+ * The picture panel a scene stages `time` seconds in, and the try it shows:
+ * of `beat`'s picture panels (a scene plays the beat of its id), the one
+ * held from the latest of its marks heard by then (`marks`, seconds into the
+ * scene, as `SceneTimes` keeps them), else the one held from the beat's
+ * start. None where no picture panel is held by then, or the one held has
+ * no try.
+ */
+export const panelStagedAt = (
+  board: BoardFile,
+  beat: string,
+  marks: Readonly<Record<string, number>>,
+  time: number,
+): Option.Option<{ readonly panel: Panel; readonly shown: BoardTry }> => {
+  const heardAt = (p: Panel): Option.Option<number> =>
+    (p.at === PANEL_START && Option.some(0)) ||
+    Option.filter(Option.fromUndefinedOr(marks[p.at]), (at) => at <= time);
+  const held = pictures(board, beat).flatMap((panel) =>
+    Option.toArray(Option.map(heardAt(panel), (at) => ({ panel, at }))),
+  );
+  return Arr.match(held, {
+    onEmpty: () => Option.none(),
+    onNonEmpty: (some) => {
+      const { panel } = Arr.max(
+        some,
+        Order.mapInput(Order.Number, (h: (typeof some)[number]) => h.at),
+      );
+      return Option.map(shownTry(panel), (shown) => ({ panel, shown }));
+    },
+  });
+};
 
 /** The next try's number in `panel`'s history. */
 export const nextTry = (panel: Panel): number =>

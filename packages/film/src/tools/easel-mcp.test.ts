@@ -13,15 +13,18 @@
 // and a scene the film lacks refused.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, type FileSystem, Layer, Logger, Option, type Path, type Schema } from 'effect';
+import { Effect, type FileSystem, Layer, Logger, Option, type Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
+import { BoardFileJson, BoardName } from '../core/board.ts';
 import { PagesBroken, type LookPost, type LookTaken } from '../core/easel.ts';
 import { UnknownScene } from '../core/errors.ts';
+import { Segment } from '../core/segment.ts';
 import { MatchFigureUnknown, type MatchPost } from '../core/match.ts';
 import type { CheckLine } from '../core/schema.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { Counsel } from './counsel.ts';
 import { Critic } from './critique.ts';
+import { sha256Hex } from './digest.ts';
 import { Easel } from './easel.ts';
 import type { FreshFilmService } from './fresh-film.ts';
 import { CuesRead } from './fresh-film.ts';
@@ -114,6 +117,7 @@ const easelDrawing = (
             at: post.at,
             frame: 90,
             time: 3,
+            marks: {},
             figures: [
               {
                 figure: 'lead',
@@ -403,10 +407,41 @@ describe("the easel's tools on the MCP", () => {
   );
 
   it.effect(
-    "a critique answers each figure's findings as text, from one counsel run over the match's crops",
+    "a critique answers each figure's findings as text, from one counsel run over the match's crops and the scene's staging",
     () => {
       const files = filmFiles();
       files.set('/rules.md', text('# Rules\n\n## The look\n\nOne silhouette outline.\n'));
+      const panelImage = text('the roof panel');
+      files.set('/films/f/board/roof.start.1.png', panelImage);
+      files.set(
+        '/films/f/board.json',
+        text(
+          Schema.encodeSync(BoardFileJson)({
+            film: 'f',
+            panels: [
+              {
+                id: 'roof.start',
+                beat: BoardName.make('roof'),
+                at: BoardName.make('start'),
+                tries: [
+                  {
+                    n: 1,
+                    file: Segment.make('roof.start.1.png'),
+                    sha256: sha256Hex(panelImage),
+                    made: 'generate',
+                    prompt: 'p',
+                    refs: [],
+                    at: '2026-10-14T00:00:00.000Z',
+                  },
+                ],
+              },
+            ],
+            approvals: [],
+          }),
+        ),
+      );
+      const script: FreshFilmService['script'] = () =>
+        Effect.succeed([{ id: 'roof', picture: 'The lead, in a robe, on the roof.', cite: [] }]);
       const asked: Array<string> = [];
       const answer = [
         'The lead turns away.',
@@ -443,10 +478,14 @@ describe("the easel's tools on the MCP", () => {
         expect(again.content[0].text).toMatch(/cached=true$/);
         expect(asked).toHaveLength(1);
         expect(asked[0]).toContain('One silhouette outline.');
+        expect(asked[0]).toContain('- The Board panel shown here (roof.start): `board.png`.');
+        expect(asked[0]).toContain(
+          "- The script's picture of this beat: The lead, in a robe, on the roof.",
+        );
       }).pipe(
         Effect.scoped,
         Effect.provide(
-          Layer.merge(labOver(files, [], {}, [], Option.some(critic)), mcpLinesIn(lines)),
+          Layer.merge(labOver(files, [], { script }, [], Option.some(critic)), mcpLinesIn(lines)),
         ),
       );
     },

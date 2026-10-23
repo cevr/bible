@@ -2819,10 +2819,19 @@ and artifacts, and reads the findings (`CritiqueFinding`
 sheet mode (`Critic.critiqueSheet`, `film concept critique`) asks the same
 of a cast sheet's views, each beside the concept it faces as.
 
+- **Staged.** A concept is a model sheet, so a scene's figures are held to
+  it in design (face, proportion, palette) and to where the film stages
+  them in state (what each wears, holds and does): the Board panel shown at
+  the match's time (`panelStagedAt`, by the scene's marks; its image copied
+  beside the packet as `board.<ext>`) and the script's picture of the
+  beat (`stagingAt`). A staging that cannot be read is left out, logged
+  (`critique.unstaged scene= at= part= reason=`), never a refusal. Each
+  figure's line names where its hair meets its beard as the match measured
+  it (`hairBeardLine`).
 - **Batched.** One counsel run answers every figure at the place.
 - **Cached.** The answer is kept at `out/<film>/critique/<hash>.json`, the
   hash over the packet's words as sent (its place left out, which names the
-  build) and each crop's bytes: the same prompt over the same crops is never
+  build), each crop's bytes and the Board panel's: the same prompt over the same crops is never
   asked twice, and a prompt reworded is asked again.
 - **Rules read once.** The rule sections are read when the critic is
   built: a heading its file lacks fails the build (`CritiqueRuleMissing`),

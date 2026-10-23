@@ -47,7 +47,7 @@ import {
 } from '../core/review-record.ts';
 import { repoJson } from '../core/schema.ts';
 import { Counsel } from './counsel.ts';
-import { Critic } from './critique.ts';
+import { Critic, stagingAt } from './critique.ts';
 import { takeMatch } from './easel-client.ts';
 import { filmsOut } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
@@ -213,7 +213,7 @@ export const review = (films: string, rules: ReadonlyArray<CritiqueRule>) =>
                 }),
                 from,
               });
-              const critiqued = yield* critic.critique(taken);
+              const critiqued = yield* critic.critique(taken, yield* stagingAt(input.film, taken));
               const crops = yield* Effect.forEach(taken.figures, (m) =>
                 Effect.gen(function* () {
                   const files = {
