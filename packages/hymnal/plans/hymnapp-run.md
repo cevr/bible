@@ -23,7 +23,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | uibulk    | chords, shell, playstall       |                           |                   | merged 2f7de2e1d    |
 | chordsimp | chords, uibulk                 | removed                   |                   | merged d34ce0021    |
 | h220      | pagerows                       | removed                   |                   | merged 5ffd09c2e    |
-| worship   | uibulk, render                 | .rifts/manna/worship      | a7487df73f392a94b |                     |
+| worship   | uibulk, render                 | .rifts/manna/worship      | a9c0e79e1305a4210 |                     |
 | tempo     | worship                        |                           |                   |                     |
 | keys      | render                         |                           |                   | merged 8be940a53    |
 | hymnbar   | shell, playstall               |                           |                   | folded into uibulk  |
@@ -208,6 +208,8 @@ Later, not yet planned: `ch1941` (1941 Church Hymnal chords from page scans), `i
 - Plan commits during a unit move main past the unit's base. When main moved only by the plan file, the orchestrator merges origin/main into the unit branch and runs the merge gate at the merged head, with no merge round: the reviewed tree differs only in a file the unit does not own (h220, 2026-10-23, orchestrator decision, principle never-block-on-the-human). (all units)
 
 - `rate` leaves worship for a follow-on unit `tempo` (worship planner, 2026-10-23, `worship/spec.md` Appendix, rows T1 to T7): tempo, tap tempo, stanza choice, intro skip, count-in and click, behind progressive disclosure. worship keeps sync, the one-tap follow and the word colour, so the owner's one-tap Done line comes first. The planner measured the premise: MIDI line starts match the warm-1 recordings within 12 ms on 366 lines over 18 hymns (median 6 ms), the same on warm-1-up1 and warm-1-down1, so the audio aligner is dropped. (worship, tempo)
+
+- The app's unit tests were over the 1 s budget at base under load (1.13 to 1.19 s at load 8, measured by worship r1; 1.29 s at load 14 by its planner). worship does not fix the base overage: it keeps pure tests in the fast suite and moves page renders and real timers to `*.slow.test.*`, and its request gives the budget with and without its tests at one load. The base overage is a follow-up unit for the gate (orchestrator, 2026-10-23, principle never-block-on-the-human). (worship)
 
 ## Owner questions
 
