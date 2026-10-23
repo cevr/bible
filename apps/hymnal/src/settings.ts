@@ -15,6 +15,7 @@ import type * as KeyValueStore from 'effect/persistence/KeyValueStore';
 import * as Atom from 'effect/reactivity/Atom';
 
 import { Move, still } from './hymns/chords';
+import { ChordStyle } from './hymns/simple';
 import { Numbers } from './reader/lists';
 import { DEFAULT_SIZE, Font, Size, Spacing } from './reader/reading';
 
@@ -39,6 +40,12 @@ export const settingsOn = (store: Layer.Layer<KeyValueStore.KeyValueStore>) => {
   return {
     /** A hymn shows its words alone until the reader turns chords on. */
     chords: setting('chords', Schema.Boolean, false),
+    /**
+     * How chords are shown (`src/hymns/simple.ts`): Simple, a plain chord
+     * per syllable at most, until the reader picks Advanced in Settings.
+     * The same for every hymn.
+     */
+    chordStyle: setting('chords.style', ChordStyle, 'simple'),
     appearance: setting('appearance', Appearance, 'system'),
     /**
      * Each hymn's transpose and capo, by its number: a move fits one hymn's

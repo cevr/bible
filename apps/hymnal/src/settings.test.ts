@@ -54,6 +54,35 @@ describe('the appearance setting', () => {
   });
 });
 
+describe('the chord style', () => {
+  it('is Simple until the reader picks Advanced', () => {
+    const { settings, registry } = launch(new Map());
+    expect(registry.get(settings.chordStyle)).toBe('simple');
+  });
+
+  it('keeps Advanced under its own key when the app is opened again', () => {
+    const device = new Map<string, string>();
+    const first = launch(device);
+    first.registry.set(first.settings.chordStyle, 'advanced');
+    first.registry.dispose();
+    expect([...device.keys()]).toEqual(['chords.style']);
+
+    const again = launch(device);
+    expect(again.registry.get(again.settings.chordStyle)).toBe('advanced');
+    expect(again.registry.get(again.settings.chords)).toBe(false);
+  });
+
+  it('reads a stored style it cannot decode as Simple', () => {
+    for (const stored of ['"full"', '1', 'true', '"Advanced"', 'not json']) {
+      const { settings, registry } = launch(new Map([['chords.style', stored]]));
+      expect({ stored, style: registry.get(settings.chordStyle) }).toEqual({
+        stored,
+        style: 'simple',
+      });
+    }
+  });
+});
+
 describe('a hymn’s transpose and capo', () => {
   it('starts at no transpose and no capo', () => {
     const { settings, registry } = launch(new Map());
