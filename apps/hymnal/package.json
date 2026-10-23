@@ -20,6 +20,7 @@
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "turbo run test:slow --filter=@bible/hymnal-app && alchemy deploy alchemy.run.ts --stage prod",
     "audio:copy": "bun infra/audio/copy.ts",
+    "audio:stream": "bun infra/audio/stream.ts",
     "audio:upload": "bun infra/audio/upload.ts"
   },
   "dependencies": {

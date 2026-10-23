@@ -2,7 +2,9 @@
 
 A visitor who has not asked for less motion sees the home page's field
 move: the near wheat sways in the wind, gusts crossing it from the right,
-and a light shimmers out along the rays from the sun on the right horizon.
+and a light shimmers out along the rays from the sun on the right horizon,
+while the rays turn slowly about the sun, a few degrees each way over a
+minute.
 At the foot of each page the night's painted stars twinkle and faint stars
 drift. Pointing at a series card, pressing it or focusing its link stirs its
 emblem: the path's sun rises and its rays reach out, the tree sways, the
@@ -13,6 +15,11 @@ emblems at rest.
 
 - `motion-hero`: the field's wind and shimmer, a WebGL2 canvas laid over the
   field's still (`apps/firsttheblade/src/motion/scene.ts`).
+- `motion-rays`: the sun's rays turn about its centre, `TURN.swing` radians
+  each way and back over `TURN.period` seconds on a sine
+  (`apps/firsttheblade/src/motion/sun.ts`), starting at the still's angles;
+  no fixed fan stays behind the turning one. With a coarse pointer the rays
+  rest at the still's angles while the wheat sways.
 - `motion-night`: the night's twinkling and drifting stars, the same way.
 - `motion-takeover`: the canvas shows once its first frame is drawn, the
   still itself, and its motion fades in over 2.5 s: the page never jumps.
@@ -59,6 +66,9 @@ emblems at rest.
    `ab eval "document.querySelectorAll('canvas.motion-on').length"` reads 2
    (the field's and the night's). The video shows the wheat swaying and the
    light moving out from the sun; nothing in the sky moves from the top left.
+   The rays' turn is too slow for a 4 s video: compare screenshots about 15 s and
+   45 s after load, the swing's two ends (`motion-rays`): the rays stand a
+   few degrees apart, and no second, fixed fan shows between them.
 2. **Takeover.** `ab open $O/` again and `ab screenshot 1-first.png` as soon
    as the page loads, then hide the canvas
    (`ab eval "document.querySelector('canvas.motion').style.visibility='hidden'"`)
@@ -75,8 +85,9 @@ emblems at rest.
 5. **Card focus.** `ab press Tab` until a card's link is focused: the card's
    emblem stirs as on hover, and rests again when the focus moves on.
 6. **Phone.** `ab set viewport 390 844` and reload: the field and the night
-   move as on the desktop; a tap on a card opens its series and leaves no
-   emblem stirred on the way back.
+   move as on the desktop (a viewport alone keeps the fine pointer, so the
+   rays turn; on a touch phone they rest); a tap on a card opens its series
+   and leaves no emblem stirred on the way back.
 7. **Less motion.** `ab set media light reduced-motion`, then `ab open $O/`:
    `ab eval "document.querySelectorAll('canvas.motion').length"` reads 0, and
    a hovered card's emblem stays at rest. Then `ab record stop`.

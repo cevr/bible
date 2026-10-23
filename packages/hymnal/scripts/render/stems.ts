@@ -25,8 +25,18 @@ const PARTS: ReadonlyArray<Part> = ['S', 'A', 'T', 'B'];
 const byTuple = (a: StemNote, b: StemNote) =>
   a.start - b.start || a.end - b.end || a.key - b.key || a.velocity - b.velocity;
 
+/** `key` moved by octaves into `range` (at least an octave wide), when the stem has one. */
+const folded = (key: number, range: Stem['range']) => {
+  if (range === undefined) return key;
+  let k = key;
+  while (k < range.low) k += 12;
+  while (k > range.high) k -= 12;
+  return k;
+};
+
 /**
- * The stem's notes, by start: its parts, transposed and humanised. One key
+ * The stem's notes, by start: its parts, transposed and humanised, and
+ * folded into the stem's range when it has one. One key
  * sounds once at a time: a later onset ends the note before it, and two
  * onsets on one tick are one note, the longer and the louder.
  */
@@ -46,7 +56,7 @@ export const stemNotes = (
       notes.push({
         start: note.start,
         end: note.end,
-        key: note.key + stem.transpose,
+        key: folded(note.key + stem.transpose, stem.range),
         velocity: Math.max(1, Math.min(127, velocity + moved)),
       });
     }

@@ -39,10 +39,13 @@ import {
 } from './record.js';
 import { hashOf, keyOf, keysOf, resumeOf } from './resume.js';
 import { sha256Hex } from './sfizz.js';
+import { keyedStyle, moveText } from './keys.js';
 import type { Style } from './style.js';
 
 /** Everything a hymn's render reads besides its MIDI file. */
 export interface Setup extends AudioSetup {
+  /** Semitones from the printed key (`keys.ts`): 0 for `warm-1`, else a key set (`keySet`). */
+  readonly transpose: number;
   /** The 1-minute load over which a hymn waits to render (`GUARDS.load` unless the CLI names another). */
   readonly load: number;
   readonly set: string;
@@ -80,7 +83,14 @@ export const AUDIO_SOURCES = [
   'packages/hymnal/src/voices.ts',
 ] as const;
 
-/** The config every hymn's key shares: the style, the instrument lock, the tools, the credits and `AUDIO_SOURCES`. */
+/** The module that moves the style into another key: in a key set's config, not the printed key's. */
+const KEYS_SOURCE = 'packages/hymnal/scripts/render/keys.ts';
+
+/**
+ * The config every hymn's key shares: the style, the instrument lock, the
+ * tools, the credits and `AUDIO_SOURCES`; in another key also the transpose
+ * and `keys.ts`, which the printed key's config leaves out.
+ */
 export const configOf = (
   style: Style,
   tools: {
@@ -89,16 +99,18 @@ export const configOf = (
     readonly nodeAv: string;
     readonly comment: string;
   },
+  transpose = 0,
 ) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const root = path.resolve(import.meta.dir, '../../../..');
     const sources: Array<readonly [string, string]> = [];
-    for (const file of AUDIO_SOURCES)
+    for (const file of [...AUDIO_SOURCES, ...(transpose === 0 ? [] : [KEYS_SOURCE])])
       sources.push([file, sha256Hex(yield* fs.readFile(path.join(root, file)))]);
     return hashOf([
       ['style', JSON.stringify(style)],
+      ...(transpose === 0 ? [] : [['transpose', String(transpose)] as const]),
       ['lock', tools.lock],
       ['sfizz', tools.sfizzSha256],
       ['node-av', tools.nodeAv],
@@ -211,8 +223,12 @@ export const readRecord = (out: string, hymn: number) =>
     }).pipe(Effect.orElseSucceed(() => undefined));
   });
 
-/** A hymn's MIDI file: parsed, its sha256, and what it asks of the recording. */
-export const sourceOf = (style: Style, hymn: number) =>
+/**
+ * A hymn's MIDI file: parsed, its sha256, the style in the run's key for its
+ * parts with each stem an octave moved (`keys.ts`), and what it asks of the
+ * recording.
+ */
+export const sourceOf = (style: Style, hymn: number, transpose = 0) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -220,7 +236,14 @@ export const sourceOf = (style: Style, hymn: number) =>
       path.resolve(import.meta.dir, '../../data/midi', `${padded(hymn)}.mid`),
     );
     const midi = yield* readMidi(bytes, hymn);
-    return { midi, sha256: sha256Hex(bytes), expected: expectedOf(midi, style, hymn) };
+    const keyed = keyedStyle(style, voices(midi), transpose);
+    return {
+      midi,
+      sha256: sha256Hex(bytes),
+      style: keyed.style,
+      moves: keyed.moves,
+      expected: expectedOf(midi, keyed.style, hymn),
+    };
   });
 
 type Source = Effect.Success<ReturnType<typeof sourceOf>>;
@@ -228,15 +251,21 @@ type Source = Effect.Success<ReturnType<typeof sourceOf>>;
 /**
  * Where a hymn stands in the set under today's config and checks: to
  * render (no record, another config, or an MP3 that is not the recorded
- * one), or its record checked again, which `stands` or `fails`.
+ * one), or its record checked again, which `stands` or `fails`. With
+ * `uploaded`, a record whose MP3 is gone stands on its record: the stream
+ * deletes a key set's MP3 only once R2 holds the record's bytes.
  */
-export const standingOf = (setup: Setup, hymn: number, source: Source) =>
+export const standingOf = (setup: Setup, hymn: number, source: Source, uploaded = false) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const mp3File = path.join(setup.out, `${hymn}.mp3`);
     const record = yield* readRecord(setup.out, hymn);
-    const mp3Sha = (yield* fs.exists(mp3File)) ? sha256Hex(yield* fs.readFile(mp3File)) : undefined;
+    const mp3Sha = (yield* fs.exists(mp3File))
+      ? sha256Hex(yield* fs.readFile(mp3File))
+      : uploaded
+        ? record?.typed.sha256
+        : undefined;
     if (
       record === undefined ||
       resumeOf(record.typed, keysOf(setup.configHash, source.sha256), mp3Sha) === 'render'
@@ -269,8 +298,8 @@ export const renderHymn = (setup: Setup, hymn: number) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const { style } = setup;
-    const source = yield* sourceOf(style, hymn);
+    const source = yield* sourceOf(setup.style, hymn, setup.transpose);
+    const { style } = source;
     const standing = yield* standingOf(setup, hymn, source);
     if (standing.kind === 'stands') {
       if (standing.typed.passed && sameVerdicts(standing.typed.checks, standing.checks))
@@ -296,11 +325,12 @@ export const renderHymn = (setup: Setup, hymn: number) =>
     const mp3File = path.join(setup.out, `${hymn}.mp3`);
     const work = path.join(setup.work, String(hymn));
 
-    const jobs = yield* stemJobs(setup, hymn, midi, work);
+    const keyed = { ...setup, style };
+    const jobs = yield* stemJobs(keyed, hymn, midi, work);
     const sampledStart = performance.now();
-    const { piano: pianoRuns, strings: stringRuns } = yield* sampleStems(setup, jobs);
+    const { piano: pianoRuns, strings: stringRuns } = yield* sampleStems(keyed, jobs);
     const samplerSeconds = (performance.now() - sampledStart) / 1000;
-    const mixed = yield* sampledRss(mixAndMaster(setup, jobs, midi, work, `${mp3File}.part`));
+    const mixed = yield* sampledRss(mixAndMaster(keyed, jobs, midi, work, `${mp3File}.part`));
     const { mastered, mixSeconds, masterSeconds } = mixed.value;
     const stemRows = mixed.value.stemRows.map((s) => ({
       ...s,
@@ -379,6 +409,9 @@ export const renderHymn = (setup: Setup, hymn: number) =>
         total: Math.round(((performance.now() - started) / 1000) * 100) / 100,
       },
       waitedSeconds: Math.round(waited),
+      // A key set's record says its key and each stem an octave moved; the printed key's has neither.
+      transpose: setup.transpose === 0 ? undefined : setup.transpose,
+      moves: setup.transpose === 0 ? undefined : source.moves,
     };
     yield* writeAtomic(path.join(setup.out, `${hymn}.json`), recordText(record));
     const failedNames = Object.entries(checks)
@@ -388,7 +421,8 @@ export const renderHymn = (setup: Setup, hymn: number) =>
       `${hymn} ${ok ? 'ok' : `FAIL ${failedNames.join(',')}`}: ${record.seconds.toFixed(2)}s ` +
       `(midi ${record.midiSeconds.toFixed(2)} + ${style.tail}), ${record.lufs.toFixed(2)} LUFS, ` +
       `${record.truePeak.toFixed(2)} dBTP, lag ${lagMs} ms, ${(record.bytes / 1e6).toFixed(2)} MB, ` +
-      `${record.times.total.toFixed(1)}s`;
+      `${record.times.total.toFixed(1)}s` +
+      (source.moves.length === 0 ? '' : `; moved ${source.moves.map(moveText).join(', ')}`);
     return { hymn, status: ok ? 'passed' : 'failed', line } satisfies Outcome;
   });
 
@@ -411,9 +445,10 @@ const manifestRow = (record: HymnRecord, passedNow: boolean) => ({
  * The set's manifest from the records in `setup.out` that stand under
  * today's config, each passed or failed by today's checks, written to
  * `manifest.json`; a record that does not stand (another config, or an MP3
- * that is not its own) is left out and named in `left`.
+ * that is not its own) is left out and named in `left`. With `uploaded`
+ * (the stream's key sets), a record whose MP3 is gone stands on its record.
  */
-export const writeManifest = (setup: Setup) =>
+export const writeManifest = (setup: Setup, uploaded = false) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -423,13 +458,19 @@ export const writeManifest = (setup: Setup) =>
       const match = /^(\d+)\.json$/.exec(name);
       if (match === null) continue;
       const hymn = Number(match[1]);
-      const standing = yield* standingOf(setup, hymn, yield* sourceOf(setup.style, hymn));
+      const standing = yield* standingOf(
+        setup,
+        hymn,
+        yield* sourceOf(setup.style, hymn, setup.transpose),
+        uploaded,
+      );
       if (standing.kind === 'render') left.push(hymn);
       else hymns.push(manifestRow(standing.typed, standing.kind === 'stands'));
     }
     const manifest: RecordingManifest = {
       set: setup.set,
       style: `${setup.style.name} ${setup.style.title}`,
+      transpose: setup.transpose === 0 ? undefined : setup.transpose,
       platform: `${process.platform}-${process.arch}`,
       configHash: setup.configHash,
       tools: {

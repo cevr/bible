@@ -20,6 +20,8 @@ export interface Stem {
   readonly level: number;
   /** −1 left to 1 right. */
   readonly pan: number;
+  /** The keys the instrument has samples for: a note outside folds by octaves into them. Only another key's stems carry one (`keys.ts`). */
+  readonly range?: { readonly low: number; readonly high: number };
 }
 
 export const PIANO_SFZ = 'salamander/Salamander Grand Piano V3.sfz';
@@ -103,4 +105,5 @@ export const STYLE = {
   },
 } as const;
 
-export type Style = typeof STYLE;
+/** The style as the render reads it: `STYLE`, or `STYLE` in another key (`keys.ts`). */
+export type Style = Omit<typeof STYLE, 'stems'> & { readonly stems: ReadonlyArray<Stem> };

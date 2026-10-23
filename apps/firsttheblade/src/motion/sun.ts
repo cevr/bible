@@ -1,8 +1,9 @@
 /**
  * The field's light, and where it comes from: the sun low on the right
- * horizon. The field's still bakes this light in (`kit/field.ts`) and the
- * hero's shimmer plays along the same rays (`./shaders.ts`), so the moving
- * light and the still one fan out from one place. The stills that ship are
+ * horizon. The field's still bakes this light in (`kit/field.ts`), and the
+ * hero's shader turns the same rays slowly about the sun (`TURN`) and plays
+ * its shimmer along them (`./shaders.ts`), so the moving light and the still
+ * one fan out from one place. The stills that ship are
  * the ones the owner approved by name (`kit/approved-stills.json`).
  *
  * Positions are the painting's, `u` across its width and `v` down its height
@@ -43,6 +44,25 @@ export const RAY_REACH = 0.42;
 
 /** The light's colour, a warm white (linear in 0 to 1 per channel). */
 export const LIGHT: readonly [number, number, number] = [1, 0.965, 0.88];
+
+/**
+ * How the hero's rays turn about the sun's centre (owner, 2026-10-22: "subtly
+ * make the rays of light … rotate slowly"): `swing` radians each way (about
+ * three degrees, near one ray's width) and back over `period` seconds, on a
+ * sine, so the turn starts from the still's angles and slows to a stop at
+ * each end. The shader writes these numbers (`./shaders.ts`).
+ */
+export const TURN = { swing: 0.05, period: 60 } as const;
+
+/**
+ * The rays' turn `seconds` into the motion, in radians added to each ray's
+ * angle (a positive turn swings the fan clockwise on the screen), as the
+ * field's shader writes it. With a coarse pointer the shader multiplies it
+ * by 0 (`u_turning`, from `raysTurn` in `./query.ts`); under less motion no
+ * shader runs and the still shows.
+ */
+export const turnAt = (seconds: number) =>
+  TURN.swing * Math.sin((seconds * 2 * Math.PI) / TURN.period);
 
 /** The distance from the sun's centre, in widths, and the direction to it. */
 export const fromTheSun = (u: number, v: number) => {

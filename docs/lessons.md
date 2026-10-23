@@ -1667,6 +1667,16 @@ The form of an entry, each field on its own line:
 - **Cause:** The claim sat in files about the site's hostnames, and the change that made the domain shared named neither line.
 - **Guard:** skill: a sentence's claim goes stale with no file named in it changing, which only a reader sees. Carried by `CLAUDE.md`: "A sentence's claim goes stale with no name in it changing, so the docs test cannot see it"
 
+### prod-deploy-needs-prod-state
+
+- **Date:** 2026-10-21
+- **Kind:** retraction
+- **Said:** "`bun run deploy --yes` from a worktree deploys the live site as the main checkout does."
+- **Source:** memory reference_ftb_prod_state.md; the orchestrator's brief for unit ftb-prodstate (run p5)
+- **Wrong:** A prod deploy ran from the ftb-copy-2 worktree, which had no prod Alchemy state. Alchemy planned "8 to create", made a second D1 and queue, and bound the live Worker `firsttheblade` to them for about 70 s; the contact rule failed as owned by someone else.
+- **Cause:** The prod state is local and git-ignored, in the main checkout's `apps/firsttheblade/.alchemy/state/firsttheblade/prod` only, and Alchemy reads a missing state folder as a stack never deployed.
+- **Guard:** code: `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a checkout with no prod state folder, or an empty one, and says what to do`, `apps/firsttheblade/scripts/prod-state.test.ts` `refuses a state that lacks any one live resource, or holds it unreadable, of another type or under another name`, `apps/firsttheblade/scripts/prod-state.test.ts` `the stack's gate checks the state Alchemy reads on stage prod, and nothing on another stage`, `apps/firsttheblade/scripts/prod-state.test.ts` `the stack's body starts with the prod state gate, then the stills gate`, `packages/scripts/src/gate.test.ts` `the site's prod deploy checks its prod state before the slow suite`
+
 ### letter-tests-use-the-sent-path
 
 - **Date:** 2026-10-20
@@ -2775,7 +2785,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-1-findings.md F3
 - **Wrong:** The prod deploy built and shipped with the record `pending`, so stills the owner had not approved could reach the site.
 - **Cause:** Only the kit and its test read the record; the deploy did not.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`, `apps/firsttheblade/kit/shippable.slow.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`, `apps/firsttheblade/kit/shippable.slow.test.ts` `runs on stage prod, refusing a pending record, and on no other stage`, `apps/firsttheblade/scripts/prod-state.test.ts` `the stack's body starts with the prod state gate, then the stills gate`.
 
 ### styles-test-reads-with-a-css-parser
 
@@ -2845,7 +2855,7 @@ The form of an entry, each field on its own line:
 - **Source:** ftb-motion/rewrite-round-2-findings.md F3
 - **Wrong:** `shippable` ran only from the `deploy` script, so `bunx alchemy deploy --stage prod` shipped with no check, and it read the sources, not `dist/`.
 - **Cause:** The gate sat on one command that starts a deploy, not in the stack every prod deploy runs.
-- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `runs first in the stack on stage prod, so every prod deploy and plan runs it, and on no other stage`, `apps/firsttheblade/kit/shippable.slow.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`.
+- **Guard:** code: `apps/firsttheblade/kit/shippable.slow.test.ts` `runs on stage prod, refusing a pending record, and on no other stage`, `apps/firsttheblade/scripts/prod-state.test.ts` `the stack's body starts with the prod state gate, then the stills gate`, `apps/firsttheblade/kit/shippable.slow.test.ts` `refuses a pending record, and an approval whose shown files lack a still that no earlier approval showed byte for byte, before it builds`.
 
 ### approval-names-its-lab
 

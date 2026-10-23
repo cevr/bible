@@ -15,13 +15,14 @@ const test = it.scopedLive.layer(BunServices.layer);
 const MP3 = new TextEncoder().encode('not audio');
 
 /** A set in a fresh folder under `config`, whose sampler is not there: a hymn that renders fails. */
-const setOf = (config: string) =>
+const setOf = (config: string, transpose = 0) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const out = yield* fs.makeTempDirectoryScoped();
     const setup: Setup = {
       style: STYLE,
+      transpose,
       instruments: path.join(out, 'instruments'),
       sampler: path.join(out, 'no-sampler'),
       ir: path.join(out, 'no-room.wav'),
@@ -169,5 +170,23 @@ describe('the manifest', () => {
       expect(manifest.hymns.map((h) => [h.hymn, h.passed])).toEqual([[168, true]]);
       expect(left).toEqual([663]);
       expect(manifest.configHash).toBe('c');
+      expect(yield* fs.readFileString(path.join(setup.out, 'manifest.json'))).not.toContain(
+        'transpose',
+      );
+    }));
+
+  test("records a key set's transpose, and lists a hymn whose MP3 the stream deleted only from an uploaded set", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const setup = yield* setOf('c', 2);
+      yield* put(setup, 'c');
+      yield* fs.remove(path.join(setup.out, '168.mp3'));
+      const local = yield* writeManifest(setup);
+      expect([local.manifest.hymns.length, local.left]).toEqual([0, [168]]);
+      const { manifest, left } = yield* writeManifest(setup, true);
+      expect(manifest.transpose).toBe(2);
+      expect(manifest.hymns.map((h) => [h.hymn, h.passed])).toEqual([[168, true]]);
+      expect(left).toEqual([]);
     }));
 });

@@ -250,6 +250,18 @@ use is over 8 GB or the load over `--load` (12 by default), and stops under
 bytes are this Mac's: another host's sampler and FFmpeg give others, so a set
 is rendered on one host and recorded with its tools' hashes.
 
+`--transpose <t>` (-5 to 6) renders the same style in another key, as the
+set `warm-1-up<t>` or `warm-1-down<-t>` (`keySet` in `src/recordings.ts`;
+the stepper's order is `KEY_TRANSPOSES`). Every note moves t semitones; the
+ticks, the tempo map and the velocities stay, so the words' timings hold.
+A stem that would then play a note its instrument has no sample for moves
+an octave as a whole (`scripts/render/keys.ts`, its ranges read from the
+SFZ files by `keys.slow.test.ts`), and the hymn's line names it
+(`moved bass +12`). A part wider than its instrument folds each note still
+out of range by octaves into it. The manifest records the transpose. No
+flag is the printed key, `warm-1`, unchanged. The app's `audio:stream`
+renders and uploads the key sets (`apps/hymnal/README.md`, "The key sets").
+
 The piano is the Salamander Grand Piano V3 by Alexander Holm, CC BY 3.0; the
 strings are VS Chamber Orchestra 2: Community Edition by Versilian Studios,
 CC0 1.0. `RECORDING_CREDITS` holds the credit Settings → About shows.

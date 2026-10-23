@@ -10,6 +10,22 @@
 /** The set the app plays: style C, "Warm band", the first render. */
 export const RECORDING_SET = 'warm-1';
 
+/**
+ * The keys the app's Key stepper reaches besides the printed one, in the
+ * order they are rendered: the smallest steps first, so the most used keys
+ * arrive first.
+ */
+export const KEY_TRANSPOSES = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6] as const;
+
+/**
+ * The set of `RECORDING_SET` moved `transpose` semitones: `warm-1-up2`,
+ * `warm-1-down3`; 0 is `RECORDING_SET` itself. No name holds a `+`.
+ */
+export const keySet = (transpose: number) =>
+  transpose === 0
+    ? RECORDING_SET
+    : `${RECORDING_SET}-${transpose > 0 ? 'up' : 'down'}${Math.abs(transpose)}`;
+
 /** A hymn's key inside a set: the 1985 SDA Hymnal's number, unpadded. */
 export const recordingKey = (hymn: number) => `sdah/${hymn}.mp3`;
 

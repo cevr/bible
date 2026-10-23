@@ -9,7 +9,7 @@ import * as BunServices from '@effect/platform-bun/BunServices';
 import { JSONC } from 'bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { commandsOf } from './test-budget/shell.ts';
+import { andChained, commandsOf } from './test-budget/shell.ts';
 
 const Manifest = Schema.fromJsonString(
   Schema.Struct({
@@ -70,6 +70,25 @@ const turboRuns = (lines: ReadonlyArray<string>) =>
     .filter((line) => line.startsWith('node_modules/.bin/turbo run '))
     .map((line) => ['turbo', ...line.split(/\s+/).slice(1)]);
 
+/**
+ * Whether the deploy script `script` of workspace `name` runs its test:slow
+ * before alchemy starts: its commands are joined by `&&` alone, so each runs
+ * only when the one before it passed, and the first command with an
+ * `alchemy` word (`alchemy`, `bunx alchemy`, `node_modules/.bin/alchemy`,
+ * `alchemy@<version>`, alchemy's own `alchemy/bin/` file) comes after the
+ * slow suite.
+ */
+const slowBeforeAlchemy = (name: string, script: string) => {
+  const commands = commandsOf(script);
+  const slow = commands.findIndex(
+    (command) => command.join(' ') === `turbo run test:slow --filter=${name}`,
+  );
+  const alchemy = commands.findIndex((command) =>
+    command.some((word) => /(^|\/)alchemy(@\S*)?$|(^|\/)alchemy\/bin\//.test(word)),
+  );
+  return andChained(script) && slow > -1 && alchemy > slow;
+};
+
 /** Whether a line takes a lock (`flock`, `lockf`). */
 const locks = (line: string) => /\b(flock|lockf)\b/.test(line) && !line.startsWith('#');
 
@@ -119,18 +138,56 @@ describe('the slow suite', () => {
       }),
   );
 
-  it.effect("runs before each deploy: a deploy script starts with its workspace's test:slow", () =>
+  it.effect(
+    "runs before each deploy: a deploy script runs its workspace's test:slow before alchemy starts",
+    () =>
+      Effect.gen(function* () {
+        const { packages } = yield* laid;
+        const deploys = packages.flatMap(({ manifest }) =>
+          Option.toArray(manifest)
+            .filter(({ scripts }) => 'deploy' in scripts)
+            .map(({ name, scripts }) => ({ name: name ?? '', script: scripts['deploy'] ?? '' })),
+        );
+        expect(deploys.length).toBeGreaterThan(0);
+        for (const { name, script } of deploys) {
+          expect([name, slowBeforeAlchemy(name, script)]).toEqual([name, true]);
+        }
+      }),
+  );
+
+  it.effect(
+    'the deploy rule refuses a script whose test:slow may be skipped, or that starts alchemy before it',
+    () =>
+      Effect.sync(() => {
+        const slow = 'turbo run test:slow --filter=@bible/site';
+        const deploy = 'alchemy deploy alchemy.run.ts --stage prod';
+        expect(
+          slowBeforeAlchemy('@bible/site', `bun scripts/check.ts && ${slow} && ${deploy}`),
+        ).toBe(true);
+        for (const script of [
+          `true || ${slow} && ${deploy}`,
+          `${slow}; ${deploy}`,
+          `bunx alchemy deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
+          `node_modules/.bin/alchemy deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
+          `node node_modules/alchemy/bin/cli.js deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
+          `bunx alchemy@2.0.0-beta.83 deploy alchemy.run.ts --stage prod && ${slow} && ${deploy}`,
+          deploy,
+          `${deploy} && ${slow}`,
+        ]) {
+          expect([script, slowBeforeAlchemy('@bible/site', script)]).toEqual([script, false]);
+        }
+      }),
+  );
+
+  it.effect("the site's prod deploy checks its prod state before the slow suite", () =>
     Effect.gen(function* () {
       const { packages } = yield* laid;
-      const deploys = packages.flatMap(({ manifest }) =>
-        Option.toArray(manifest)
-          .filter(({ scripts }) => 'deploy' in scripts)
-          .map(({ name, scripts }) => ({ name, first: commandsOf(scripts['deploy'] ?? '')[0] })),
+      const site = packages.flatMap(({ manifest }) =>
+        Option.toArray(manifest).filter(({ name }) => name === '@bible/firsttheblade'),
       );
-      expect(deploys.length).toBeGreaterThan(0);
-      for (const { name, first } of deploys) {
-        expect(first).toEqual(['turbo', 'run', 'test:slow', `--filter=${name}`]);
-      }
+      const commands = commandsOf(site[0]?.scripts['deploy'] ?? '');
+      expect(commands[0]).toEqual(['bun', 'scripts/prod-state.ts']);
+      expect(commands[1]).toEqual(['turbo', 'run', 'test:slow', '--filter=@bible/firsttheblade']);
     }),
   );
 

@@ -27,16 +27,13 @@
 import * as BunRuntime from '@effect/platform-bun/BunRuntime';
 import * as BunServices from '@effect/platform-bun/BunServices';
 import { ManifestJson, type RecordingManifest } from '@bible/hymnal/recording-manifest';
-import { AuthProviders } from 'alchemy/Auth';
-import * as Cloudflare from 'alchemy/Cloudflare';
 import { Console, Data, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Command } from 'effect/cli';
-import { FetchHttpClient } from 'effect/http';
 
 import { audioUploadCommand } from './command.ts';
 import { HashBun } from './hash-bun.ts';
 import { SDAH_HYMNS, holds, unquote } from './plan.ts';
-import { TargetR2 } from './r2.ts';
+import { TargetR2Writes } from './r2.ts';
 import type { TargetObject } from './stores.ts';
 import { Hash, Target } from './stores.ts';
 import {
@@ -242,17 +239,10 @@ export const run = (set: string) =>
       });
   });
 
-/** R2 behind the owner's profile, built only for a real run (as `./copy.ts` builds it). */
-const Writes = TargetR2.pipe(
-  Layer.provide(Cloudflare.CloudflareApiLive()),
-  Layer.provide(Layer.succeed(AuthProviders, AuthProviders.of({}))),
-  Layer.provide(FetchHttpClient.layer),
-);
-
 const audioUpload = audioUploadCommand.pipe(
   Command.withHandler(({ set, dryRun: dry }) => {
     if (dry) return dryRun(set).pipe(Effect.provide(HashBun));
-    return run(set).pipe(Effect.provide(Layer.merge(HashBun, Writes)));
+    return run(set).pipe(Effect.provide(Layer.merge(HashBun, TargetR2Writes)));
   }),
 );
 

@@ -132,8 +132,8 @@ bun run build      # vite build (browser) + vite build --ssr (pages) + prerender
 bun run preview    # dist/ through the Worker's policy on http://localhost:8470 (PORT to change)
 bun run test       # the Worker's policy, the email list, the pages' data, the sitemap
 bun run typecheck
-bun run plan       # the stills gate (build, walk dist/), then show what `prod` would change
-bun run deploy     # the stills gate (build, walk dist/), then deploy `prod`; the stack runs the gate first on stage prod
+bun run plan       # the prod state check, the stills gate (build, walk dist/), then show what `prod` would change
+bun run deploy     # the prod state check, test:slow, then the stills gate (build, walk dist/) and deploy `prod`; the stack runs both checks first on stage prod
 bun run mail:send <series>/<no> [--dry-run] [--origin <url>]   # send a film to the email list
 bun run verify:drive confirm --root <dir> --port <p> --evidence <dir>   # drive the site as a visitor (verify:launch, :doctor, :outbox, :stop, :stage too)
 ```
@@ -144,6 +144,23 @@ How to run and drive the site to check a change, with the proof it keeps,
 is the `verify-firsttheblade` skill (`.claude/skills/verify-firsttheblade`).
 
 Alchemy asks before it changes anything. In a shell that can't prompt (Claude Code's `!`, CI), pass the approval through: `bun run deploy --yes`.
+
+The prod state is local: Alchemy keeps it in
+`.alchemy/state/firsttheblade/prod` (gitignored), in the main checkout
+only. A checkout without it plans every resource as new and binds the live
+Worker to a second D1 and queue, so on stage `prod` the stack first runs
+`scripts/prod-state.ts`, which stops every plan and deploy, however started,
+unless the state records the live Worker, the list's D1 and the film queue
+by their names. `bun run deploy` runs it before `test:slow` too, so a refusal
+comes at once. When one of the three is replaced on purpose, its refusal says
+what the state records instead: another type, another name, no such field, or
+no such file (a resource under a new logical id is recorded in a new file).
+Change that entry of `LIVE` in `scripts/prod-state.ts`: its file, type, field
+or name. To deploy from
+a worktree, copy the main checkout's state folder and `.env` in, and read
+the plan first: on prod it updates resources or changes nothing, and a
+resource to create that the change did not add means stop. After the deploy,
+copy the state back home.
 
 A throwaway copy goes to its own stage, on its own `workers.dev` host, and
 never takes the site's hostnames. It does share the sending domain with
@@ -332,7 +349,11 @@ the master: `kit/field-paint.slow.test.ts` holds the master's SHA-256, so a new
 master refuses them until they are measured again. The field and the night move in the browser
 (`src/motion/scene.ts`): a WebGL2 canvas over each still, loaded only for a
 reader who has not asked for less motion, drawing only while it is on the
-screen. The series cards' emblems are laid in the page as drawings
+screen. Over the field's sky the sun's rays turn slowly, a few degrees each
+way and back over a minute (`TURN` in `src/motion/sun.ts`): the shader takes
+the light the still bakes in off the sky and lays it on again turned, so the
+still itself stays as approved. With a coarse pointer the rays rest at the
+still's angles while the wheat still sways. The series cards' emblems are laid in the page as drawings
 (`src/ui/emblems.ts`) so the stylesheet can stir their parts.
 
 Newsreader (`src/fonts/`) is under the SIL Open Font License 1.1, subset to

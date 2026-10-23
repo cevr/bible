@@ -353,6 +353,31 @@ A real run writes with the owner's Alchemy Cloudflare profile, as the copy job
 does, and runs before the change that points the app at the set reaches
 `main`, so the app never plays keys that do not exist.
 
+### The key sets
+
+`bun run audio:stream --keys all` renders the Warm band in the 11 other keys
+the Key stepper reaches (+1, -1, +2, -2, ... +6) and streams each hymn to R2
+under `audio/<set>/sdah/<n>.mp3` (`warm-1-up2`, `warm-1-down3`). The code is
+`infra/audio/stream.ts` and `infra/audio/stream-job.ts`. The key sets go to R2
+only, never to the GitHub copy of `warm-1`.
+
+- Each hymn renders in its own `render.ts --transpose <t>` process, which
+  waits while the load is over `--load` (12 by default). `--parallel` (4 by
+  default) hymns run at once. `--hymns 1,46` takes some hymns only.
+- A hymn is rendered and checked, uploaded under the upload's rules
+  (`audio/mpeg`, a year's `immutable` cache, R2's MD5 and size must match),
+  read back from R2, and only then its MP3 and work folder are deleted. The
+  disk holds at most `--parallel` hymns' files, and the set folder keeps the
+  records and, after each key, its manifest.
+- A hymn that fails a check is not uploaded; its record stays. A key R2 holds
+  with other bytes is never replaced, and a failed upload deletes nothing.
+- A rerun resumes: a hymn whose record passed and whose bytes R2 holds is
+  kept, with no render and no upload. Stop it with SIGTERM.
+- Each line goes to the console and to `stream.log` in the render cache:
+  `key <set> hymn <n> rendered|kept|uploaded|failed`, the running totals,
+  and a `key <set> done:` line for each key. The run exits non-zero when a
+  hymn failed. It writes with the owner's Alchemy Cloudflare profile.
+
 ### Deploy and copy
 
 The orchestrator of the run that made this app runs these steps after the

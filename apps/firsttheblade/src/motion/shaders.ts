@@ -5,13 +5,16 @@
  * in as the ramp rises to 1.
  *
  * - The field: the near plants sway in a wind whose gusts run from right to
- *   left (the wind map's red, `kit/field-paint.ts`), and the light flows out
- *   along the sun's rays across the sky (its green), the same rays the still
- *   bakes in (`./sun.ts`).
+ *   left (the wind map's red, `kit/field-paint.ts`). Over the sky (its
+ *   green) the sun's rays turn slowly about the sun (`TURN`, `./sun.ts`): the
+ *   shader takes the light the still bakes in off each pixel and lays it on
+ *   again with the rays turned, so no fixed fan stays behind the moving one,
+ *   and a turn of 0 (time 0, or `u_turning` 0) leaves the still as it is.
+ *   The light flows out along the turned rays.
  * - The night: the painted stars twinkle, and fainter stars drift across the
  *   sky above the hills.
  */
-import { ASPECT, GLOW, LIGHT, RAY_REACH, RAYS, SUN } from './sun.ts';
+import { ASPECT, GLOW, LIGHT, RAY_REACH, RAYS, SUN, TURN } from './sun.ts';
 
 const float = (n: number) => {
   const text = String(n);
@@ -60,6 +63,7 @@ uniform sampler2D u_wind;
 uniform vec4 u_map;
 uniform float u_time;
 uniform float u_ramp;
+uniform float u_turning;
 in vec2 v_uv;
 out vec4 color;
 ${NOISE}
@@ -82,11 +86,17 @@ void main() {
   vec2 q = vec2(uv.x - ${float(SUN.u)}, (uv.y - ${float(SUN.v)}) / ${float(ASPECT)});
   float beyond = max(0.0, length(q) - ${float(SUN.radius)});
   float a = atan(q.y, q.x);
-  float light = raysToward(a) * exp2(-beyond / ${float(RAY_REACH)});
-  light += ${float(GLOW.strength)} * 0.4 * exp(-beyond / ${float(GLOW.reach)});
-  float flow = noise(vec2(a * 30.0, beyond * 16.0 - t * 0.55)) - 0.5;
-  float shimmer = light * flow * 0.9 * wind.g * u_ramp;
+  float turn = u_turning * ${float(TURN.swing)} * sin(${float(2 * Math.PI)} * t / ${float(TURN.period)});
+  float fade = exp2(-beyond / ${float(RAY_REACH)});
+  float glow = ${float(GLOW.strength)} * exp(-beyond / ${float(GLOW.reach)});
+  float turned = raysToward(a - turn) * fade;
   vec3 tint = vec3(${LIGHT.map(float).join(', ')});
+  vec3 baked = 1.0 - min(1.0, glow + raysToward(a) * fade) * tint;
+  vec3 moved = 1.0 - min(1.0, glow + turned) * tint;
+  c = 1.0 - (1.0 - c) * mix(vec3(1.0), moved / baked, wind.g);
+  float light = turned + glow * 0.4;
+  float flow = noise(vec2((a - turn) * 30.0, beyond * 16.0 - t * 0.55)) - 0.5;
+  float shimmer = light * flow * 0.9 * wind.g * u_ramp;
   c = 1.0 - (1.0 - c) * (1.0 - shimmer * tint);
   color = vec4(c, 1.0);
 }`;
