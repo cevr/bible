@@ -23,7 +23,7 @@ Workspaces: git worktrees under `~/Developer/personal/.rifts/bible-tools/<unit>`
 | uibulk    | chords, shell, playstall       |                           |                   | merged 2f7de2e1d    |
 | chordsimp | chords, uibulk                 | removed                   |                   | merged d34ce0021    |
 | h220      | pagerows                       | removed                   |                   | merged 5ffd09c2e    |
-| worship   | uibulk, render                 | .rifts/manna/worship      | a7d05af6f35789e03 |                     |
+| worship   | uibulk, render                 | .rifts/manna/worship      | a7487df73f392a94b |                     |
 | tempo     | worship                        |                           |                   |                     |
 | keys      | render                         |                           |                   | merged 8be940a53    |
 | hymnbar   | shell, playstall               |                           |                   | folded into uibulk  |
