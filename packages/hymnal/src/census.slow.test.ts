@@ -1331,8 +1331,7 @@ describe('census', () => {
         const lines = fix.refrain!.lines.flatMap((item) =>
           'varies' in item ? item.varies[0]!.lines : [item],
         );
-        // Against the hymn's own unflattened lines, settled ones too: 220 waits on the owner
-        // (`disputed` rulings settle the lines its page contradicts).
+        // Against the hymn's own unflattened lines, settled ones too.
         const outline = outlineOf(sources, 220);
         const linesOf = (fixed: typeof fix) =>
           outlineProblems(
@@ -1532,12 +1531,12 @@ describe('census', () => {
         .map(([n]) => n)
         .toSorted((a, b) => a - b);
 
-    it.effect('answers page for six hymns, source for three, and leaves one disputed', () =>
+    it.effect('answers page for six hymns, source for three, and leaves none disputed', () =>
       Effect.gen(function* () {
         const { sources } = yield* read;
         expect(answeredBy(sources, 'page')).toEqual([3, 18, 162, 207, 214, 402]);
         expect(answeredBy(sources, 'source')).toEqual([58, 243, 398]);
-        expect(answeredBy(sources, undefined)).toEqual([220]);
+        expect(answeredBy(sources, undefined)).toEqual([]);
       }),
     );
 
@@ -1690,7 +1689,7 @@ describe('census', () => {
         // The guard sees a run: three words of a row, printed bare, are found.
         const [first = ''] = runs;
         expect(linesQuoting([`problem 1 ${first}`], runs)).toEqual(['line 1 word 3']);
-        // A note that quotes the page (220's engraving) prints its tag.
+        // A note that quotes the page (86's engraving) prints its tag.
         expect(
           linesQuoting(censusLines(census, sources, problemsOf(census, sources)), runs),
         ).toEqual([]);

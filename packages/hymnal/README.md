@@ -439,7 +439,7 @@ covers. Of the 480 (2026-10-20): 145 in rows it cannot place, 141 a line
 opening on a word the book capitalises anyway, 118 in refrain lines, 16 of
 line order, line presence and stanza order, 33 others, 17 a judge could not
 tell, and 10 in 18, 32 and 319 (a one-word line put in within a row's
-slack, a line put in at a stanza's end, a word moved over a line's end); 62 of them are 220's, which waits on the owner.
+slack, a line put in at a stanza's end, a word moved over a line's end).
 
 Each difference the check prints goes to a fresh judge on crops: a ruling
 that finds the source right there (`slip`, `layout`, `assumption`, `echo`, `repeat`)
@@ -458,15 +458,15 @@ naming the system and row its first word is printed in, no word changed;
 the ruling settles no line and stays as the record of the place (3, 18,
 162, 207, 214 and 402). Either way the hymn takes the state its words give.
 
-The four states (2026-10-22: 695 hymns, 1711 rulings; 1144 of the 362489
-layout mutations unreached, 668 on the unreachable list and 476 on the gap
+The four states (2026-10-23: 695 hymns, 1652 rulings; 1123 of the 362490
+layout mutations unreached, 679 on the unreachable list and 444 on the gap
 list, in 307 hymns):
 
 | State       | Hymns | Deciding page                     | Blind readings of it                                                | Rulings that decided it                                                                                                                                                                                                        |
 | ----------- | ----- | --------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `matches`   | 608   | 366 scan, 180 engraving, 62 photo | 519 1 reader, 71 1 OCR, 15 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 272 hymns with no ruling; 336 with 1176 rulings: 0 change words, 1176 keep the row (471 words, 215 layout, 212 unreachable list, 118 gap list, 76 echo, 30 repeat, 15 disputed, 15 assumption, 13 slip, 10 shared, 1 misprint) |
+| `matches`   | 609   | 366 scan, 180 engraving, 63 photo | 519 1 reader, 72 1 OCR, 15 2 reader, 2 1 reader + 1 OCR, 1 3 reader | 272 hymns with no ruling; 337 with 1201 rulings: 0 change words, 1201 keep the row (480 words, 217 layout, 213 unreachable list, 119 gap list, 76 echo, 30 repeat, 22 shared, 15 disputed, 15 assumption, 13 slip, 1 misprint) |
 | `fixed`     | 81    | 55 photo, 26 scan                 | 30 1 OCR, 24 2 reader, 24 1 reader, 3 1 reader + 1 OCR              | 0 hymns with no ruling; 81 with 432 rulings: 160 change words (148 words, 10 repeat, 2 owner), 272 keep the row (211 words, 19 layout, 16 gap list, 12 unreachable list, 9 repeat, 3 assumption, 1 disputed, 1 slip)           |
-| `unsettled` | 2     | 2 engraving                       | 2 1 OCR                                                             | 0 hymns with no ruling; 2 with 103 rulings: 21 change words (19 words, 2 shared), 82 keep the row (44 disputed, 12 layout, 12 echo, 11 words, 2 unreachable list, 1 gap list)                                                  |
+| `unsettled` | 1     | 1 engraving                       | 1 1 OCR                                                             | 0 hymns with no ruling; 1 with 19 rulings: 2 change words (2 words), 17 keep the row (12 layout, 4 words, 1 unreachable list)                                                                                                  |
 | `nopage`    | 4     | 4 none                            | 4 none                                                              | none: 4 hymns with no ruling                                                                                                                                                                                                   |
 
 A `fixed` row is the base row with each ruling applied, written from its
@@ -477,8 +477,11 @@ stays the base row, and the hymn waits on the owner's photo of its page;
 laid out otherwise than its row (a `disputed` ruling: a poem line opened at
 another word, a block sung where the page does not sing it) is `unsettled`
 too, its row as it is, and waits on the owner's word, until he answers it.
-220 waits on it: two judges read its engraving's 22 places, and the
-database sings words there the engraving prints once.
+220's engraving prints 22 places once where the database sings them
+twice. The owner's photos of 220 (`data/photos/sdah-1985/220.jpg`,
+`220-p2.jpg`) decide it: fresh judges read 14 of the places as echoes
+printed in parentheses, 5 as words and 3 as a shared row, each as the
+row sings it, so its row stands and it `matches`.
 
 `src/census.slow.test.ts` reads the census, the inventory, the rulings, the
 crops, the fixes and hymnal.db, and checks each entry against them: its
