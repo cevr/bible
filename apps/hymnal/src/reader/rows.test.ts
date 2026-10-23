@@ -75,13 +75,15 @@ const runsOf = (list: ReadonlyArray<Fixture>) =>
     [],
   );
 
-/** A row as the rule names it: a topic by its name, a hymn by its number. */
+/** A row as the rule names it: a topic or a shelf by its name (a shelf by where it opens too), a hymn by its number. */
 type Seen =
   | { readonly kind: 'topic'; readonly name: string }
+  | { readonly kind: 'shelf'; readonly name: string; readonly href: string }
   | { readonly kind: 'hymn'; readonly number: number };
 
 const seenOf = (row: Row<Fixture>): Seen => {
   if (row.kind === 'topic') return { kind: 'topic', name: row.name };
+  if (row.kind === 'shelf') return { kind: 'shelf', name: row.name, href: row.href };
   return { kind: 'hymn', number: row.hymn.number };
 };
 
@@ -134,16 +136,16 @@ describe('the reader’s shelves above the topics', () => {
   ];
   const at = (n: number) => list.filter((hymn) => hymn.number === n);
 
-  it('come first, each under a row naming it, its hymns in its order', () => {
+  it('come first, each under a header naming it and where it opens, its hymns in its order; only topics are pinned', () => {
     const { rows, sticky } = rowsOf(list, [
-      { name: 'Favourites', hymns: [...at(1), ...at(3)] },
-      { name: 'Recent', hymns: [...at(3), ...at(2)] },
+      { name: 'Favourites', hymns: [...at(1), ...at(3)], href: '/favourites' },
+      { name: 'Recent', hymns: [...at(3), ...at(2)], href: '/recent' },
     ]);
     expect(rows.map(seenOf)).toEqual([
-      { kind: 'topic', name: 'Favourites' },
+      { kind: 'shelf', name: 'Favourites', href: '/favourites' },
       { kind: 'hymn', number: 1 },
       { kind: 'hymn', number: 3 },
-      { kind: 'topic', name: 'Recent' },
+      { kind: 'shelf', name: 'Recent', href: '/recent' },
       { kind: 'hymn', number: 3 },
       { kind: 'hymn', number: 2 },
       { kind: 'topic', name: 'A' },
@@ -152,15 +154,15 @@ describe('the reader’s shelves above the topics', () => {
       { kind: 'topic', name: 'B' },
       { kind: 'hymn', number: 3 },
     ]);
-    expect(sticky).toEqual([0, 3, 6, 9]);
+    expect(sticky).toEqual([6, 9]);
     // A hymn on a shelf and under its topic is two rows, each keyed apart.
     expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
   });
 
   it('hand a row’s press its own shelf to page through, and a topic’s row every hymn', () => {
     const { rows } = rowsOf(list, [
-      { name: 'Favourites', hymns: [...at(1), ...at(3)] },
-      { name: 'Recent', hymns: [...at(3), ...at(2)] },
+      { name: 'Favourites', hymns: [...at(1), ...at(3)], href: '/favourites' },
+      { name: 'Recent', hymns: [...at(3), ...at(2)], href: '/recent' },
     ]);
     const sources = rows.flatMap((row) => {
       if (row.kind === 'hymn') return [row.source];
@@ -177,13 +179,13 @@ describe('the reader’s shelves above the topics', () => {
     ]);
   });
 
-  it('show no row for an empty shelf', () => {
+  it('show no header for an empty shelf', () => {
     const { rows } = rowsOf(list, [
-      { name: 'Favourites', hymns: [] },
-      { name: 'Recent', hymns: at(2) },
+      { name: 'Favourites', hymns: [], href: '/favourites' },
+      { name: 'Recent', hymns: at(2), href: '/recent' },
     ]);
     expect(rows.slice(0, 3).map(seenOf)).toEqual([
-      { kind: 'topic', name: 'Recent' },
+      { kind: 'shelf', name: 'Recent', href: '/recent' },
       { kind: 'hymn', number: 2 },
       { kind: 'topic', name: 'A' },
     ]);
@@ -197,7 +199,7 @@ describe('a favourite’s rows', () => {
       const list = draw(r, k);
       const favourites = new Set(list.filter(() => r() < 0.2).map((hymn) => hymn.number));
       const recent = list.filter(() => r() < 0.01).slice(0, 5);
-      const shelves = [{ name: 'Recent', hymns: recent }];
+      const shelves = [{ name: 'Recent', hymns: recent, href: '/recent' }];
       const starred = rowsOf(list, shelves, favourites);
       const plain = rowsOf(list, shelves);
       expect(starred.rows.map((row) => row.key)).toEqual(plain.rows.map((row) => row.key));

@@ -5,8 +5,9 @@
  * With `byTopic`, a row names each run of hymns in one topic (`rowsOf`), and
  * a copy of it stays pinned at the list's top while that run's hymns scroll
  * under it (`PinnedTopic`). Above the topics, each of the reader's lists
- * that holds a hymn (`shelves`: Recent) is a run of its own under a row
- * naming it, pinned as a topic's is. A row of one of the reader's
+ * that holds a hymn (`shelves`: Recent) is a run of its own under a header
+ * naming it, a button that opens the list's own screen (`See all`); it is
+ * not pinned, so it scrolls away with its hymns. A row of one of the reader's
  * `favourites` carries a small star before its title, in every run, and
  * VoiceOver reads it as a favourite. The pin follows the scroll offset on the UI
  * thread from the topics' fixed places (`pin.ts`), not the list's sticky
@@ -63,10 +64,10 @@ const padding = 11;
 const topicLine = 20;
 const topicPadding = 8;
 
-/** A row's height at the reader's text size (`fontScale`), as its text scales. */
+/** A row's height at the reader's text size (`fontScale`), as its text scales: a shelf's header is a topic's height. */
 const heightOf = (kind: Row<HymnText>['kind'], fontScale: number) => {
-  if (kind === 'topic') return Math.ceil(topicLine * fontScale) + 2 * topicPadding;
-  return Math.ceil(line * fontScale) + 2 * padding;
+  if (kind === 'hymn') return Math.ceil(line * fontScale) + 2 * padding;
+  return Math.ceil(topicLine * fontScale) + 2 * topicPadding;
 };
 
 /**
@@ -89,6 +90,15 @@ const drawRow = ({
   readonly extraData: Look;
 }) => {
   if (item.kind === 'topic') return <Topic name={item.name} height={extraData.topicHeight} />;
+  if (item.kind === 'shelf')
+    return (
+      <ShelfHeader
+        name={item.name}
+        href={item.href}
+        height={extraData.topicHeight}
+        accent={extraData.accent}
+      />
+    );
   return (
     <HymnRow
       hymn={item.hymn}
@@ -131,7 +141,11 @@ export function HymnList({
   const topics = useMemo(
     () => ({
       names: sticky.flatMap((i) => rows.slice(i, i + 1).flatMap((row) => names(row))),
-      starts: topicStarts(rows, header, (kind) => ({ topic: topicHeight, hymn: hymnHeight })[kind]),
+      starts: topicStarts(
+        rows,
+        header,
+        (kind) => ({ topic: topicHeight, shelf: topicHeight, hymn: hymnHeight })[kind],
+      ),
     }),
     [rows, sticky, header, topicHeight, hymnHeight],
   );
@@ -152,8 +166,8 @@ export function HymnList({
         keyExtractor={(row) => row.key}
         getItemType={(row) => row.kind}
         getFixedItemSize={(_, __, kind) => {
-          if (kind === 'topic') return topicHeight;
-          return hymnHeight;
+          if (kind === 'hymn') return hymnHeight;
+          return topicHeight;
         }}
         estimatedItemSize={hymnHeight}
         recycleItems
@@ -251,6 +265,38 @@ function Topic({ name, height }: { readonly name: string; readonly height: numbe
 }
 
 /**
+ * A shelf's header: its name as a topic's row shows it, and `See all ›`, a
+ * button that opens the shelf's own screen with all its hymns.
+ */
+function ShelfHeader({
+  name,
+  href,
+  height,
+  accent,
+}: {
+  readonly name: string;
+  readonly href: string;
+  readonly height: number;
+  readonly accent: ColorValue;
+}) {
+  const link = useLinkTo({ href });
+  return (
+    <Pressable {...link} role="button" aria-label={`${name}, see all`}>
+      {({ pressed }) => (
+        <View style={[styles.topic, styles.shelf, { height }, pressed && styles.pressed]}>
+          <Text style={styles.topicName} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={[styles.seeAll, { color: accent }]} numberOfLines={1}>
+            See all ›
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/**
  * One hymn's row: a link the router opens in the app. Its press first hands
  * the pager the list it sits in (`source`: its shelf's, or the list's), so a
  * swipe on the hymn moves through that list. A favourite's row draws a
@@ -335,6 +381,8 @@ const styles = StyleSheet.create({
     borderBottomColor: color.line,
   },
   topicName: { fontSize: 15, lineHeight: topicLine, fontWeight: '600', color: color.muted },
+  shelf: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  seeAll: { fontSize: 15, lineHeight: topicLine },
   empty: { padding: 16, fontSize: 17, color: color.muted },
   separator: {
     position: 'absolute',

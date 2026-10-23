@@ -1,9 +1,12 @@
 /**
  * The phones' hymn list as rows: first each of the reader's own lists that
- * holds a hymn (`shelves`: Recent), under a row that names it; then each run
- * of hymns in one topic, under a row that names the topic.
- * The list pins a named row at its top while its hymns scroll under it
- * (`sticky`, the named rows' indices).
+ * holds a hymn (`shelves`: Recent), under a header row that names it and
+ * opens its own screen (`href`); then each run of hymns in one topic, under
+ * a row that names the topic.
+ * The list pins a topic's row at its top while its hymns scroll under it
+ * (`sticky`, the topic rows' indices). A shelf's header is not pinned: the
+ * pinned copy lets touches through to the list, so a pinned header could not
+ * take a press.
  *
  * A row's place comes from the hymns' own order alone: a topic that comes
  * back after another gets a second row, keyed by its own first hymn. A hymn
@@ -16,6 +19,7 @@ import type { Shelf } from './lists';
 
 export type Row<Hymn> =
   | { readonly kind: 'topic'; readonly key: string; readonly name: string }
+  | { readonly kind: 'shelf'; readonly key: string; readonly name: string; readonly href: string }
   | {
       readonly kind: 'hymn';
       readonly key: string;
@@ -42,8 +46,7 @@ export const rowsOf = <Hymn extends { readonly number: number; readonly topic: s
   const sticky: Array<number> = [];
   for (const shelf of shelves.filter((s) => s.hymns.length > 0)) {
     const source = shelf.hymns.map((hymn) => hymn.number);
-    sticky.push(rows.length);
-    rows.push({ kind: 'topic', key: `list:${shelf.name}`, name: shelf.name });
+    rows.push({ kind: 'shelf', key: `list:${shelf.name}`, name: shelf.name, href: shelf.href });
     for (const hymn of shelf.hymns)
       rows.push({
         kind: 'hymn',

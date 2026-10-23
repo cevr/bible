@@ -9,7 +9,8 @@
  * and `~/color` is the phones' colour module. Each scroll view tells the
  * script the props it was last drawn with (`scrolls`), as the platform
  * would call its handlers. With `nativeList`, LegendList is its phones'
- * build, which hands a scroll view the handlers iOS calls.
+ * build, which hands a scroll view the handlers iOS calls, and a screen's
+ * `~/reader/HymnList` is the phones' list, as Metro resolves it.
  */
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator';
@@ -67,6 +68,7 @@ export const phone = ({ nativeList = false }: { readonly nativeList?: boolean } 
   const web = Bun.resolveSync('react-native-web', import.meta.dir);
   const one = Bun.resolveSync('./one.tsx', import.meta.dir);
   const color = Bun.resolveSync('../color.native.ts', import.meta.dir);
+  const phoneList = Bun.resolveSync('../reader/HymnList.native.tsx', import.meta.dir);
   const list = `${Bun.resolveSync('@legendapp/list/package.json', import.meta.dir).replace(/package\.json$/, '')}react-native.mjs`;
 
   plugin({
@@ -122,11 +124,16 @@ export const phone = ({ nativeList = false }: { readonly nativeList?: boolean } 
         contents: `export default ${JSON.stringify(readChords())};`,
         loader: 'js',
       }));
-      if (nativeList)
+      if (nativeList) {
         build.module('@legendapp/list/react-native', () => ({
           contents: `export * from ${JSON.stringify(list)};`,
           loader: 'js',
         }));
+        build.module('~/reader/HymnList', () => ({
+          contents: `export * from ${JSON.stringify(phoneList)};`,
+          loader: 'js',
+        }));
+      }
     },
   });
   return { device, scrolls };

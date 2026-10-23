@@ -12,7 +12,7 @@ import { webOnly } from '~/web/webOnly';
 
 /**
  * The app's one stack: the home screen, which draws its own title (no
- * native header), each hymn pushed over it, and Settings, the reading
+ * native header), each hymn and the Recent list pushed over it, and Settings, the reading
  * settings and the full player as sheets. The player plays on across every
  * screen; its bar is docked under the stack, above the home indicator, on a hymn page and
  * wherever the player holds a hymn (`PlayerBar`). The screens are told the
@@ -27,6 +27,7 @@ export default function HymnalLayout() {
             <Stack screenOptions={useStackOptions(stackHeaders)}>
               {/* The title names the home screen to the back button of a hymn pushed over it. */}
               <Stack.Screen name="index" options={{ title: 'Hymns', headerShown: false }} />
+              <Stack.Screen name="recent" options={{ title: 'Recent' }} />
               <Stack.Screen
                 name="settings"
                 options={{

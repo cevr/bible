@@ -50,6 +50,13 @@ interface Run {
   readonly starred: ReadonlyArray<number>;
   readonly stars: number;
   readonly recentSource: ReadonlyArray<number>;
+  readonly shelfHeader: { readonly label: string; readonly text: string };
+  readonly shelfOpened: ReadonlyArray<string>;
+  readonly recentRows: ReadonlyArray<string>;
+  readonly recentStarred: ReadonlyArray<number>;
+  readonly recentScreenOpened: ReadonlyArray<string>;
+  readonly recentScreenSource: ReadonlyArray<number>;
+  readonly recentEmpty: { readonly rows: number; readonly text: string };
   readonly emptyHeadings: ReadonlyArray<string>;
   readonly playing: {
     readonly playing: boolean;
@@ -183,7 +190,7 @@ describe('the reader’s lists', () => {
   });
 
   it('the home list shows Recent above its first topic, its hymns in order, and no Favourites section', () => {
-    expect(seen.shelfRows).toEqual(['Recent', '30', '4', '3', seen.shelfFirstTopic]);
+    expect(seen.shelfRows).toEqual(['Recent, see all', '30', '4', '3', seen.shelfFirstTopic]);
   });
 
   it('a favourite’s rows carry a star and are read as a favourite, in Recent and under its topic', () => {
@@ -195,6 +202,25 @@ describe('the reader’s lists', () => {
 
   it('a press on a Recent row hands the pager Recent to page through', () => {
     expect(seen.recentSource).toEqual([30, 4, 3]);
+  });
+
+  it('Recent’s header is a button that shows See all and opens the Recent screen', () => {
+    expect(seen.shelfHeader).toEqual({ label: 'Recent, see all', text: 'RecentSee all ›' });
+    expect(seen.shelfOpened).toEqual(['/recent']);
+  });
+
+  it('the Recent screen lists every hymn Recent keeps, the latest first, a favourite starred, an unknown number dropped', () => {
+    expect(seen.recentRows).toEqual(['30', '4', '3', '7', '8', '9', '10']);
+    expect(seen.recentStarred).toEqual([30, 3]);
+  });
+
+  it('a press on the Recent screen opens the hymn and hands the pager all of Recent', () => {
+    expect(seen.recentScreenOpened).toEqual(['/hymns/7']);
+    expect(seen.recentScreenSource).toEqual([30, 4, 3, 7, 8, 9, 10]);
+  });
+
+  it('the Recent screen with nothing opened says so', () => {
+    expect(seen.recentEmpty).toEqual({ rows: 0, text: 'The hymns you open show here.' });
   });
 
   it('a list with no hymn shows no section: the first topic comes first', () => {

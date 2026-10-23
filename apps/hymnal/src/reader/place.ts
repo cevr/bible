@@ -19,6 +19,9 @@ export const hymnsOffset = Atom.make(0).pipe(Atom.keepAlive);
 /** The search results' scroll offset, in points from their top. */
 export const searchOffset = Atom.make(0).pipe(Atom.keepAlive);
 
+/** The Recent screen's scroll offset, in points from its top. */
+export const recentOffset = Atom.make(0).pipe(Atom.keepAlive);
+
 /**
  * The hymns the pager swipes through next (`pager.ts`): the list a row was
  * pressed in (the home list, a search's results or Recent), in

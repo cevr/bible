@@ -23,6 +23,7 @@ const { HymnScreen } = await import('../reader/HymnScreen.native');
 const { StackHeader } = await import('./stack');
 const { HymnList } = await import('../reader/HymnList.native');
 const { pagesFrom } = await import('../reader/place');
+const { Recent } = await import('../home/Recent');
 const { settings } = await import('../store');
 const { hymnAt, hymns } = await import('../hymns/hymns');
 const { PlayerContext } = await import('../player/context');
@@ -245,9 +246,9 @@ const out: Record<string, unknown> = {};
 const headings = (host: HTMLElement) =>
   [...host.querySelectorAll('[role="heading"]')].map((row) => row.getAttribute('aria-label'));
 
-/** The rows the list draws, in its order: each row's hymn number, or its heading's label. */
+/** The rows the list draws, in its order: each row's hymn number, or its heading's or button's label. */
 const rowsDrawn = (host: HTMLElement) =>
-  [...host.querySelectorAll('[role="heading"], [role="link"]')].map(
+  [...host.querySelectorAll('[role="heading"], [role="button"], [role="link"]')].map(
     (row) =>
       /^\d+/.exec(row.getAttribute('aria-label') ?? '')?.[0] ?? row.getAttribute('aria-label'),
   );
@@ -265,7 +266,7 @@ const rowsDrawn = (host: HTMLElement) =>
       hrefOf: (n: number) => `/hymns/${n}`,
       offset,
       byTopic: true,
-      shelves: [{ name: 'Recent', hymns: of([30, 4, 3]) }],
+      shelves: [{ name: 'Recent', hymns: of([30, 4, 3]), href: '/recent' }],
       favourites: new Set([3, 30]),
     }),
     listed,
@@ -279,6 +280,43 @@ const rowsDrawn = (host: HTMLElement) =>
   out['stars'] = shown.host.querySelectorAll('[data-testid="row-star"]').length;
   await press(shown, '30');
   out['recentSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
+  const header = shown.host.querySelector('[role="button"][aria-label^="Recent"]');
+  out['shelfHeader'] = {
+    label: header?.getAttribute('aria-label') ?? '',
+    text: header?.textContent ?? '',
+  };
+  opened.splice(0);
+  await act(async () => {
+    header?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+  });
+  out['shelfOpened'] = [...opened];
+  shown.close();
+}
+
+// The Recent screen: every hymn Recent keeps, the latest first, each
+// favourite starred; a row's press hands the pager the whole of Recent.
+{
+  const shown = app();
+  const kept = [30, 4, 3, 7, 8, 9, 10, 9999];
+  shown.registry.set(settings.lists.recent, kept);
+  shown.registry.set(settings.lists.favourites, [3, 30]);
+  await shown.show(h(Recent), listed);
+  out['recentRows'] = rowsDrawn(shown.host);
+  out['recentStarred'] = [...shown.host.querySelectorAll('[role="link"]')]
+    .map((row) => row.getAttribute('aria-label') ?? '')
+    .filter((label) => label.endsWith(', favourite'))
+    .map((label) => Number(/^\d+/.exec(label)?.[0]));
+  await press(shown, '7');
+  out['recentScreenOpened'] = [...opened];
+  out['recentScreenSource'] = Option.getOrElse(shown.registry.get(pagesFrom), () => []);
+  shown.close();
+}
+
+// The Recent screen with nothing opened yet: it says so.
+{
+  const shown = app();
+  await shown.show(h(Recent), (host) => (host.textContent ?? '').length > 0);
+  out['recentEmpty'] = { rows: rowsDrawn(shown.host).length, text: shown.host.textContent ?? '' };
   shown.close();
 }
 
@@ -291,7 +329,7 @@ const rowsDrawn = (host: HTMLElement) =>
       hrefOf: (n: number) => `/hymns/${n}`,
       offset,
       byTopic: true,
-      shelves: [{ name: 'Recent', hymns: [] }],
+      shelves: [{ name: 'Recent', hymns: [], href: '/recent' }],
     }),
     listed,
   );
